@@ -4,16 +4,28 @@
 
 App Setup
 
-- [-] Make it deploy (vercel)
-- [ ] Scaffold basic ui with mock data
-- [ ] Setup db (neon postgres)
-- [ ] Attach db to ui
-- [ ] Add authentication (w/ next-auth)
-- [ ] Attach end to end tests (cypress)
-- [ ] Attach CI for cypress cloud
+- [x] Make it deploy (vercel)
+  - [x] App builds locally
+  - [x] Publish to github
+  - [x] Connect/deploy to vercel
+  - [x] vercel url works
+- [-] Setup db (neon postgres w drizzle-orm) & next-auth
+  - [x] Create neon dbs for dev preview and prod
+  - [x] Setup drizzle-orm
+  - [x] Initial schemas for users and accounts
+  - [x] migrate db
+  - [ ] Setup next-auth w/ drizzle adapter
+  - [ ] Add env vars to vercel
+  - [ ] Setup credentials provider
+  - [ ] Basic login view
+- [ ] End to end tests (cypress)
+- [ ] CI for cypress cloud
 - [ ] Layouts
-- [ ] Error management (w/ sentry)
 
-Features:
+Features
 
 - pending
+
+Final Touches (pre launch)
+
+- [ ] Error management (w/ sentry)
