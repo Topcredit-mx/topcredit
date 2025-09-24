@@ -2,100 +2,55 @@ import {
 	boolean,
 	integer,
 	pgTable,
-	primaryKey,
 	serial,
 	text,
 	timestamp,
-} from "drizzle-orm/pg-core";
-import type { AdapterAccount } from "next-auth/adapters";
+	uuid,
+} from 'drizzle-orm/pg-core'
 
-export const users = pgTable("user", {
-	id: serial("id").primaryKey(),
-	name: text("name").notNull(),
-	email: text("email").unique().notNull(),
-	admin: boolean("admin").default(false).notNull(),
-	emailVerified: timestamp("emailVerified", { mode: "date" }),
-	image: text("image"),
-	encryptedPassword: text("encryptedPassword"),
-	phone: text("phone"),
-	suspended: boolean("suspended").default(false).notNull(),
-	createdAt: timestamp("createdAt", { withTimezone: true })
+export const users = pgTable('users', {
+	id: serial('id').primaryKey(),
+	name: text('name').notNull(),
+	email: text('email').notNull().unique(),
+	image: text('image'),
+	emailVerified: timestamp('email_verified', { mode: 'date' }),
+	createdAt: timestamp('createdAt', { withTimezone: true })
 		.defaultNow()
 		.notNull(),
-	updatedAt: timestamp("updatedAt", { withTimezone: true })
+	updatedAt: timestamp('updatedAt', { withTimezone: true })
 		.defaultNow()
 		.notNull(),
-});
+	firstLogin: boolean('first_login').default(true),
+	mfaMethod: text('mfa_method')
+		.$type<'email' | 'totp'>()
+		.default('email')
+		.notNull(),
 
-export const accounts = pgTable(
-	"account",
-	{
-		userId: integer("userId")
-			.notNull()
-			.references(() => users.id, { onDelete: "cascade" }),
-		type: text("type").$type<AdapterAccount>().notNull(),
-		provider: text("provider").notNull(),
-		providerAccountId: text("providerAccountId").notNull(),
-		refresh_token: text("refresh_token"),
-		access_token: text("access_token"),
-		expires_at: integer("expires_at"),
-		token_type: text("token_type"),
-		scope: text("scope"),
-		id_token: text("id_token"),
-		session_state: text("session_state"),
-	},
-	(account) => [
-		{
-			compoundKey: primaryKey({
-				columns: [account.provider, account.providerAccountId],
-			}),
-		},
-	],
-);
+	// TOTP - Just the essentials
+	totpSecret: text('totp_secret'), // Base32 secret (can encrypt later if needed)
+	totpEnabled: boolean('totp_enabled').default(false).notNull(),
+	totpBackupCodes: text('totp_backup_codes'), // JSON array of backup codes
 
-export const sessions = pgTable("session", {
-	sessionToken: text("sessionToken").primaryKey(),
-	userId: integer("userId")
+	// Authentication attempts (covers both email OTP and TOTP)
+	loginFailedAttempts: integer('login_failed_attempts').default(0).notNull(),
+	lastOtpSentAt: timestamp('last_otp_sent_at', { withTimezone: true }),
+})
+
+export const emailOtps = pgTable('email_otps', {
+	id: uuid('id').defaultRandom().primaryKey(),
+	email: text('email').notNull().unique(),
+	code: text('code').notNull(),
+	ipAddress: text('ip_address').notNull(),
+	expiresAt: timestamp('expires_at').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+})
+
+export const sessions = pgTable('session', {
+	sessionToken: text('sessionToken').primaryKey(),
+	userId: integer('userId')
 		.notNull()
-		.references(() => users.id, { onDelete: "cascade" }),
-	expires: timestamp("expires", { mode: "date" }).notNull(),
-});
-
-export const verificationTokens = pgTable(
-	"verificationToken",
-	{
-		identifier: text("identifier").notNull(),
-		token: text("token").notNull(),
-		expires: timestamp("expires", { mode: "date" }).notNull(),
-	},
-	(verificationToken) => [
-		{
-			compositePk: primaryKey({
-				columns: [verificationToken.identifier, verificationToken.token],
-			}),
-		},
-	],
-);
-
-export const authenticators = pgTable(
-	"authenticator",
-	{
-		credentialID: text("credentialID").notNull().unique(),
-		userId: integer("userId")
-			.notNull()
-			.references(() => users.id, { onDelete: "cascade" }),
-		providerAccountId: text("providerAccountId").notNull(),
-		credentialPublicKey: text("credentialPublicKey").notNull(),
-		counter: integer("counter").notNull(),
-		credentialDeviceType: text("credentialDeviceType").notNull(),
-		credentialBackedUp: boolean("credentialBackedUp").notNull(),
-		transports: text("transports"),
-	},
-	(authenticator) => [
-		{
-			compositePK: primaryKey({
-				columns: [authenticator.userId, authenticator.credentialID],
-			}),
-		},
-	],
-);
+		.references(() => users.id, { onDelete: 'cascade' }),
+	expires: timestamp('expires', { mode: 'date' }).notNull(),
+})
