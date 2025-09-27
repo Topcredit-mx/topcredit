@@ -21,8 +21,8 @@ App Setup
   - [x] Basic login view
   - [x] Send OTP email (resend)
   - [x] Verify OTP code
-  - [-] Cleanup code / Remove unused stuff
-  - [ ] Landing home page
+  - [x] Cleanup code / Remove unused stuff
+  - [-] Landing home page
   - [ ] Users Layout (logout, nav) w/ auth guard (redirect to login if not auth)
   - [ ] Users home page (new users requesting credits)
 - [ ] End to end tests (cypress)
