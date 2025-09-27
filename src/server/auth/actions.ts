@@ -1,6 +1,6 @@
 'use server'
 
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import { randomInt } from 'crypto'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'

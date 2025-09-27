@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import QRCode from 'qrcode'
 import speakeasy from 'speakeasy'
 
