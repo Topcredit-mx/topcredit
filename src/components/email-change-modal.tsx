@@ -63,18 +63,12 @@ export function EmailChangeModal({
 		setError('')
 
 		try {
-			const result = await verifyEmailChangeOtp(
-				currentEmail,
-				newEmail,
-				otpValue,
-			)
-			if (result.success) {
-				onEmailChanged(result.newEmail)
-				onOpenChange(false)
-				setStep('email')
-				setNewEmail('')
-				setOtp('')
-			}
+			await verifyEmailChangeOtp(currentEmail, newEmail, otpValue)
+			onEmailChanged(newEmail)
+			onOpenChange(false)
+			setStep('email')
+			setNewEmail('')
+			setOtp('')
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'OTP inválido')
 			setOtp('')

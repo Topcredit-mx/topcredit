@@ -26,7 +26,7 @@ export function VerifyTotpForm({
 		setLoading(true)
 		setError(null)
 
-		const result = await signIn('credentials', {
+		const result = await signIn('totp', {
 			email,
 			totp: value,
 			callbackUrl: '/',

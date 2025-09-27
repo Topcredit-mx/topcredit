@@ -13,37 +13,44 @@ export const authOptions = {
 	adapter: DrizzleAdapter(db),
 	providers: [
 		CredentialsProvider({
-			name: 'credentials',
+			id: 'email-otp',
 			credentials: {
 				email: { label: 'Email', type: 'text' },
 				otp: { label: 'OTP', type: 'text' },
+			},
+			async authorize(credentials) {
+				if (!credentials?.email || !credentials?.otp) return null
+
+				await verifyOtp(credentials.email, credentials.otp)
+				return await getUserByEmail(credentials.email)
+			},
+		}),
+		CredentialsProvider({
+			id: 'totp',
+			name: 'TOTP',
+			credentials: {
+				email: { label: 'Email', type: 'text' },
 				totp: { label: 'TOTP', type: 'text' },
+			},
+			async authorize(credentials) {
+				if (!credentials?.email || !credentials?.totp) return null
+
+				await verifyTotpLogin(credentials.email, credentials.totp)
+				return await getUserByEmail(credentials.email)
+			},
+		}),
+		CredentialsProvider({
+			id: 'backup-code',
+			name: 'Backup Code',
+			credentials: {
+				email: { label: 'Email', type: 'text' },
 				backupCode: { label: 'Backup Code', type: 'text' },
 			},
 			async authorize(credentials) {
-				if (!credentials?.email) return null
+				if (!credentials?.email || !credentials?.backupCode) return null
 
-				try {
-					// Check if this is backup code verification
-					if (credentials.backupCode) {
-						await verifyBackupCodeLogin(
-							credentials.email,
-							credentials.backupCode,
-						)
-					} else if (credentials.totp) {
-						await verifyTotpLogin(credentials.email, credentials.totp)
-					} else if (credentials.otp) {
-						await verifyOtp(credentials.email, credentials.otp)
-					} else {
-						return null
-					}
-
-					return await getUserByEmail(credentials.email)
-				} catch (error) {
-					// NextAuth will handle this and redirect with error
-					console.log('Authentication failed:', error)
-					return null
-				}
+				await verifyBackupCodeLogin(credentials.email, credentials.backupCode)
+				return await getUserByEmail(credentials.email)
 			},
 		}),
 	],

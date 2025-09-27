@@ -26,7 +26,7 @@ export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
 		setError('')
 
 		try {
-			const signInResult = await signIn('credentials', {
+			const signInResult = await signIn('backup-code', {
 				email,
 				backupCode: backupCode.trim().toUpperCase(),
 			})

@@ -3,72 +3,19 @@
 import bcrypt from 'bcrypt'
 import { randomInt } from 'crypto'
 import { eq } from 'drizzle-orm'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getClientIP } from '~/lib/ip-location'
+import {
+	generateBackupCodes,
+	generateTotpSetup,
+	hashBackupCodes,
+	verifyBackupCode,
+	verifyTotpToken,
+} from '~/lib/totp'
 import { db } from '~/server/db'
 import { emailOtps, users } from '~/server/db/schema'
 import { sendGenericEmail, sendOtpEmail } from '~/server/email'
-
-async function getClientIP(): Promise<string> {
-	const headersList = await headers()
-	const forwarded = headersList.get('x-forwarded-for')
-	const realIP = headersList.get('x-real-ip')
-
-	if (forwarded) {
-		return forwarded.split(',')[0]?.trim() || '127.0.0.1'
-	}
-
-	if (realIP) {
-		return realIP
-	}
-
-	return '127.0.0.1'
-}
-
-async function checkRateLimit(
-	email: string,
-): Promise<{ allowed: boolean; message?: string }> {
-	const user = await db.query.users.findFirst({
-		where: eq(users.email, email),
-	})
-
-	if (!user) {
-		return { allowed: true }
-	}
-
-	const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000)
-
-	// If more than 30 minutes have passed since last OTP request, reset the count
-	if (!user.lastOtpSentAt || user.lastOtpSentAt < thirtyMinutesAgo) {
-		await db
-			.update(users)
-			.set({ loginFailedAttempts: 1, lastOtpSentAt: new Date() })
-			.where(eq(users.id, user.id))
-		return { allowed: true }
-	}
-
-	// Check if user has exceeded retry limit within 30 minutes
-	if (user.loginFailedAttempts >= 5) {
-		const timeRemaining = Math.ceil(
-			(30 * 60 * 1000 - (Date.now() - user.lastOtpSentAt.getTime())) / 60000,
-		)
-		return {
-			allowed: false,
-			message: `Too many attempts. Please wait ${timeRemaining} more minutes before trying again.`,
-		}
-	}
-
-	// Increment retry count and update last sent time
-	await db
-		.update(users)
-		.set({
-			loginFailedAttempts: user.loginFailedAttempts + 1,
-			lastOtpSentAt: new Date(),
-		})
-		.where(eq(users.id, user.id))
-
-	return { allowed: true }
-}
+import { checkRateLimit, updateRateLimitCounters } from './lib'
 
 export async function getUserByEmail(email: string) {
 	return await db
@@ -105,21 +52,30 @@ export async function sendOtpForm(_prevState: unknown, formData: FormData) {
 
 	if (!user) redirect('/signup')
 
-	// Check if user has TOTP enabled - route accordingly
 	if (user.totpEnabled) {
-		// User has TOTP enabled - go directly to TOTP verification
 		redirect(`/verify-totp?email=${encodeURIComponent(email)}`)
 	}
 
-	// User doesn't have TOTP - proceed with email OTP flow
-	// Check rate limiting
-	const rateLimitCheck = await checkRateLimit(email)
-	if (!rateLimitCheck.allowed) {
-		return { message: rateLimitCheck.message || 'Rate limit exceeded' }
+	try {
+		const rateLimitAction = checkRateLimit(
+			user.lastOtpSentAt,
+			user.loginFailedAttempts,
+		)
+
+		await updateRateLimitCounters(
+			user.id,
+			rateLimitAction,
+			user.loginFailedAttempts,
+		)
+
+		const ip = await getClientIP()
+		await sendOtp(email, ip)
+	} catch (error) {
+		return {
+			message: error instanceof Error ? error.message : 'Rate limit exceeded',
+		}
 	}
 
-	const ip = await getClientIP()
-	await sendOtp(email, ip)
 	redirect(`/verify-otp?email=${encodeURIComponent(email)}`)
 }
 
@@ -184,14 +140,6 @@ export async function verifyOtp(email: string, otp: string) {
 // ==============================================================================
 // TOTP (Google Authenticator) Actions
 // ==============================================================================
-
-import {
-	generateBackupCodes,
-	generateTotpSetup,
-	hashBackupCodes,
-	verifyBackupCode,
-	verifyTotpToken,
-} from '~/lib/totp'
 
 /**
  * Initiate TOTP setup - generate secret and QR code for user
@@ -290,8 +238,6 @@ export async function disableTotpSetup(email: string) {
 			mfaMethod: 'email', // Back to email OTP
 		})
 		.where(eq(users.id, user.id))
-
-	return { success: true }
 }
 
 /**
@@ -306,11 +252,9 @@ export async function verifyTotpLogin(email: string, token: string) {
 		throw new Error('TOTP not enabled for this user')
 	}
 
-	// Verify the token
 	const isValid = verifyTotpToken(token, user.totpSecret)
 
 	if (!isValid) {
-		// Increment failed attempts
 		await db
 			.update(users)
 			.set({ loginFailedAttempts: user.loginFailedAttempts + 1 })
@@ -319,13 +263,10 @@ export async function verifyTotpLogin(email: string, token: string) {
 		throw new Error('Invalid TOTP token')
 	}
 
-	// Reset failed attempts on success
 	await db
 		.update(users)
 		.set({ loginFailedAttempts: 0 })
 		.where(eq(users.id, user.id))
-
-	return { success: true }
 }
 
 /**
@@ -418,7 +359,6 @@ export async function sendEmailChangeOtp(
 	currentEmail: string,
 	newEmail: string,
 ) {
-	// Check if new email is already taken
 	const existingUser = await db.query.users.findFirst({
 		where: eq(users.email, newEmail),
 	})
@@ -427,7 +367,6 @@ export async function sendEmailChangeOtp(
 		throw new Error('Email already in use')
 	}
 
-	// Verify current user exists
 	const user = await db.query.users.findFirst({
 		where: eq(users.email, currentEmail),
 	})
@@ -436,17 +375,19 @@ export async function sendEmailChangeOtp(
 		throw new Error('Current user not found')
 	}
 
-	// Rate limiting check
-	const rateLimitCheck = await checkRateLimit(newEmail)
-	if (!rateLimitCheck.allowed) {
-		throw new Error(rateLimitCheck.message || 'Rate limit exceeded')
-	}
+	const rateLimitAction = checkRateLimit(
+		user.lastOtpSentAt,
+		user.loginFailedAttempts,
+	)
 
-	// Send OTP to new email address
+	await updateRateLimitCounters(
+		user.id,
+		rateLimitAction,
+		user.loginFailedAttempts,
+	)
+
 	const ip = await getClientIP()
 	await sendOtp(newEmail, ip)
-
-	return { success: true }
 }
 
 /**
@@ -500,6 +441,4 @@ export async function verifyEmailChangeOtp(
 
 	// Clean up OTP record
 	await db.delete(emailOtps).where(eq(emailOtps.id, otpRecord.id))
-
-	return { success: true, newEmail }
 }

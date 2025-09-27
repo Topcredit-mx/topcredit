@@ -1,3 +1,5 @@
+import { headers } from 'next/headers'
+
 interface LocationData {
 	city?: string
 	region?: string
@@ -87,4 +89,20 @@ export async function getCountryFromIP(ipAddress: string): Promise<string> {
 		console.error('Error fetching country data:', error)
 		return 'Unknown'
 	}
+}
+
+export async function getClientIP(): Promise<string> {
+	const headersList = await headers()
+	const forwarded = headersList.get('x-forwarded-for')
+	const realIP = headersList.get('x-real-ip')
+
+	if (forwarded) {
+		return forwarded.split(',')[0]?.trim() || '127.0.0.1'
+	}
+
+	if (realIP) {
+		return realIP
+	}
+
+	return '127.0.0.1'
 }

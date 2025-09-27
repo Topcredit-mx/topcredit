@@ -26,7 +26,7 @@ export function VerifyOTPForm({
 		setLoading(true)
 		setError(null)
 
-		const result = await signIn('credentials', {
+		const result = await signIn('email-otp', {
 			email,
 			otp: value,
 			callbackUrl: '/',
