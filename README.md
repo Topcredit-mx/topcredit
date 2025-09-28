@@ -22,9 +22,9 @@ App Setup
   - [x] Send OTP email (resend)
   - [x] Verify OTP code
   - [x] Cleanup code / Remove unused stuff
-  - [-] Landing home page
-  - [ ] Users Layout (logout, nav) w/ auth guard (redirect to login if not auth)
-  - [ ] Users home page (new users requesting credits)
+  - [x] Landing home page
+  - [x] Users Layout (logout, nav) w/ auth guard (redirect to login if not auth)
+  - [x] Users home page (new users requesting credits)
 - [ ] End to end tests (cypress)
 - [ ] CI for cypress cloud
 - [ ] Setup employee schema
