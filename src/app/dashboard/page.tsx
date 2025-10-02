@@ -53,7 +53,7 @@ export default async function DashboardPage() {
 							</div>
 						</div>
 						<Button asChild className="mt-4 w-full">
-							<Link href="/apply">Solicitar Ahora</Link>
+							<Link href="/">Solicitar Ahora</Link>
 						</Button>
 					</Card>
 
