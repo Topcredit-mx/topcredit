@@ -1,39 +1,47 @@
-# Topcredit
+# TopCredit
 
-## Todo
+> Plataforma de créditos empresariales para empleados de empresas afiliadas
 
-App Setup
+## 📊 Current Status
 
-- [x] Make it deploy (vercel)
-  - [x] App builds locally
-  - [x] Publish to github
-  - [x] Connect/deploy to vercel
-  - [x] vercel url works
-  - [x] Setup biome w/autosave
-- [-] Setup db (neon postgres w drizzle-orm) & next-auth
-  - [x] Create neon dbs for dev preview and prod
-  - [x] Setup drizzle-orm
-  - [x] Initial schemas for users and accounts
-  - [x] migrate db
-  - [x] Setup next-auth w/ drizzle adapter
-  - [x] Add env vars to vercel
-  - [x] Setup credentials provider
-  - [x] Basic login view
-  - [x] Send OTP email (resend)
-  - [x] Verify OTP code
-  - [x] Cleanup code / Remove unused stuff
-  - [x] Landing home page
-  - [x] Users Layout (logout, nav) w/ auth guard (redirect to login if not auth)
-  - [x] Users home page (new users requesting credits)
-- [ ] End to end tests (cypress)
-- [ ] CI for cypress cloud
-- [ ] Setup employee schema
-  - [ ] Employee schema
-  - [ ] Employee login (credentials provider)
-- [ ] Employee layout (logout, nav) w/ auth guard (redirect to login if not auth)
-  - [ ] Employee home page (list of credit requests)
+### Phase 1: Foundation
+- [x] Vercel deployment & CI/CD
+- [x] PostgreSQL database (Neon) with Drizzle ORM
+- [x] NextAuth authentication with email OTP
+- [x] TOTP 2FA with backup codes
+- [x] Rate limiting & security
+- [x] Professional landing page (Spanish)
+- [x] User authentication flows
+- [x] Settings & account management
+- [x] User flow redirect logic
 
-Features
+### Phase 2: Employees & Role Management
+- [ ] Employee schema & authentication
+- [ ] Employee dashboard layout
+- [ ] Role-based access control (requests, pre_authorizations, authorizations, hr, disbursement, payments, admin)
+
+### Phase 3: Entire Flow
+- [ ] Employees - Company management (creation, editing, overview)
+- [ ] Users - Credit application creation
+- [ ] Users - Credit application status overview
+- [ ] Employees - Review, authorize, reject credit applications
+- [ ] Users - review rejected applications and resubmit
+- [ ] Users - Pre-Authorized Credit application submit contract signing & document uploads
+- [ ] Employees - Review, authorize, reject pre-authorized credits
+- [ ] Employees - HR Review, authorize, reject pre-authorized credits
+- [ ] Users - review authorized credits, wait for disbursement
+- [ ] Employees - Credit disbursement and payment tracking
+- [ ] Users - Active Credit Dashboard
+- [ ] Users - Payment schedule and tracking
+- [ ] Employees - Active credits overview and tracking
+- [ ] Employees - Payment tracking and management
+- [ ] Employees - Completed credits reporting
+
+---
+
+## 📚 Feature Specifications
+
+*The following sections define the complete feature set that will be built incrementally.*
 
 ## Company Management
 
@@ -271,6 +279,8 @@ Features
 - Required document checks per workflow stage
 - Document expiration handling
 
+---
+
 ## 🛠 Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
@@ -280,38 +290,63 @@ Features
 - **Email**: Resend
 - **Deployment**: Vercel
 - **Language**: TypeScript
-- **Monitoring & Analytics**: (To be decided) maybe Sentry
+- **Linting**: Biome
+- **Monitoring**: TBD (considering Sentry)
 
 ## 📁 Project Structure
 
 ```
 src/
-├── app/                    # Next.js app router pages
-│   ├── dashboard/         # User dashboard
-│   ├── login/             # Authentication pages
-│   ├── settings/          # User settings
-│   └── ...
+├── app/                       # Next.js app router
+│   ├── (auth)/               # Auth pages (login, signup, verify)
+│   ├── apply/                # Credit application
+│   ├── dashboard/            # User dashboard
+│   ├── settings/             # Account settings
+│   └── api/auth/             # NextAuth API routes
 ├── components/
-│   ├── credit/            # Credit-related components
-│   ├── landing/           # Landing page sections
-│   ├── ui/                # shadcn UI components
-│   └── ...
+│   ├── credit/               # Credit application components
+│   ├── landing/              # Landing page sections
+│   ├── ui/                   # shadcn UI components
+│   └── ...                   # Feature components
 ├── lib/
-│   ├── user-flow.ts       # User journey logic
-│   └── ...
+│   ├── user-flow.ts          # User journey/redirect logic
+│   ├── totp.ts               # TOTP utilities
+│   └── utils.ts              # Shared utilities
 └── server/
-    ├── auth/              # Auth configuration
-    └── db/                # Database schema & client
+    ├── auth/                 # Auth config & actions
+    │   ├── config.ts         # NextAuth configuration
+    │   ├── actions.ts        # Auth server actions
+    │   └── lib.ts            # Auth utilities
+    ├── db/
+    │   ├── index.ts          # Database client
+    │   └── schema.ts         # Drizzle schema
+    └── email.ts              # Email utilities
 ```
 
 ## 🚀 Getting Started
 
-1. Clone the repository
-2. Install dependencies: `pnpm install`
-3. Set up environment variables (see `.env.example`)
-4. Run database migrations: `pnpm db:push`
-5. Start dev server: `pnpm dev`
+1. **Clone & Install**
+   ```bash
+   git clone <repo-url>
+   cd topcredit
+   pnpm install
+   ```
 
-## 📝 Notes
+2. **Environment Setup**
+   - Copy `.env.example` to `.env`
+   - Add your database URL, NextAuth secret, Resend API key, etc.
 
-This is an active development project focused on providing accessible credit to employees of affiliated companies in Mexico. The application emphasizes security (2FA), user experience (Spanish UI), and a streamlined credit application process.
+3. **Database Setup**
+   ```bash
+   pnpm db:push          # Push schema to database
+   pnpm db:studio        # Open Drizzle Studio
+   ```
+
+4. **Development**
+   ```bash
+   pnpm dev              # Start dev server
+   pnpm build            # Build for production
+   pnpm start            # Start production server
+   ```
+
+The goal is to provide accessible, transparent credit to Mexican employees while maintaining rigorous security and compliance standards.
