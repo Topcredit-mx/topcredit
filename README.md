@@ -271,6 +271,47 @@ Features
 - Required document checks per workflow stage
 - Document expiration handling
 
-Final Touches (pre launch)
+## 🛠 Tech Stack
 
-- [ ] Error management (w/ sentry)
+- **Framework**: Next.js 14 (App Router)
+- **Database**: PostgreSQL (Neon) with Drizzle ORM
+- **Authentication**: NextAuth.js
+- **Styling**: Tailwind CSS v4, shadcn/ui
+- **Email**: Resend
+- **Deployment**: Vercel
+- **Language**: TypeScript
+- **Monitoring & Analytics**: (To be decided) maybe Sentry
+
+## 📁 Project Structure
+
+```
+src/
+├── app/                    # Next.js app router pages
+│   ├── dashboard/         # User dashboard
+│   ├── login/             # Authentication pages
+│   ├── settings/          # User settings
+│   └── ...
+├── components/
+│   ├── credit/            # Credit-related components
+│   ├── landing/           # Landing page sections
+│   ├── ui/                # shadcn UI components
+│   └── ...
+├── lib/
+│   ├── user-flow.ts       # User journey logic
+│   └── ...
+└── server/
+    ├── auth/              # Auth configuration
+    └── db/                # Database schema & client
+```
+
+## 🚀 Getting Started
+
+1. Clone the repository
+2. Install dependencies: `pnpm install`
+3. Set up environment variables (see `.env.example`)
+4. Run database migrations: `pnpm db:push`
+5. Start dev server: `pnpm dev`
+
+## 📝 Notes
+
+This is an active development project focused on providing accessible credit to employees of affiliated companies in Mexico. The application emphasizes security (2FA), user experience (Spanish UI), and a streamlined credit application process.
