@@ -16,7 +16,7 @@ import {
 	InputOTPSlot,
 } from '~/components/ui/input-otp'
 import { Label } from '~/components/ui/label'
-import { sendEmailChangeOtp, verifyEmailChangeOtp } from '~/server/auth/actions'
+import { sendEmailChangeOtp, verifyEmailChangeOtp } from '~/server/auth/users'
 
 interface EmailChangeModalProps {
 	open: boolean

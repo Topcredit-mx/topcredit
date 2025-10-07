@@ -16,7 +16,7 @@
 - [x] User flow redirect logic
 
 ### Phase 2: Employees & Role Management
-- [ ] Employee schema & authentication
+- [-] Employee schema & authentication
 - [ ] Employee dashboard layout
 - [ ] Role-based access control (requests, pre_authorizations, authorizations, hr, disbursement, payments, admin)
 

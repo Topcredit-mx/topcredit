@@ -11,7 +11,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from '~/components/ui/card'
-import { disableTotpSetup, generateNewBackupCodes } from '~/server/auth/actions'
+import { disableTotpSetup, generateNewBackupCodes } from '~/server/auth/users'
 
 interface TotpSettingsCardProps {
 	user: {

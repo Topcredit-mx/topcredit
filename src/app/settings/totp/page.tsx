@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { TotpSettingsCard } from '~/components/totp-settings-card'
-import { getUserByEmail } from '~/server/auth/actions'
 import { authOptions } from '~/server/auth/config'
+import { getUserByEmail } from '~/server/auth/users'
 
 export default async function TotpSettingsPage() {
 	const session = await getServerSession(authOptions)

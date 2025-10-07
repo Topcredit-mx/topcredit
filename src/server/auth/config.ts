@@ -7,7 +7,7 @@ import {
 	verifyBackupCodeLogin,
 	verifyOtp,
 	verifyTotpLogin,
-} from './actions'
+} from './users'
 
 export const authOptions = {
 	adapter: DrizzleAdapter(db),
