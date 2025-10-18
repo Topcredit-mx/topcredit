@@ -1,12 +1,23 @@
 import {
 	boolean,
 	integer,
+	pgEnum,
 	pgTable,
+	primaryKey,
 	serial,
 	text,
 	timestamp,
 	uuid,
 } from 'drizzle-orm/pg-core'
+
+export const rolesEnum = pgEnum('roles', [
+	'customer',
+	'sales_rep',
+	'credit_analyst',
+	'accountant',
+	'support',
+	'admin',
+])
 
 export const users = pgTable('users', {
 	id: serial('id').primaryKey(),
@@ -54,3 +65,17 @@ export const sessions = pgTable('session', {
 		.references(() => users.id, { onDelete: 'cascade' }),
 	expires: timestamp('expires', { mode: 'date' }).notNull(),
 })
+
+// Junction table for user roles (many-to-many relationship)
+export const userRoles = pgTable(
+	'user_roles',
+	{
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		role: rolesEnum('role').notNull(),
+	},
+	(table) => ({
+		pk: primaryKey({ columns: [table.userId, table.role] }),
+	}),
+)

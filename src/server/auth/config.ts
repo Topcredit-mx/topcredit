@@ -1,7 +1,6 @@
-import { DrizzleAdapter } from '@auth/drizzle-adapter'
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { db } from '~/server/db'
+import type { Role } from '~/lib/auth-utils'
 import {
 	getUserByEmail,
 	verifyBackupCodeLogin,
@@ -10,7 +9,6 @@ import {
 } from './users'
 
 export const authOptions = {
-	adapter: DrizzleAdapter(db),
 	providers: [
 		CredentialsProvider({
 			id: 'email-otp',
@@ -58,8 +56,15 @@ export const authOptions = {
 		async session({ session, token }) {
 			if (session.user && token.sub) {
 				session.user.id = Number(token.sub)
+				session.user.roles = (token.roles as Role[]) || ['customer']
 			}
 			return session
+		},
+		async jwt({ token, user }) {
+			if (user) {
+				token.roles = user.roles
+			}
+			return token
 		},
 	},
 	session: {

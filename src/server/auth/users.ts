@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { randomInt } from 'crypto'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
+import type { Role } from '~/lib/auth-utils'
 import { getClientIP } from '~/lib/ip-location'
 import {
 	generateBackupCodes,
@@ -13,16 +14,31 @@ import {
 	verifyTotpToken,
 } from '~/lib/totp'
 import { db } from '~/server/db'
-import { emailOtps, users } from '~/server/db/schema'
+import { emailOtps, userRoles, users } from '~/server/db/schema'
 import { sendGenericEmail, sendOtpEmail } from '~/server/email'
 import { checkRateLimit, updateRateLimitCounters } from './lib'
+import { initializeUserRoles } from './role-management'
 
 export async function getUserByEmail(email: string) {
-	return await db
+	const user = await db
 		.select()
 		.from(users)
 		.where(eq(users.email, email))
 		.then((res) => res[0] || null)
+
+	if (!user) return null
+
+	// Fetch user roles from junction table
+	const roles = await db
+		.select({ role: userRoles.role })
+		.from(userRoles)
+		.where(eq(userRoles.userId, user.id))
+		.then((res) => res.map((r) => r.role as Role))
+
+	return {
+		...user,
+		roles: roles.length > 0 ? roles : (['customer'] as Role[]), // Default to customer if no roles assigned
+	}
 }
 
 export async function registerUser(_prevState: unknown, formData: FormData) {
@@ -33,7 +49,13 @@ export async function registerUser(_prevState: unknown, formData: FormData) {
 		return { message: 'Email and name are required' }
 	}
 
-	await db.insert(users).values({ email, name })
+	const [newUser] = await db.insert(users).values({ email, name }).returning()
+
+	// Assign default customer role to new user
+	if (newUser) {
+		await initializeUserRoles(newUser.id)
+	}
+
 	const ip = await getClientIP()
 	await sendOtp(email, ip)
 	redirect(`/verify-otp?email=${encodeURIComponent(email)}`)

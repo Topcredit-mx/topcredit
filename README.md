@@ -16,9 +16,14 @@
 - [x] User flow redirect logic
 
 ### Phase 2: Employees & Role Management
-- [-] Employee schema & authentication
+- [x] Multi-role system with junction table (userRoles)
+- [x] Role management utilities (assignRole, removeRole, setUserRoles)
+- [x] Auth utilities for role checks (requireAnyRole, requireAllRoles, hasRole)
+- [x] Middleware for route protection
+- [x] Unauthorized page (403)
 - [ ] Employee dashboard layout
-- [ ] Role-based access control (requests, pre_authorizations, authorizations, hr, disbursement, payments, admin)
+- [ ] Admin panel for role management UI
+- [ ] Company-to-HR relationship (hrCompanyId)
 
 ### Phase 3: Entire Flow
 - [ ] Employees - Company management (creation, editing, overview)
