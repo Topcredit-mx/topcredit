@@ -21,8 +21,8 @@
 - [x] Auth utilities for role checks (requireAnyRole, requireAllRoles, hasRole)
 - [x] Middleware for route protection
 - [x] Unauthorized page (403)
-- [ ] Employee dashboard layout
-- [ ] Admin panel for role management UI
+- [x] Employee dashboard layout
+- [-] Admin panel for role management UI
 - [ ] Company-to-HR relationship (hrCompanyId)
 
 ### Phase 3: Entire Flow
