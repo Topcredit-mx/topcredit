@@ -1,6 +1,9 @@
 import { eq } from 'drizzle-orm'
+import { getServerSession } from 'next-auth'
+import type { Role } from '~/lib/auth-utils'
 import { db } from '../db'
 import { users } from '../db/schema'
+import { authOptions } from './config'
 
 // Rate limiting configuration
 const RATE_LIMIT_CONFIG = {
@@ -64,4 +67,91 @@ export async function updateRateLimitCounters(
 		console.error('Failed to update rate limit counters:', error)
 		// Don't throw - this shouldn't block the main flow
 	}
+}
+
+// ==============================================================================
+// Server-side User Helpers
+// ==============================================================================
+
+/**
+ * Gets the current authenticated user from the session.
+ * Throws an error if no session exists (should never happen due to middleware protection).
+ *
+ * Use this in protected routes where middleware guarantees authentication.
+ */
+export async function getRequiredUser(): Promise<{
+	id: number
+	name?: string | null
+	email?: string | null
+	image?: string | null
+	roles: Role[]
+}> {
+	const session = await getServerSession(authOptions)
+
+	if (!session?.user) {
+		throw new Error(
+			'Unauthorized: No session found. This should not happen due to middleware protection.',
+		)
+	}
+
+	return session.user
+}
+
+/**
+ * Gets the current user and verifies they have an employee role.
+ * Employee roles: sales_rep, credit_analyst, accountant, support, admin
+ *
+ * Use this in /app routes to ensure the user is an employee.
+ */
+export async function getRequiredEmployeeUser(): Promise<{
+	id: number
+	name?: string | null
+	email?: string | null
+	image?: string | null
+	roles: Role[]
+}> {
+	const user = await getRequiredUser()
+
+	const employeeRoles: Role[] = [
+		'sales_rep',
+		'credit_analyst',
+		'accountant',
+		'support',
+		'admin',
+	]
+
+	const hasEmployeeRole = user.roles.some((role) =>
+		employeeRoles.includes(role),
+	)
+
+	if (!hasEmployeeRole) {
+		throw new Error(
+			'Unauthorized: User does not have an employee role. This should not happen due to middleware protection.',
+		)
+	}
+
+	return user
+}
+
+/**
+ * Gets the current user and verifies they have the customer role.
+ *
+ * Use this in /dashboard routes to ensure the user is a customer.
+ */
+export async function getRequiredCustomerUser(): Promise<{
+	id: number
+	name?: string | null
+	email?: string | null
+	image?: string | null
+	roles: Role[]
+}> {
+	const user = await getRequiredUser()
+
+	if (!user.roles.includes('customer')) {
+		throw new Error(
+			'Unauthorized: User does not have customer role. This should not happen due to middleware protection.',
+		)
+	}
+
+	return user
 }

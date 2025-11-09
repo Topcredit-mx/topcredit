@@ -1,6 +1,5 @@
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import type { Role } from '~/lib/auth-utils'
 import {
 	getUserByEmail,
 	verifyBackupCodeLogin,
@@ -56,7 +55,11 @@ export const authOptions = {
 		async session({ session, token }) {
 			if (session.user && token.sub) {
 				session.user.id = Number(token.sub)
-				session.user.roles = (token.roles as Role[]) || ['customer']
+				if (token.roles?.length) {
+					session.user.roles = token.roles
+				} else {
+					session.user.roles = ['customer']
+				}
 			}
 			return session
 		},

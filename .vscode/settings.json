@@ -10,6 +10,8 @@
     "editor.defaultFormatter": "biomejs.biome"
   },
   "cSpell.words": [
-    "Topcredit"
+    "nextauth",
+    "Topcredit",
+    "totp"
   ]
 }

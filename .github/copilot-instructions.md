@@ -6,6 +6,12 @@ Next.js Web Application with Drizzle ORM and Tailwind CSS + NextAuth Integration
 
 - When developing a new feature
   1. Create a cypress e2e test file to cover the feature.
+    1.1 should cover happy path and some edge cases. not all cases are needed. the rest will can be mentioned in comments as future tests.
+    1.2 create tasks in cypress/tasks for any db related calls if needed, mainly for setting up data for the test.
+    1.3 use before, after, beforeEach, afterEach hooks for setup and teardown correctly.
+    1.4 should be written in english.
+    1.5 dont use data-testid attributes, use role, label, text content, etc.
+    1.6 use should assertions.
   2. Run the test to see it fail.
   3. Implement the feature.
     3.1. use form actions for handling form submissions.
@@ -19,11 +25,3 @@ Next.js Web Application with Drizzle ORM and Tailwind CSS + NextAuth Integration
     3.9 use pnpm for package management.
     3.10 all texts should be in spanish.
   4. Run the test to see it pass.
-- Use single quotes for strings.
-- Use function based components in React.
-- Use arrow functions for callbacks.
-
-## UI guidelines
-
-- A toggle is provided to switch between light and dark mode.
-- Application should have a modern and clean design.
