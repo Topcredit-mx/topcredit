@@ -1,19 +1,17 @@
-import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
 import { SetupTotpForm } from '~/components/setup-totp-form'
-import { authOptions } from '~/server/auth/config'
+import { getRequiredUser } from '~/server/auth/lib'
 
 export default async function SetupTotpPage() {
-	const session = await getServerSession(authOptions)
+	const user = await getRequiredUser()
 
-	if (!session?.user?.email) {
-		redirect('/login')
+	if (!user.email) {
+		throw new Error('User email is required')
 	}
 
 	return (
 		<div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
 			<div className="w-full max-w-md">
-				<SetupTotpForm email={session.user.email} />
+				<SetupTotpForm email={user.email} />
 			</div>
 		</div>
 	)

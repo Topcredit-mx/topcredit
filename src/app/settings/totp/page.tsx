@@ -1,20 +1,19 @@
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
 import { TotpSettingsCard } from '~/components/totp-settings-card'
-import { authOptions } from '~/server/auth/config'
+import { getRequiredUser } from '~/server/auth/lib'
 import { getUserByEmail } from '~/server/auth/users'
 
 export default async function TotpSettingsPage() {
-	const session = await getServerSession(authOptions)
+	const sessionUser = await getRequiredUser()
 
-	if (!session?.user?.email) {
-		redirect('/login')
+	if (!sessionUser.email) {
+		throw new Error('User email is required')
 	}
 
-	const user = await getUserByEmail(session.user.email)
+	const user = await getUserByEmail(sessionUser.email)
 
 	if (!user) {
-		redirect('/login')
+		throw new Error('User not found in database')
 	}
 
 	if (!user.totpEnabled) {

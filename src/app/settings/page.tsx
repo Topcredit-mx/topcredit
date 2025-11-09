@@ -1,25 +1,23 @@
 import { eq } from 'drizzle-orm'
-import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
 import { SettingsForm } from '~/components/settings-form'
-import { authOptions } from '~/server/auth/config'
+import { getRequiredUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
 
 export default async function SettingsPage() {
-	const session = await getServerSession(authOptions)
+	const sessionUser = await getRequiredUser()
 
-	if (!session?.user?.email) {
-		redirect('/login')
+	if (!sessionUser.email) {
+		throw new Error('User email is required')
 	}
 
 	// Get user data
 	const user = await db.query.users.findFirst({
-		where: eq(users.email, session.user.email),
+		where: eq(users.email, sessionUser.email),
 	})
 
 	if (!user) {
-		redirect('/login')
+		throw new Error('User not found in database')
 	}
 
 	// Calculate backup codes count

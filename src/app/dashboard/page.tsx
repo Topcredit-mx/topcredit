@@ -1,17 +1,11 @@
 import { CreditCard, FileText, Settings, User } from 'lucide-react'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
-import { authOptions } from '~/server/auth/config'
+import { getRequiredCustomerUser } from '~/server/auth/lib'
 
 export default async function DashboardPage() {
-	const session = await getServerSession(authOptions)
-
-	if (!session?.user) {
-		redirect('/login')
-	}
+	const user = await getRequiredCustomerUser()
 
 	return (
 		<div className="min-h-screen bg-gray-50">
@@ -26,7 +20,7 @@ export default async function DashboardPage() {
 						</div>
 						<div className="flex items-center space-x-4">
 							<span className="text-gray-500 text-sm">
-								Bienvenido, {session.user.email}
+								Bienvenido, {user.email}
 							</span>
 							<Button asChild variant="outline">
 								<Link href="/api/auth/signout">Cerrar Sesión</Link>
