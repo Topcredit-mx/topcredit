@@ -1,6 +1,13 @@
 'use client'
 
-import { Building2, CreditCard, FileText, Home, Users } from 'lucide-react'
+import {
+	Building2,
+	CreditCard,
+	FileText,
+	Home,
+	Shield,
+	Users,
+} from 'lucide-react'
 import Link from 'next/link'
 import { type NavItem, NavMain } from '~/components/nav-main'
 import { NavUser } from '~/components/nav-user'
@@ -24,6 +31,8 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ user }: AppSidebarProps) {
+	const isAdmin = user.roles?.includes('admin')
+
 	const navigationItems: NavItem[] = [
 		{
 			title: 'Dashboard',
@@ -55,6 +64,16 @@ export function AppSidebar({ user }: AppSidebarProps) {
 			icon: CreditCard,
 		},
 	]
+
+	// Add admin section if user is admin
+	if (isAdmin) {
+		navigationItems.push({
+			title: 'Administración',
+			url: '/app/admin',
+			icon: Shield,
+			items: [{ title: 'Usuarios', url: '/app/admin/users' }],
+		})
+	}
 
 	return (
 		<Sidebar collapsible="icon">

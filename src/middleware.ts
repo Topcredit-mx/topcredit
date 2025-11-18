@@ -46,6 +46,13 @@ export default withAuth(
 			return NextResponse.redirect(new URL('/dashboard', req.url))
 		}
 
+		// Admin routes - admin only
+		if (path.startsWith('/app/admin')) {
+			if (!roles.includes('admin')) {
+				return NextResponse.redirect(new URL('/unauthorized', req.url))
+			}
+		}
+
 		// Employee app routes - any employee role
 		if (path.startsWith('/app')) {
 			const hasEmployeeRole = roles.some((role) => employeeRoles.includes(role))

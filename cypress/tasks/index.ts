@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
+import type { Role } from '~/lib/auth-utils'
 import { userRoles, users } from '~/server/db/schema'
 import { getDb } from './cypress-db'
 
@@ -74,7 +75,7 @@ export const login = async (email: LoginTaskParams) => {
 export type CreateUserTaskParams = {
 	name: string
 	email: string
-	roles?: Array<'customer' | 'admin'>
+	roles?: Role[]
 }
 
 export const createUser = async (params: CreateUserTaskParams) => {
@@ -110,5 +111,79 @@ export type DeleteUserTaskParams = string
 export const deleteUser = async (email: DeleteUserTaskParams) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	await db.delete(users).where(eq(users.email, email))
+	return null
+}
+
+export type CreateMultipleUsersTaskParams = CreateUserTaskParams[]
+
+export const createMultipleUsers = async (
+	userList: CreateMultipleUsersTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const createdUsers = []
+
+	for (const params of userList) {
+		const [user] = await db
+			.insert(users)
+			.values({
+				email: params.email,
+				name: params.name,
+			})
+			.returning()
+
+		if (!user) {
+			throw new Error(`Failed to create user ${params.email}`)
+		}
+
+		// Add roles if provided
+		if (params.roles && params.roles.length > 0) {
+			await db.insert(userRoles).values(
+				params.roles.map((role) => ({
+					userId: user.id,
+					role,
+				})),
+			)
+		}
+
+		createdUsers.push(user)
+	}
+
+	return createdUsers
+}
+
+export type AssignRoleTaskParams = {
+	email: string
+	role: Role
+}
+
+export const assignRole = async (params: AssignRoleTaskParams) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const user = await db.query.users.findFirst({
+		where: eq(users.email, params.email),
+	})
+
+	if (!user) {
+		throw new Error(`User with email ${params.email} not found`)
+	}
+
+	await db.insert(userRoles).values({
+		userId: user.id,
+		role: params.role,
+	})
+
+	return null
+}
+
+export type CleanupTestUsersTaskParams = string[]
+
+export const cleanupTestUsers = async (emails: CleanupTestUsersTaskParams) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	for (const email of emails) {
+		await db.delete(users).where(eq(users.email, email))
+	}
+
 	return null
 }

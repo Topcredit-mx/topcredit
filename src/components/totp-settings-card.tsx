@@ -83,8 +83,8 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 
 		const content = [
 			'TopCredit - Códigos de Respaldo',
-			'Generados: ' + new Date().toLocaleDateString(),
-			'Email: ' + user.email,
+			`Generados: ${new Date().toLocaleDateString()}`,
+			`Email: ${user.email}`,
 			'',
 			'IMPORTANTE: Cada código solo puede usarse una vez. Guarda estos códigos en un lugar seguro.',
 			'',

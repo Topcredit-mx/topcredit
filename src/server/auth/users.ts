@@ -1,7 +1,7 @@
 'use server'
 
+import { randomInt } from 'node:crypto'
 import bcrypt from 'bcryptjs'
-import { randomInt } from 'crypto'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import type { Role } from '~/lib/auth-utils'
