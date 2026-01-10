@@ -101,6 +101,38 @@ export async function sendOtpForm(_prevState: unknown, formData: FormData) {
 	redirect(`/verify-otp?email=${encodeURIComponent(email)}`)
 }
 
+export async function resendOtp(email: string) {
+	const user = await db.query.users.findFirst({
+		where: eq(users.email, email),
+	})
+
+	if (!user) {
+		return { success: false, message: 'Usuario no encontrado' }
+	}
+
+	try {
+		const rateLimitAction = checkRateLimit(
+			user.lastOtpSentAt,
+			user.loginFailedAttempts,
+		)
+
+		await updateRateLimitCounters(
+			user.id,
+			rateLimitAction,
+			user.loginFailedAttempts,
+		)
+
+		const ip = await getClientIP()
+		await sendOtp(email, ip)
+		return { success: true, message: 'Código reenviado exitosamente' }
+	} catch (error) {
+		return {
+			success: false,
+			message: error instanceof Error ? error.message : 'Límite de intentos excedido',
+		}
+	}
+}
+
 export async function sendOtp(email: string, ipAddress: string) {
 	await db.delete(emailOtps).where(eq(emailOtps.email, email))
 

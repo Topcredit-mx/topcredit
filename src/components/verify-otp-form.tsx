@@ -10,6 +10,7 @@ import {
 	InputOTPSlot,
 } from '~/components/ui/input-otp'
 import { cn } from '~/lib/utils'
+import { resendOtp } from '~/server/auth/users'
 
 export function VerifyOTPForm({
 	className,
@@ -19,6 +20,8 @@ export function VerifyOTPForm({
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [value, setValue] = useState('')
+	const [resendLoading, setResendLoading] = useState(false)
+	const [resendMessage, setResendMessage] = useState<string | null>(null)
 
 	const handleOTPComplete = async (value: string) => {
 		if (value.length !== 6) return
@@ -50,6 +53,22 @@ export function VerifyOTPForm({
 		if (value.length === 6) {
 			await handleOTPComplete(value)
 		}
+	}
+
+	const handleResend = async () => {
+		setResendLoading(true)
+		setResendMessage(null)
+		setError(null)
+
+		const result = await resendOtp(email)
+
+		if (result.success) {
+			setResendMessage(result.message)
+		} else {
+			setResendMessage(result.message)
+		}
+
+		setResendLoading(false)
 	}
 
 	return (
@@ -120,13 +139,32 @@ export function VerifyOTPForm({
 							)}
 						</div>
 
-						<div className="flex justify-center">
+						<div className="flex flex-col items-center gap-3">
 							<Link
 								href="/login"
 								className="flex items-center gap-1 text-blue-500 text-sm hover:underline"
 							>
 								← Atrás
 							</Link>
+							<button
+								type="button"
+								onClick={handleResend}
+								disabled={resendLoading}
+								className="flex items-center gap-1 text-blue-500 text-sm hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+							>
+								{resendLoading ? 'Reenviando...' : 'Reenviar código'}
+							</button>
+							{resendMessage && (
+								<p
+									className={`text-center text-sm ${
+										resendMessage.includes('exitosamente')
+											? 'text-green-600'
+											: 'text-red-600'
+									}`}
+								>
+									{resendMessage}
+								</p>
+							)}
 						</div>
 
 						<div className="text-center text-muted-foreground text-sm">
