@@ -51,6 +51,38 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 		console.log(`  ✓ Created admin user: ${adminEmail}`)
 	}
 
+	// Requests user
+	const requestsEmail = 'solicitudes@topcredit.mx'
+	const requestsName = 'Solicitudes'
+
+	const existingRequests = await db.query.users.findFirst({
+		where: eq(users.email, requestsEmail),
+	})
+
+	if (existingRequests) {
+		console.log(`  ✓ Requests user already exists: ${requestsEmail}`)
+	} else {
+		const [requestsUser] = await db
+			.insert(users)
+			.values({
+				email: requestsEmail,
+				name: requestsName,
+			})
+			.returning()
+
+		if (!requestsUser) {
+			console.error('❌ Failed to create requests user')
+			process.exit(1)
+		}
+
+		await db.insert(userRoles).values({
+			userId: requestsUser.id,
+			role: 'requests',
+		})
+
+		console.log(`  ✓ Created requests user: ${requestsEmail}`)
+	}
+
 	console.log('\n✅ Seed completed!')
 }
 
