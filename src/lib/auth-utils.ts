@@ -4,10 +4,7 @@ import { authOptions } from '~/server/auth/config'
 
 export type Role =
 	| 'customer'
-	| 'sales_rep'
-	| 'credit_analyst'
-	| 'accountant'
-	| 'support'
+	| 'requests'
 	| 'admin'
 
 /**
@@ -27,8 +24,8 @@ export async function requireAuth() {
  * Redirects to /unauthorized if user doesn't have any of the required roles.
  *
  * @example
- * // Allow access for sales reps OR admins
- * await requireAnyRole(['sales_rep', 'admin'])
+ * // Allow access for requests OR admins
+ * await requireAnyRole(['requests', 'admin'])
  */
 export async function requireAnyRole(allowedRoles: Role[]) {
 	const session = await requireAuth()
@@ -48,8 +45,8 @@ export async function requireAnyRole(allowedRoles: Role[]) {
  * Redirects to /unauthorized if user is missing any required role.
  *
  * @example
- * // User must be both accountant AND admin
- * await requireAllRoles(['accountant', 'admin'])
+ * // User must be both requests AND admin
+ * await requireAllRoles(['requests', 'admin'])
  */
 export async function requireAllRoles(requiredRoles: Role[]) {
 	const session = await requireAuth()
@@ -81,7 +78,7 @@ export async function hasRole(role: Role): Promise<boolean> {
  * Returns false if user is not authenticated.
  *
  * @example
- * const canViewFinances = await hasAnyRole(['accountant', 'admin'])
+ * const canViewRequests = await hasAnyRole(['requests', 'admin'])
  */
 export async function hasAnyRole(roles: Role[]): Promise<boolean> {
 	const session = await getServerSession(authOptions)
@@ -93,7 +90,7 @@ export async function hasAnyRole(roles: Role[]): Promise<boolean> {
  * Returns false if user is not authenticated or missing any role.
  *
  * @example
- * const isSuperUser = await hasAllRoles(['admin', 'accountant'])
+ * const isSuperUser = await hasAllRoles(['admin', 'requests'])
  */
 export async function hasAllRoles(roles: Role[]): Promise<boolean> {
 	const session = await getServerSession(authOptions)

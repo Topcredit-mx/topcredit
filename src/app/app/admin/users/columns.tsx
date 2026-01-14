@@ -11,18 +11,12 @@ import type { UserWithRoles } from '~/server/admin/queries'
 
 const roleLabels: Record<Role, string> = {
 	customer: 'Cliente',
-	sales_rep: 'Ventas',
-	credit_analyst: 'Analista',
-	accountant: 'Contador',
-	support: 'Soporte',
+	requests: 'Solicitudes',
 	admin: 'Admin',
 }
 
 const allRoles: Role[] = [
-	'sales_rep',
-	'credit_analyst',
-	'accountant',
-	'support',
+	'requests',
 	'admin',
 ]
 

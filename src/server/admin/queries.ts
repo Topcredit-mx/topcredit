@@ -89,10 +89,7 @@ export async function getUsers(
 
 	// Filter out users who only have the 'customer' role (only show employees)
 	const employeeRoles: Role[] = [
-		'sales_rep',
-		'credit_analyst',
-		'accountant',
-		'support',
+		'requests',
 		'admin',
 	]
 

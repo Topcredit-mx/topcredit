@@ -11,10 +11,7 @@ const authPages = [
 ]
 
 const employeeRoles: Role[] = [
-	'sales_rep',
-	'credit_analyst',
-	'accountant',
-	'support',
+	'requests',
 	'admin',
 ]
 

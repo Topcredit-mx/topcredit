@@ -99,7 +99,7 @@ export async function getRequiredUser(): Promise<{
 
 /**
  * Gets the current user and verifies they have an employee role.
- * Employee roles: sales_rep, credit_analyst, accountant, support, admin
+ * Employee roles: requests, admin
  *
  * Use this in /app routes to ensure the user is an employee.
  */
@@ -113,10 +113,7 @@ export async function getRequiredEmployeeUser(): Promise<{
 	const user = await getRequiredUser()
 
 	const employeeRoles: Role[] = [
-		'sales_rep',
-		'credit_analyst',
-		'accountant',
-		'support',
+		'requests',
 		'admin',
 	]
 
