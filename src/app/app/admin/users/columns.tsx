@@ -1,6 +1,8 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import { Loader2 } from 'lucide-react'
+import { useTransition } from 'react'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
 import type { Role } from '~/lib/auth-utils'
@@ -23,6 +25,36 @@ const allRoles: Role[] = [
 	'support',
 	'admin',
 ]
+
+function RoleCheckbox({
+	userId,
+	role,
+	hasRole,
+}: {
+	userId: number
+	role: Role
+	hasRole: boolean
+}) {
+	const [isPending, startTransition] = useTransition()
+
+	return (
+		<div className="flex justify-center">
+			{isPending ? (
+				<Loader2 className='ml-2 size-4 animate-spin text-muted-foreground' />
+			) : (
+				<Checkbox
+					checked={hasRole}
+					disabled={isPending}
+					onCheckedChange={() => {
+						startTransition(async () => {
+							await toggleUserRole(userId, role)
+						})
+					}}
+				/>
+			)}
+		</div>
+	)
+}
 
 export const columns: ColumnDef<UserWithRoles>[] = [
 	{
@@ -56,16 +88,7 @@ export const columns: ColumnDef<UserWithRoles>[] = [
 				const user = row.original
 				const hasRole = user.roles.includes(role)
 
-				return (
-					<div className="flex justify-center">
-						<Checkbox
-							checked={hasRole}
-							onCheckedChange={async () => {
-								await toggleUserRole(user.id, role)
-							}}
-						/>
-					</div>
-				)
+				return <RoleCheckbox userId={user.id} role={role} hasRole={hasRole} />
 			},
 		}),
 	),
