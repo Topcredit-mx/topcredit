@@ -24,7 +24,8 @@
 - [x] Middleware for route protection
 - [x] Unauthorized page (403)
 - [x] Employee dashboard layout
-- [-] Admin panel for role management UI
+- [x] Admin panel for role management UI
+- [ ] Seed admin role user
 - [ ] Company-to-HR relationship (hrCompanyId)
 
 ### Phase 3: Entire Flow

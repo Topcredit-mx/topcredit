@@ -181,8 +181,10 @@ describe('Admin Users Table', () => {
 			// Open view dropdown
 			cy.contains('button', /view/i).click()
 
-			// Toggle email column off
-			cy.contains(/email/i).parent().click()
+			// Toggle email column off - target the dropdown content specifically
+			cy.get('[data-slot="dropdown-menu-content"]')
+				.contains(/email/i)
+				.click()
 
 			// Email column should not be visible
 			cy.get('table').within(() => {

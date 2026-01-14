@@ -128,7 +128,8 @@ export async function resendOtp(email: string) {
 	} catch (error) {
 		return {
 			success: false,
-			message: error instanceof Error ? error.message : 'Límite de intentos excedido',
+			message:
+				error instanceof Error ? error.message : 'Límite de intentos excedido',
 		}
 	}
 }

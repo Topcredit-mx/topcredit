@@ -5,6 +5,9 @@ import { getLocationFromIP } from '~/lib/ip-location'
 
 const resend = new Resend(env.RESEND_API_KEY)
 
+const isDev = process.env.NODE_ENV === 'development'
+const DEV_EMAIL = 'david.cantum@proton.me'
+
 export async function sendOtpEmail(
 	email: string,
 	code: string,
@@ -12,13 +15,21 @@ export async function sendOtpEmail(
 ) {
 	const location = await getLocationFromIP(ipAddress)
 
+	// In dev mode, send all emails to dev email with target info in subject
+	const targetEmail = isDev ? DEV_EMAIL : email
+	const subject = isDev
+		? `[DEV] OTP for ${email}: ${code}`
+		: 'Your One-Time Password'
+
 	await resend.emails.send({
 		from: env.EMAIL_FROM,
-		to: email,
-		subject: 'Your One-Time Password',
-		text: `Your verification code is: ${code}`,
+		to: targetEmail,
+		subject,
+		text: isDev
+			? `[DEV MODE]\nTarget email: ${email}\nVerification code: ${code}`
+			: `Your verification code is: ${code}`,
 		react: OTPTemplate({
-			fullName: 'User',
+			fullName: isDev ? `[DEV] ${email}` : 'User',
 			otpCode: code,
 			location,
 			ipAddress,
@@ -37,10 +48,15 @@ export async function sendGenericEmail({
 	email,
 	subject,
 }: SendGenericEmailParams) {
+	// In dev mode, send all emails to dev email with target info
+	const targetEmail = isDev ? DEV_EMAIL : email
+	const devSubject = isDev ? `[DEV] ${subject} (for ${email})` : subject
+	const devBody = isDev ? `[DEV MODE]\nTarget email: ${email}\n\n${body}` : body
+
 	await resend.emails.send({
 		from: env.EMAIL_FROM,
-		to: email,
-		subject: subject,
-		text: body,
+		to: targetEmail,
+		subject: devSubject,
+		text: devBody,
 	})
 }
