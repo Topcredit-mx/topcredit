@@ -1,6 +1,6 @@
 import 'dotenv/config'
-import { eq } from 'drizzle-orm'
 import { neon } from '@neondatabase/serverless'
+import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import * as schema from '../src/server/db/schema'
 
