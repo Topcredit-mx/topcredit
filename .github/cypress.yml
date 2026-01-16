@@ -1,0 +1,92 @@
+name: Cypress Tests
+
+on: [push]
+
+jobs:
+  test:
+    name: Cypress Tests
+    runs-on: ubuntu-latest
+    environment: testing
+    strategy:
+      fail-fast: false
+      matrix:
+        containers: [1]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.pnpm-store
+            node_modules
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Cypress binary
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
+          restore-keys: cypress-${{ runner.os }}-
+
+      - name: Install Cypress binary
+        run: pnpm exec cypress install
+
+      - name: Extract short commit hash
+        id: short-sha
+        run: echo "::set-output name=short_sha::$(echo $GITHUB_SHA | cut -c1-7)"
+
+      - name: Create Neon Branch
+        id: create-branch
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: test-${{ steps.short-sha.outputs.short_sha }}-${{ matrix.containers }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch_type: schema-only
+
+      - name: Start app
+        run: pnpm dev &
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_URL: http://localhost:3000
+
+      - name: Wait for app
+        run: pnpm dlx wait-on http://localhost:3000 --timeout 60000 --strict
+
+      - name: Cypress run
+        uses: cypress-io/github-action@v6
+        with:
+          record: true
+          parallel: true
+          group: '3x Electron'
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          CYPRESS_DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_NO_WARNINGS: 1
+          TERM: xterm
+
+      - name: Delete neon branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: test-${{ steps.short-sha.outputs.short_sha }}-${{ matrix.containers }}
+          api_key: ${{ secrets.NEON_API_KEY }}
