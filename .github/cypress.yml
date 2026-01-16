@@ -47,7 +47,7 @@ jobs:
 
       - name: Extract short commit hash
         id: short-sha
-        run: echo "::set-output name=short_sha::$(echo $GITHUB_SHA | cut -c1-7)"
+        run: echo "short_sha=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
       - name: Create Neon Branch
         id: create-branch
