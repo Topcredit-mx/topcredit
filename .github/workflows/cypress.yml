@@ -84,6 +84,7 @@ jobs:
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           CYPRESS_DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+          CYPRESS_AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_NO_WARNINGS: 1
           TERM: xterm
