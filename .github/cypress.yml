@@ -61,11 +61,11 @@ jobs:
       - name: Start app
         run: pnpm dev &
         env:
-          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: http://localhost:3000
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
 
       - name: Wait for app
         run: pnpm dlx wait-on http://localhost:3000 --timeout 60000 --strict
