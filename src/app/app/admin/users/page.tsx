@@ -1,20 +1,30 @@
-import {
-	DataTable,
-	DataTableContent,
-	DataTableHeader,
-	DataTablePagination,
-} from '~/components/ui/data-table'
 import { requireAnyRole } from '~/lib/auth-utils'
 import { getUsers } from '~/server/admin/queries'
-import { columns } from './columns'
+import { UsersTable } from './users-table'
 
-export default async function UsersPage() {
-	await requireAnyRole(['admin'])
+interface UsersPageProps {
+	searchParams: Promise<{
+		employeesOnly?: string
+	}>
+}
+
+export default async function UsersPage({ searchParams }: UsersPageProps) {
+	const session = await requireAnyRole(['admin'])
+	const params = await searchParams
+
+	const employeesOnly = params.employeesOnly === 'true'
 
 	const { items } = await getUsers({
 		limit: 1000,
 		page: 1,
+		employeesOnly,
 	})
+
+	// Get current user ID from session (handle both string and number)
+	const currentUserId =
+		typeof session.user.id === 'string'
+			? Number.parseInt(session.user.id, 10)
+			: session.user.id
 
 	return (
 		<div className="container mx-auto py-6">
@@ -25,11 +35,11 @@ export default async function UsersPage() {
 				</p>
 			</div>
 
-			<DataTable columns={columns} data={items} schema="users" label="Usuarios">
-				<DataTableHeader disableCreateButton />
-				<DataTableContent />
-				<DataTablePagination />
-			</DataTable>
+			<UsersTable
+				users={items}
+				currentUserId={currentUserId}
+				employeesOnly={employeesOnly}
+			/>
 		</div>
 	)
 }

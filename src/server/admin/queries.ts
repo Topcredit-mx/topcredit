@@ -20,6 +20,7 @@ export type GetUsersParams = {
 	limit?: number
 	search?: string
 	roleFilter?: Role
+	employeesOnly?: boolean
 }
 
 export type GetUsersResult = {
@@ -33,7 +34,13 @@ export type GetUsersResult = {
 export async function getUsers(
 	params: GetUsersParams = {},
 ): Promise<GetUsersResult> {
-	const { page = 1, limit = 50, search, roleFilter } = params
+	const {
+		page = 1,
+		limit = 50,
+		search,
+		roleFilter,
+		employeesOnly = false,
+	} = params
 
 	const offset = (page - 1) * limit
 
@@ -87,26 +94,25 @@ export async function getUsers(
 		}),
 	)
 
-	// Filter out users who only have the 'customer' role (only show employees)
-	const employeeRoles: Role[] = [
-		'requests',
-		'admin',
-	]
+	// Filter based on employeesOnly setting
+	let filteredByType = usersWithRoles
+	if (employeesOnly) {
+		const employeeRoles: Role[] = ['requests', 'admin']
+		filteredByType = usersWithRoles.filter((user) =>
+			user.roles.some((role) => employeeRoles.includes(role)),
+		)
+	}
 
-	const employeeUsers = usersWithRoles.filter((user) =>
-		user.roles.some((role) => employeeRoles.includes(role)),
-	)
-
-	// Filter by role if specified
+	// Filter by specific role if specified
 	const filteredUsers = roleFilter
-		? employeeUsers.filter((user) => user.roles.includes(roleFilter))
-		: employeeUsers
+		? filteredByType.filter((user) => user.roles.includes(roleFilter))
+		: filteredByType
 
 	const totalPages = Math.ceil(total / limit)
 
 	return {
 		items: filteredUsers,
-		total: roleFilter ? filteredUsers.length : employeeUsers.length,
+		total: filteredUsers.length,
 		page,
 		limit,
 		totalPages,

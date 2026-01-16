@@ -43,10 +43,10 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 			process.exit(1)
 		}
 
-		await db.insert(userRoles).values({
-			userId: admin.id,
-			role: 'admin',
-		})
+		await db.insert(userRoles).values([
+			{ userId: admin.id, role: 'customer' },
+			{ userId: admin.id, role: 'admin' },
+		])
 
 		console.log(`  ✓ Created admin user: ${adminEmail}`)
 	}
@@ -75,10 +75,10 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 			process.exit(1)
 		}
 
-		await db.insert(userRoles).values({
-			userId: requestsUser.id,
-			role: 'requests',
-		})
+		await db.insert(userRoles).values([
+			{ userId: requestsUser.id, role: 'customer' },
+			{ userId: requestsUser.id, role: 'requests' },
+		])
 
 		console.log(`  ✓ Created requests user: ${requestsEmail}`)
 	}
