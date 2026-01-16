@@ -2,6 +2,7 @@ import { defineConfig } from 'cypress'
 import * as tasks from './cypress/tasks'
 
 export default defineConfig({
+	projectId: 'zco6oy',
 	e2e: {
 		baseUrl: 'http://localhost:3000',
 		specPattern: ['cypress/e2e/**/*.cy.{js,ts}'],
