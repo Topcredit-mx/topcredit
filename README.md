@@ -1,6 +1,6 @@
 # TopCredit
 
-
+[![Cypress Tests](https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/detailed/zco6oy/main&style=flat&logo=cypress)](https://cloud.cypress.io/projects/zco6oy/runs)
 
 > Plataforma de créditos empresariales para empleados de empresas afiliadas
 
