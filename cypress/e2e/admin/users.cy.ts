@@ -37,6 +37,13 @@ const findRoleCheckbox = (row: Cypress.Chainable, roleLabel: string) =>
 
 describe('Admin Users Table', () => {
 	before(() => {
+		// Clean up any stale data from previous interrupted runs
+		const allEmails = [
+			adminUser.email,
+			customerOnlyUser.email,
+			...testUsers.map((u) => u.email),
+		]
+		cy.task('cleanupTestUsers', allEmails)
 		// Create admin and test users
 		cy.task('createUser', adminUser)
 		cy.task('createUser', customerOnlyUser)

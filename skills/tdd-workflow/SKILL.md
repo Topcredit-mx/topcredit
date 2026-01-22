@@ -316,6 +316,9 @@ const testUsers = [
 
 describe('Admin Users Table', () => {
   before(() => {
+    // Clean up any stale data from previous interrupted runs
+    const allEmails = [adminUser.email, ...testUsers.map((u) => u.email)]
+    cy.task('cleanupTestUsers', allEmails)
     // Create test users before all tests
     cy.task('createUser', adminUser)
     cy.task('createMultipleUsers', testUsers)
@@ -371,6 +374,41 @@ declare namespace Cypress {
 4. **Type-Safe** - Full TypeScript support with shared types
 5. **Realistic Auth** - Generate real JWT tokens for authentication
 
+### Resilient Test Cleanup Pattern
+
+When tests are interrupted (Ctrl+C, crash, CI timeout), `after()` hooks never run, leaving stale test data in the database. This can cause failures on subsequent runs.
+
+**Solution:** Clean up in BOTH `before()` and `after()` hooks:
+
+```typescript
+const testUser = {
+  email: 'test@example.com',
+  name: 'Test User',
+  roles: ['customer'] as const,
+}
+
+describe('My Test Suite', () => {
+  before(() => {
+    // 1. Clean up any stale data from previous interrupted runs
+    cy.task('cleanupTestUsers', [testUser.email])
+    // 2. Create fresh test data
+    cy.task('createUser', testUser)
+  })
+
+  after(() => {
+    // 3. Clean up after normal completion
+    cy.task('cleanupTestUsers', [testUser.email])
+  })
+
+  // ... tests
+})
+```
+
+**How it works:**
+- Normal run: `before()` cleans (no-op if clean), creates users, tests run, `after()` cleans
+- Interrupted run: `before()` cleans, creates users, tests run... interrupted (no `after()`)
+- Next run: `before()` cleans stale data, creates fresh users, tests continue normally
+
 ## Common Testing Mistakes to Avoid
 
 ### ❌ WRONG: Testing Implementation Details
@@ -418,11 +456,13 @@ it('creates user', () => { /* ... */ })
 it('updates same user', () => { /* depends on previous test */ })
 ```
 
-### ✅ CORRECT: Independent Tests
+### ✅ CORRECT: Independent Tests with Resilient Cleanup
 ```typescript
-// Each test suite sets up its own data
+// Each test suite sets up its own data with cleanup before AND after
 describe('User Management', () => {
   before(() => {
+    // Clean up stale data from previous interrupted runs
+    cy.task('cleanupTestUsers', [testUser.email])
     cy.task('createUser', testUser)
   })
 
@@ -471,7 +511,7 @@ pnpm cy:run
 6. **Test Edge Cases** - Empty states, invalid inputs, boundaries
 7. **Test Error Paths** - Not just happy paths
 8. **Test Access Control** - Verify role-based permissions
-9. **Clean Up After Tests** - Use `after()` hooks to remove test data
+9. **Resilient Test Cleanup** - Clean up in BOTH `before()` and `after()` hooks to handle interrupted runs
 
 ## Success Metrics
 

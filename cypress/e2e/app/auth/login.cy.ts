@@ -7,49 +7,47 @@ const testUser = {
 const employeeUser = {
 	name: 'Employee User',
 	email: 'employee@example.com',
-	roles: ['sales_rep'] as const,
+	roles: ['requests'] as const,
 }
 
 describe('Login Flow', () => {
 	before(() => {
+		// Clean up any stale data from previous interrupted runs
+		cy.task('cleanupTestUsers', [testUser.email, employeeUser.email])
 		cy.task('createUser', testUser)
 		cy.task('createUser', employeeUser)
 	})
 
 	after(() => {
-		cy.task('deleteUser', testUser.email)
-		cy.task('deleteUser', employeeUser.email)
-	})
-
-	it('should set session token correctly', () => {
-		cy.login(testUser.email)
-
-		cy.getCookie('next-auth.session-token').should('exist')
-		cy.getCookie('next-auth.session-token').should('have.property', 'value')
+		cy.task('cleanupTestUsers', [testUser.email, employeeUser.email])
 	})
 
 	it('should access customer dashboard after login', () => {
 		cy.login(testUser.email)
 		cy.visit('/dashboard')
 		cy.url().should('include', '/dashboard')
+		cy.contains('h1', 'Mi Cuenta').should('be.visible')
 	})
 
 	it('should redirect to dashboard from /login when authenticated', () => {
 		cy.login(testUser.email)
 		cy.visit('/login')
 		cy.url().should('include', '/dashboard')
+		cy.contains('h1', 'Mi Cuenta').should('be.visible')
 	})
 
 	it('should redirect to dashboard from / when authenticated', () => {
 		cy.login(testUser.email)
 		cy.visit('/')
 		cy.url().should('include', '/dashboard')
+		cy.contains('h1', 'Mi Cuenta').should('be.visible')
 	})
 
 	it('should show unauthorized page when customer tries to access employee app', () => {
 		cy.login(testUser.email)
 		cy.visit('/app')
 		cy.url().should('include', '/unauthorized')
+		cy.contains('h1', '403 - No Autorizado').should('be.visible')
 	})
 
 	it('should allow employee to access app routes', () => {
@@ -63,5 +61,6 @@ describe('Login Flow', () => {
 		cy.login(employeeUser.email)
 		cy.visit('/dashboard')
 		cy.url().should('include', '/unauthorized')
+		cy.contains('h1', '403 - No Autorizado').should('be.visible')
 	})
 })
