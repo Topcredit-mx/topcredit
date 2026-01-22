@@ -118,7 +118,7 @@ describe('Admin Users Table', () => {
 
 		it('should filter to employees only when selecting that option', () => {
 			// Open dropdown and select employees only
-			cy.get('#user-filter').click()
+			cy.get('[aria-label="Filtrar usuarios"]').click()
 			cy.contains('Solo empleados').click()
 
 			// URL should update
@@ -153,7 +153,7 @@ describe('Admin Users Table', () => {
 			cy.contains('Customer Only User').should('not.exist')
 
 			// Switch back to all users
-			cy.get('#user-filter').click()
+			cy.get('[aria-label="Filtrar usuarios"]').click()
 			cy.contains('Todos los usuarios').click()
 
 			// Customer-only user should be visible again

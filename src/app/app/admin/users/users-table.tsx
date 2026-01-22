@@ -46,14 +46,14 @@ export function UsersTable({
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center gap-4">
-				<Label htmlFor="user-filter">Mostrar:</Label>
-				<Select
-					value={employeesOnly ? 'employees' : 'all'}
-					onValueChange={handleFilterChange}
-				>
-					<SelectTrigger className="w-[200px]">
-						<SelectValue />
-					</SelectTrigger>
+				<Label>Mostrar:</Label>
+			<Select
+				value={employeesOnly ? 'employees' : 'all'}
+				onValueChange={handleFilterChange}
+			>
+				<SelectTrigger aria-label="Filtrar usuarios" className="w-[200px]">
+					<SelectValue />
+				</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="all">Todos los usuarios</SelectItem>
 						<SelectItem value="employees">Solo empleados</SelectItem>

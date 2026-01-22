@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import { Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import {
 	AlertDialog,
@@ -36,6 +37,7 @@ function RoleCheckbox({
 	hasRole: boolean
 	isCurrentUser: boolean
 }) {
+	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
 	const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
@@ -56,6 +58,8 @@ function RoleCheckbox({
 		setShowConfirmDialog(false)
 		startTransition(async () => {
 			await toggleUserRole(userId, role)
+			// Redirect to unauthorized page since user just removed their own admin access
+			router.push('/unauthorized')
 		})
 	}
 
