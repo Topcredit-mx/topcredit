@@ -80,84 +80,31 @@ describe('Admin Users Table', () => {
 			cy.visit('/app/admin/users')
 		})
 
-		it('should display users table with correct columns for all users view', () => {
-			// By default, shows all users with customer column
+		it('should display users table with correct columns', () => {
+			// Shows employees with role columns (no customer column)
 			cy.contains('th', /nombre/i).should('be.visible')
 			cy.contains('th', /email/i).should('be.visible')
-			cy.contains('th', /cliente/i).should('be.visible')
 			cy.contains('th', /solicitudes/i).should('be.visible')
 			cy.contains('th', /admin/i).should('be.visible')
 			cy.contains('th', /fecha de creación/i).should('be.visible')
-		})
-
-		it('should display all users including customer-only users by default', () => {
-			// All users should be visible by default
-			cy.contains('Jane Requests').should('be.visible')
-			cy.contains('Bob Admin').should('be.visible')
-			cy.contains('Customer Only User').should('be.visible')
-		})
-
-		it('should display checkboxes for all roles when viewing all users', () => {
-			// Find Jane Requests row and verify checkboxes are present
-			findUserRow('Jane Requests').within(() => {
-				// Should have checkboxes for all roles (3: customer, requests, admin)
-				cy.get('button[role="checkbox"]').should('have.length', 3)
-			})
-		})
-	})
-
-	describe('User Filter Toggle', () => {
-		beforeEach(() => {
-			cy.login(adminUser.email)
-			cy.visit('/app/admin/users')
-		})
-
-		it('should have a filter dropdown defaulting to "all users"', () => {
-			cy.contains('Todos los usuarios').should('be.visible')
-		})
-
-		it('should filter to employees only when selecting that option', () => {
-			// Open dropdown and select employees only
-			cy.get('[aria-label="Filtrar usuarios"]').click()
-			cy.contains('Solo empleados').click()
-
-			// URL should update
-			cy.url().should('include', 'employeesOnly=true')
-
-			// Customer-only user should no longer be visible
-			cy.contains('Customer Only User').should('not.exist')
-
-			// Employees should still be visible
-			cy.contains('Jane Requests').should('be.visible')
-			cy.contains('Bob Admin').should('be.visible')
-		})
-
-		it('should hide customer column when viewing employees only', () => {
-			// Switch to employees only view
-			cy.visit('/app/admin/users?employeesOnly=true')
-
-			// Customer column should not be visible
+			// Customer column should not exist
 			cy.get('table').within(() => {
 				cy.contains('th', /cliente/i).should('not.exist')
 			})
-
-			// Only 2 role columns (requests, admin)
-			findUserRow('Jane Requests').within(() => {
-				cy.get('button[role="checkbox"]').should('have.length', 2)
-			})
 		})
 
-		it('should show all users when switching back from employees only', () => {
-			// Start with employees only
-			cy.visit('/app/admin/users?employeesOnly=true')
-			cy.contains('Customer Only User').should('not.exist')
+		it('should display employees', () => {
+			// Employees should be visible
+			cy.contains('Jane Requests').should('be.visible')
+			cy.contains('Bob Admin').should('be.visible')
+		})
 
-			// Switch back to all users
-			cy.get('[aria-label="Filtrar usuarios"]').click()
-			cy.contains('Todos los usuarios').click()
-
-			// Customer-only user should be visible again
-			cy.contains('Customer Only User').should('be.visible')
+		it('should display checkboxes for employee roles', () => {
+			// Find Jane Requests row and verify checkboxes are present
+			findUserRow('Jane Requests').within(() => {
+				// Should have checkboxes for employee roles (2: requests, admin)
+				cy.get('button[role="checkbox"]').should('have.length', 2)
+			})
 		})
 	})
 
@@ -208,36 +155,11 @@ describe('Admin Users Table', () => {
 		})
 
 		it('should show checked state for users existing roles', () => {
-			// Jane Requests should have the requests and customer roles checked
+			// Jane Requests should have the requests role checked
 			findUserRow('Jane Requests').within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Solicitudes role"]',
 				).should('have.attr', 'data-state', 'checked')
-				cy.get(
-					'button[role="checkbox"][aria-label="Toggle Cliente role"]',
-				).should('have.attr', 'data-state', 'checked')
-			})
-		})
-
-		it('should allow promoting customer to employee role', () => {
-			// Find Customer Only User and add requests role
-			findUserRow('Customer Only User').then(($row) => {
-				findRoleCheckbox(cy.wrap($row), 'Solicitudes').click()
-			})
-
-			// Wait for update
-			cy.wait(500)
-
-			// Verify role was added
-			findUserRow('Customer Only User').within(() => {
-				cy.get(
-					'button[role="checkbox"][aria-label="Toggle Solicitudes role"]',
-				).should('have.attr', 'data-state', 'checked')
-			})
-
-			// Revert the change
-			findUserRow('Customer Only User').then(($row) => {
-				findRoleCheckbox(cy.wrap($row), 'Solicitudes').click()
 			})
 		})
 	})
@@ -301,8 +223,9 @@ describe('Admin Users Table', () => {
 		})
 
 		it('should NOT show confirmation dialog when removing admin role from another user', () => {
-			// Find Bob Admin row (different user) and click admin checkbox
-			findUserRow('Bob Admin').then(($row) => {
+			// Find Charlie Multi row (different user with both requests and admin roles)
+			// Using Charlie because he has 'requests' role, so he stays visible after admin removal
+			findUserRow('Charlie Multi').then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
@@ -312,15 +235,15 @@ describe('Admin Users Table', () => {
 			// Wait for the toggle to complete
 			cy.wait(500)
 
-			// Bob Admin's admin checkbox should now be unchecked
-			findUserRow('Bob Admin').within(() => {
+			// Charlie Multi's admin checkbox should now be unchecked
+			findUserRow('Charlie Multi').within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Admin role"]',
 				).should('have.attr', 'data-state', 'unchecked')
 			})
 
 			// Re-add admin role for cleanup
-			cy.task('assignRole', { email: 'bob.admin@example.com', role: 'admin' })
+			cy.task('assignRole', { email: 'charlie.multi@example.com', role: 'admin' })
 		})
 
 		// This test is LAST because it removes the current user's admin role

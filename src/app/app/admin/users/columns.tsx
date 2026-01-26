@@ -107,12 +107,9 @@ function RoleCheckbox({
 
 export function createColumns(
 	currentUserId: number,
-	showCustomerRole = false,
 ): ColumnDef<UserWithRoles>[] {
-	// Define which roles to show based on filter
-	const rolesToShow: Role[] = showCustomerRole
-		? ['customer', 'requests', 'admin']
-		: ['requests', 'admin']
+	// Only show employee roles (not customer)
+	const rolesToShow: Role[] = ['requests', 'admin']
 
 	return [
 		{
