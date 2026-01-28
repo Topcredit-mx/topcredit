@@ -1,6 +1,7 @@
 import {
 	boolean,
 	integer,
+	numeric,
 	pgEnum,
 	pgTable,
 	primaryKey,
@@ -15,6 +16,11 @@ export const rolesEnum = pgEnum('roles', [
 	'employee',
 	'requests',
 	'admin',
+])
+
+export const employeeSalaryFrequencyEnum = pgEnum('employee_salary_frequency', [
+	'bi-monthly',
+	'monthly',
 ])
 
 export const users = pgTable('users', {
@@ -77,3 +83,24 @@ export const userRoles = pgTable(
 		pk: primaryKey({ columns: [table.userId, table.role] }),
 	}),
 )
+
+export const companies = pgTable('companies', {
+	id: serial('id').primaryKey(),
+	name: text('name').notNull(),
+	domain: text('domain').notNull().unique(),
+	rate: numeric('rate', { precision: 5, scale: 4 }).notNull(), // e.g., 0.0250 for 2.5%
+	borrowingCapacityRate: numeric('borrowing_capacity_rate', {
+		precision: 3,
+		scale: 2,
+	}), // Optional, nullable. Decimal between 0 and 1 (e.g., 0.30 = 30% of salary)
+	employeeSalaryFrequency: employeeSalaryFrequencyEnum(
+		'employee_salary_frequency',
+	).notNull(),
+	active: boolean('active').default(true).notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+})

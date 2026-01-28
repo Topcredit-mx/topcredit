@@ -1,4 +1,18 @@
+CREATE TYPE "public"."employee_salary_frequency" AS ENUM('bi-monthly', 'monthly');--> statement-breakpoint
 CREATE TYPE "public"."roles" AS ENUM('customer', 'employee', 'requests', 'admin');--> statement-breakpoint
+CREATE TABLE "companies" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"domain" text NOT NULL,
+	"rate" numeric(5, 4) NOT NULL,
+	"borrowing_capacity_rate" numeric(3, 2),
+	"employee_salary_frequency" "employee_salary_frequency" NOT NULL,
+	"active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "companies_domain_unique" UNIQUE("domain")
+);
+--> statement-breakpoint
 CREATE TABLE "email_otps" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,

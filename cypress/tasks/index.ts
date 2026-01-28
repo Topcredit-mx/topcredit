@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import type { Role } from '~/lib/auth-utils'
-import { userRoles, users } from '~/server/db/schema'
+import { companies, userRoles, users } from '~/server/db/schema'
 import { getDb } from './cypress-db'
 
 export type LoginTaskParams = string
@@ -183,6 +183,83 @@ export const cleanupTestUsers = async (emails: CleanupTestUsersTaskParams) => {
 
 	for (const email of emails) {
 		await db.delete(users).where(eq(users.email, email))
+	}
+
+	return null
+}
+
+export type CreateCompanyTaskParams = {
+	name: string
+	domain: string
+	rate: string
+	borrowingCapacityRate?: string | null // Decimal between 0 and 1 (e.g., "0.30" = 30%)
+	employeeSalaryFrequency: 'bi-monthly' | 'monthly'
+	active?: boolean
+}
+
+export const createCompany = async (params: CreateCompanyTaskParams) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const [company] = await db
+		.insert(companies)
+		.values({
+			name: params.name,
+			domain: params.domain,
+			rate: params.rate,
+			borrowingCapacityRate: params.borrowingCapacityRate ?? null,
+			employeeSalaryFrequency: params.employeeSalaryFrequency,
+			active: params.active ?? true,
+		})
+		.returning()
+
+	if (!company) {
+		throw new Error('Failed to create company')
+	}
+
+	return company
+}
+
+export type CreateMultipleCompaniesTaskParams = CreateCompanyTaskParams[]
+
+export const createMultipleCompanies = async (
+	companyList: CreateMultipleCompaniesTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const createdCompanies = []
+
+	for (const params of companyList) {
+		const [company] = await db
+			.insert(companies)
+			.values({
+				name: params.name,
+				domain: params.domain,
+				rate: params.rate,
+				borrowingCapacityRate: params.borrowingCapacityRate ?? null,
+				employeeSalaryFrequency: params.employeeSalaryFrequency,
+				active: params.active ?? true,
+			})
+			.returning()
+
+		if (!company) {
+			throw new Error(`Failed to create company ${params.name}`)
+		}
+
+		createdCompanies.push(company)
+	}
+
+	return createdCompanies
+}
+
+export type CleanupTestCompaniesTaskParams = string[]
+
+export const cleanupTestCompanies = async (
+	domains: CleanupTestCompaniesTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	for (const domain of domains) {
+		await db.delete(companies).where(eq(companies.domain, domain))
 	}
 
 	return null

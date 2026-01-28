@@ -449,6 +449,31 @@ cy.get('[role="alertdialog"]').should('be.visible')
 cy.contains('td', 'Jane Requests').parent('tr').find('button').click()
 ```
 
+### ❌ WRONG: Testing Table Headers for Visibility
+```typescript
+// Table headers may be clipped by overflow containers
+cy.contains('th', /nombre/i).should('be.visible') // ❌ Fails if clipped
+cy.contains('th', /email/i).should('be.visible') // ❌ Fails if clipped
+```
+
+### ✅ CORRECT: Testing Table Headers for Existence
+```typescript
+// Table headers are labels - check existence, not visibility
+// They may be clipped by overflow but still functional
+cy.get('table').should('be.visible')
+cy.get('table').within(() => {
+  cy.contains('th', /nombre/i).should('exist')
+  cy.contains('th', /email/i).should('exist')
+  cy.contains('th', /fecha/i).should('exist')
+})
+
+// For interactive table elements (buttons, checkboxes), check visibility
+cy.contains('td', 'Jane Requests')
+  .parent('tr')
+  .find('button[role="checkbox"]')
+  .should('be.visible') // ✅ Interactive elements should be visible
+```
+
 ### ❌ WRONG: No Test Isolation
 ```typescript
 // Tests depend on each other
@@ -501,6 +526,47 @@ pnpm cy:run
   run: pnpm cy:run
 ```
 
+## Table Testing Best Practices
+
+When testing data tables, follow these patterns to avoid common visibility issues:
+
+### Testing Table Structure
+```typescript
+describe('Data Table', () => {
+  it('should display table with correct columns', () => {
+    // Verify table container is visible
+    cy.get('table').should('be.visible')
+    
+    // Check headers exist (not visibility - they may be clipped)
+    cy.get('table').within(() => {
+      cy.contains('th', /nombre/i).should('exist')
+      cy.contains('th', /email/i).should('exist')
+      cy.contains('th', /fecha/i).should('exist')
+    })
+  })
+  
+  it('should display table rows with data', () => {
+    // Check row data is visible (content should be visible)
+    cy.contains('td', 'Jane Requests').should('be.visible')
+    cy.contains('td', 'jane@example.com').should('be.visible')
+  })
+  
+  it('should allow interaction with table controls', () => {
+    // Interactive elements must be visible
+    cy.contains('td', 'Jane Requests')
+      .parent('tr')
+      .find('button[role="checkbox"]')
+      .should('be.visible')
+      .click()
+  })
+})
+```
+
+### Why This Matters
+- **Table headers** are labels - existence is sufficient (they may be clipped by overflow containers)
+- **Table data** should be visible - users need to see the content
+- **Interactive elements** (buttons, checkboxes) must be visible - users need to interact with them
+
 ## Best Practices
 
 1. **Write Tests First** - Always TDD
@@ -512,6 +578,7 @@ pnpm cy:run
 7. **Test Error Paths** - Not just happy paths
 8. **Test Access Control** - Verify role-based permissions
 9. **Resilient Test Cleanup** - Clean up in BOTH `before()` and `after()` hooks to handle interrupted runs
+10. **Table Headers** - Check existence, not visibility (may be clipped by overflow)
 
 ## Success Metrics
 

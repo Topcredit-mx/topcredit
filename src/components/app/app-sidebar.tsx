@@ -71,7 +71,10 @@ export function AppSidebar({ user }: AppSidebarProps) {
 			title: 'Administración',
 			url: '/app/admin',
 			icon: Shield,
-			items: [{ title: 'Usuarios', url: '/app/admin/users' }],
+			items: [
+				{ title: 'Usuarios', url: '/app/admin/users' },
+				{ title: 'Empresas', url: '/app/admin/companies' },
+			],
 		})
 	}
 

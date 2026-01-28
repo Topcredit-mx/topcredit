@@ -25,11 +25,25 @@
 - [x] Unauthorized page (403)
 - [x] Employee dashboard layout
 - [x] Admin panel for role management UI
-- [ ] Seed admin role user
-- [ ] Company-to-HR relationship (hrCompanyId)
 
-### Phase 3: Entire Flow
-- [ ] Employees - Company management (creation, editing, overview)
+#### Phase 2.1: Company CRUD
+- [x] Company schema (name, domain, rate, borrowingCapacityRate, employeeSalaryFrequency, active)
+- [x] Company queries (list, byId, search, activeOnly filter)
+- [x] Admin UI: Company list page with data table
+- [x] Domain validation & uniqueness (enforced at DB level)
+- [x] Company list E2E tests (access control, display, search, filtering)
+- [ ] Company mutations (create, update, delete)
+- [ ] Admin UI: Company create/edit pages
+- [ ] Company create/edit E2E tests
+
+#### Phase 2.2: Employee-Company Relationship
+- [ ] Employee-Company junction table (many-to-many)
+- [ ] Assign/unassign companies to employees
+- [ ] Data filtering: employees see only assigned company data
+- [ ] Admin UI: Company assignment in user management
+- [ ] Employee-Company relationship tests
+
+### Phase 3: Credit Application Flow
 - [ ] Users - Credit application creation
 - [ ] Users - Credit application status overview
 - [ ] Employees - Review, authorize, reject credit applications
@@ -54,24 +68,25 @@
 ## Company Management
 
 ### Company creation and editing
-- Can create company with name, domain, rate, borrowingCapacity, employeeSalaryFrequency
+- Can create company with name, domain, rate, borrowingCapacityRate, employeeSalaryFrequency, active
 - Can update company details
-- Domain must be unique
+- Domain must be unique and valid email domain format
 - Rate must be positive number
-- BorrowingCapacity is optional
+- BorrowingCapacityRate is optional, decimal between 0 and 1 (e.g., 0.30 = 30% of employee salary)
 - EmployeeSalaryFrequency must be "bi-monthly" or "monthly"
+- Active defaults to true (inactive = soft delete)
 
 ### Company listing and overview
 - Display all companies with pagination
-- Show company name, domain, rate, borrowing capacity
-- Filter by company status/activity
+- Show company name, domain, rate, borrowing capacity rate (as percentage), active status
+- Filter by active/inactive status
 - Search by company name or domain
 
 ### Company credit assignment and management
 - Assign credits to companies
-- Track total credit usage vs borrowing capacity
+- Calculate max loan amount based on borrowingCapacityRate (percentage of salary)
 - Display company's active credits
-- Prevent exceeding borrowing capacity
+- Use borrowingCapacityRate in max loan calculations
 
 ### Company term assignment (assign-term-form, new-term-form)
 - Create new terms with durationType (bi-monthly/monthly) and duration
@@ -199,16 +214,19 @@
 - Provide role-specific navigation (SidebarRoutes)
 
 ### HR integration and processes
-- HR users linked to specific companies (hrCompanyId)
+- Employees can be assigned to one or many companies (many-to-many)
+- Employees without company assignments see no company data
+- Employees with assignments see only their assigned companies' data
 - HR approval workflow for credits (hrStatus)
 - HR payment confirmation (hrConfirmedAt)
 - Company employee management
 
 ### Role-based access and permissions
 - Enforce role-based access to features
-- Restrict data access based on user roles
-- HR users only see their company's data
-- Admin users have full system access
+- Restrict data access based on user roles and company assignments
+- Employees with company assignments see only their assigned companies' data
+- Employees without assignments see no company data
+- Admin users have full system access (see all data)
 
 ## Activity & Monitoring
 
