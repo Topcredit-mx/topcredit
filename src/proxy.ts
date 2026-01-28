@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from 'next-auth/middleware'
-import type { Role } from './lib/auth-utils'
 
 const authPages = [
 	'/login',
@@ -10,22 +9,17 @@ const authPages = [
 	'/verify-backup-code',
 ]
 
-const employeeRoles: Role[] = [
-	'requests',
-	'admin',
-]
-
 export default withAuth(
 	function middleware(req) {
 		const token = req.nextauth.token
 		const path = req.nextUrl.pathname
 		const roles = token?.roles || []
 
+		const isEmployee = roles.includes('employee')
+
 		// Redirect authenticated users from landing page to their dashboard
 		if (token && path === '/') {
-			const hasEmployeeRole = roles.some((role) => employeeRoles.includes(role))
-
-			if (hasEmployeeRole) {
+			if (isEmployee) {
 				return NextResponse.redirect(new URL('/app', req.url))
 			}
 
@@ -34,9 +28,7 @@ export default withAuth(
 
 		// Redirect authenticated users from auth pages to their dashboard
 		if (token && authPages.includes(path)) {
-			const hasEmployeeRole = roles.some((role) => employeeRoles.includes(role))
-
-			if (hasEmployeeRole) {
+			if (isEmployee) {
 				return NextResponse.redirect(new URL('/app', req.url))
 			}
 
@@ -50,11 +42,9 @@ export default withAuth(
 			}
 		}
 
-		// Employee app routes - any employee role
+		// Employee app routes - requires employee role
 		if (path.startsWith('/app')) {
-			const hasEmployeeRole = roles.some((role) => employeeRoles.includes(role))
-
-			if (!hasEmployeeRole) {
+			if (!isEmployee) {
 				return NextResponse.redirect(new URL('/unauthorized', req.url))
 			}
 		}

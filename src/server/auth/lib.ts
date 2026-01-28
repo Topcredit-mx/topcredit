@@ -98,8 +98,7 @@ export async function getRequiredUser(): Promise<{
 }
 
 /**
- * Gets the current user and verifies they have an employee role.
- * Employee roles: requests, admin
+ * Gets the current user and verifies they have the employee role.
  *
  * Use this in /app routes to ensure the user is an employee.
  */
@@ -112,18 +111,9 @@ export async function getRequiredEmployeeUser(): Promise<{
 }> {
 	const user = await getRequiredUser()
 
-	const employeeRoles: Role[] = [
-		'requests',
-		'admin',
-	]
-
-	const hasEmployeeRole = user.roles.some((role) =>
-		employeeRoles.includes(role),
-	)
-
-	if (!hasEmployeeRole) {
+	if (!user.roles.includes('employee')) {
 		throw new Error(
-			'Unauthorized: User does not have an employee role. This should not happen due to middleware protection.',
+			'Unauthorized: User does not have the employee role. This should not happen due to middleware protection.',
 		)
 	}
 

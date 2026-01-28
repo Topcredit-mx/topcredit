@@ -2,10 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '~/server/auth/config'
 
-export type Role =
-	| 'customer'
-	| 'requests'
-	| 'admin'
+export type Role = 'customer' | 'employee' | 'requests' | 'admin'
 
 /**
  * Requires user to be authenticated.

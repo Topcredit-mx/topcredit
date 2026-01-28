@@ -22,6 +22,7 @@ import type { UserWithRoles } from '~/server/admin/queries'
 
 const roleLabels: Record<Role, string> = {
 	customer: 'Cliente',
+	employee: 'Empleado',
 	requests: 'Solicitudes',
 	admin: 'Admin',
 }

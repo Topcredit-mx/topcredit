@@ -44,7 +44,7 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 		}
 
 		await db.insert(userRoles).values([
-			{ userId: admin.id, role: 'customer' },
+			{ userId: admin.id, role: 'employee' },
 			{ userId: admin.id, role: 'admin' },
 		])
 
@@ -76,7 +76,7 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 		}
 
 		await db.insert(userRoles).values([
-			{ userId: requestsUser.id, role: 'customer' },
+			{ userId: requestsUser.id, role: 'employee' },
 			{ userId: requestsUser.id, role: 'requests' },
 		])
 

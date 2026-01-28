@@ -97,9 +97,9 @@ export async function getUsers(
 	// Filter based on employeesOnly setting
 	let filteredByType = usersWithRoles
 	if (employeesOnly) {
-		const employeeRoles: Role[] = ['requests', 'admin']
+		// Filter to users with the 'employee' base role
 		filteredByType = usersWithRoles.filter((user) =>
-			user.roles.some((role) => employeeRoles.includes(role)),
+			user.roles.includes('employee'),
 		)
 	}
 

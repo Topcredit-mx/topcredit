@@ -12,6 +12,7 @@ import {
 
 export const rolesEnum = pgEnum('roles', [
 	'customer',
+	'employee',
 	'requests',
 	'admin',
 ])

@@ -1,0 +1,33 @@
+name: Database Migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'drizzle/**'
+      - 'src/server/db/schema.ts'
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.2.0
+
+      - name: Install dependencies
+        run: pnpm install --prefer-frozen-lockfile --ignore-scripts
+
+      - name: Run migrations
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

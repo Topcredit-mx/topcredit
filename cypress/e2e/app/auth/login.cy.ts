@@ -7,7 +7,7 @@ const testUser = {
 const employeeUser = {
 	name: 'Employee User',
 	email: 'employee@example.com',
-	roles: ['requests'] as const,
+	roles: ['employee', 'requests'] as const,
 }
 
 describe('Login Flow', () => {

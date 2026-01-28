@@ -1,5 +1,5 @@
 {
-  "id": "8c003474-b398-4c70-9b40-7f918242ef4b",
+  "id": "d5ea0e33-d841-46c0-8d25-2cc075bf5cde",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -274,6 +274,7 @@
       "schema": "public",
       "values": [
         "customer",
+        "employee",
         "requests",
         "admin"
       ]

@@ -1,4 +1,4 @@
-CREATE TYPE "public"."roles" AS ENUM('customer', 'requests', 'admin');--> statement-breakpoint
+CREATE TYPE "public"."roles" AS ENUM('customer', 'employee', 'requests', 'admin');--> statement-breakpoint
 CREATE TABLE "email_otps" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,

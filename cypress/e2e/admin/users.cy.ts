@@ -1,7 +1,7 @@
 const adminUser = {
 	name: 'Admin User',
 	email: 'admin@example.com',
-	roles: ['admin', 'customer'] as const,
+	roles: ['employee', 'admin'] as const,
 }
 
 const customerOnlyUser = {
@@ -14,17 +14,17 @@ const testUsers = [
 	{
 		name: 'Jane Requests',
 		email: 'jane.requests@example.com',
-		roles: ['requests', 'customer'] as const,
+		roles: ['employee', 'requests'] as const,
 	},
 	{
 		name: 'Bob Admin',
 		email: 'bob.admin@example.com',
-		roles: ['admin', 'customer'] as const,
+		roles: ['employee', 'admin'] as const,
 	},
 	{
 		name: 'Charlie Multi',
 		email: 'charlie.multi@example.com',
-		roles: ['requests', 'admin', 'customer'] as const,
+		roles: ['employee', 'requests', 'admin'] as const,
 	},
 ]
 
@@ -223,9 +223,9 @@ describe('Admin Users Table', () => {
 		})
 
 		it('should NOT show confirmation dialog when removing admin role from another user', () => {
-			// Find Charlie Multi row (different user with both requests and admin roles)
-			// Using Charlie because he has 'requests' role, so he stays visible after admin removal
-			findUserRow('Charlie Multi').then(($row) => {
+			// Find Bob Admin row (different user) and click admin checkbox
+			// Bob stays visible after admin removal because he still has 'employee' role
+			findUserRow('Bob Admin').then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
@@ -235,15 +235,15 @@ describe('Admin Users Table', () => {
 			// Wait for the toggle to complete
 			cy.wait(500)
 
-			// Charlie Multi's admin checkbox should now be unchecked
-			findUserRow('Charlie Multi').within(() => {
+			// Bob Admin's admin checkbox should now be unchecked
+			findUserRow('Bob Admin').within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Admin role"]',
 				).should('have.attr', 'data-state', 'unchecked')
 			})
 
 			// Re-add admin role for cleanup
-			cy.task('assignRole', { email: 'charlie.multi@example.com', role: 'admin' })
+			cy.task('assignRole', { email: 'bob.admin@example.com', role: 'admin' })
 		})
 
 		// This test is LAST because it removes the current user's admin role
