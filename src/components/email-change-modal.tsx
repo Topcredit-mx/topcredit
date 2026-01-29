@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import { Button } from '~/components/ui/button'
 import {
 	Dialog,
@@ -9,11 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '~/components/ui/dialog'
-import {
-	Field,
-	FieldError,
-	FieldLabel,
-} from '~/components/ui/field'
+import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
 import {
 	InputOTP,
@@ -38,78 +34,46 @@ export function EmailChangeModal({
 	const [step, setStep] = useState<'email' | 'otp'>('email')
 	const [newEmail, setNewEmail] = useState('')
 	const [otp, setOtp] = useState('')
-	const [error, setError] = useState('')
-	const [isLoading, setIsLoading] = useState(false)
-	const [touched, setTouched] = useState(false)
 	const currentEmailId = useId()
 	const newEmailId = useId()
 
-	const validateEmail = (email: string): string | null => {
-		if (!email.trim()) {
-			return 'El correo electrónico es requerido'
-		}
-		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-		if (!emailRegex.test(email)) {
-			return 'El correo electrónico debe tener un formato válido'
-		}
-		if (email.toLowerCase() === currentEmail.toLowerCase()) {
-			return 'El nuevo correo debe ser diferente al actual'
-		}
-		return null
-	}
+	// Email step: useActionState for sending OTP
+	const [emailState, emailAction, emailPending] = useActionState(
+		sendEmailChangeOtp,
+		{ errors: undefined, message: undefined, step: undefined },
+	)
 
-	const handleSendOtp = async (e: React.FormEvent) => {
-		e.preventDefault()
-		setTouched(true)
+	// OTP step: useActionState for verifying OTP
+	const [otpState, otpAction, otpPending] = useActionState(
+		verifyEmailChangeOtp,
+		{ errors: undefined, message: undefined, success: undefined },
+	)
+	const otpFormRef = useRef<HTMLFormElement>(null)
 
-		const emailError = validateEmail(newEmail)
-		if (emailError) {
-			setError(emailError)
-			return
-		}
-
-		setIsLoading(true)
-		setError('')
-
-		try {
-			await sendEmailChangeOtp(currentEmail, newEmail.trim())
+	// Handle step transition when email step succeeds
+	useEffect(() => {
+		if (emailState.step === 'otp') {
 			setStep('otp')
-			setTouched(false)
-		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Error al enviar OTP')
-		} finally {
-			setIsLoading(false)
 		}
-	}
+	}, [emailState.step])
 
-	const handleVerifyOtp = async (otpValue: string) => {
-		if (otpValue.length !== 6) return
-
-		setIsLoading(true)
-		setError('')
-
-		try {
-			await verifyEmailChangeOtp(currentEmail, newEmail, otpValue)
+	// Handle success when OTP verification succeeds
+	useEffect(() => {
+		if (otpState.success) {
 			onEmailChanged(newEmail)
 			onOpenChange(false)
+			// Reset form
 			setStep('email')
 			setNewEmail('')
 			setOtp('')
-		} catch (err) {
-			setError(err instanceof Error ? err.message : 'OTP inválido')
-			setOtp('')
-		} finally {
-			setIsLoading(false)
 		}
-	}
+	}, [otpState.success, newEmail, onEmailChanged, onOpenChange])
 
 	const handleClose = () => {
 		onOpenChange(false)
 		setStep('email')
 		setNewEmail('')
 		setOtp('')
-		setError('')
-		setTouched(false)
 	}
 
 	return (
@@ -126,7 +90,7 @@ export function EmailChangeModal({
 
 				<div className="space-y-4">
 					{step === 'email' ? (
-						<form onSubmit={handleSendOtp} className="space-y-4" noValidate>
+						<form action={emailAction} className="space-y-4" noValidate>
 							<Field>
 								<FieldLabel htmlFor={currentEmailId}>Correo Actual</FieldLabel>
 								<Input
@@ -137,33 +101,28 @@ export function EmailChangeModal({
 								/>
 							</Field>
 
-							<Field data-invalid={touched && !!error}>
+							<Field>
 								<FieldLabel htmlFor={newEmailId}>
 									Nueva Dirección de Correo{' '}
 									<span className="text-destructive">*</span>
 								</FieldLabel>
 								<Input
 									id={newEmailId}
+									name="newEmail"
 									type="email"
 									placeholder="Ingresa nueva dirección de correo"
 									value={newEmail}
-									onChange={(e) => {
-										setNewEmail(e.target.value)
-										if (touched) {
-											const emailError = validateEmail(e.target.value)
-											setError(emailError || '')
-										}
-									}}
-									onBlur={() => {
-										setTouched(true)
-										const emailError = validateEmail(newEmail)
-										setError(emailError || '')
-									}}
-									disabled={isLoading}
+									onChange={(e) => setNewEmail(e.target.value)}
+									disabled={emailPending}
 									aria-required="true"
-									aria-invalid={touched && !!error}
+									aria-invalid={!!emailState.errors?.newEmail}
 								/>
-								{touched && error && <FieldError>{error}</FieldError>}
+								{emailState.errors?.newEmail && (
+									<FieldError>{emailState.errors.newEmail}</FieldError>
+								)}
+								{emailState.message && !emailState.errors && (
+									<FieldError>{emailState.message}</FieldError>
+								)}
 							</Field>
 
 							<div className="flex gap-2">
@@ -172,20 +131,30 @@ export function EmailChangeModal({
 									variant="outline"
 									onClick={handleClose}
 									className="flex-1"
+									disabled={emailPending}
 								>
 									Cancelar
 								</Button>
 								<Button
 									type="submit"
-									disabled={!newEmail.trim() || isLoading}
+									disabled={!newEmail.trim() || emailPending}
 									className="flex-1"
 								>
-									{isLoading ? 'Enviando...' : 'Enviar Código de Verificación'}
+									{emailPending
+										? 'Enviando...'
+										: 'Enviar Código de Verificación'}
 								</Button>
 							</div>
 						</form>
 					) : (
-						<div className="space-y-4">
+						<form
+							ref={otpFormRef}
+							action={otpAction}
+							className="space-y-4"
+							noValidate
+						>
+							<input type="hidden" name="newEmail" value={newEmail} />
+							<input type="hidden" name="otp" value={otp} />
 							<div className="text-center">
 								<p className="text-muted-foreground text-sm">
 									Enviamos un código de verificación a:
@@ -197,9 +166,23 @@ export function EmailChangeModal({
 								<InputOTP
 									maxLength={6}
 									value={otp}
-									onChange={(value) => setOtp(value)}
-									onComplete={handleVerifyOtp}
-									disabled={isLoading}
+									onChange={(value) => {
+										setOtp(value)
+										// Auto-submit when 6 digits are entered
+										if (value.length === 6 && otpFormRef.current) {
+											// Update hidden input
+											const otpInput =
+												otpFormRef.current.querySelector<HTMLInputElement>(
+													'input[name="otp"]',
+												)
+											if (otpInput) {
+												otpInput.value = value
+											}
+											// Submit the form
+											otpFormRef.current.requestSubmit()
+										}
+									}}
+									disabled={otpPending}
 								>
 									<InputOTPGroup>
 										<InputOTPSlot index={0} />
@@ -212,13 +195,20 @@ export function EmailChangeModal({
 								</InputOTP>
 							</div>
 
-							{error && (
-								<div className="text-center text-red-600 text-sm">{error}</div>
+							{otpState.errors?.otp && (
+								<div className="text-center">
+									<FieldError>{otpState.errors.otp}</FieldError>
+								</div>
+							)}
+							{otpState.message && !otpState.errors && (
+								<div className="text-center">
+									<FieldError>{otpState.message}</FieldError>
+								</div>
 							)}
 
 							<div className="text-center">
 								<p className="text-muted-foreground text-sm">
-									{isLoading
+									{otpPending
 										? 'Verificando...'
 										: 'Ingresa el código de 6 dígitos'}
 								</p>
@@ -228,8 +218,12 @@ export function EmailChangeModal({
 								<Button
 									type="button"
 									variant="outline"
-									onClick={() => setStep('email')}
+									onClick={() => {
+										setStep('email')
+										setOtp('')
+									}}
 									className="flex-1"
+									disabled={otpPending}
 								>
 									← Atrás
 								</Button>
@@ -238,11 +232,12 @@ export function EmailChangeModal({
 									variant="outline"
 									onClick={handleClose}
 									className="flex-1"
+									disabled={otpPending}
 								>
 									Cancelar
 								</Button>
 							</div>
-						</div>
+						</form>
 					)}
 				</div>
 			</DialogContent>

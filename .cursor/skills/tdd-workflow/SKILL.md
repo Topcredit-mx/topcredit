@@ -590,6 +590,17 @@ cy.contains('label', /frecuencia de pago/i)
   .should('contain', 'Mensual')
 ```
 
+**Important:** When using hidden inputs for controlled Select components, the `selectRadix` command must exclude hidden inputs to avoid selector conflicts:
+
+```typescript
+// Form has both hidden input and SelectTrigger with same name
+<input type="hidden" name="frequency" value={frequency} />
+<SelectTrigger name="frequency">...</SelectTrigger>
+
+// selectRadix command should exclude hidden inputs:
+cy.get(`[name="${selector}"]:not(input[type="hidden"])`).click()
+```
+
 ### Testing Radix UI Checkbox Components
 
 Radix UI Checkbox uses a hidden native input with `pointer-events: none`. Always interact with the visible checkbox element or its label:
@@ -657,6 +668,24 @@ cy.contains('label', /frecuencia de pago/i)
   .should('contain', 'Mensual')
 ```
 
+### Hidden Inputs and Selector Conflicts
+
+When forms use hidden inputs for controlled components (Select, Checkbox), be aware of selector conflicts:
+
+```typescript
+// Form structure:
+<input type="hidden" name="frequency" value={frequency} />
+<SelectTrigger name="frequency">...</SelectTrigger>
+
+// ❌ PROBLEM: Both elements have same name
+cy.get('[name="frequency"]') // Matches 2 elements - fails!
+
+// ✅ SOLUTION: Exclude hidden inputs in selectRadix command
+cy.get(`[name="${selector}"]:not(input[type="hidden"])`).click()
+```
+
+**Best Practice:** Update `selectRadix` command to automatically exclude hidden inputs when searching by name attribute.
+
 ### Form Input Testing Checklist
 
 When testing forms:
@@ -667,6 +696,7 @@ When testing forms:
 5. ✅ Find elements within Field containers using `closest()`
 6. ✅ Use custom commands like `selectRadix` for complex components
 7. ✅ Test what users see and interact with, not hidden inputs
+8. ✅ Be aware of hidden input selector conflicts - exclude them in commands
 
 ## Best Practices
 

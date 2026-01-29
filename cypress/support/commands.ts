@@ -29,7 +29,8 @@ Cypress.Commands.add('selectRadix', (selector: string, optionText: string) => {
 		cy.get(selector).click()
 	} else if (selector.match(/^[a-zA-Z][a-zA-Z0-9_-]*$/)) {
 		// Looks like a name attribute (no spaces, starts with letter)
-		cy.get(`[name="${selector}"]`).click()
+		// Exclude hidden inputs - we want the visible SelectTrigger, not hidden form inputs
+		cy.get(`[name="${selector}"]:not(input[type="hidden"])`).click()
 	} else {
 		// Assume it's label text - find label and get next sibling trigger
 		cy.contains('label', new RegExp(selector, 'i'))

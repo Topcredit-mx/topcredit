@@ -4,6 +4,7 @@ import { randomInt } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
+import { z } from 'zod'
 import type { Role } from '~/lib/auth-utils'
 import { getClientIP } from '~/lib/ip-location'
 import {
@@ -16,7 +17,8 @@ import {
 import { db } from '~/server/db'
 import { emailOtps, userRoles, users } from '~/server/db/schema'
 import { sendGenericEmail, sendOtpEmail } from '~/server/email'
-import { checkRateLimit, updateRateLimitCounters } from './lib'
+import { fromErrorToFormState } from '~/server/errors/errors'
+import { checkRateLimit, getRequiredUser, updateRateLimitCounters } from './lib'
 import { initializeUserRoles } from './role-management'
 
 export async function getUserByEmail(email: string) {
@@ -407,93 +409,190 @@ export async function generateNewBackupCodes(email: string) {
 // Email Verification and Change Actions
 // ==============================================================================
 
+// Zod schema for email change validation
+const emailChangeSchema = z.object({
+	newEmail: z
+		.string()
+		.min(1, 'El correo electrónico es requerido')
+		.email('El correo electrónico debe tener un formato válido'),
+})
+
 /**
  * Send OTP for email change verification
+ * Form action for useActionState - accepts FormData from native form submission.
  */
 export async function sendEmailChangeOtp(
-	currentEmail: string,
-	newEmail: string,
-) {
-	const existingUser = await db.query.users.findFirst({
-		where: eq(users.email, newEmail),
-	})
+	_prevState: unknown,
+	formData: FormData,
+): Promise<{
+	errors?: Record<string, string>
+	message?: string
+	step?: 'otp'
+}> {
+	try {
+		// Get current user from session (secure)
+		const sessionUser = await getRequiredUser()
+		if (!sessionUser.email) {
+			return { message: 'Usuario no autenticado' }
+		}
+		const currentEmail = sessionUser.email
 
-	if (existingUser) {
-		throw new Error('Email already in use')
+		// Validate form data
+		const data = emailChangeSchema.parse({
+			newEmail: formData.get('newEmail'),
+		})
+
+		// Check if new email is different from current
+		if (data.newEmail.toLowerCase() === currentEmail.toLowerCase()) {
+			return {
+				errors: {
+					newEmail: 'El nuevo correo debe ser diferente al actual',
+				},
+			}
+		}
+
+		// Check if email is already in use
+		const existingUser = await db.query.users.findFirst({
+			where: eq(users.email, data.newEmail),
+		})
+
+		if (existingUser) {
+			return {
+				errors: {
+					newEmail: 'Este correo electrónico ya está registrado.',
+				},
+			}
+		}
+
+		// Get user from database
+		const user = await db.query.users.findFirst({
+			where: eq(users.email, currentEmail),
+		})
+
+		if (!user) {
+			return { message: 'Usuario actual no encontrado' }
+		}
+
+		// Check rate limiting
+		const rateLimitAction = checkRateLimit(
+			user.lastOtpSentAt,
+			user.loginFailedAttempts,
+		)
+
+		await updateRateLimitCounters(
+			user.id,
+			rateLimitAction,
+			user.loginFailedAttempts,
+		)
+
+		// Send OTP
+		const ip = await getClientIP()
+		await sendOtp(data.newEmail, ip)
+
+		// Return success with step indicator
+		return { step: 'otp' }
+	} catch (error) {
+		return fromErrorToFormState(error)
 	}
-
-	const user = await db.query.users.findFirst({
-		where: eq(users.email, currentEmail),
-	})
-
-	if (!user) {
-		throw new Error('Current user not found')
-	}
-
-	const rateLimitAction = checkRateLimit(
-		user.lastOtpSentAt,
-		user.loginFailedAttempts,
-	)
-
-	await updateRateLimitCounters(
-		user.id,
-		rateLimitAction,
-		user.loginFailedAttempts,
-	)
-
-	const ip = await getClientIP()
-	await sendOtp(newEmail, ip)
 }
+
+// Zod schema for OTP verification
+const otpVerificationSchema = z.object({
+	newEmail: z
+		.string()
+		.email('El correo electrónico debe tener un formato válido'),
+	otp: z.string().length(6, 'El código OTP debe tener 6 dígitos'),
+})
 
 /**
  * Verify OTP and change user email
+ * Form action for useActionState - accepts FormData from native form submission.
  */
 export async function verifyEmailChangeOtp(
-	currentEmail: string,
-	newEmail: string,
-	otp: string,
-) {
-	// Verify the OTP for the new email
-	const otpRecord = await db.query.emailOtps.findFirst({
-		where: eq(emailOtps.email, newEmail),
-	})
+	_prevState: unknown,
+	formData: FormData,
+): Promise<{
+	errors?: Record<string, string>
+	message?: string
+	success?: boolean
+}> {
+	try {
+		// Get current user from session (secure)
+		const sessionUser = await getRequiredUser()
+		if (!sessionUser.email) {
+			return { message: 'Usuario no autenticado' }
+		}
+		const currentEmail = sessionUser.email
 
-	if (!otpRecord) {
-		throw new Error('Invalid OTP')
-	}
-
-	// Check if OTP has expired
-	if (otpRecord.expiresAt < new Date()) {
-		await db.delete(emailOtps).where(eq(emailOtps.id, otpRecord.id))
-		throw new Error('OTP has expired')
-	}
-
-	// Compare the provided OTP with the hashed one
-	const isValid = await bcrypt.compare(otp, otpRecord.code)
-
-	if (!isValid) {
-		throw new Error('Invalid OTP')
-	}
-
-	// Check if new email is still available (double-check)
-	const existingUser = await db.query.users.findFirst({
-		where: eq(users.email, newEmail),
-	})
-
-	if (existingUser) {
-		throw new Error('Email already in use')
-	}
-
-	// Update user email and mark as verified
-	await db
-		.update(users)
-		.set({
-			email: newEmail,
-			emailVerified: new Date(),
-			loginFailedAttempts: 0,
+		// Validate form data
+		const data = otpVerificationSchema.parse({
+			newEmail: formData.get('newEmail'),
+			otp: formData.get('otp'),
 		})
-		.where(eq(users.email, currentEmail))
 
-	// Clean up OTP record
-	await db.delete(emailOtps).where(eq(emailOtps.id, otpRecord.id))
+		// Verify the OTP for the new email
+		const otpRecord = await db.query.emailOtps.findFirst({
+			where: eq(emailOtps.email, data.newEmail),
+		})
+
+		if (!otpRecord) {
+			return {
+				errors: {
+					otp: 'Código OTP inválido',
+				},
+			}
+		}
+
+		// Check if OTP has expired
+		if (otpRecord.expiresAt < new Date()) {
+			await db.delete(emailOtps).where(eq(emailOtps.id, otpRecord.id))
+			return {
+				errors: {
+					otp: 'El código OTP ha expirado',
+				},
+			}
+		}
+
+		// Compare the provided OTP with the hashed one
+		const isValid = await bcrypt.compare(data.otp, otpRecord.code)
+
+		if (!isValid) {
+			return {
+				errors: {
+					otp: 'Código OTP inválido',
+				},
+			}
+		}
+
+		// Check if new email is still available (double-check)
+		const existingUser = await db.query.users.findFirst({
+			where: eq(users.email, data.newEmail),
+		})
+
+		if (existingUser) {
+			return {
+				errors: {
+					newEmail: 'Este correo electrónico ya está registrado.',
+				},
+			}
+		}
+
+		// Update user email and mark as verified
+		await db
+			.update(users)
+			.set({
+				email: data.newEmail,
+				emailVerified: new Date(),
+				loginFailedAttempts: 0,
+			})
+			.where(eq(users.email, currentEmail))
+
+		// Clean up OTP record
+		await db.delete(emailOtps).where(eq(emailOtps.id, otpRecord.id))
+
+		// Return success
+		return { success: true }
+	} catch (error) {
+		return fromErrorToFormState(error)
+	}
 }

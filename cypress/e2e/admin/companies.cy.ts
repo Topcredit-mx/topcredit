@@ -331,10 +331,10 @@ describe('Admin Companies List', () => {
 
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			// Should show validation error
-			cy.contains(/entre 0 y 100|between 0 and 100|máximo/i).should(
-				'be.visible',
-			)
+			// Should show validation error (matches actual Zod schema message)
+			cy.contains(
+				/menor o igual a 100|less than or equal to 100|entre 0 y 100|between 0 and 100/i,
+			).should('be.visible')
 		})
 	})
 

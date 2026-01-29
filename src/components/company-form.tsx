@@ -1,7 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useId, useState, useTransition } from 'react'
+import { useActionState, useId, useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import {
@@ -19,12 +18,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-import {
-	type CreateCompanyParams,
-	createCompany,
-	type UpdateCompanyParams,
-	updateCompany,
-} from '~/server/company/mutations'
+import { createCompany, updateCompany } from '~/server/company/mutations'
 import type { Company } from '~/server/company/queries'
 
 interface CompanyFormProps {
@@ -39,11 +33,13 @@ function formatPercentage(value: string, decimals: number = 2): string {
 }
 
 export function CompanyForm({ company }: CompanyFormProps) {
-	const router = useRouter()
-	const [isPending, startTransition] = useTransition()
-	const [error, setError] = useState<string | null>(null)
-	const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-	const [touched, setTouched] = useState<Record<string, boolean>>({})
+	// Use useActionState for form state management
+	const [state, action, pending] = useActionState(
+		company ? updateCompany : createCompany,
+		{ errors: undefined, message: undefined },
+	)
+
+	// IDs for form fields
 	const nameId = useId()
 	const domainId = useId()
 	const rateId = useId()
@@ -51,139 +47,42 @@ export function CompanyForm({ company }: CompanyFormProps) {
 	const employeeSalaryFrequencyId = useId()
 	const activeId = useId()
 
-	const [formData, setFormData] = useState({
-		name: company?.name || '',
-		domain: company?.domain || '',
-		rate: company ? formatPercentage(company.rate, 2) : '',
-		borrowingCapacityRate: company?.borrowingCapacityRate
-			? formatPercentage(company.borrowingCapacityRate, 2)
-			: '',
-		employeeSalaryFrequency: company?.employeeSalaryFrequency || 'monthly',
-		active: company?.active ?? true,
-	})
+	// State only for controlled components (Select, Checkbox)
+	// Regular inputs are uncontrolled (use name attribute for FormData)
+	const [employeeSalaryFrequency, setEmployeeSalaryFrequency] = useState<
+		'monthly' | 'bi-monthly'
+	>(company?.employeeSalaryFrequency || 'monthly')
+	const [active, setActive] = useState(company?.active ?? true)
 
-	const validateField = (name: string, value: string) => {
-		const errors: Record<string, string> = {}
-		
-		if (name === 'name' && !value.trim()) {
-			errors.name = 'El nombre es requerido'
-		}
-		
-		if (name === 'domain') {
-			if (!value.trim()) {
-				errors.domain = 'El dominio es requerido'
-			} else if (!/^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/.test(value)) {
-				errors.domain = 'El dominio debe tener un formato válido (ej: ejemplo.com)'
-			}
-		}
-		
-		if (name === 'rate') {
-			if (!value.trim()) {
-				errors.rate = 'La tasa es requerida'
-			} else {
-				const numRate = Number.parseFloat(value)
-				if (Number.isNaN(numRate) || numRate <= 0) {
-					errors.rate = 'La tasa debe ser un número positivo'
-				}
-			}
-		}
-		
-		if (name === 'borrowingCapacityRate' && value) {
-			const numRate = Number.parseFloat(value)
-			if (Number.isNaN(numRate) || numRate < 0 || numRate > 100) {
-				errors.borrowingCapacityRate = 'Debe ser un valor entre 0 y 100%'
-			}
-		}
-		
-		setFieldErrors((prev) => ({ ...prev, ...errors }))
-		return Object.keys(errors).length === 0
-	}
-
-	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault()
-		e.stopPropagation()
-		setError(null)
-		setFieldErrors({})
-
-		// Mark all fields as touched to show errors
-		setTouched({
-			name: true,
-			domain: true,
-			rate: true,
-			borrowingCapacityRate: true,
-		})
-
-		// Validate all required fields
-		const nameValid = validateField('name', formData.name)
-		const domainValid = validateField('domain', formData.domain)
-		const rateValid = validateField('rate', formData.rate)
-		const borrowingValid = formData.borrowingCapacityRate
-			? validateField('borrowingCapacityRate', formData.borrowingCapacityRate)
-			: true
-
-		if (!nameValid || !domainValid || !rateValid || !borrowingValid) {
-			return
-		}
-
-		startTransition(async () => {
-			// Convert percentage inputs back to decimals
-			const rateDecimal = (Number.parseFloat(formData.rate) / 100).toFixed(4)
-			const borrowingCapacityRateDecimal = formData.borrowingCapacityRate
-				? (Number.parseFloat(formData.borrowingCapacityRate) / 100).toFixed(2)
-				: null
-
-			if (company) {
-				// Update existing company
-				const params: UpdateCompanyParams = {
-					id: company.id,
-					name: formData.name,
-					domain: formData.domain,
-					rate: rateDecimal,
-					borrowingCapacityRate: borrowingCapacityRateDecimal,
-					employeeSalaryFrequency: formData.employeeSalaryFrequency as
-						'bi-monthly' | 'monthly',
-					active: formData.active,
-				}
-
-				const result = await updateCompany(params)
-				if (result.success) {
-					router.push('/app/admin/companies')
-					router.refresh()
-				} else {
-					setError(result.error || 'Error al actualizar la empresa')
-				}
-			} else {
-				// Create new company
-				const params: CreateCompanyParams = {
-					name: formData.name,
-					domain: formData.domain,
-					rate: rateDecimal,
-					borrowingCapacityRate: borrowingCapacityRateDecimal,
-					employeeSalaryFrequency: formData.employeeSalaryFrequency as
-						'bi-monthly' | 'monthly',
-					active: formData.active,
-				}
-
-				const result = await createCompany(params)
-				if (result.success) {
-					router.push('/app/admin/companies')
-					router.refresh()
-				} else {
-					setError(result.error || 'Error al crear la empresa')
-				}
-			}
-		})
-	}
+	// Initial values for uncontrolled inputs
+	const initialName = company?.name || ''
+	const initialDomain = company?.domain || ''
+	const initialRate = company ? formatPercentage(company.rate, 2) : ''
+	const initialBorrowingCapacityRate = company?.borrowingCapacityRate
+		? formatPercentage(company.borrowingCapacityRate, 2)
+		: ''
 
 	return (
-		<form onSubmit={handleSubmit} className="space-y-6" noValidate>
-			{error && (
+		<form action={action} className="space-y-6" noValidate>
+			{/* Hidden input for company ID (needed for update) */}
+			{company && <input type="hidden" name="id" value={company.id} />}
+
+			{/* Hidden inputs for controlled components */}
+			<input
+				type="hidden"
+				name="employeeSalaryFrequency"
+				value={employeeSalaryFrequency}
+			/>
+			<input type="hidden" name="active" value={active ? 'on' : 'off'} />
+
+			{/* General error display (only if no field-specific errors) */}
+			{state.message && !state.errors && (
 				<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-					{error}
+					{state.message}
 				</div>
 			)}
 
-			<Field data-invalid={touched.name && !!fieldErrors.name}>
+			<Field>
 				<FieldLabel htmlFor={nameId}>
 					Nombre <span className="text-destructive">*</span>
 				</FieldLabel>
@@ -191,24 +90,14 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					id={nameId}
 					name="name"
 					placeholder="Ej: Acme Corporation"
-					value={formData.name}
-					onChange={(e) => {
-						setFormData({ ...formData, name: e.target.value })
-						if (touched.name) validateField('name', e.target.value)
-					}}
-					onBlur={() => {
-						setTouched((prev) => ({ ...prev, name: true }))
-						validateField('name', formData.name)
-					}}
-					aria-invalid={touched.name && !!fieldErrors.name}
+					defaultValue={initialName}
 					aria-required="true"
+					aria-invalid={!!state.errors?.name}
 				/>
-				{touched.name && fieldErrors.name && (
-					<FieldError>{fieldErrors.name}</FieldError>
-				)}
+				{state.errors?.name && <FieldError>{state.errors.name}</FieldError>}
 			</Field>
 
-			<Field data-invalid={touched.domain && !!fieldErrors.domain}>
+			<Field>
 				<FieldLabel htmlFor={domainId}>
 					Dominio <span className="text-destructive">*</span>
 				</FieldLabel>
@@ -216,30 +105,23 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					id={domainId}
 					name="domain"
 					placeholder="ejemplo.com"
-					value={formData.domain}
-					onChange={(e) => {
-						setFormData({ ...formData, domain: e.target.value })
-						if (touched.domain) validateField('domain', e.target.value)
-					}}
-					onBlur={() => {
-						setTouched((prev) => ({ ...prev, domain: true }))
-						validateField('domain', formData.domain)
-					}}
+					defaultValue={initialDomain}
 					disabled={!!company}
-					aria-invalid={touched.domain && !!fieldErrors.domain}
 					aria-required="true"
+					aria-invalid={!!state.errors?.domain}
 				/>
-				<FieldDescription>
-					{company
-						? 'El dominio no puede ser modificado después de la creación'
-						: 'Dominio de email de la empresa (debe ser único)'}
-				</FieldDescription>
-				{touched.domain && fieldErrors.domain && (
-					<FieldError>{fieldErrors.domain}</FieldError>
+				{state.errors?.domain ? (
+					<FieldError>{state.errors.domain}</FieldError>
+				) : (
+					<FieldDescription>
+						{company
+							? 'El dominio no puede ser modificado después de la creación'
+							: 'Dominio de email de la empresa (debe ser único)'}
+					</FieldDescription>
 				)}
 			</Field>
 
-			<Field data-invalid={touched.rate && !!fieldErrors.rate}>
+			<Field>
 				<FieldLabel htmlFor={rateId}>
 					Tasa de Interés (%) <span className="text-destructive">*</span>
 				</FieldLabel>
@@ -249,31 +131,20 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					type="number"
 					step="0.01"
 					placeholder="2.50"
-					value={formData.rate}
-					onChange={(e) => {
-						setFormData({ ...formData, rate: e.target.value })
-						if (touched.rate) validateField('rate', e.target.value)
-					}}
-					onBlur={() => {
-						setTouched((prev) => ({ ...prev, rate: true }))
-						validateField('rate', formData.rate)
-					}}
-					aria-invalid={touched.rate && !!fieldErrors.rate}
+					defaultValue={initialRate}
 					aria-required="true"
+					aria-invalid={!!state.errors?.rate}
 				/>
-				<FieldDescription>
-					Tasa de interés anual (ej: 2.50 para 2.5%)
-				</FieldDescription>
-				{touched.rate && fieldErrors.rate && (
-					<FieldError>{fieldErrors.rate}</FieldError>
+				{state.errors?.rate ? (
+					<FieldError>{state.errors.rate}</FieldError>
+				) : (
+					<FieldDescription>
+						Tasa de interés anual (ej: 2.50 para 2.5%)
+					</FieldDescription>
 				)}
 			</Field>
 
-			<Field
-				data-invalid={
-					touched.borrowingCapacityRate && !!fieldErrors.borrowingCapacityRate
-				}
-			>
+			<Field>
 				<FieldLabel htmlFor={borrowingCapacityRateId}>
 					Capacidad de Préstamo (%)
 				</FieldLabel>
@@ -283,28 +154,16 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					type="number"
 					step="1"
 					placeholder="30"
-					value={formData.borrowingCapacityRate}
-					onChange={(e) => {
-						setFormData({ ...formData, borrowingCapacityRate: e.target.value })
-						if (touched.borrowingCapacityRate)
-							validateField('borrowingCapacityRate', e.target.value)
-					}}
-					onBlur={() => {
-						setTouched((prev) => ({ ...prev, borrowingCapacityRate: true }))
-						if (formData.borrowingCapacityRate) {
-							validateField('borrowingCapacityRate', formData.borrowingCapacityRate)
-						}
-					}}
-					aria-invalid={
-						touched.borrowingCapacityRate && !!fieldErrors.borrowingCapacityRate
-					}
+					defaultValue={initialBorrowingCapacityRate}
+					aria-invalid={!!state.errors?.borrowingCapacityRate}
 				/>
-				<FieldDescription>
-					Porcentaje del salario que puede usarse para capacidad de deuda
-					(0-100%). Opcional.
-				</FieldDescription>
-				{touched.borrowingCapacityRate && fieldErrors.borrowingCapacityRate && (
-					<FieldError>{fieldErrors.borrowingCapacityRate}</FieldError>
+				{state.errors?.borrowingCapacityRate ? (
+					<FieldError>{state.errors.borrowingCapacityRate}</FieldError>
+				) : (
+					<FieldDescription>
+						Porcentaje del salario que puede usarse para capacidad de deuda
+						(0-100%). Opcional.
+					</FieldDescription>
 				)}
 			</Field>
 
@@ -313,9 +172,9 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					Frecuencia de Pago <span className="text-destructive">*</span>
 				</FieldLabel>
 				<Select
-					value={formData.employeeSalaryFrequency}
+					value={employeeSalaryFrequency}
 					onValueChange={(value: 'monthly' | 'bi-monthly') =>
-						setFormData({ ...formData, employeeSalaryFrequency: value })
+						setEmployeeSalaryFrequency(value)
 					}
 				>
 					<SelectTrigger
@@ -329,16 +188,16 @@ export function CompanyForm({ company }: CompanyFormProps) {
 						<SelectItem value="bi-monthly">Quincenal</SelectItem>
 					</SelectContent>
 				</Select>
+				{state.errors?.employeeSalaryFrequency && (
+					<FieldError>{state.errors.employeeSalaryFrequency}</FieldError>
+				)}
 			</Field>
 
 			<div className="flex items-center space-x-2">
 				<Checkbox
 					id={activeId}
-					name="active"
-					checked={formData.active}
-					onCheckedChange={(checked) =>
-						setFormData({ ...formData, active: checked === true })
-					}
+					checked={active}
+					onCheckedChange={(checked) => setActive(checked === true)}
 				/>
 				<Label htmlFor={activeId} className="cursor-pointer">
 					Activa
@@ -349,19 +208,14 @@ export function CompanyForm({ company }: CompanyFormProps) {
 			</p>
 
 			<div className="flex gap-4">
-				<Button type="submit" disabled={isPending}>
-					{isPending
+				<Button type="submit" disabled={pending}>
+					{pending
 						? 'Guardando...'
 						: company
 							? 'Guardar Cambios'
 							: 'Crear Empresa'}
 				</Button>
-				<Button
-					type="button"
-					variant="outline"
-					onClick={() => router.push('/app/admin/companies')}
-					disabled={isPending}
-				>
+				<Button type="button" variant="outline" disabled={pending}>
 					Cancelar
 				</Button>
 			</div>
