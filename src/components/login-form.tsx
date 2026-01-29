@@ -2,10 +2,14 @@
 
 import { GalleryVerticalEnd } from 'lucide-react'
 import Link from 'next/link'
-import { useActionState } from 'react'
+import { useActionState, useId } from 'react'
 import { Button } from '~/components/ui/button'
+import {
+	Field,
+	FieldError,
+	FieldLabel,
+} from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
 import { cn } from '~/lib/utils'
 import { sendOtpForm } from '~/server/auth/users'
 
@@ -14,9 +18,11 @@ export function LoginForm({
 	...props
 }: React.ComponentProps<'div'>) {
 	const [state, action, loading] = useActionState(sendOtpForm, { message: '' })
+	const emailId = useId()
+
 	return (
 		<div className={cn('flex flex-col gap-6', className)} {...props}>
-			<form action={action}>
+			<form action={action} noValidate>
 				<div className="flex flex-col gap-6">
 					<div className="flex flex-col items-center gap-2">
 						<Link
@@ -37,18 +43,19 @@ export function LoginForm({
 						</div>
 					</div>
 					<div className="flex flex-col gap-6">
-						<div className="grid gap-3">
-							<Label htmlFor="email">Correo electrónico</Label>
+						<Field>
+							<FieldLabel htmlFor={emailId}>
+								Correo electrónico <span className="text-destructive">*</span>
+							</FieldLabel>
 							<Input
+								id={emailId}
 								name="email"
 								type="email"
 								placeholder="yo@empresa.com"
-								required
+								aria-required="true"
 							/>
-							{state.message && (
-								<div className="text-red-500 text-sm">{state.message}</div>
-							)}
-						</div>
+							{state.message && <FieldError>{state.message}</FieldError>}
+						</Field>
 						<Button type="submit" className="w-full" disabled={loading}>
 							{loading ? 'Cargando...' : 'Iniciar sesión'}
 						</Button>

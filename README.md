@@ -28,13 +28,13 @@
 
 #### Phase 2.1: Company CRUD
 - [x] Company schema (name, domain, rate, borrowingCapacityRate, employeeSalaryFrequency, active)
-- [x] Company queries (list, byId, search, activeOnly filter)
+- [x] Company queries (list, byId, byDomain, search, activeOnly filter)
+- [x] Company mutations (create, update, soft delete)
 - [x] Admin UI: Company list page with data table
+- [x] Admin UI: Company create page with form
+- [x] Admin UI: Company edit page with form
 - [x] Domain validation & uniqueness (enforced at DB level)
-- [x] Company list E2E tests (access control, display, search, filtering)
-- [ ] Company mutations (create, update, delete)
-- [ ] Admin UI: Company create/edit pages
-- [ ] Company create/edit E2E tests
+- [x] Company CRUD E2E tests (access control, display, search, filtering, create, edit, validation)
 
 #### Phase 2.2: Employee-Company Relationship
 - [ ] Employee-Company junction table (many-to-many)

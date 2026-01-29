@@ -2,10 +2,14 @@
 
 import { GalleryVerticalEnd } from 'lucide-react'
 import Link from 'next/link'
-import { useActionState } from 'react'
+import { useActionState, useId } from 'react'
 import { Button } from '~/components/ui/button'
+import {
+	Field,
+	FieldError,
+	FieldLabel,
+} from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
 import { cn } from '~/lib/utils'
 import { registerUser } from '~/server/auth/users'
 
@@ -13,11 +17,13 @@ export function SignupForm({
 	className,
 	...props
 }: React.ComponentProps<'div'>) {
-	const [, action, loading] = useActionState(registerUser, { message: '' })
+	const [state, action, loading] = useActionState(registerUser, { message: '' })
+	const emailId = useId()
+	const nameId = useId()
 
 	return (
 		<div className={cn('flex flex-col gap-6', className)} {...props}>
-			<form action={action}>
+			<form action={action} noValidate>
 				<div className="flex flex-col gap-6">
 					<div className="flex flex-col items-center gap-2">
 						<Link
@@ -32,19 +38,41 @@ export function SignupForm({
 						<h1 className="font-bold text-xl">Bienvenido a Topcredit</h1>
 					</div>
 					<div className="flex flex-col gap-6">
-						<div className="grid gap-3">
-							<Label htmlFor="email">Correo electrónico</Label>
+						<Field>
+							<FieldLabel htmlFor={emailId}>
+								Correo electrónico <span className="text-destructive">*</span>
+							</FieldLabel>
 							<Input
+								id={emailId}
 								name="email"
 								type="email"
 								placeholder="yo@empresa.com"
-								required
+								aria-required="true"
 							/>
-						</div>
-						<div className="grid gap-3">
-							<Label htmlFor="name">Nombre completo</Label>
-							<Input name="name" type="text" placeholder="Tu nombre" required />
-						</div>
+							{state.message?.includes('email') && (
+								<FieldError>{state.message}</FieldError>
+							)}
+						</Field>
+						<Field>
+							<FieldLabel htmlFor={nameId}>
+								Nombre completo <span className="text-destructive">*</span>
+							</FieldLabel>
+							<Input
+								id={nameId}
+								name="name"
+								type="text"
+								placeholder="Tu nombre"
+								aria-required="true"
+							/>
+							{state.message?.includes('nombre') && (
+								<FieldError>{state.message}</FieldError>
+							)}
+						</Field>
+						{state.message && !state.message?.includes('email') && !state.message?.includes('nombre') && (
+							<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
+								{state.message}
+							</div>
+						)}
 						<Button type="submit" className="w-full" disabled={loading}>
 							{loading ? 'Cargando...' : 'Regístrate'}
 						</Button>

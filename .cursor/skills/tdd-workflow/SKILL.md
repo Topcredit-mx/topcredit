@@ -567,6 +567,107 @@ describe('Data Table', () => {
 - **Table data** should be visible - users need to see the content
 - **Interactive elements** (buttons, checkboxes) must be visible - users need to interact with them
 
+## Form Input Testing Best Practices
+
+When testing forms with Radix UI components and custom inputs, follow these patterns to avoid common interaction issues:
+
+### Testing Radix UI Select Components
+
+Radix UI Select doesn't render as a native `<select>` element. Use the custom `selectRadix` command or find elements by their `data-slot` attributes:
+
+```typescript
+// ❌ WRONG: Trying to use native select methods
+cy.get('select[name="frequency"]').select('monthly') // Won't work
+
+// ✅ CORRECT: Use custom command
+cy.selectRadix('employeeSalaryFrequency', 'Mensual')
+cy.selectRadix('Frecuencia de Pago', 'Quincenal')
+
+// ✅ CORRECT: Find select trigger within Field container
+cy.contains('label', /frecuencia de pago/i)
+  .closest('[data-slot="field"]')
+  .find('[data-slot="select-trigger"]')
+  .should('contain', 'Mensual')
+```
+
+### Testing Radix UI Checkbox Components
+
+Radix UI Checkbox uses a hidden native input with `pointer-events: none`. Always interact with the visible checkbox element or its label:
+
+```typescript
+// ❌ WRONG: Trying to interact with hidden input
+cy.get('input[name="active"]').check() // Fails: pointer-events: none
+
+// ✅ CORRECT: Click the label (if it has htmlFor attribute)
+cy.contains('label', /activa/i).click()
+
+// ✅ CORRECT: Find and click the visible checkbox element
+cy.contains('label', /activa/i)
+  .parent()
+  .find('[data-slot="checkbox"]')
+  .click()
+```
+
+### Testing Disabled Form Fields
+
+When fields are intentionally disabled (e.g., domain cannot be changed after creation), verify the disabled state rather than trying to interact with them:
+
+```typescript
+// ❌ WRONG: Trying to interact with disabled field
+cy.get('input[name="domain"]').clear().type('newdomain.com') // Fails: field is disabled
+
+// ✅ CORRECT: Verify field is disabled and show appropriate message
+cy.get('input[name="domain"]').should('be.disabled')
+cy.contains(/el dominio no puede ser modificado/i).should('be.visible')
+```
+
+### Testing Number Input Formatting
+
+When testing number inputs that display percentages or formatted values, account for formatting differences (trailing zeros, decimal places):
+
+```typescript
+// ❌ WRONG: Expecting exact formatting
+cy.get('input[name="rate"]').should('have.value', '2.50') // May fail if formatted as '2.5'
+
+// ✅ CORRECT: Test the actual formatted value or use flexible matching
+cy.get('input[name="rate"]').should('have.value', '2.5') // Accepts formatted value without trailing zeros
+
+// ✅ CORRECT: Test numeric value if formatting varies
+cy.get('input[name="rate"]')
+  .invoke('val')
+  .then((val) => {
+    expect(Number.parseFloat(val as string)).to.equal(2.5)
+  })
+```
+
+### Finding Elements Within Field Components
+
+When using Field components, find elements within the Field container rather than relying on DOM order:
+
+```typescript
+// ❌ WRONG: Assuming next sibling relationship
+cy.contains('label', /frecuencia de pago/i)
+  .next()
+  .find('[data-slot="select-trigger"]') // May fail if DOM structure changes
+
+// ✅ CORRECT: Find within Field container
+cy.contains('label', /frecuencia de pago/i)
+  .closest('[data-slot="field"]')
+  .find('[data-slot="select-trigger"]')
+  .should('contain', 'Mensual')
+```
+
+### Form Input Testing Checklist
+
+When testing forms:
+1. ✅ Use `data-slot` attributes for Radix UI components
+2. ✅ Click labels for checkboxes (if `htmlFor` is set)
+3. ✅ Verify disabled fields are disabled, don't try to interact
+4. ✅ Account for number formatting (trailing zeros, decimals)
+5. ✅ Find elements within Field containers using `closest()`
+6. ✅ Use custom commands like `selectRadix` for complex components
+7. ✅ Test what users see and interact with, not hidden inputs
+
 ## Best Practices
 
 1. **Write Tests First** - Always TDD
@@ -579,6 +680,8 @@ describe('Data Table', () => {
 8. **Test Access Control** - Verify role-based permissions
 9. **Resilient Test Cleanup** - Clean up in BOTH `before()` and `after()` hooks to handle interrupted runs
 10. **Table Headers** - Check existence, not visibility (may be clipped by overflow)
+11. **Form Inputs** - Use `data-slot` for Radix UI components, click labels for checkboxes, verify disabled fields
+12. **Number Formatting** - Account for formatting differences (trailing zeros, decimal places) in assertions
 
 ## Success Metrics
 

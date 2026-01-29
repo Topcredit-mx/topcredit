@@ -26,12 +26,12 @@
 				"noUnusedVariables": {
 					"level": "warn",
 					"fix": "safe",
-          "options": {}
+					"options": {}
 				},
 				"noUnusedFunctionParameters": {
 					"level": "warn",
 					"fix": "safe",
-          "options": {}
+					"options": {}
 				}
 			},
 			"nursery": {

@@ -81,7 +81,19 @@ export type CreateUserTaskParams = {
 export const createUser = async (params: CreateUserTaskParams) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 
-	const [user] = await db
+	// Check if user already exists
+	const existingUser = await db.query.users.findFirst({
+		where: eq(users.email, params.email),
+	})
+
+	let user: typeof users.$inferSelect | undefined
+	if (existingUser) {
+		// User exists - delete and recreate to ensure clean state
+		await db.delete(users).where(eq(users.email, params.email))
+	}
+
+	// Create user
+	const [newUser] = await db
 		.insert(users)
 		.values({
 			email: params.email,
@@ -89,18 +101,26 @@ export const createUser = async (params: CreateUserTaskParams) => {
 		})
 		.returning()
 
-	if (!user) {
+	if (!newUser) {
 		throw new Error('Failed to create user')
 	}
 
-	// Add roles if provided
+	user = newUser
+
+	// Remove existing roles and add new ones
 	if (params.roles && params.roles.length > 0) {
+		// Delete existing roles
+		await db.delete(userRoles).where(eq(userRoles.userId, user.id))
+		// Add new roles
 		await db.insert(userRoles).values(
 			params.roles.map((role) => ({
 				userId: user.id,
 				role,
 			})),
 		)
+	} else {
+		// If no roles specified, ensure no roles exist
+		await db.delete(userRoles).where(eq(userRoles.userId, user.id))
 	}
 
 	return user

@@ -9,13 +9,17 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '~/components/ui/dialog'
+import {
+	Field,
+	FieldError,
+	FieldLabel,
+} from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
 import {
 	InputOTP,
 	InputOTPGroup,
 	InputOTPSlot,
 } from '~/components/ui/input-otp'
-import { Label } from '~/components/ui/label'
 import { sendEmailChangeOtp, verifyEmailChangeOtp } from '~/server/auth/users'
 
 interface EmailChangeModalProps {
@@ -36,12 +40,33 @@ export function EmailChangeModal({
 	const [otp, setOtp] = useState('')
 	const [error, setError] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
+	const [touched, setTouched] = useState(false)
 	const currentEmailId = useId()
 	const newEmailId = useId()
 
+	const validateEmail = (email: string): string | null => {
+		if (!email.trim()) {
+			return 'El correo electrónico es requerido'
+		}
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+		if (!emailRegex.test(email)) {
+			return 'El correo electrónico debe tener un formato válido'
+		}
+		if (email.toLowerCase() === currentEmail.toLowerCase()) {
+			return 'El nuevo correo debe ser diferente al actual'
+		}
+		return null
+	}
+
 	const handleSendOtp = async (e: React.FormEvent) => {
 		e.preventDefault()
-		if (!newEmail.trim()) return
+		setTouched(true)
+
+		const emailError = validateEmail(newEmail)
+		if (emailError) {
+			setError(emailError)
+			return
+		}
 
 		setIsLoading(true)
 		setError('')
@@ -49,6 +74,7 @@ export function EmailChangeModal({
 		try {
 			await sendEmailChangeOtp(currentEmail, newEmail.trim())
 			setStep('otp')
+			setTouched(false)
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Error al enviar OTP')
 		} finally {
@@ -83,6 +109,7 @@ export function EmailChangeModal({
 		setNewEmail('')
 		setOtp('')
 		setError('')
+		setTouched(false)
 	}
 
 	return (
@@ -99,33 +126,45 @@ export function EmailChangeModal({
 
 				<div className="space-y-4">
 					{step === 'email' ? (
-						<form onSubmit={handleSendOtp} className="space-y-4">
-							<div className="space-y-2">
-								<Label htmlFor={currentEmailId}>Correo Actual</Label>
+						<form onSubmit={handleSendOtp} className="space-y-4" noValidate>
+							<Field>
+								<FieldLabel htmlFor={currentEmailId}>Correo Actual</FieldLabel>
 								<Input
 									id={currentEmailId}
 									value={currentEmail}
 									disabled
 									className="bg-muted"
 								/>
-							</div>
+							</Field>
 
-							<div className="space-y-2">
-								<Label htmlFor={newEmailId}>Nueva Dirección de Correo</Label>
+							<Field data-invalid={touched && !!error}>
+								<FieldLabel htmlFor={newEmailId}>
+									Nueva Dirección de Correo{' '}
+									<span className="text-destructive">*</span>
+								</FieldLabel>
 								<Input
 									id={newEmailId}
 									type="email"
 									placeholder="Ingresa nueva dirección de correo"
 									value={newEmail}
-									onChange={(e) => setNewEmail(e.target.value)}
+									onChange={(e) => {
+										setNewEmail(e.target.value)
+										if (touched) {
+											const emailError = validateEmail(e.target.value)
+											setError(emailError || '')
+										}
+									}}
+									onBlur={() => {
+										setTouched(true)
+										const emailError = validateEmail(newEmail)
+										setError(emailError || '')
+									}}
 									disabled={isLoading}
-									required
+									aria-required="true"
+									aria-invalid={touched && !!error}
 								/>
-							</div>
-
-							{error && (
-								<div className="text-center text-red-600 text-sm">{error}</div>
-							)}
+								{touched && error && <FieldError>{error}</FieldError>}
+							</Field>
 
 							<div className="flex gap-2">
 								<Button

@@ -1,7 +1,9 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import Link from 'next/link'
 import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
 import {
 	DataTable,
 	DataTableContent,
@@ -56,9 +58,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				const rate = row.getValue('borrowingCapacityRate') as string | null
 				return (
 					<div>
-						{rate
-							? `${(Number.parseFloat(rate) * 100).toFixed(0)}%`
-							: '-'}
+						{rate ? `${(Number.parseFloat(rate) * 100).toFixed(0)}%` : '-'}
 					</div>
 				)
 			},
@@ -70,11 +70,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 			),
 			cell: ({ row }) => {
 				const frequency = row.getValue('employeeSalaryFrequency') as string
-				return (
-					<div>
-						{frequency === 'bi-monthly' ? 'Quincenal' : 'Mensual'}
-					</div>
-				)
+				return <div>{frequency === 'bi-monthly' ? 'Quincenal' : 'Mensual'}</div>
 			},
 		},
 		{
@@ -109,6 +105,22 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				)
 			},
 		},
+		{
+			id: 'actions',
+			header: 'Acciones',
+			cell: ({ row }) => {
+				const company = row.original
+				return (
+					<Button variant="ghost" size="sm" asChild>
+						<Link
+							href={`/app/admin/companies/${encodeURIComponent(company.domain)}/edit`}
+						>
+							Editar
+						</Link>
+					</Button>
+				)
+			},
+		},
 	]
 
 	return (
@@ -118,8 +130,9 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				data={companies}
 				schema="companies"
 				label="Empresas"
+				createLink="/app/admin/companies/new"
 			>
-				<DataTableHeader disableCreateButton />
+				<DataTableHeader />
 				<DataTableContent />
 				<DataTablePagination />
 			</DataTable>

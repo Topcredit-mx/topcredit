@@ -19,12 +19,7 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
 
 	return (
 		<div className="space-y-4">
-			<DataTable
-				columns={columns}
-				data={users}
-				schema="users"
-				label="Usuarios"
-			>
+			<DataTable columns={columns} data={users} schema="users" label="Usuarios">
 				<DataTableHeader disableCreateButton />
 				<DataTableContent />
 				<DataTablePagination />

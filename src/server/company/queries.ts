@@ -113,3 +113,21 @@ export async function getCompanyById(id: number): Promise<Company | null> {
 		borrowingCapacityRate: company.borrowingCapacityRate,
 	}
 }
+
+export async function getCompanyByDomain(
+	domain: string,
+): Promise<Company | null> {
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.domain, domain),
+	})
+
+	if (!company) {
+		return null
+	}
+
+	return {
+		...company,
+		rate: company.rate,
+		borrowingCapacityRate: company.borrowingCapacityRate,
+	}
+}

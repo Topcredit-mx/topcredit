@@ -69,7 +69,13 @@ export function DataTableHeader<TData>({
 				</DropdownMenu>
 				{!disableCreateButton && createButtonHref && (
 					<Button size="sm" asChild>
-						<Link href={createButtonHref}>Add {label ?? schema}</Link>
+						<Link href={createButtonHref}>
+							{label === 'Empresas'
+								? 'Nueva Empresa'
+								: label === 'Usuarios'
+									? 'Nuevo Usuario'
+									: `Nuevo ${label ?? schema}`}
+						</Link>
 					</Button>
 				)}
 			</div>
