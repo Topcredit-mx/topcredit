@@ -1,3 +1,8 @@
+---
+name: form-creation
+description: Use this skill when creating forms in React/Next.js applications using shadcn/ui components.
+---
+
 # Form Creation Skill
 
 Use this skill when creating forms in React/Next.js applications using shadcn/ui components.

@@ -37,11 +37,43 @@
 - [x] Company CRUD E2E tests (access control, display, search, filtering, create, edit, validation)
 
 #### Phase 2.2: Employee-Company Relationship
-- [ ] Employee-Company junction table (many-to-many)
-- [ ] Assign/unassign companies to employees
-- [ ] Data filtering: employees see only assigned company data
-- [ ] Admin UI: Company assignment in user management
-- [ ] Employee-Company relationship tests
+
+**US-2.2.1: Admin assigns companies to employees**
+As an admin, I want to assign companies to an employee, so that they can manage those companies' data.
+- [ ] Admin can view employee's current company assignments
+- [ ] Admin can assign one or more companies to an employee
+- [ ] Assignment persists and shows in employee's profile
+
+**US-2.2.2: Admin removes company assignments**
+As an admin, I want to remove company assignments from an employee, so that they no longer have access.
+- [ ] Admin can see list of assigned companies for an employee
+- [ ] Admin can remove company assignments
+- [ ] Removal takes effect immediately
+
+**US-2.2.3: Employee sees only assigned companies**
+As an employee, I want to see only my assigned companies, so that I focus on relevant data.
+- [ ] Sidebar company switcher shows only assigned companies
+- [ ] Employee can switch between assigned companies via sidebar
+- [ ] Selected company filters all data views
+- [ ] Unassigned companies are not visible in switcher
+
+**US-2.2.4: Employee without assignments sees appropriate message**
+As an employee without company assignments, I should see a helpful message, so that I understand I need assignments.
+- [ ] Empty state message displayed when no assignments
+- [ ] No company data accessible
+
+**US-2.2.5: Admin sees general overview dashboard**
+As an admin, I want to see a general overview dashboard, so that I can monitor the entire system.
+- [ ] Admin dashboard shows aggregated data across all companies
+- [ ] Overview is the default view for admins
+
+**US-2.2.6: Admin can view any company as an employee would**
+As an admin, I want to select any company and view its data like an assigned employee, so that I can support employees and troubleshoot.
+- [ ] Sidebar company switcher shows all companies for admin
+- [ ] Admin can select any company via sidebar switcher
+- [ ] Selected company view matches what an assigned employee sees
+- [ ] Selected company persists on page reload (stored in session/cookie)
+- [ ] Admin can switch companies or select "Overview" to return to general dashboard
 
 ### Phase 3: Credit Application Flow
 - [ ] Users - Credit application creation
