@@ -20,7 +20,7 @@ Pages are always async Server Components that fetch data directly.
 
 ```typescript
 // src/app/admin/[entity]/page.tsx
-import { getData } from '~/server/admin/queries'
+import { getData } from '~/server/employees/admin/queries'
 import { DataTable } from '~/components/ui/data-table'
 import { columns } from './columns'
 
@@ -57,31 +57,42 @@ All mutations are defined in dedicated files with `'use server'` at the top.
 
 ### File Organization
 
+Server actions are organized by role to enforce clear authorization boundaries:
+
 ```
 src/server/
-├── admin/
-│   ├── mutations.ts    # Admin CRUD operations
-│   └── queries.ts      # Admin data fetching
-├── user/
-│   ├── mutations.ts    # User mutations
-│   └── queries.ts      # User queries
-├── public/
-│   └── actions.ts      # Public actions
+├── employees/              # All employee roles
+│   ├── admin/              # Admin-level operations
+│   │   ├── mutations.ts    # Admin CRUD operations
+│   │   └── queries.ts      # Admin data fetching
+│   ├── manager/            # Manager-level operations
+│   │   ├── mutations.ts    
+│   │   └── queries.ts      
+│   └── analyst/            # Analyst-level operations
+│       ├── mutations.ts    
+│       └── queries.ts      
+├── customer/               # Customer-facing operations
+│   ├── mutations.ts        # Customer mutations
+│   └── queries.ts          # Customer queries
+├── public/                 # Unauthenticated operations
+│   └── actions.ts          # Public actions (signup, etc.)
 └── errors/
-    └── errors.ts       # Error handling utilities
+    └── errors.ts           # Error handling utilities
 ```
+
+**Role hierarchy:** Each folder enforces its own authorization guard. Nested employee roles allow for granular permission control.
 
 ### Server Action Pattern
 
 ```typescript
-// src/server/admin/mutations.ts
+// src/server/employees/admin/mutations.ts
 'use server'
 
 import z from 'zod'
 import { adminGuard } from '~/lib/auth'
-import { db } from '../db'
+import { db } from '../../db'
 import { redirect } from 'next/navigation'
-import { fromErrorToFormState } from '../errors/errors'
+import { fromErrorToFormState } from '../../errors/errors'
 
 const createEntitySchema = z.object({
   name: z.string().min(1).max(30),
@@ -139,7 +150,7 @@ import { useActionState, useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
-import { createEntity } from '~/server/admin/mutations'
+import { createEntity } from '~/server/employees/admin/mutations'
 
 export default function Form({
   relatedItems,
@@ -286,10 +297,10 @@ export const createEntity = async (...) => {
 Queries are also server actions, organized by domain.
 
 ```typescript
-// src/server/admin/queries.ts
+// src/server/employees/admin/queries.ts
 'use server'
 
-import { db } from '../db'
+import { db } from '../../db'
 import { adminGuard } from '~/lib/auth'
 
 export const getEntities = async (input?: {
@@ -321,7 +332,7 @@ Use `useOptimistic` for immediate UI feedback before server confirmation.
 'use client'
 
 import { useOptimistic } from 'react'
-import { toggleItemStatus } from '~/server/admin/mutations'
+import { toggleItemStatus } from '~/server/employees/admin/mutations'
 
 type Item = { id: number; name: string; active: boolean }
 
@@ -549,7 +560,7 @@ export const createSchema = z.object({ ... }) // Error!
 const createSchema = z.object({ ... }) // Internal use only
 
 // ✅ CORRECT: Move to separate file
-// src/server/company/schemas.ts (no 'use server')
+// src/server/employees/admin/schemas.ts (no 'use server')
 export const createSchema = z.object({ ... })
 ```
 
