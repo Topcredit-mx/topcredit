@@ -1,7 +1,13 @@
 import { eq, ilike, or, type SQL, sql } from 'drizzle-orm'
 import type { Role } from '~/lib/auth-utils'
 import { db } from '~/server/db'
-import { userRoles, users } from '~/server/db/schema'
+import { companies, userCompanies, userRoles, users } from '~/server/db/schema'
+
+export type CompanyBasic = {
+	id: number
+	name: string
+	domain: string
+}
 
 export type UserWithRoles = {
 	id: number
@@ -13,6 +19,7 @@ export type UserWithRoles = {
 	updatedAt: Date
 	firstLogin: boolean | null
 	roles: Role[]
+	companies: CompanyBasic[]
 }
 
 export type GetUsersParams = {
@@ -80,16 +87,29 @@ export async function getUsers(
 
 	const total = Number(countResult[0]?.count ?? 0)
 
-	// Get roles for each user
+	// Get roles and companies for each user
 	const usersWithRoles: UserWithRoles[] = await Promise.all(
 		allUsers.map(async (user) => {
-			const roles = await db.query.userRoles.findMany({
-				where: eq(userRoles.userId, user.id),
-			})
+			const [roles, companyAssignments] = await Promise.all([
+				db.query.userRoles.findMany({
+					where: eq(userRoles.userId, user.id),
+				}),
+				db.query.userCompanies.findMany({
+					where: eq(userCompanies.userId, user.id),
+					with: {
+						company: true,
+					},
+				}),
+			])
 
 			return {
 				...user,
 				roles: roles.map((r) => r.role),
+				companies: companyAssignments.map((a) => ({
+					id: a.company.id,
+					name: a.company.name,
+					domain: a.company.domain,
+				})),
 			}
 		}),
 	)
@@ -117,4 +137,37 @@ export async function getUsers(
 		limit,
 		totalPages,
 	}
+}
+
+// Get all active companies for assignment dialogs
+export async function getAllCompaniesForAssignment(): Promise<CompanyBasic[]> {
+	const allCompanies = await db
+		.select({
+			id: companies.id,
+			name: companies.name,
+			domain: companies.domain,
+		})
+		.from(companies)
+		.where(eq(companies.active, true))
+		.orderBy(companies.name)
+
+	return allCompanies
+}
+
+// Get companies assigned to a specific user
+export async function getUserCompanyAssignments(
+	userId: number,
+): Promise<CompanyBasic[]> {
+	const assignments = await db.query.userCompanies.findMany({
+		where: eq(userCompanies.userId, userId),
+		with: {
+			company: true,
+		},
+	})
+
+	return assignments.map((a) => ({
+		id: a.company.id,
+		name: a.company.name,
+		domain: a.company.domain,
+	}))
 }

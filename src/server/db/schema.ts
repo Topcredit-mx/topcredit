@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm'
 import {
 	boolean,
 	integer,
@@ -104,3 +105,48 @@ export const companies = pgTable('companies', {
 		.defaultNow()
 		.notNull(),
 })
+
+export const userCompanies = pgTable(
+	'user_companies',
+	{
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		companyId: integer('company_id')
+			.notNull()
+			.references(() => companies.id, { onDelete: 'cascade' }),
+		assignedAt: timestamp('assigned_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => ({
+		pk: primaryKey({ columns: [table.userId, table.companyId] }),
+	}),
+)
+
+export const usersRelations = relations(users, ({ many }) => ({
+	roles: many(userRoles),
+	companies: many(userCompanies),
+}))
+
+export const companiesRelations = relations(companies, ({ many }) => ({
+	users: many(userCompanies),
+}))
+
+export const userRolesRelations = relations(userRoles, ({ one }) => ({
+	user: one(users, {
+		fields: [userRoles.userId],
+		references: [users.id],
+	}),
+}))
+
+export const userCompaniesRelations = relations(userCompanies, ({ one }) => ({
+	user: one(users, {
+		fields: [userCompanies.userId],
+		references: [users.id],
+	}),
+	company: one(companies, {
+		fields: [userCompanies.companyId],
+		references: [companies.id],
+	}),
+}))

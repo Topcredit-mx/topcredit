@@ -8,6 +8,7 @@ declare namespace Cypress {
 		 * @example cy.selectRadix('employeeSalaryFrequency', 'Mensual')
 		 */
 		selectRadix(selector: string, optionText: string): Chainable<void>
+		findTableRow(name: string): Chainable<JQuery<HTMLTableRowElement>>
 		task(event: 'login', params: string): Chainable<string>
 		task(
 			event: 'createUser',

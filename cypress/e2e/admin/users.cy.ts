@@ -1,39 +1,10 @@
-const adminUser = {
-	name: 'Admin User',
-	email: 'admin@example.com',
-	roles: ['employee', 'admin'] as const,
-}
-
-const customerOnlyUser = {
-	name: 'Customer Only User',
-	email: 'customer@example.com',
-	roles: ['customer'] as const,
-}
-
-const testUsers = [
-	{
-		name: 'Jane Requests',
-		email: 'jane.requests@example.com',
-		roles: ['employee', 'requests'] as const,
-	},
-	{
-		name: 'Bob Admin',
-		email: 'bob.admin@example.com',
-		roles: ['employee', 'admin'] as const,
-	},
-	{
-		name: 'Charlie Multi',
-		email: 'charlie.multi@example.com',
-		roles: ['employee', 'requests', 'admin'] as const,
-	},
-]
-
-// Helper to find a user row by name
-const findUserRow = (name: string) => cy.contains('td', name).parent('tr')
-
-// Helper to find role checkbox within a row by aria-label
-const findRoleCheckbox = (row: Cypress.Chainable, roleLabel: string) =>
-	row.find(`button[role="checkbox"][aria-label="Toggle ${roleLabel} role"]`)
+import {
+	adminUser,
+	customerOnlyUser,
+	findRoleCheckbox,
+	userList,
+	users,
+} from './users.fixtures'
 
 describe('Admin Users Table', () => {
 	before(() => {
@@ -41,13 +12,13 @@ describe('Admin Users Table', () => {
 		const allEmails = [
 			adminUser.email,
 			customerOnlyUser.email,
-			...testUsers.map((u) => u.email),
+			...userList.map((u) => u.email),
 		]
 		cy.task('cleanupTestUsers', allEmails)
 		// Create admin and test users
 		cy.task('createUser', adminUser)
 		cy.task('createUser', customerOnlyUser)
-		cy.task('createMultipleUsers', testUsers)
+		cy.task('createMultipleUsers', userList)
 	})
 
 	after(() => {
@@ -55,7 +26,7 @@ describe('Admin Users Table', () => {
 		const allEmails = [
 			adminUser.email,
 			customerOnlyUser.email,
-			...testUsers.map((u) => u.email),
+			...userList.map((u) => u.email),
 		]
 		cy.task('cleanupTestUsers', allEmails)
 	})
@@ -95,13 +66,13 @@ describe('Admin Users Table', () => {
 
 		it('should display employees', () => {
 			// Employees should be visible
-			cy.contains('Jane Requests').should('be.visible')
-			cy.contains('Bob Admin').should('be.visible')
+			cy.contains(users.jane.name).should('be.visible')
+			cy.contains(users.bob.name).should('be.visible')
 		})
 
 		it('should display checkboxes for employee roles', () => {
 			// Find Jane Requests row and verify checkboxes are present
-			findUserRow('Jane Requests').within(() => {
+			cy.findTableRow(users.jane.name).within(() => {
 				// Should have checkboxes for employee roles (2: requests, admin)
 				cy.get('button[role="checkbox"]').should('have.length', 2)
 			})
@@ -116,14 +87,14 @@ describe('Admin Users Table', () => {
 
 		it('should filter users by name', () => {
 			cy.get('input[placeholder*="Filter"]').type('Jane')
-			cy.contains('Jane Requests').should('be.visible')
-			cy.contains('Bob Admin').should('not.exist')
+			cy.contains(users.jane.name).should('be.visible')
+			cy.contains(users.bob.name).should('not.exist')
 		})
 
 		it('should filter users by email', () => {
 			cy.get('input[placeholder*="Filter"]').clear().type('requests')
-			cy.contains('jane.requests@example.com').should('be.visible')
-			cy.contains('bob.admin@example.com').should('not.exist')
+			cy.contains(users.jane.email).should('be.visible')
+			cy.contains(users.bob.email).should('not.exist')
 		})
 
 		it('should show "No results" when no users match filter', () => {
@@ -140,23 +111,23 @@ describe('Admin Users Table', () => {
 
 		it('should toggle role on checkbox click', () => {
 			// Find Jane Requests row and toggle admin role
-			findUserRow('Jane Requests').then(($row) => {
+			cy.findTableRow(users.jane.name).then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
 			// Wait for the toggle to complete
 			cy.wait(500)
-			cy.contains('Jane Requests').should('be.visible')
+			cy.contains(users.jane.name).should('be.visible')
 
 			// Revert the change
-			findUserRow('Jane Requests').then(($row) => {
+			cy.findTableRow(users.jane.name).then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 		})
 
 		it('should show checked state for users existing roles', () => {
 			// Jane Requests should have the requests role checked
-			findUserRow('Jane Requests').within(() => {
+			cy.findTableRow(users.jane.name).within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Solicitudes role"]',
 				).should('have.attr', 'data-state', 'checked')
@@ -192,7 +163,7 @@ describe('Admin Users Table', () => {
 
 		it('should show confirmation dialog when admin tries to remove their own admin role', () => {
 			// Find the current admin user row (Admin User) and click admin checkbox
-			findUserRow('Admin User').then(($row) => {
+			cy.findTableRow('Admin User').then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
@@ -204,7 +175,7 @@ describe('Admin Users Table', () => {
 
 		it('should keep admin role when canceling the confirmation dialog', () => {
 			// Find the current admin user row and click admin checkbox
-			findUserRow('Admin User').then(($row) => {
+			cy.findTableRow('Admin User').then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
@@ -215,7 +186,7 @@ describe('Admin Users Table', () => {
 			cy.get('[role="alertdialog"]').should('not.exist')
 
 			// Admin checkbox should still be checked
-			findUserRow('Admin User').within(() => {
+			cy.findTableRow('Admin User').within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Admin role"]',
 				).should('have.attr', 'data-state', 'checked')
@@ -225,7 +196,7 @@ describe('Admin Users Table', () => {
 		it('should NOT show confirmation dialog when removing admin role from another user', () => {
 			// Find Bob Admin row (different user) and click admin checkbox
 			// Bob stays visible after admin removal because he still has 'employee' role
-			findUserRow('Bob Admin').then(($row) => {
+			cy.findTableRow(users.bob.name).then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
@@ -236,21 +207,21 @@ describe('Admin Users Table', () => {
 			cy.wait(500)
 
 			// Bob Admin's admin checkbox should now be unchecked
-			findUserRow('Bob Admin').within(() => {
+			cy.findTableRow(users.bob.name).within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Admin role"]',
 				).should('have.attr', 'data-state', 'unchecked')
 			})
 
 			// Re-add admin role for cleanup
-			cy.task('assignRole', { email: 'bob.admin@example.com', role: 'admin' })
+			cy.task('assignRole', { email: users.bob.email, role: 'admin' })
 		})
 
 		// This test is LAST because it removes the current user's admin role
 		// which affects the session state
 		it('should remove admin role when confirming the dialog', () => {
 			// Find the current admin user row and click admin checkbox
-			findUserRow('Admin User').then(($row) => {
+			cy.findTableRow('Admin User').then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
@@ -272,7 +243,7 @@ describe('Admin Users Table', () => {
 
 	describe('Permission Restrictions', () => {
 		it('should not allow requests-only users to access admin users page', () => {
-			cy.login('jane.requests@example.com')
+			cy.login(users.jane.email)
 			cy.visit('/app/admin/users')
 			cy.url().should('include', '/unauthorized')
 		})

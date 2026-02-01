@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import type { Role } from '~/lib/auth-utils'
-import { companies, userRoles, users } from '~/server/db/schema'
+import { companies, userCompanies, userRoles, users } from '~/server/db/schema'
 import { getDb } from './cypress-db'
 
 export type LoginTaskParams = string
@@ -283,4 +283,104 @@ export const cleanupTestCompanies = async (
 	}
 
 	return null
+}
+
+// User-Company assignment tasks
+
+export type AssignCompanyToUserTaskParams = {
+	userEmail: string
+	companyDomain: string
+}
+
+export const assignCompanyToUser = async (
+	params: AssignCompanyToUserTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	// Find user
+	const user = await db.query.users.findFirst({
+		where: eq(users.email, params.userEmail),
+	})
+	if (!user) {
+		throw new Error(`User with email ${params.userEmail} not found`)
+	}
+
+	// Find company
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.domain, params.companyDomain),
+	})
+	if (!company) {
+		throw new Error(`Company with domain ${params.companyDomain} not found`)
+	}
+
+	// Check if already assigned
+	const existing = await db.query.userCompanies.findFirst({
+		where: (uc, { and }) =>
+			and(eq(uc.userId, user.id), eq(uc.companyId, company.id)),
+	})
+
+	if (existing) {
+		return existing // Already assigned
+	}
+
+	// Create assignment
+	const [assignment] = await db
+		.insert(userCompanies)
+		.values({
+			userId: user.id,
+			companyId: company.id,
+		})
+		.returning()
+
+	return assignment
+}
+
+export type CleanupUserCompaniesTaskParams = string[] // User emails
+
+export const cleanupUserCompanies = async (
+	emails: CleanupUserCompaniesTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	for (const email of emails) {
+		const user = await db.query.users.findFirst({
+			where: eq(users.email, email),
+		})
+
+		if (user) {
+			await db.delete(userCompanies).where(eq(userCompanies.userId, user.id))
+		}
+	}
+
+	return null
+}
+
+export type GetUserCompaniesTaskParams = string // User email
+
+export const getUserCompanies = async (email: GetUserCompaniesTaskParams) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const user = await db.query.users.findFirst({
+		where: eq(users.email, email),
+	})
+
+	if (!user) {
+		throw new Error(`User with email ${email} not found`)
+	}
+
+	const assignments = await db.query.userCompanies.findMany({
+		where: eq(userCompanies.userId, user.id),
+	})
+
+	// Get company details
+	const companyIds = assignments.map((a) => a.companyId)
+	if (companyIds.length === 0) {
+		return []
+	}
+
+	const companyList = await db.query.companies.findMany({
+		where: (c, { inArray }) => inArray(c.id, companyIds),
+	})
+
+	return companyList
 }

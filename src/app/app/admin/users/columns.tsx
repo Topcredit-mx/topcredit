@@ -1,7 +1,7 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { Loader2 } from 'lucide-react'
+import { Building2, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import {
@@ -14,11 +14,22 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
+import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from '~/components/ui/dialog'
+import { Label } from '~/components/ui/label'
 import type { Role } from '~/lib/auth-utils'
-import { toggleUserRole } from '~/server/admin/mutations'
-import type { UserWithRoles } from '~/server/admin/queries'
+import { toggleUserRole, updateUserCompanies } from '~/server/admin/mutations'
+import type { CompanyBasic, UserWithRoles } from '~/server/admin/queries'
 
 const roleLabels: Record<Role, string> = {
 	customer: 'Cliente',
@@ -106,8 +117,125 @@ function RoleCheckbox({
 	)
 }
 
+function CompanyAssignmentCell({
+	user,
+	allCompanies,
+}: {
+	user: UserWithRoles
+	allCompanies: CompanyBasic[]
+}) {
+	const [isPending, startTransition] = useTransition()
+	const [showDialog, setShowDialog] = useState(false)
+	const [selectedCompanyIds, setSelectedCompanyIds] = useState<number[]>(
+		user.companies.map((c) => c.id),
+	)
+
+	const handleOpenDialog = () => {
+		// Reset selection to current assignments when opening
+		setSelectedCompanyIds(user.companies.map((c) => c.id))
+		setShowDialog(true)
+	}
+
+	const handleToggleCompany = (companyId: number) => {
+		setSelectedCompanyIds((prev) =>
+			prev.includes(companyId)
+				? prev.filter((id) => id !== companyId)
+				: [...prev, companyId],
+		)
+	}
+
+	const handleSave = () => {
+		startTransition(async () => {
+			await updateUserCompanies(user.id, selectedCompanyIds)
+			setShowDialog(false)
+		})
+	}
+
+	return (
+		<>
+			<div className="flex items-center gap-2">
+				{user.companies.length === 0 ? (
+					<span className="text-muted-foreground text-sm">Sin empresas</span>
+				) : user.companies.length === 1 ? (
+					<Badge variant="secondary">{user.companies[0].name}</Badge>
+				) : (
+					<Badge variant="secondary">{user.companies.length} empresas</Badge>
+				)}
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-8 w-8"
+					onClick={handleOpenDialog}
+					aria-label="Asignar empresas"
+				>
+					<Building2 className="h-4 w-4" />
+				</Button>
+			</div>
+
+			<Dialog open={showDialog} onOpenChange={setShowDialog}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Asignar Empresas</DialogTitle>
+						<DialogDescription>
+							Selecciona las empresas que {user.name} puede administrar.
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="max-h-[300px] space-y-3 overflow-y-auto py-4">
+						{allCompanies.length === 0 ? (
+							<p className="text-muted-foreground text-sm">
+								No hay empresas disponibles.
+							</p>
+						) : (
+							allCompanies.map((company) => (
+								<div key={company.id} className="flex items-center space-x-3">
+									<Checkbox
+										id={`company-${company.id}`}
+										checked={selectedCompanyIds.includes(company.id)}
+										onCheckedChange={() => handleToggleCompany(company.id)}
+									/>
+									<Label
+										htmlFor={`company-${company.id}`}
+										className="flex-1 cursor-pointer"
+									>
+										<div className="font-medium">{company.name}</div>
+										<div className="text-muted-foreground text-sm">
+											{company.domain}
+										</div>
+									</Label>
+								</div>
+							))
+						)}
+					</div>
+
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setShowDialog(false)}
+							disabled={isPending}
+						>
+							Cancelar
+						</Button>
+						<Button onClick={handleSave} disabled={isPending}>
+							{isPending ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Guardando...
+								</>
+							) : (
+								'Guardar'
+							)}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</>
+	)
+}
+
 export function createColumns(
 	currentUserId: number,
+	allCompanies: CompanyBasic[],
 ): ColumnDef<UserWithRoles>[] {
 	// Only show employee roles (not customer)
 	const rolesToShow: Role[] = ['requests', 'admin']
@@ -156,6 +284,18 @@ export function createColumns(
 				},
 			}),
 		),
+		{
+			id: 'companies',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Empresas" />
+			),
+			cell: ({ row }) => {
+				const user = row.original
+				return (
+					<CompanyAssignmentCell user={user} allCompanies={allCompanies} />
+				)
+			},
+		},
 		{
 			accessorKey: 'createdAt',
 			header: ({ column }) => (

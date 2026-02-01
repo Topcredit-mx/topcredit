@@ -619,6 +619,41 @@ cy.contains('label', /activa/i)
   .click()
 ```
 
+**Verifying Checkbox Checked State:**
+
+Radix UI Checkbox uses `data-state="checked"` instead of native `checked` attribute:
+
+```typescript
+// ❌ WRONG: Using native checked assertion
+cy.get('button[role="checkbox"]').should('be.checked') // May fail
+
+// ✅ CORRECT: Check data-state attribute
+cy.get('button[role="checkbox"]').should('have.attr', 'data-state', 'checked')
+cy.get('button[role="checkbox"]').should('have.attr', 'data-state', 'unchecked')
+```
+
+**Checkbox as Sibling of Label:**
+
+When checkbox and label are siblings (not nested), use `.parent()` to find the container:
+
+```typescript
+// DOM structure:
+// <div class="flex items-center">
+//   <Checkbox />     <!-- sibling -->
+//   <Label>Name</Label>  <!-- sibling -->
+// </div>
+
+// ❌ WRONG: Looking for checkbox inside label
+cy.contains('label', 'Company Name')
+  .find('button[role="checkbox"]') // Fails: checkbox is sibling, not child
+
+// ✅ CORRECT: Go to parent container, then find checkbox
+cy.contains('label', 'Company Name')
+  .parent()
+  .find('button[role="checkbox"]')
+  .should('have.attr', 'data-state', 'checked')
+```
+
 ### Testing Disabled Form Fields
 
 When fields are intentionally disabled (e.g., domain cannot be changed after creation), verify the disabled state rather than trying to interact with them:

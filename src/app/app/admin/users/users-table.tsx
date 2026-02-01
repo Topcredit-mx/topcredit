@@ -6,16 +6,21 @@ import {
 	DataTableHeader,
 	DataTablePagination,
 } from '~/components/ui/data-table'
-import type { UserWithRoles } from '~/server/admin/queries'
+import type { CompanyBasic, UserWithRoles } from '~/server/admin/queries'
 import { createColumns } from './columns'
 
 interface UsersTableProps {
 	users: UserWithRoles[]
 	currentUserId: number
+	allCompanies: CompanyBasic[]
 }
 
-export function UsersTable({ users, currentUserId }: UsersTableProps) {
-	const columns = createColumns(currentUserId)
+export function UsersTable({
+	users,
+	currentUserId,
+	allCompanies,
+}: UsersTableProps) {
+	const columns = createColumns(currentUserId, allCompanies)
 
 	return (
 		<div className="space-y-4">

@@ -46,3 +46,12 @@ Cypress.Commands.add('selectRadix', (selector: string, optionText: string) => {
 	// Click the option by text content
 	cy.contains('[data-slot="select-item"]', optionText).click()
 })
+
+/**
+ * Find a table row by name.
+ * @param name - The name of the row to find.
+ * @example cy.findTableRow('Jane Requests')
+ */
+Cypress.Commands.add('findTableRow', (name: string) => {
+	return cy.contains('td', name).parent('tr')
+})

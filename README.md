@@ -40,8 +40,8 @@
 
 **US-2.2.1: Admin assigns companies to employees**
 As an admin, I want to assign companies to an employee, so that they can manage those companies' data.
-- [ ] Admin can view employee's current company assignments
-- [ ] Admin can assign one or more companies to an employee
+- [x] Admin can view employee's current company assignments
+- [x] Admin can assign one or more companies to an employee
 - [ ] Assignment persists and shows in employee's profile
 
 **US-2.2.2: Admin removes company assignments**

@@ -1,15 +1,19 @@
 import { requireAnyRole } from '~/lib/auth-utils'
-import { getUsers } from '~/server/admin/queries'
+import { getAllCompaniesForAssignment, getUsers } from '~/server/admin/queries'
 import { UsersTable } from './users-table'
 
 export default async function UsersPage() {
 	const session = await requireAnyRole(['admin'])
 
-	const { items } = await getUsers({
-		limit: 1000,
-		page: 1,
-		employeesOnly: true,
-	})
+	// Fetch users and companies in parallel
+	const [{ items }, allCompanies] = await Promise.all([
+		getUsers({
+			limit: 1000,
+			page: 1,
+			employeesOnly: true,
+		}),
+		getAllCompaniesForAssignment(),
+	])
 
 	// Get current user ID from session (handle both string and number)
 	const currentUserId =
@@ -26,7 +30,11 @@ export default async function UsersPage() {
 				</p>
 			</div>
 
-			<UsersTable users={items} currentUserId={currentUserId} />
+			<UsersTable
+				users={items}
+				currentUserId={currentUserId}
+				allCompanies={allCompanies}
+			/>
 		</div>
 	)
 }
