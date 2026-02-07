@@ -42,7 +42,7 @@
 As an admin, I want to assign companies to an employee, so that they can manage those companies' data.
 - [x] Admin can view employee's current company assignments
 - [x] Admin can assign one or more companies to an employee
-- [ ] Assignment persists and shows in employee's profile
+- [x] Assignment persists and shows in the user row (admin users table)
 
 **US-2.2.2: Admin removes company assignments**
 As an admin, I want to remove company assignments from an employee, so that they no longer have access.
