@@ -1,9 +1,13 @@
-import { requireAnyRole } from '~/lib/auth-utils'
-import { getAllCompaniesForAssignment, getUsers } from '~/server/admin/queries'
+import { requireAuth } from '~/lib/auth-utils'
+import { getAbility, requireAbility } from '~/server/auth/get-ability'
+import { getAllCompaniesForAssignment, getUsers } from '~/server/queries'
 import { UsersTable } from './users-table'
 
 export default async function UsersPage() {
-	const session = await requireAnyRole(['admin'])
+	const ability = await getAbility()
+	requireAbility(ability, 'manage', 'User')
+
+	const session = await requireAuth()
 
 	// Fetch users and companies in parallel
 	const [{ items }, allCompanies] = await Promise.all([

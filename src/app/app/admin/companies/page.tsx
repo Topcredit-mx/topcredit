@@ -1,5 +1,6 @@
-import { requireAnyRole } from '~/lib/auth-utils'
-import { getCompanies } from '~/server/company/queries'
+import { requireAuth } from '~/lib/auth-utils'
+import { getCompanies } from '~/server/queries'
+import { getAssignedCompanyIds } from '~/server/scopes'
 import { CompaniesTable } from './companies-table'
 
 interface CompaniesPageProps {
@@ -13,7 +14,17 @@ interface CompaniesPageProps {
 export default async function CompaniesPage({
 	searchParams,
 }: CompaniesPageProps) {
-	await requireAnyRole(['admin'])
+	const session = await requireAuth()
+	const rawId = session.user.id
+	const userId =
+		typeof rawId === 'number'
+			? rawId
+			: Number.parseInt(String(rawId ?? ''), 10)
+	if (!Number.isInteger(userId)) throw new Error('Invalid user id')
+
+	const assignedCompanyIds = await getAssignedCompanyIds(userId)
+	const companyIds =
+		assignedCompanyIds === 'all' ? undefined : assignedCompanyIds
 
 	const params = await searchParams
 	const page = Number.parseInt(params.page ?? '1', 10)
@@ -25,6 +36,7 @@ export default async function CompaniesPage({
 		limit: 50,
 		search,
 		activeOnly,
+		companyIds,
 	})
 
 	return (

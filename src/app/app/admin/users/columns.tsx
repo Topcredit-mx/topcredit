@@ -28,8 +28,8 @@ import {
 } from '~/components/ui/dialog'
 import { Label } from '~/components/ui/label'
 import type { Role } from '~/lib/auth-utils'
-import { toggleUserRole, updateUserCompanies } from '~/server/admin/mutations'
-import type { CompanyBasic, UserWithRoles } from '~/server/admin/queries'
+import type { CompanyBasic, UserWithRoles } from '~/server/queries'
+import { toggleUserRole, updateUserCompanies } from '~/server/mutations'
 
 const roleLabels: Record<Role, string> = {
 	customer: 'Cliente',
@@ -157,7 +157,7 @@ function CompanyAssignmentCell({
 				{user.companies.length === 0 ? (
 					<span className="text-muted-foreground text-sm">Sin empresas</span>
 				) : user.companies.length === 1 ? (
-					<Badge variant="secondary">{user.companies[0].name}</Badge>
+					<Badge variant="secondary">{user.companies[0]?.name ?? 'Empresa'}</Badge>
 				) : (
 					<Badge variant="secondary">{user.companies.length} empresas</Badge>
 				)}

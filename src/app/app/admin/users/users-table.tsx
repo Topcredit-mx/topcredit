@@ -6,7 +6,7 @@ import {
 	DataTableHeader,
 	DataTablePagination,
 } from '~/components/ui/data-table'
-import type { CompanyBasic, UserWithRoles } from '~/server/admin/queries'
+import type { CompanyBasic, UserWithRoles } from '~/server/queries'
 import { createColumns } from './columns'
 
 interface UsersTableProps {

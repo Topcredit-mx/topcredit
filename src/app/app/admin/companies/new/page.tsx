@@ -1,8 +1,9 @@
 import { CompanyForm } from '~/components/company-form'
-import { requireAnyRole } from '~/lib/auth-utils'
+import { getAbility, requireAbility } from '~/server/auth/get-ability'
 
 export default async function NewCompanyPage() {
-	await requireAnyRole(['admin'])
+	const ability = await getAbility()
+	requireAbility(ability, 'create', 'Company')
 
 	return (
 		<div className="container mx-auto py-6">

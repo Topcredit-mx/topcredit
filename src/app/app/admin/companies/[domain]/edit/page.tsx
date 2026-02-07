@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import { CompanyForm } from '~/components/company-form'
-import { requireAnyRole } from '~/lib/auth-utils'
-import { getCompanyByDomain } from '~/server/company/queries'
+import { toCompanySubject } from '~/lib/abilities'
+import { getAbility, requireAbility } from '~/server/auth/get-ability'
+import { getCompanyByDomain } from '~/server/queries'
 
 interface EditCompanyPageProps {
 	params: Promise<{
@@ -12,17 +13,17 @@ interface EditCompanyPageProps {
 export default async function EditCompanyPage({
 	params,
 }: EditCompanyPageProps) {
-	await requireAnyRole(['admin'])
-
 	const { domain } = await params
 
-	// Find company by domain (decode URL-encoded domain)
 	const decodedDomain = decodeURIComponent(domain)
 	const company = await getCompanyByDomain(decodedDomain)
 
 	if (!company) {
 		notFound()
 	}
+
+	const ability = await getAbility()
+	requireAbility(ability, 'update', toCompanySubject(company))
 
 	return (
 		<div className="container mx-auto py-6">

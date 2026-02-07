@@ -11,7 +11,7 @@ import {
 	DataTablePagination,
 } from '~/components/ui/data-table'
 import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
-import type { Company } from '~/server/company/queries'
+import type { Company } from '~/server/queries'
 
 interface CompaniesTableProps {
 	companies: Company[]

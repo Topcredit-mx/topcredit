@@ -18,8 +18,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-import { createCompany, updateCompany } from '~/server/company/mutations'
-import type { Company } from '~/server/company/queries'
+import type { Company } from '~/server/queries'
+import { createCompany, updateCompany } from '~/server/mutations'
 
 interface CompanyFormProps {
 	company?: Company

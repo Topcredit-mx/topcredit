@@ -24,6 +24,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@casl/ability": "^6.7.2",
 		"@auth/drizzle-adapter": "^1.11.1",
 		"@neondatabase/serverless": "^1.0.2",
 		"@radix-ui/react-alert-dialog": "^1.1.15",
