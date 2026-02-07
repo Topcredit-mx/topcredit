@@ -10,7 +10,7 @@ From `src/app/admin/groups/page.tsx`:
 
 ```typescript
 import { columns } from './columns'
-import { getGroups } from '~/server/admin/queries'
+import { getCompanies } from '~/server/queries'
 import { DataTable, DataTableHeader, DataTableContent, DataTablePagination } from '~/components/ui/data-table'
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 import Link from 'next/link'
@@ -78,7 +78,7 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
-import { createGroup } from '~/server/admin/mutations'
+import { createCompany } from '~/server/mutations'
 
 export default function Form({
   tournaments,
@@ -180,129 +180,80 @@ export default function Form({
 
 ## Server Action with Validation
 
-From `src/server/admin/mutations.ts`:
+From `src/server/mutations.ts`:
 
 ```typescript
 'use server'
 
-import z from 'zod'
-import { adminGuard } from '~/lib/auth'
-import { groups } from '../db/schema'
+import { getAbility, requireAbility } from '~/server/auth/get-ability'
+import { createCompanySchema } from '~/server/schemas'
+import { companies } from '~/server/db/schema'
 import { redirect } from 'next/navigation'
-import { db } from '../db'
-import { fromErrorToFormState } from '../errors/errors'
+import { db } from '~/server/db'
+import { fromErrorToFormState } from '~/server/errors/errors'
 
-const createGroupSchema = z.object({
-  name: z.string().min(1).max(30),
-  joinable: z.boolean().default(false),
-  finished: z.boolean().default(false),
-  paymentDueDate: z.coerce.date().optional(),
-  tournamentId: z.coerce.number().int().positive(),
-})
-
-export const createGroup = async (
+export const createCompany = async (
   _initialState: unknown,
   formData: FormData,
 ) => {
-  await adminGuard()
+  const ability = await getAbility()
+  requireAbility(ability, 'create', 'Company')  // CASL guard first
   try {
-    const data = createGroupSchema.parse({
+    const data = createCompanySchema.parse({
       name: formData.get('name'),
-      joinable: formData.get('joinable') === 'on',
-      finished: formData.get('finished') === 'on',
-      paymentDueDate: formData.get('paymentDueDate')
-        ? new Date(formData.get('paymentDueDate') as string)
-        : undefined,
-      tournamentId: Number(formData.get('tournamentId')),
+      domain: formData.get('domain'),
+      rate: formData.get('rate'),
     })
-
-    await db.insert(groups).values({
-      name: data.name,
-      joinable: data.joinable,
-      finished: data.finished,
-      paymentDueDate: data.paymentDueDate,
-      tournamentId: data.tournamentId,
-    })
+    await db.insert(companies).values(data)
   } catch (error) {
     return fromErrorToFormState(error)
   }
-
-  redirect('/admin/groups')
+  redirect('/app/admin/companies')
 }
 ```
 
 **Key points:**
 - `'use server'` at file top
-- `adminGuard()` called first
-- Zod schema for validation
-- Checkbox values come as `'on'` string
+- `getAbility()` + `requireAbility(ability, action, subject)` first (CASL)
+- Zod schema from `schemas.ts` for validation
 - `redirect()` outside try-catch (throws internally)
-- Errors returned as `{ message: string }`
+- Errors returned via `fromErrorToFormState`
 
 ## Bulk Operations Pattern
 
-From `src/server/admin/mutations.ts`:
+From `src/server/mutations.ts`:
 
 ```typescript
-export const finishGroups = async ({ ids }: { ids: number[] }) => {
-  await adminGuard()
-  try {
-    await db
-      .update(groups)
-      .set({ finished: true })
-      .where(inArray(groups.id, ids))
-  } catch (error) {
-    return fromErrorToFormState(error)
-  }
-
-  revalidatePath('/admin/groups')
+export const updateUserCompanies = async (userId: string, companyIds: string[]) => {
+  const ability = await getAbility()
+  requireAbility(ability, 'update', 'User')
+  // update user_company assignments...
+  revalidatePath('/app/admin/users')
 }
 ```
 
 ## Query with Pagination
 
-From `src/server/admin/queries.ts`:
+From `src/server/queries.ts`:
 
 ```typescript
-'use server'
+import { getAbility, requireAbility } from '~/server/auth/get-ability'
+import { getAssignedCompanyIds } from '~/server/scopes'
 
-import { db } from '../db'
-import { adminGuard } from '~/lib/auth'
-
-export const getGroups = async (input?: {
+export const getCompanies = async (input?: {
   page?: number
   limit?: number
-  kind?: 'all' | 'finished'
+  companyIds?: string[]
 }) => {
-  await adminGuard()
+  const ability = await getAbility()
+  requireAbility(ability, 'read', 'Company')
   const page = input?.page ?? 1
   const limit = input?.limit ?? 10
-  const kind = input?.kind
   const offset = (page - 1) * limit
-
-  const where =
-    kind === 'finished'
-      ? eq(groups.finished, true)
-      : kind === 'all'
-        ? undefined
-        : eq(groups.finished, false)
-
-  const items = await db.query.groups.findMany({
-    where,
-    offset,
-    limit,
-    orderBy: (groups, { desc }) => [desc(groups.createdAt)],
-    with: {
-      tournament: true,
-    },
-  })
-
-  const totalResult = await db
-    .select({ value: count() })
-    .from(groups)
-    .where(where)
-  const total = totalResult[0]?.value ?? 0
-  const totalPages = Math.ceil(total / limit)
+  // Admin: companyIds undefined = all. Employee: pass getAssignedCompanyIds(userId)
+  const where = input?.companyIds ? inArray(companies.id, input.companyIds) : undefined
+  const items = await db.query.companies.findMany({ where, offset, limit })
+  const total = /* ... */
 
   return { items, total, page, limit, totalPages }
 }
@@ -353,86 +304,45 @@ export const fromErrorToFormState = (error: unknown): { message: string } => {
 }
 ```
 
-## Authentication Flow
+## CASL Authorization
 
-From `src/lib/auth.ts`:
+From `src/server/auth/get-ability.ts` and `src/lib/abilities.ts`:
 
-```typescript
-'use server'
-
-import { getServerSession } from 'next-auth'
-import { redirect } from 'next/navigation'
-import { cache } from 'react'
-
-// Cached auth check - dedupes across server component tree
-export const auth = cache(async () => {
-  const session = await getSession()
-  if (!session?.user) {
-    redirect('/login')
-  }
-
-  const user = await db.query.users.findFirst({
-    where: (user, { eq }) => eq(user.id, session.user.id),
-  })
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  return { session, user }
-})
-
-// Guard functions for different authorization levels
-export const adminGuard = async () => {
-  const { user } = await auth()
-  if (!user.admin) redirect('/')
-}
-
-export const userGuard = async () => {
-  return await auth()
-}
-```
+- **`getAbility()`** – Builds ability from session + DB (roles, company assignments)
+- **`requireAbility(ability, action, subject)`** – Throws if forbidden; use at top of mutations and protected queries
+- **Scoping** – `getAssignedCompanyIds(userId)` in `scopes.ts`; pass `companyIds` to queries when employee sees only assigned companies
 
 ## Optimistic Updates Example
 
-Pattern for immediate UI feedback on bulk actions:
+Pattern for immediate UI feedback on toggle actions:
 
 ```typescript
-// src/app/admin/groups/optimistic-toggle.tsx
+// src/app/admin/users/role-toggle.tsx
 'use client'
 
 import { useOptimistic, useTransition } from 'react'
 import { Checkbox } from '~/components/ui/checkbox'
-import { updateJoinableGroups } from '~/server/admin/mutations'
+import { toggleUserRole } from '~/server/mutations'
 
-type Group = {
-  id: number
-  name: string
-  joinable: boolean
-}
+type User = { id: number; name: string; roles: string[] }
 
-export function GroupJoinableToggle({ group }: { group: Group }) {
+export function AdminRoleToggle({ user }: { user: User }) {
   const [isPending, startTransition] = useTransition()
-  const [optimisticJoinable, setOptimisticJoinable] = useOptimistic(
-    group.joinable,
-    (_, newValue: boolean) => newValue
+  const [optimisticRoles, setOptimisticRoles] = useOptimistic(
+    user.roles,
+    (_, newRoles: string[]) => newRoles
   )
+  const hasAdmin = optimisticRoles.includes('admin')
 
   function handleToggle(checked: boolean) {
     startTransition(async () => {
-      // Update UI immediately
-      setOptimisticJoinable(checked)
-      // Perform server action
-      await updateJoinableGroups({ ids: [group.id], joinable: checked })
+      setOptimisticRoles(checked ? [...user.roles, 'admin'] : user.roles.filter(r => r !== 'admin'))
+      await toggleUserRole(user.id, 'admin')
     })
   }
 
   return (
-    <Checkbox
-      checked={optimisticJoinable}
-      onCheckedChange={handleToggle}
-      disabled={isPending}
-    />
+    <Checkbox checked={hasAdmin} onCheckedChange={handleToggle} disabled={isPending} />
   )
 }
 ```
@@ -573,7 +483,7 @@ Pattern for fetching multiple data sources efficiently:
 ```typescript
 // src/app/admin/tournaments/[id]/page.tsx
 import { notFound } from 'next/navigation'
-import { getTournamentById, getWeeksByTournamentId, getGroups } from '~/server/admin/queries'
+import { getCompanies, getUsers } from '~/server/queries'
 
 export default async function TournamentDetailPage({
   params,

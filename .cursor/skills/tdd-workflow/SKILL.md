@@ -153,7 +153,7 @@ Instead of mocking external services, use Cypress tasks to interact directly wit
 ```
 cypress/
 ├── tasks/
-│   ├── index.ts              # Export all tasks
+│   ├── index.ts              # Export all tasks (import from ~/server/db/schema)
 │   └── cypress-db.ts         # Database connection singleton
 ├── support/
 │   ├── commands.ts           # Custom Cypress commands
@@ -298,19 +298,19 @@ Cypress.Commands.add('login', (email: string) => {
 const adminUser = {
   name: 'Admin User',
   email: 'admin@example.com',
-  roles: ['admin', 'customer'] as const,
+  roles: ['employee', 'admin'] as const,
 }
 
 const testUsers = [
   {
     name: 'Jane Requests',
     email: 'jane.requests@example.com',
-    roles: ['requests', 'customer'] as const,
+    roles: ['employee', 'requests'] as const,
   },
   {
     name: 'Bob Admin',
     email: 'bob.admin@example.com',
-    roles: ['admin', 'customer'] as const,
+    roles: ['employee', 'admin'] as const,
   },
 ]
 
@@ -742,11 +742,17 @@ When testing forms:
 5. **Test What Users See** - Avoid `data-testid`, use visible text and roles instead
 6. **Test Edge Cases** - Empty states, invalid inputs, boundaries
 7. **Test Error Paths** - Not just happy paths
-8. **Test Access Control** - Verify role-based permissions
+8. **Test Access Control** - Verify ability-based permissions (CASL); admin sees all, employee sees only assigned companies
 9. **Resilient Test Cleanup** - Clean up in BOTH `before()` and `after()` hooks to handle interrupted runs
 10. **Table Headers** - Check existence, not visibility (may be clipped by overflow)
 11. **Form Inputs** - Use `data-slot` for Radix UI components, click labels for checkboxes, verify disabled fields
 12. **Number Formatting** - Account for formatting differences (trailing zeros, decimal places) in assertions
+
+### CASL Testing Notes
+
+- Use `getAbility()` in app code; in tests create users with correct roles and company assignments.
+- Admin: full access. Employee: only assigned companies via `updateUserCompanies`.
+- Assert visible vs hidden UI and API responses based on ability, not raw roles.
 
 ## Success Metrics
 

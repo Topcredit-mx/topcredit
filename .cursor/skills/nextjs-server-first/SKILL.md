@@ -20,7 +20,7 @@ Pages are always async Server Components that fetch data directly.
 
 ```typescript
 // src/app/admin/[entity]/page.tsx
-import { getData } from '~/server/employees/admin/queries'
+import { getCompanies } from '~/server/queries'
 import { DataTable } from '~/components/ui/data-table'
 import { columns } from './columns'
 
@@ -34,7 +34,7 @@ export default async function Page({
   searchParams: Promise<SearchParams>  // Next.js 15: params are Promises
 }) {
   const filters = await searchParams
-  const { items } = await getData({ kind: filters.kind })
+  const { items } = await getCompanies({ page: 1, limit: 50 })
 
   return (
     <div className="container mx-auto">
@@ -57,67 +57,46 @@ All mutations are defined in dedicated files with `'use server'` at the top.
 
 ### File Organization
 
-Server actions are organized by role to enforce clear authorization boundaries:
+Flat structure: one file per concern. Group by entity inside with comments.
 
 ```
 src/server/
-├── employees/              # All employee roles
-│   ├── admin/              # Admin-level operations
-│   │   ├── mutations.ts    # Admin CRUD operations
-│   │   └── queries.ts      # Admin data fetching
-│   ├── manager/            # Manager-level operations
-│   │   ├── mutations.ts    
-│   │   └── queries.ts      
-│   └── analyst/            # Analyst-level operations
-│       ├── mutations.ts    
-│       └── queries.ts      
-├── customer/               # Customer-facing operations
-│   ├── mutations.ts        # Customer mutations
-│   └── queries.ts          # Customer queries
-├── public/                 # Unauthenticated operations
-│   └── actions.ts          # Public actions (signup, etc.)
+├── mutations.ts    # All mutations (createCompany, updateCompany, toggleUserRole, ...)
+├── queries.ts      # All queries (getCompanies, getUsers, ...)
+├── schemas.ts      # Zod validation schemas (createCompanySchema, updateCompanySchema)
+├── scopes.ts       # Scoping helpers (getAssignedCompanyIds, getUserCompanyAssignments)
+├── auth/
+│   └── get-ability.ts   # getAbility(), requireAbility()
+├── db/
 └── errors/
-    └── errors.ts           # Error handling utilities
 ```
-
-**Role hierarchy:** Each folder enforces its own authorization guard. Nested employee roles allow for granular permission control.
 
 ### Server Action Pattern
 
 ```typescript
-// src/server/employees/admin/mutations.ts
+// src/server/mutations.ts
 'use server'
 
-import z from 'zod'
-import { adminGuard } from '~/lib/auth'
-import { db } from '../../db'
+import { getAbility, requireAbility } from '~/server/auth/get-ability'
+import { createCompanySchema } from '~/server/schemas'
+import { db } from '~/server/db'
 import { redirect } from 'next/navigation'
-import { fromErrorToFormState } from '../../errors/errors'
+import { fromErrorToFormState } from '~/server/errors/errors'
 
-const createEntitySchema = z.object({
-  name: z.string().min(1).max(30),
-  relatedId: z.coerce.number().int().positive(),
-})
-
-export const createEntity = async (
-  _initialState: unknown,
-  formData: FormData,
-) => {
-  await adminGuard()  // Always guard first
+export const createCompany = async (_initialState: unknown, formData: FormData) => {
+  const ability = await getAbility()
+  requireAbility(ability, 'create', 'Company')  // Guard first
   try {
-    const data = createEntitySchema.parse({
-      name: formData.get('name'),
-      relatedId: Number(formData.get('relatedId')),
-    })
-
-    await db.insert(entities).values(data)
+    const data = createCompanySchema.parse({ ... })
+    await db.insert(companies).values(data)
   } catch (error) {
-    return fromErrorToFormState(error)  // Return error, don't throw
+    return fromErrorToFormState(error)
   }
-
-  redirect('/admin/entities')  // Redirect on success (outside try-catch)
+  redirect('/app/admin/companies')
 }
 ```
+
+**CASL ability guards:** Use `getAbility()` + `requireAbility(ability, action, subject)` instead of role checks. Pages, mutations, and protected queries call the guard at the top. Queries stay pure; caller passes scoped params (e.g. `companyIds`) when needed.
 
 ### Two Action Signatures
 
@@ -131,8 +110,9 @@ export const createEntity = async (
 
 **Programmatic actions** (for direct calls):
 ```typescript
-export const deleteEntity = async ({ id }: { id: number }) => {
-  await adminGuard()
+export const deleteEntity = async (id: number) => {
+  const ability = await getAbility()
+  requireAbility(ability, 'delete', 'Company')
   await db.delete(entities).where(eq(entities.id, id))
   revalidatePath('/admin/entities')
 }
@@ -143,14 +123,14 @@ export const deleteEntity = async ({ id }: { id: number }) => {
 Forms are the **only** place where `'use client'` is typically needed.
 
 ```typescript
-// src/app/admin/entities/new/form.tsx
+// src/app/admin/companies/new/page.tsx (form component)
 'use client'
 
 import { useActionState, useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
-import { createEntity } from '~/server/employees/admin/mutations'
+import { createCompany } from '~/server/mutations'
 
 export default function Form({
   relatedItems,
@@ -255,71 +235,33 @@ export const fromErrorToFormState = (error: unknown): { message: string } => {
 }
 ```
 
-## Authentication Guards
+## Authentication and Abilities
 
-Use layered guards for authorization.
-
-```typescript
-// src/lib/auth.ts
-'use server'
-
-import { cache } from 'react'
-import { redirect } from 'next/navigation'
-
-export const auth = cache(async () => {
-  const session = await getSession()
-  if (!session?.user) redirect('/login')
-  // ... fetch user from db
-  return { session, user }
-})
-
-export const adminGuard = async () => {
-  const { user } = await auth()
-  if (!user.admin) redirect('/')
-}
-
-export const userGuard = async () => {
-  return await auth()
-}
-```
-
-### Usage in Server Actions
+Use CASL ability checks for authorization. Route-level access uses `getRequiredEmployeeUser` or `getRequiredCustomerUser`.
 
 ```typescript
-export const createEntity = async (...) => {
-  await adminGuard()  // First line - guards before any logic
-  // ... rest of action
-}
+// Pages and mutations: getAbility + requireAbility
+import { getAbility, requireAbility } from '~/server/auth/get-ability'
+
+const ability = await getAbility()
+requireAbility(ability, 'create', 'Company')   // Redirects to /unauthorized if denied
+requireAbility(ability, 'update', toCompanySubject(company))  // Instance check
 ```
+
+**Where guards live:** Pages, mutations, and protected queries. Public queries (login, landing) have no guard.
 
 ## Data Fetching (Queries)
 
-Queries are also server actions, organized by domain.
+Queries live in `~/server/queries.ts`. Protected queries call `getAbility()` + `requireAbility()` at the top.
 
 ```typescript
-// src/server/employees/admin/queries.ts
-'use server'
+// src/server/queries.ts
+import { getAbility, requireAbility } from '~/server/auth/get-ability'
 
-import { db } from '../../db'
-import { adminGuard } from '~/lib/auth'
-
-export const getEntities = async (input?: {
-  page?: number
-  limit?: number
-  search?: string
-}) => {
-  await adminGuard()
-  const page = input?.page ?? 1
-  const limit = input?.limit ?? 10
-  const offset = (page - 1) * limit
-
-  const items = await db.query.entities.findMany({
-    offset,
-    limit,
-    orderBy: (entities, { desc }) => [desc(entities.createdAt)],
-  })
-
-  // Return paginated response
+export const getCompanies = async (params) => {
+  const ability = await getAbility()
+  requireAbility(ability, 'read', 'Company')
+  // ... fetch with scoped params (companyIds from getAssignedCompanyIds)
   return { items, total, page, limit, totalPages }
 }
 ```
@@ -332,7 +274,7 @@ Use `useOptimistic` for immediate UI feedback before server confirmation.
 'use client'
 
 import { useOptimistic } from 'react'
-import { toggleItemStatus } from '~/server/employees/admin/mutations'
+import { toggleUserRole } from '~/server/mutations'
 
 type Item = { id: number; name: string; active: boolean }
 
@@ -347,7 +289,7 @@ export function ItemList({ items }: { items: Item[] }) {
     // Update UI immediately
     setOptimisticItems({ ...item, active: !item.active })
     // Then perform server action
-    await toggleItemStatus({ id: item.id })
+    await toggleUserRole(item.id, 'admin')
   }
 
   return (
@@ -560,8 +502,8 @@ export const createSchema = z.object({ ... }) // Error!
 const createSchema = z.object({ ... }) // Internal use only
 
 // ✅ CORRECT: Move to separate file
-// src/server/employees/admin/schemas.ts (no 'use server')
-export const createSchema = z.object({ ... })
+// src/server/schemas.ts (no 'use server')
+export const createCompanySchema = z.object({ ... })
 ```
 
 ## Zod v4 Compatibility Notes

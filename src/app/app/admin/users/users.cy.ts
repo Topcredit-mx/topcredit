@@ -1,34 +1,47 @@
 import {
 	adminUser,
+	companies,
+	companyList,
 	customerOnlyUser,
+	employeeUser,
 	findRoleCheckbox,
 	userList,
 	users,
 } from './users.fixtures'
 
-describe('Admin Users Table', () => {
+describe('Admin Users', () => {
 	before(() => {
-		// Clean up any stale data from previous interrupted runs
-		const allEmails = [
+		const allUserEmails = [
 			adminUser.email,
 			customerOnlyUser.email,
+			employeeUser.email,
 			...userList.map((u) => u.email),
 		]
-		cy.task('cleanupTestUsers', allEmails)
-		// Create admin and test users
+		const companyDomains = companyList.map((c) => c.domain)
+
+		cy.task('cleanupUserCompanies', allUserEmails)
+		cy.task('cleanupTestUsers', allUserEmails)
+		cy.task('cleanupTestCompanies', companyDomains)
+
 		cy.task('createUser', adminUser)
 		cy.task('createUser', customerOnlyUser)
+		cy.task('createUser', employeeUser)
 		cy.task('createMultipleUsers', userList)
+		cy.task('createMultipleCompanies', companyList)
 	})
 
 	after(() => {
-		// Cleanup all test users
-		const allEmails = [
+		const allUserEmails = [
 			adminUser.email,
 			customerOnlyUser.email,
+			employeeUser.email,
 			...userList.map((u) => u.email),
 		]
-		cy.task('cleanupTestUsers', allEmails)
+		const companyDomains = companyList.map((c) => c.domain)
+
+		cy.task('cleanupUserCompanies', allUserEmails)
+		cy.task('cleanupTestUsers', allUserEmails)
+		cy.task('cleanupTestCompanies', companyDomains)
 	})
 
 	describe('Access Control', () => {
@@ -43,6 +56,18 @@ describe('Admin Users Table', () => {
 			cy.visit('/app/admin/users')
 			cy.url().should('include', '/app/admin/users')
 		})
+
+		it('should not allow requests-only users to access admin users page', () => {
+			cy.login(users.jane.email)
+			cy.visit('/app/admin/users')
+			cy.url().should('include', '/unauthorized')
+		})
+
+		it('should not allow customer users to access admin users page', () => {
+			cy.login(customerOnlyUser.email)
+			cy.visit('/app/admin/users', { failOnStatusCode: false })
+			cy.url().should('include', '/unauthorized')
+		})
 	})
 
 	describe('Users List Display', () => {
@@ -52,28 +77,23 @@ describe('Admin Users Table', () => {
 		})
 
 		it('should display users table with correct columns', () => {
-			// Shows employees with role columns (no customer column)
 			cy.contains('th', /nombre/i).should('be.visible')
 			cy.contains('th', /email/i).should('be.visible')
 			cy.contains('th', /solicitudes/i).should('be.visible')
 			cy.contains('th', /admin/i).should('be.visible')
 			cy.contains('th', /fecha de creación/i).should('be.visible')
-			// Customer column should not exist
 			cy.get('table').within(() => {
 				cy.contains('th', /cliente/i).should('not.exist')
 			})
 		})
 
 		it('should display employees', () => {
-			// Employees should be visible
 			cy.contains(users.jane.name).should('be.visible')
 			cy.contains(users.bob.name).should('be.visible')
 		})
 
 		it('should display checkboxes for employee roles', () => {
-			// Find Jane Requests row and verify checkboxes are present
 			cy.findTableRow(users.jane.name).within(() => {
-				// Should have checkboxes for employee roles (2: requests, admin)
 				cy.get('button[role="checkbox"]').should('have.length', 2)
 			})
 		})
@@ -110,23 +130,19 @@ describe('Admin Users Table', () => {
 		})
 
 		it('should toggle role on checkbox click', () => {
-			// Find Jane Requests row and toggle admin role
 			cy.findTableRow(users.jane.name).then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
-			// Wait for the toggle to complete
 			cy.wait(500)
 			cy.contains(users.jane.name).should('be.visible')
 
-			// Revert the change
 			cy.findTableRow(users.jane.name).then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 		})
 
 		it('should show checked state for users existing roles', () => {
-			// Jane Requests should have the requests role checked
 			cy.findTableRow(users.jane.name).within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Solicitudes role"]',
@@ -142,13 +158,8 @@ describe('Admin Users Table', () => {
 		})
 
 		it('should toggle column visibility via View dropdown', () => {
-			// Open view dropdown
 			cy.contains('button', /view/i).click()
-
-			// Toggle email column off - target the dropdown content specifically
 			cy.get('[data-slot="dropdown-menu-content"]').contains(/email/i).click()
-
-			// Email column should not be visible
 			cy.get('table').within(() => {
 				cy.contains('th', /email/i).should('not.exist')
 			})
@@ -162,30 +173,23 @@ describe('Admin Users Table', () => {
 		})
 
 		it('should show confirmation dialog when admin tries to remove their own admin role', () => {
-			// Find the current admin user row (Admin User) and click admin checkbox
 			cy.findTableRow('Admin User').then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
-			// Confirmation dialog should appear
 			cy.get('[role="alertdialog"]').should('be.visible')
 			cy.contains('¿Eliminar tu rol de administrador?').should('be.visible')
 			cy.contains('Perderás acceso a esta página').should('be.visible')
 		})
 
 		it('should keep admin role when canceling the confirmation dialog', () => {
-			// Find the current admin user row and click admin checkbox
 			cy.findTableRow('Admin User').then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
-			// Click cancel in the dialog
 			cy.get('[role="alertdialog"]').contains('button', 'Cancelar').click()
-
-			// Dialog should close
 			cy.get('[role="alertdialog"]').should('not.exist')
 
-			// Admin checkbox should still be checked
 			cy.findTableRow('Admin User').within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Admin role"]',
@@ -194,64 +198,152 @@ describe('Admin Users Table', () => {
 		})
 
 		it('should NOT show confirmation dialog when removing admin role from another user', () => {
-			// Find Bob Admin row (different user) and click admin checkbox
-			// Bob stays visible after admin removal because he still has 'employee' role
 			cy.findTableRow(users.bob.name).then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
-			// No confirmation dialog should appear
 			cy.get('[role="alertdialog"]').should('not.exist')
-
-			// Wait for the toggle to complete
 			cy.wait(500)
 
-			// Bob Admin's admin checkbox should now be unchecked
 			cy.findTableRow(users.bob.name).within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Admin role"]',
 				).should('have.attr', 'data-state', 'unchecked')
 			})
 
-			// Re-add admin role for cleanup
 			cy.task('assignRole', { email: users.bob.email, role: 'admin' })
 		})
 
-		// This test is LAST because it removes the current user's admin role
-		// which affects the session state
 		it('should remove admin role when confirming the dialog', () => {
-			// Find the current admin user row and click admin checkbox
 			cy.findTableRow('Admin User').then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
 
-			// Confirm removal
 			cy.get('[role="alertdialog"]')
 				.contains('button', 'Sí, eliminar mi rol de admin')
 				.click()
 
-			// Should show unauthorized content since we're no longer admin
-			// Note: URL may not change due to Next.js server action behavior,
-			// but the 403 content should be displayed
 			cy.contains('403').should('be.visible')
 			cy.contains('No Autorizado').should('be.visible')
 
-			// Re-add admin role for cleanup (in case more tests are added later)
 			cy.task('assignRole', { email: adminUser.email, role: 'admin' })
 		})
 	})
 
-	describe('Permission Restrictions', () => {
-		it('should not allow requests-only users to access admin users page', () => {
-			cy.login(users.jane.email)
-			cy.visit('/app/admin/users')
-			cy.url().should('include', '/unauthorized')
+	describe('Company Assignments', () => {
+		beforeEach(() => {
+			cy.login(adminUser.email)
 		})
 
-		it('should not allow customer users to access admin users page', () => {
-			cy.login(customerOnlyUser.email)
-			cy.visit('/app/admin/users', { failOnStatusCode: false })
-			cy.url().should('include', '/unauthorized')
+		it('should show "No companies assigned" for employee without assignments', () => {
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name).within(() => {
+				cy.contains(/sin empresas|no companies|0 empresas/i).should(
+					'exist',
+				)
+			})
+		})
+
+		it('should display assigned companies after assignment', () => {
+			cy.task('assignCompanyToUser', {
+				userEmail: employeeUser.email,
+				companyDomain: companies.acme.domain,
+			})
+
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name).within(() => {
+				cy.contains(companies.acme.name).should('exist')
+			})
+
+			cy.task('cleanupUserCompanies', [employeeUser.email])
+		})
+
+		it('should open company assignment dialog when clicking assign button', () => {
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name)
+				.find('button[aria-label="Asignar empresas"]')
+				.click()
+
+			cy.get('[role="dialog"]').should('be.visible')
+			cy.contains('Asignar Empresas').should('be.visible')
+		})
+
+		it('should list all available companies in assignment dialog', () => {
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name)
+				.find('button[aria-label="Asignar empresas"]')
+				.click()
+
+			cy.get('[role="dialog"]').within(() => {
+				for (const company of companyList) {
+					cy.contains(company.name).should('be.visible')
+				}
+			})
+		})
+
+		it('should assign single company to employee', () => {
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name)
+				.find('button[aria-label="Asignar empresas"]')
+				.click()
+
+			cy.get('[role="dialog"]').within(() => {
+				cy.contains('label', companies.acme.name).click()
+				cy.contains('button', 'Guardar').click()
+			})
+
+			cy.get('[role="dialog"]').should('not.exist')
+
+			cy.findTableRow(employeeUser.name).within(() => {
+				cy.contains(companies.acme.name).should('exist')
+			})
+		})
+
+		it('should assign multiple companies to employee', () => {
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name)
+				.find('button[aria-label="Asignar empresas"]')
+				.click()
+
+			cy.get('[role="dialog"]').within(() => {
+				cy.contains('label', companies.acme.name).click()
+				cy.contains('label', companies.globex.name).click()
+				cy.contains('button', 'Guardar').click()
+			})
+
+			cy.get('[role="dialog"]').should('not.exist')
+
+			cy.findTableRow(employeeUser.name).within(() => {
+				cy.contains(/2 empresas|acme|globex/i).should('exist')
+			})
+		})
+
+		it('should show current assignments pre-checked when reopening dialog', () => {
+			cy.task('assignCompanyToUser', {
+				userEmail: employeeUser.email,
+				companyDomain: companies.acme.domain,
+			})
+
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name)
+				.find('button[aria-label="Asignar empresas"]')
+				.click()
+
+			cy.get('[role="dialog"]').within(() => {
+				cy.contains('label', companies.acme.name)
+					.parent()
+					.find('button[role="checkbox"]')
+					.should('have.attr', 'data-state', 'checked')
+			})
+
+			cy.task('cleanupUserCompanies', [employeeUser.email])
 		})
 	})
 })

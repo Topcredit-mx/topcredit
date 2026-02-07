@@ -34,6 +34,34 @@ export const users = {
 
 export const userList = Object.values(users)
 
-// Helper to find role checkbox within a row by aria-label
+export const employeeUser = {
+	name: 'Test Employee',
+	email: 'employee@example.com',
+	roles: ['employee'] as const,
+}
+
+export const companies = {
+	acme: {
+		name: 'Acme Corp',
+		domain: 'acme-users-test.com',
+		rate: '0.0250',
+		employeeSalaryFrequency: 'monthly' as const,
+	},
+	globex: {
+		name: 'Globex Inc',
+		domain: 'globex-users-test.com',
+		rate: '0.0300',
+		employeeSalaryFrequency: 'bi-monthly' as const,
+	},
+	initech: {
+		name: 'Initech',
+		domain: 'initech-users-test.com',
+		rate: '0.0200',
+		employeeSalaryFrequency: 'monthly' as const,
+	},
+}
+
+export const companyList = Object.values(companies)
+
 export const findRoleCheckbox = (row: Cypress.Chainable, roleLabel: string) =>
 	row.find(`button[role="checkbox"][aria-label="Toggle ${roleLabel} role"]`)
