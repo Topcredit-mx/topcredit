@@ -1,6 +1,9 @@
 import { requireAuth } from '~/lib/auth-utils'
 import { getCompanies } from '~/server/queries'
-import { getAssignedCompanyIds } from '~/server/scopes'
+import {
+	getAssignedCompanyIds,
+	getSelectedCompanyId,
+} from '~/server/scopes'
 import { CompaniesTable } from './companies-table'
 
 interface CompaniesPageProps {
@@ -22,9 +25,21 @@ export default async function CompaniesPage({
 			: Number.parseInt(String(rawId ?? ''), 10)
 	if (!Number.isInteger(userId)) throw new Error('Invalid user id')
 
-	const assignedCompanyIds = await getAssignedCompanyIds(userId)
-	const companyIds =
+	const [assignedCompanyIds, selectedCompanyId] = await Promise.all([
+		getAssignedCompanyIds(userId),
+		getSelectedCompanyId(),
+	])
+
+	let companyIds: number[] | undefined =
 		assignedCompanyIds === 'all' ? undefined : assignedCompanyIds
+	const useSelectedFilter =
+		selectedCompanyId !== null &&
+		(assignedCompanyIds === 'all' ||
+			(Array.isArray(assignedCompanyIds) &&
+				assignedCompanyIds.includes(selectedCompanyId)))
+	if (useSelectedFilter) {
+		companyIds = [selectedCompanyId]
+	}
 
 	const params = await searchParams
 	const page = Number.parseInt(params.page ?? '1', 10)

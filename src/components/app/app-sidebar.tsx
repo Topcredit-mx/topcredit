@@ -9,6 +9,7 @@ import {
 	Users,
 } from 'lucide-react'
 import Link from 'next/link'
+import { CompanySwitcher } from '~/components/app/company-switcher'
 import { type NavItem, NavMain } from '~/components/nav-main'
 import { NavUser } from '~/components/nav-user'
 import {
@@ -21,6 +22,7 @@ import {
 	SidebarMenuItem,
 	SidebarRail,
 } from '~/components/ui/sidebar'
+import type { CompanyForSwitcher } from '~/server/scopes'
 
 interface AppSidebarProps {
 	user: {
@@ -28,9 +30,15 @@ interface AppSidebarProps {
 		email?: string | null
 		roles?: string[]
 	}
+	companies: CompanyForSwitcher[]
+	selectedCompanyId: number | null
 }
 
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar({
+	user,
+	companies,
+	selectedCompanyId,
+}: AppSidebarProps) {
 	const isAdmin = user.roles?.includes('admin')
 
 	const navigationItems: NavItem[] = [
@@ -83,17 +91,24 @@ export function AppSidebar({ user }: AppSidebarProps) {
 			<SidebarHeader>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton size="lg" asChild>
-							<Link href="/app">
-								<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-									<Building2 className="size-4" />
-								</div>
-								<div className="grid flex-1 text-left text-sm leading-tight">
-									<span className="truncate font-semibold">TopCredit</span>
-									<span className="truncate text-xs">Admin Dashboard</span>
-								</div>
-							</Link>
-						</SidebarMenuButton>
+						{companies.length > 0 ? (
+							<CompanySwitcher
+								companies={companies}
+								selectedCompanyId={selectedCompanyId}
+							/>
+						) : (
+							<SidebarMenuButton size="lg" asChild>
+								<Link href="/app">
+									<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+										<Building2 className="size-4" />
+									</div>
+									<div className="grid flex-1 text-left text-sm leading-tight">
+										<span className="truncate font-semibold">TopCredit</span>
+										<span className="truncate text-xs">Admin Dashboard</span>
+									</div>
+								</Link>
+							</SidebarMenuButton>
+						)}
 					</SidebarMenuItem>
 				</SidebarMenu>
 			</SidebarHeader>

@@ -52,10 +52,11 @@ As an admin, I want to remove company assignments from an employee, so that they
 
 **US-2.2.3: Employee sees only assigned companies**
 As an employee, I want to see only my assigned companies, so that I focus on relevant data.
-- [ ] Sidebar company switcher shows only assigned companies
-- [ ] Employee can switch between assigned companies via sidebar
-- [ ] Selected company filters all data views
-- [ ] Unassigned companies are not visible in switcher
+- [x] Sidebar company switcher shows only assigned companies (and active)
+- [x] assigned companies that are not active should be shown but as a disabled option
+- [x] Employee can switch between assigned companies via sidebar
+- [x] Selected company filters all data views
+- [x] Unassigned companies are not visible in switcher
 
 **US-2.2.4: Employee without assignments sees appropriate message**
 As an employee without company assignments, I should see a helpful message, so that I understand I need assignments.
@@ -66,10 +67,11 @@ As an employee without company assignments, I should see a helpful message, so t
 As an admin, I want to see a general overview dashboard, so that I can monitor the entire system.
 - [ ] Admin dashboard shows aggregated data across all companies
 - [ ] Overview is the default view for admins
+- [ ] Shows when no company is selected on the company switcher in the sidebar
 
 **US-2.2.6: Admin can view any company as an employee would**
 As an admin, I want to select any company and view its data like an assigned employee, so that I can support employees and troubleshoot.
-- [ ] Sidebar company switcher shows all companies for admin
+- [ ] Sidebar company switcher shows all companies for admin (only active)
 - [ ] Admin can select any company via sidebar switcher
 - [ ] Selected company view matches what an assigned employee sees
 - [ ] Selected company persists on page reload (stored in session/cookie)
