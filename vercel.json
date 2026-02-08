@@ -1,0 +1,3 @@
+{
+	"installCommand": "CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile"
+}
