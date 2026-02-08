@@ -1,12 +1,13 @@
 'use client'
 
-import { Building2, ChevronsUpDown } from 'lucide-react'
+import { Building2, ChevronsUpDown, LayoutDashboard } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import { SidebarMenuButton } from '~/components/ui/sidebar'
@@ -17,6 +18,7 @@ import type { CompanyForSwitcher } from '~/server/scopes'
 type CompanySwitcherProps = {
 	companies: CompanyForSwitcher[]
 	selectedCompanyId: number | null
+	isAdmin?: boolean
 }
 
 function companyInitials(name: string): string {
@@ -30,19 +32,28 @@ function companyInitials(name: string): string {
 	return first.slice(0, 2).toUpperCase()
 }
 
+const OVERVIEW_LABEL = 'Vista general'
+
 export function CompanySwitcher({
 	companies,
 	selectedCompanyId,
+	isAdmin = false,
 }: CompanySwitcherProps) {
 	const router = useRouter()
 	const selectedCompany = companies.find((c) => c.id === selectedCompanyId)
+	const isOverview = selectedCompanyId === null && isAdmin
 
 	async function onSelectCompany(companyId: number) {
 		await setSelectedCompanyId(companyId)
 		router.refresh()
 	}
 
-	if (companies.length === 0) return null
+	async function onSelectOverview() {
+		await setSelectedCompanyId(null)
+		router.refresh()
+	}
+
+	if (companies.length === 0 && !isAdmin) return null
 
 	return (
 		<DropdownMenu>
@@ -53,7 +64,9 @@ export function CompanySwitcher({
 					</div>
 					<div className="min-w-0 flex-1 text-left text-sm">
 						<span className="truncate font-semibold">
-							{selectedCompany?.name ?? 'TopCredit'}
+							{isOverview
+								? OVERVIEW_LABEL
+								: selectedCompany?.name ?? 'TopCredit'}
 						</span>
 					</div>
 					<ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
@@ -65,6 +78,23 @@ export function CompanySwitcher({
 				side="right"
 				sideOffset={8}
 			>
+				{isAdmin && (
+					<>
+						<DropdownMenuItem
+							onSelect={onSelectOverview}
+							className="gap-2"
+						>
+							<div
+								className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted font-medium text-muted-foreground text-xs"
+								aria-hidden
+							>
+								<LayoutDashboard className="size-4" />
+							</div>
+							<span className="truncate">{OVERVIEW_LABEL}</span>
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+					</>
+				)}
 				<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
 					Empresas
 				</DropdownMenuLabel>

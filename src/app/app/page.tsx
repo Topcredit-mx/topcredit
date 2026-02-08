@@ -1,4 +1,18 @@
+import { AdminOverviewDashboard } from '~/components/app/admin-overview-dashboard'
+import { getRequiredEmployeeUser } from '~/server/auth/lib'
+import { getAdminOverviewStats } from '~/server/queries'
+import { getSelectedCompanyId } from '~/server/scopes'
+
 export default async function AppPage() {
+	const user = await getRequiredEmployeeUser()
+	const selectedCompanyId = await getSelectedCompanyId()
+	const isAdmin = user.roles?.includes('admin') ?? false
+
+	if (isAdmin && selectedCompanyId === null) {
+		const stats = await getAdminOverviewStats()
+		return <AdminOverviewDashboard stats={stats} />
+	}
+
 	return (
 		<div>
 			<div className="mb-6">

@@ -190,8 +190,13 @@ export async function getCompanies(
 	const ability = await getAbility()
 	requireAbility(ability, 'read', 'Company')
 
-	const { page = 1, limit = 50, search, activeOnly = false, companyIds } =
-		params
+	const {
+		page = 1,
+		limit = 50,
+		search,
+		activeOnly = false,
+		companyIds,
+	} = params
 
 	const offset = (page - 1) * limit
 
@@ -284,5 +289,44 @@ export async function getCompanyByDomain(
 		...company,
 		rate: company.rate,
 		borrowingCapacityRate: company.borrowingCapacityRate,
+	}
+}
+
+export type AdminOverviewStats = {
+	companiesTotal: number
+	companiesActive: number
+	usersTotal: number
+	employeesTotal: number
+}
+
+export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
+	const ability = await getAbility()
+	requireAbility(ability, 'read', 'Admin')
+
+	const [
+		companiesTotalResult,
+		companiesActiveResult,
+		usersTotalResult,
+		employeesResult,
+	] = await Promise.all([
+		db.select({ count: sql<number>`count(*)` }).from(companies),
+		db
+			.select({ count: sql<number>`count(*)` })
+			.from(companies)
+			.where(eq(companies.active, true)),
+		db.select({ count: sql<number>`count(*)` }).from(users),
+		db
+			.select({ userId: userRoles.userId })
+			.from(userRoles)
+			.where(eq(userRoles.role, 'employee')),
+	])
+
+	const employeesTotal = new Set(employeesResult.map((r) => r.userId)).size
+
+	return {
+		companiesTotal: Number(companiesTotalResult[0]?.count ?? 0),
+		companiesActive: Number(companiesActiveResult[0]?.count ?? 0),
+		usersTotal: Number(usersTotalResult[0]?.count ?? 0),
+		employeesTotal,
 	}
 }

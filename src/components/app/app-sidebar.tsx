@@ -93,10 +93,11 @@ export function AppSidebar({
 			<SidebarHeader>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						{companies.length > 0 ? (
+						{companies.length > 0 || isAdmin ? (
 							<CompanySwitcher
 								companies={companies}
 								selectedCompanyId={selectedCompanyId}
+								isAdmin={isAdmin}
 							/>
 						) : (
 							<SidebarMenuButton size="lg" asChild>

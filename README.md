@@ -65,17 +65,17 @@ As an employee without company assignments, I should see a helpful message, so t
 
 **US-2.2.5: Admin sees general overview dashboard**
 As an admin, I want to see a general overview dashboard, so that I can monitor the entire system.
-- [ ] Admin dashboard shows aggregated data across all companies
-- [ ] Overview is the default view for admins
-- [ ] Shows when no company is selected on the company switcher in the sidebar
+- [x] Admin dashboard shows aggregated data across all companies
+- [x] Overview is the default view for admins
+- [x] Shows when no company is selected on the company switcher in the sidebar
 
 **US-2.2.6: Admin can view any company as an employee would**
 As an admin, I want to select any company and view its data like an assigned employee, so that I can support employees and troubleshoot.
-- [ ] Sidebar company switcher shows all companies for admin (only active)
-- [ ] Admin can select any company via sidebar switcher
-- [ ] Selected company view matches what an assigned employee sees
-- [ ] Selected company persists on page reload (stored in session/cookie)
-- [ ] Admin can switch companies or select "Overview" to return to general dashboard
+- [x] Sidebar company switcher shows all companies for admin (only active)
+- [x] Admin can select any company via sidebar switcher
+- [x] Selected company view matches what an assigned employee sees
+- [x] Selected company persists on page reload (stored in cookie)
+- [x] Admin can switch companies or select "Vista general" to return to overview dashboard
 
 ### Phase 3: Credit Application Flow
 - [ ] Users - Credit application creation
