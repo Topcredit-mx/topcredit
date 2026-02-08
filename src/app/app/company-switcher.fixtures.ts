@@ -17,6 +17,15 @@ export const companyAssignedActive = {
 	active: true,
 }
 
+/** Assigned to employee: active (second) */
+export const companyAssignedActive2 = {
+	name: 'Beta Corp',
+	domain: 'beta-corp-switcher.com',
+	rate: '0.0280',
+	employeeSalaryFrequency: 'bi-monthly' as const,
+	active: true,
+}
+
 /** Assigned to employee: inactive (shown but disabled in switcher) */
 export const companyAssignedInactive = {
 	name: 'Assigned Inactive Co',
@@ -37,6 +46,7 @@ export const companyUnassigned = {
 
 export const switcherCompanyList = [
 	companyAssignedActive,
+	companyAssignedActive2,
 	companyAssignedInactive,
 	companyUnassigned,
 ]

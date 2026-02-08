@@ -40,6 +40,8 @@ export function AppSidebar({
 	selectedCompanyId,
 }: AppSidebarProps) {
 	const isAdmin = user.roles?.includes('admin')
+	const disableNav =
+		!isAdmin && companies.length > 0 && selectedCompanyId === null
 
 	const navigationItems: NavItem[] = [
 		{
@@ -114,7 +116,7 @@ export function AppSidebar({
 			</SidebarHeader>
 
 			<SidebarContent>
-				<NavMain items={navigationItems} />
+				<NavMain items={navigationItems} disabled={disableNav} />
 			</SidebarContent>
 
 			<SidebarFooter>

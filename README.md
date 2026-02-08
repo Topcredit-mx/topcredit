@@ -60,8 +60,8 @@ As an employee, I want to see only my assigned companies, so that I focus on rel
 
 **US-2.2.4: Employee without assignments sees appropriate message**
 As an employee without company assignments, I should see a helpful message, so that I understand I need assignments.
-- [ ] Empty state message displayed when no assignments
-- [ ] No company data accessible
+- [x] Empty state message displayed when no assignments
+- [x] No company data accessible
 
 **US-2.2.5: Admin sees general overview dashboard**
 As an admin, I want to see a general overview dashboard, so that I can monitor the entire system.

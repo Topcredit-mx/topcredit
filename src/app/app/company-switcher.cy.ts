@@ -8,6 +8,7 @@
 
 import {
 	companyAssignedActive,
+	companyAssignedActive2,
 	companyAssignedInactive,
 	companyUnassigned,
 	employeeWithAssignments,
@@ -29,6 +30,10 @@ describe('Company Switcher (US-2.2.3)', () => {
 		cy.task('assignCompanyToUser', {
 			userEmail: employeeEmail,
 			companyDomain: companyAssignedActive.domain,
+		})
+		cy.task('assignCompanyToUser', {
+			userEmail: employeeEmail,
+			companyDomain: companyAssignedActive2.domain,
 		})
 		cy.task('assignCompanyToUser', {
 			userEmail: employeeEmail,
@@ -59,6 +64,9 @@ describe('Company Switcher (US-2.2.3)', () => {
 
 		cy.get('[data-slot="dropdown-menu-content"]').within(() => {
 			cy.contains('[data-slot="dropdown-menu-item"]', companyAssignedActive.name).should(
+				'exist',
+			)
+			cy.contains('[data-slot="dropdown-menu-item"]', companyAssignedActive2.name).should(
 				'exist',
 			)
 			cy.contains(
@@ -103,5 +111,25 @@ describe('Company Switcher (US-2.2.3)', () => {
 			'not.contain',
 			companyUnassigned.name,
 		)
+	})
+
+	it('selected company persists after page reload', () => {
+		openCompanySwitcher()
+		cy.contains(
+			'[data-slot="dropdown-menu-item"]',
+			companyAssignedActive2.name,
+		).click()
+
+		cy.get('[data-slot="sidebar"]')
+			.find('[data-slot="dropdown-menu-trigger"]')
+			.first()
+			.should('contain', companyAssignedActive2.name)
+
+		cy.reload()
+
+		cy.get('[data-slot="sidebar"]')
+			.find('[data-slot="dropdown-menu-trigger"]')
+			.first()
+			.should('contain', companyAssignedActive2.name)
 	})
 })
