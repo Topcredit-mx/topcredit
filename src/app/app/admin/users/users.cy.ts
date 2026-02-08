@@ -239,9 +239,7 @@ describe('Admin Users', () => {
 			cy.visit('/app/admin/users')
 
 			cy.findTableRow(employeeUser.name).within(() => {
-				cy.contains(/sin empresas|no companies|0 empresas/i).should(
-					'exist',
-				)
+				cy.contains(/sin empresas|no companies|0 empresas/i).should('exist')
 			})
 		})
 
@@ -341,6 +339,149 @@ describe('Admin Users', () => {
 					.parent()
 					.find('button[role="checkbox"]')
 					.should('have.attr', 'data-state', 'checked')
+			})
+
+			cy.task('cleanupUserCompanies', [employeeUser.email])
+		})
+
+		it('should show list of assigned companies in assignment dialog', () => {
+			cy.task('assignCompanyToUser', {
+				userEmail: employeeUser.email,
+				companyDomain: companies.acme.domain,
+			})
+
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name)
+				.find('button[aria-label="Asignar empresas"]')
+				.click()
+
+			cy.get('[role="dialog"]').within(() => {
+				cy.contains(companies.acme.name).should('be.visible')
+				cy.contains(companies.acme.domain).should('be.visible')
+			})
+
+			cy.task('cleanupUserCompanies', [employeeUser.email])
+		})
+
+		it('should remove one company assignment when unchecking and saving', () => {
+			cy.task('assignCompanyToUser', {
+				userEmail: employeeUser.email,
+				companyDomain: companies.acme.domain,
+			})
+			cy.task('assignCompanyToUser', {
+				userEmail: employeeUser.email,
+				companyDomain: companies.globex.domain,
+			})
+
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name)
+				.find('button[aria-label="Asignar empresas"]')
+				.click()
+
+			cy.get('[role="dialog"]').within(() => {
+				cy.contains('label', companies.acme.name).click()
+				cy.contains('button', 'Guardar').click()
+			})
+
+			cy.get('[role="dialog"]').should('not.exist')
+
+			cy.findTableRow(employeeUser.name).within(() => {
+				cy.contains(companies.globex.name).should('exist')
+				cy.contains(companies.acme.name).should('not.exist')
+			})
+
+			cy.task('cleanupUserCompanies', [employeeUser.email])
+		})
+
+		it('should remove all company assignments when unchecking all and saving', () => {
+			cy.task('assignCompanyToUser', {
+				userEmail: employeeUser.email,
+				companyDomain: companies.acme.domain,
+			})
+
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name)
+				.find('button[aria-label="Asignar empresas"]')
+				.click()
+
+			cy.get('[role="dialog"]').within(() => {
+				cy.contains('label', companies.acme.name).click()
+				cy.contains('button', 'Guardar').click()
+			})
+
+			cy.get('[role="dialog"]').should('not.exist')
+
+			cy.findTableRow(employeeUser.name).within(() => {
+				cy.contains(/sin empresas/i).should('exist')
+			})
+
+			cy.task('cleanupUserCompanies', [employeeUser.email])
+		})
+
+		it('removal takes effect immediately without page reload', () => {
+			cy.task('assignCompanyToUser', {
+				userEmail: employeeUser.email,
+				companyDomain: companies.acme.domain,
+			})
+
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name).within(() => {
+				cy.contains(companies.acme.name).should('exist')
+			})
+
+			cy.findTableRow(employeeUser.name)
+				.find('button[aria-label="Asignar empresas"]')
+				.click()
+
+			cy.get('[role="dialog"]').within(() => {
+				cy.contains('label', companies.acme.name).click()
+				cy.contains('button', 'Guardar').click()
+			})
+
+			cy.get('[role="dialog"]').should('not.exist')
+			cy.findTableRow(employeeUser.name).within(() => {
+				cy.contains(/sin empresas/i).should('exist')
+			})
+
+			cy.task('cleanupUserCompanies', [employeeUser.email])
+		})
+
+		it('should keep dialog open and show error when save fails (e.g. network error)', () => {
+			cy.task('assignCompanyToUser', {
+				userEmail: employeeUser.email,
+				companyDomain: companies.acme.domain,
+			})
+
+			cy.intercept('POST', '**/app/admin/users**', {
+				forceNetworkError: true,
+			}).as('saveCompanies')
+
+			cy.visit('/app/admin/users')
+
+			cy.findTableRow(employeeUser.name).within(() => {
+				cy.contains(companies.acme.name).should('exist')
+			})
+
+			cy.findTableRow(employeeUser.name)
+				.find('button[aria-label="Asignar empresas"]')
+				.click()
+
+			cy.get('[role="dialog"]').within(() => {
+				cy.contains('label', companies.acme.name).click()
+				cy.contains('button', 'Guardar').click()
+			})
+
+			cy.wait('@saveCompanies')
+
+			cy.get('[role="dialog"]').should('be.visible')
+			cy.get('[role="alert"]').should('be.visible')
+
+			cy.findTableRow(employeeUser.name).within(() => {
+				cy.contains(companies.acme.name).should('exist')
 			})
 
 			cy.task('cleanupUserCompanies', [employeeUser.email])

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import {
 	DataTable,
 	DataTableContent,
@@ -16,11 +17,32 @@ interface UsersTableProps {
 }
 
 export function UsersTable({
-	users,
+	users: initialUsers,
 	currentUserId,
 	allCompanies,
 }: UsersTableProps) {
-	const columns = createColumns(currentUserId, allCompanies)
+	const [users, setUsers] = useState(initialUsers)
+
+	useEffect(() => {
+		setUsers(initialUsers)
+	}, [initialUsers])
+
+	const onUserCompaniesChange = (userId: number, companyIds: number[]) => {
+		const companies = companyIds
+			.map((id) => allCompanies.find((c) => c.id === id))
+			.filter((c): c is CompanyBasic => c != null)
+		setUsers((prev) =>
+			prev.map((u) =>
+				u.id === userId ? { ...u, companies } : u,
+			),
+		)
+	}
+
+	const columns = createColumns(
+		currentUserId,
+		allCompanies,
+		onUserCompaniesChange,
+	)
 
 	return (
 		<div className="space-y-4">

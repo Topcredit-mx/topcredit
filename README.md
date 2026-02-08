@@ -46,9 +46,9 @@ As an admin, I want to assign companies to an employee, so that they can manage 
 
 **US-2.2.2: Admin removes company assignments**
 As an admin, I want to remove company assignments from an employee, so that they no longer have access.
-- [ ] Admin can see list of assigned companies for an employee
-- [ ] Admin can remove company assignments
-- [ ] Removal takes effect immediately
+- [x] Admin can see list of assigned companies for an employee
+- [x] Admin can remove company assignments
+- [x] Removal takes effect immediately
 
 **US-2.2.3: Employee sees only assigned companies**
 As an employee, I want to see only my assigned companies, so that I focus on relevant data.

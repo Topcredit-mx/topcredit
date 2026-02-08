@@ -28,8 +28,8 @@ import {
 } from '~/components/ui/dialog'
 import { Label } from '~/components/ui/label'
 import type { Role } from '~/lib/auth-utils'
-import type { CompanyBasic, UserWithRoles } from '~/server/queries'
 import { toggleUserRole, updateUserCompanies } from '~/server/mutations'
+import type { CompanyBasic, UserWithRoles } from '~/server/queries'
 
 const roleLabels: Record<Role, string> = {
 	customer: 'Cliente',
@@ -120,20 +120,28 @@ function RoleCheckbox({
 function CompanyAssignmentCell({
 	user,
 	allCompanies,
+	onUserCompaniesChange,
 }: {
 	user: UserWithRoles
 	allCompanies: CompanyBasic[]
+	onUserCompaniesChange: (userId: number, companyIds: number[]) => void
 }) {
 	const [isPending, startTransition] = useTransition()
 	const [showDialog, setShowDialog] = useState(false)
+	const [error, setError] = useState<string | null>(null)
 	const [selectedCompanyIds, setSelectedCompanyIds] = useState<number[]>(
 		user.companies.map((c) => c.id),
 	)
 
 	const handleOpenDialog = () => {
-		// Reset selection to current assignments when opening
+		setError(null)
 		setSelectedCompanyIds(user.companies.map((c) => c.id))
 		setShowDialog(true)
+	}
+
+	const handleDialogOpenChange = (open: boolean) => {
+		setShowDialog(open)
+		if (!open) setError(null)
 	}
 
 	const handleToggleCompany = (companyId: number) => {
@@ -145,9 +153,17 @@ function CompanyAssignmentCell({
 	}
 
 	const handleSave = () => {
+		setError(null)
 		startTransition(async () => {
-			await updateUserCompanies(user.id, selectedCompanyIds)
-			setShowDialog(false)
+			try {
+				await updateUserCompanies(user.id, selectedCompanyIds)
+				onUserCompaniesChange(user.id, selectedCompanyIds)
+				setShowDialog(false)
+			} catch (e) {
+				const message =
+					e instanceof Error ? e.message : 'No se pudieron guardar los cambios.'
+				setError(message)
+			}
 		})
 	}
 
@@ -157,7 +173,9 @@ function CompanyAssignmentCell({
 				{user.companies.length === 0 ? (
 					<span className="text-muted-foreground text-sm">Sin empresas</span>
 				) : user.companies.length === 1 ? (
-					<Badge variant="secondary">{user.companies[0]?.name ?? 'Empresa'}</Badge>
+					<Badge variant="secondary">
+						{user.companies[0]?.name ?? 'Empresa'}
+					</Badge>
 				) : (
 					<Badge variant="secondary">{user.companies.length} empresas</Badge>
 				)}
@@ -172,7 +190,7 @@ function CompanyAssignmentCell({
 				</Button>
 			</div>
 
-			<Dialog open={showDialog} onOpenChange={setShowDialog}>
+			<Dialog open={showDialog} onOpenChange={handleDialogOpenChange}>
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>Asignar Empresas</DialogTitle>
@@ -180,6 +198,15 @@ function CompanyAssignmentCell({
 							Selecciona las empresas que {user.name} puede administrar.
 						</DialogDescription>
 					</DialogHeader>
+
+					{error && (
+						<p
+							role="alert"
+							className="rounded-md bg-destructive/10 px-3 py-2 text-destructive text-sm"
+						>
+							{error}
+						</p>
+					)}
 
 					<div className="max-h-[300px] space-y-3 overflow-y-auto py-4">
 						{allCompanies.length === 0 ? (
@@ -236,6 +263,7 @@ function CompanyAssignmentCell({
 export function createColumns(
 	currentUserId: number,
 	allCompanies: CompanyBasic[],
+	onUserCompaniesChange: (userId: number, companyIds: number[]) => void,
 ): ColumnDef<UserWithRoles>[] {
 	// Only show employee roles (not customer)
 	const rolesToShow: Role[] = ['requests', 'admin']
@@ -292,7 +320,11 @@ export function createColumns(
 			cell: ({ row }) => {
 				const user = row.original
 				return (
-					<CompanyAssignmentCell user={user} allCompanies={allCompanies} />
+					<CompanyAssignmentCell
+						user={user}
+						allCompanies={allCompanies}
+						onUserCompaniesChange={onUserCompaniesChange}
+					/>
 				)
 			},
 		},
