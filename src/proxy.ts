@@ -49,7 +49,6 @@ export default withAuth(
 			}
 		}
 
-		// Dashboard is for customers only
 		if (path.startsWith('/dashboard')) {
 			if (!roles.includes('customer')) {
 				return NextResponse.redirect(new URL('/unauthorized', req.url))
