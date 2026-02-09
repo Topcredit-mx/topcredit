@@ -1,11 +1,19 @@
-import { CreditCard, FileText, Settings, User } from 'lucide-react'
+import { AlertTriangle, CreditCard, FileText, Settings, User } from 'lucide-react'
 import Link from 'next/link'
+import { eq } from 'drizzle-orm'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { getRequiredCustomerUser } from '~/server/auth/lib'
+import { db } from '~/server/db'
+import { users } from '~/server/db/schema'
 
 export default async function DashboardPage() {
-	const user = await getRequiredCustomerUser()
+	const sessionUser = await getRequiredCustomerUser()
+	const user = await db.query.users.findFirst({
+		where: eq(users.id, sessionUser.id),
+		columns: { emailVerified: true },
+	})
+	const emailVerified = user?.emailVerified != null
 
 	return (
 		<div className="min-h-screen bg-gray-50">
@@ -13,14 +21,12 @@ export default async function DashboardPage() {
 			<header className="bg-white shadow">
 				<div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 					<div className="flex items-center justify-between">
-						<div className="flex items-center">
-							<h1 className="font-bold text-3xl text-gray-900 tracking-tight">
-								Mi Cuenta
-							</h1>
-						</div>
+						<h1 className="font-bold text-3xl text-gray-900 tracking-tight">
+							Mi Cuenta
+						</h1>
 						<div className="flex items-center space-x-4">
 							<span className="text-gray-500 text-sm">
-								Bienvenido, {user.email}
+								Bienvenido, {sessionUser.email}
 							</span>
 							<Button asChild variant="outline">
 								<Link href="/api/auth/signout">Cerrar Sesión</Link>
@@ -32,6 +38,24 @@ export default async function DashboardPage() {
 
 			{/* Main Content */}
 			<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+				{!emailVerified && (
+					<div
+						className="mb-6 flex items-center gap-2 rounded-md bg-amber-50 px-4 py-3 text-amber-800 text-sm"
+						data-testid="dashboard-email-unverified-warning"
+					>
+						<AlertTriangle className="h-4 w-4 shrink-0" />
+						<span>
+							Verifica tu correo en{' '}
+							<Link
+								href="/settings/security"
+								className="font-medium underline underline-offset-2"
+							>
+								Configuración
+							</Link>{' '}
+							para acceder a todas las funciones.
+						</span>
+					</div>
+				)}
 				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 					{/* Quick Actions */}
 					<Card className="p-6">

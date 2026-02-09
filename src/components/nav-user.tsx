@@ -1,6 +1,7 @@
 'use client'
 
-import { ChevronsUpDown, LogOut } from 'lucide-react'
+import { AlertTriangle, ChevronsUpDown, LogOut } from 'lucide-react'
+import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
@@ -24,19 +25,38 @@ export interface NavUserProps {
 		name?: string | null
 		email?: string | null
 		image?: string | null
+		emailVerified?: boolean
 	}
 }
 
 export function NavUser({ user }: NavUserProps) {
 	const { isMobile } = useSidebar()
+	const showUnverifiedWarning = user.emailVerified === false
 
 	const handleLogout = async () => {
-		await signOut({ redirect: false })
+		await signOut({ callbackUrl: '/login' })
 	}
 
 	return (
 		<SidebarMenu>
 			<SidebarMenuItem>
+				{showUnverifiedWarning && (
+					<div
+						className="mb-2 flex items-start gap-2 rounded-md bg-amber-50 px-2 py-1.5 text-amber-800 text-xs"
+						data-testid="app-email-unverified-warning"
+					>
+						<AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+						<span>
+							Correo no verificado.{' '}
+							<Link
+								href="/settings/security"
+								className="font-medium underline underline-offset-1"
+							>
+								Verificar
+							</Link>
+						</span>
+					</div>
+				)}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<SidebarMenuButton

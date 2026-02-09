@@ -1,7 +1,11 @@
+import type { NextFetchEvent, NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 import { withAuth } from 'next-auth/middleware'
+import type { Role } from '~/lib/auth-utils'
 
-const authPages = [
+const authPaths = [
+	'/',
 	'/login',
 	'/signup',
 	'/verify-otp',
@@ -9,92 +13,74 @@ const authPages = [
 	'/verify-backup-code',
 ]
 
-export default withAuth(
+async function redirectLoggedInFromAuthRoutes(
+	req: NextRequest,
+): Promise<NextResponse | null> {
+	const path = req.nextUrl.pathname
+	if (!authPaths.includes(path)) return null
+
+	const token = await getToken({ req })
+	const roles: Role[] = token?.roles ?? []
+	if (roles.includes('employee'))
+		return NextResponse.redirect(new URL('/app', req.url))
+	if (roles.includes('customer'))
+		return NextResponse.redirect(new URL('/dashboard', req.url))
+	return null
+}
+
+const withAuthMiddleware = withAuth(
 	function middleware(req) {
 		const token = req.nextauth.token
 		const path = req.nextUrl.pathname
-		const roles = token?.roles || []
-
+		const roles: Role[] = token?.roles ?? []
 		const isEmployee = roles.includes('employee')
 
-		// Redirect authenticated users from landing page only if they have a known app role
-		if (token && path === '/') {
-			if (isEmployee) {
-				return NextResponse.redirect(new URL('/app', req.url))
-			}
-			if (roles.includes('customer')) {
-				return NextResponse.redirect(new URL('/dashboard', req.url))
-			}
-			// Token with no employee/customer role (e.g. stale session): allow public home
+		if (path.startsWith('/app/admin') && !roles.includes('admin')) {
+			return NextResponse.redirect(new URL('/unauthorized', req.url))
 		}
-
-		// Redirect authenticated users from auth pages to their dashboard
-		if (token && authPages.includes(path)) {
-			if (isEmployee) {
-				return NextResponse.redirect(new URL('/app', req.url))
-			}
-			if (roles.includes('customer')) {
-				return NextResponse.redirect(new URL('/dashboard', req.url))
-			}
-			// No known role: allow staying on auth page
+		if (path.startsWith('/app') && !isEmployee) {
+			return NextResponse.redirect(new URL('/unauthorized', req.url))
 		}
-
-		// Admin routes - admin only
-		if (path.startsWith('/app/admin')) {
-			if (!roles.includes('admin')) {
-				return NextResponse.redirect(new URL('/unauthorized', req.url))
-			}
-		}
-
-		// Employee app routes - requires employee role
-		if (path.startsWith('/app')) {
-			if (!isEmployee) {
-				return NextResponse.redirect(new URL('/unauthorized', req.url))
-			}
-		}
-
-		if (path.startsWith('/dashboard')) {
-			if (!roles.includes('customer')) {
-				return NextResponse.redirect(new URL('/unauthorized', req.url))
-			}
+		if (path.startsWith('/dashboard') && !roles.includes('customer')) {
+			return NextResponse.redirect(new URL('/unauthorized', req.url))
 		}
 
 		return NextResponse.next()
 	},
 	{
-		pages: {
-			signIn: '/login',
-		},
+		pages: { signIn: '/login' },
 		callbacks: {
-			authorized: ({ token, req }) => {
-				const path = req.nextUrl.pathname
-
-				// Auth pages and landing page are always allowed
-				if (authPages.includes(path) || path === '/') {
-					return true
-				}
-
-				// Protected routes require a token
-				return !!token
-			},
+			authorized: ({ token }) => !!token,
 		},
 	},
 )
 
+export default async function proxy(req: NextRequest, event: NextFetchEvent) {
+	const path = req.nextUrl.pathname
+	const redirect = await redirectLoggedInFromAuthRoutes(req)
+	if (redirect) return redirect
+	// Auth paths: allow through (unauth users see login/landing). Protected paths: require auth.
+	if (authPaths.includes(path)) return NextResponse.next()
+	return withAuthMiddleware(
+		req as Parameters<typeof withAuthMiddleware>[0],
+		event,
+	)
+}
+
 export const config = {
 	matcher: [
 		'/',
+		'/login',
+		'/signup',
+		'/verify-otp',
+		'/verify-totp',
+		'/verify-backup-code',
 		'/dashboard',
 		'/dashboard/:path*',
 		'/app',
 		'/app/:path*',
 		'/settings',
 		'/settings/:path*',
-		'/login',
-		'/signup',
-		'/verify-otp',
-		'/verify-totp',
-		'/verify-backup-code',
 		'/setup-totp',
 	],
 }

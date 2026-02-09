@@ -196,6 +196,53 @@ export const assignRole = async (params: AssignRoleTaskParams) => {
 	return null
 }
 
+export type EnableTotpForUserTaskParams = string
+
+export type SetUserEmailVerifiedTaskParams = { email: string; verified: boolean }
+
+/** Set emailVerified for a user (for E2E: verified vs unverified tests). */
+export const setUserEmailVerified = async (
+	params: SetUserEmailVerifiedTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	const user = await db.query.users.findFirst({
+		where: eq(users.email, params.email),
+	})
+	if (!user) {
+		throw new Error(`User with email ${params.email} not found`)
+	}
+	await db
+		.update(users)
+		.set({
+			emailVerified: params.verified ? new Date() : null,
+		})
+		.where(eq(users.id, user.id))
+	return null
+}
+
+/** Enable TOTP for a user by email (for E2E: security screen with TOTP enabled). */
+export const enableTotpForUser = async (
+	email: EnableTotpForUserTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	const user = await db.query.users.findFirst({
+		where: eq(users.email, email),
+	})
+	if (!user) {
+		throw new Error(`User with email ${email} not found`)
+	}
+	const backupCodes = ['backup1', 'backup2', 'backup3', 'backup4', 'backup5']
+	await db
+		.update(users)
+		.set({
+			totpEnabled: true,
+			totpSecret: 'test-secret-base32',
+			totpBackupCodes: JSON.stringify(backupCodes),
+		})
+		.where(eq(users.id, user.id))
+	return null
+}
+
 export type CleanupTestUsersTaskParams = string[]
 
 export const cleanupTestUsers = async (emails: CleanupTestUsersTaskParams) => {

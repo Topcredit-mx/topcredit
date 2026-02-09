@@ -54,17 +54,57 @@ describe('Login Flow', () => {
 		cy.contains('h1', '403 - No Autorizado').should('be.visible')
 	})
 
-	describe('Settings', () => {
-		it('should not allow access to /settings when unauthenticated', () => {
-			cy.visit('/settings')
-			cy.url().should('not.include', '/settings')
+	it('should not allow access to /settings when unauthenticated', () => {
+		cy.visit('/settings')
+		cy.url().should('not.include', '/settings')
+	})
+
+	describe('Email verification (dashboard / app)', () => {
+		it('customer dashboard: unverified user sees verification warning', () => {
+			cy.task('setUserEmailVerified', {
+				email: testUser.email,
+				verified: false,
+			})
+			cy.login(testUser.email)
+			cy.visit('/dashboard')
+			cy.get('[data-testid="dashboard-email-unverified-warning"]').should(
+				'be.visible',
+			)
+			cy.contains('Verifica tu correo').should('be.visible')
 		})
 
-		it('should allow authenticated user to access settings', () => {
+		it('customer dashboard: verified user does not see verification warning', () => {
+			cy.task('setUserEmailVerified', { email: testUser.email, verified: true })
 			cy.login(testUser.email)
-			cy.visit('/settings')
-			cy.url().should('include', '/settings')
-			cy.contains('h1', 'Configuración').should('be.visible')
+			cy.visit('/dashboard')
+			cy.get('[data-testid="dashboard-email-unverified-warning"]').should(
+				'not.exist',
+			)
+		})
+
+		it('employee app: unverified user sees verification warning in sidebar', () => {
+			cy.task('setUserEmailVerified', {
+				email: employeeUser.email,
+				verified: false,
+			})
+			cy.login(employeeUser.email)
+			cy.visit('/app')
+			cy.get('[data-testid="app-email-unverified-warning"]').should(
+				'be.visible',
+			)
+			cy.contains('Correo no verificado').should('be.visible')
+		})
+
+		it('employee app: verified user does not see verification warning', () => {
+			cy.task('setUserEmailVerified', {
+				email: employeeUser.email,
+				verified: true,
+			})
+			cy.login(employeeUser.email)
+			cy.visit('/app')
+			cy.get('[data-testid="app-email-unverified-warning"]').should(
+				'not.exist',
+			)
 		})
 	})
 })

@@ -5,6 +5,18 @@ import { authOptions } from '~/server/auth/config'
 export type Role = 'customer' | 'employee' | 'requests' | 'admin'
 
 /**
+ * If user is logged in with a known role, redirect to their app (dashboard or /app).
+ * The proxy already does this for /, /login, /signup, and verify-* routes. Use this in
+ * other pages (e.g. a new auth route) if you need the same behavior.
+ */
+export async function redirectIfLoggedIn() {
+	const session = await getServerSession(authOptions)
+	const roles = session?.user?.roles ?? []
+	if (roles.includes('employee')) redirect('/app')
+	if (roles.includes('customer')) redirect('/dashboard')
+}
+
+/**
  * Requires user to be authenticated.
  * Redirects to /login if not authenticated.
  */

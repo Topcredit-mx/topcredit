@@ -29,6 +29,7 @@ interface AppSidebarProps {
 		name?: string | null
 		email?: string | null
 		roles?: string[]
+		emailVerified?: boolean
 	}
 	companies: CompanyForSwitcher[]
 	selectedCompanyId: number | null

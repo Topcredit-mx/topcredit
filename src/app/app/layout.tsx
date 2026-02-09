@@ -1,7 +1,10 @@
+import { eq } from 'drizzle-orm'
 import { AppSidebar } from '~/components/app/app-sidebar'
 import { EmployeeNoAssignmentsEmpty } from '~/components/app/employee-no-assignments-empty'
 import { EmployeeNoCompanyPickedEmpty } from '~/components/app/employee-no-company-picked-empty'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
+import { db } from '~/server/db'
+import { users } from '~/server/db/schema'
 import { getRequiredEmployeeUser } from '~/server/auth/lib'
 import {
 	getCompaniesForSwitcher,
@@ -14,6 +17,11 @@ export default async function AppLayout({
 	children: React.ReactNode
 }) {
 	const user = await getRequiredEmployeeUser()
+	const dbUser = await db.query.users.findFirst({
+		where: eq(users.id, user.id),
+		columns: { emailVerified: true },
+	})
+	const emailVerified = dbUser?.emailVerified != null
 	const isAdmin = user.roles?.includes('admin') ?? false
 	const [companies, selectedCompanyId] = await Promise.all([
 		getCompaniesForSwitcher(user.id, isAdmin),
@@ -27,7 +35,7 @@ export default async function AppLayout({
 	return (
 		<SidebarProvider>
 			<AppSidebar
-				user={user}
+				user={{ ...user, emailVerified }}
 				companies={companies}
 				selectedCompanyId={selectedCompanyId}
 			/>
