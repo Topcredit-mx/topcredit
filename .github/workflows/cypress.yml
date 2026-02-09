@@ -18,17 +18,19 @@ jobs:
         containers: [1]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
-      
+        uses: actions/checkout@v6.0.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v6.2.0
         with:
           node-version: 24
       - name: Setup pnpm
         uses: pnpm/action-setup@v4.2.0
 
       - name: Cache pnpm store
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.3
         with:
           path: |
             ~/.pnpm-store
@@ -41,7 +43,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Cache Cypress binary
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.3
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
@@ -56,7 +58,7 @@ jobs:
 
       - name: Create Neon Branch
         id: create-branch
-        uses: neondatabase/create-branch-action@v6
+        uses: neondatabase/create-branch-action@v6.3.0
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch_name: test-${{ steps.short-sha.outputs.short_sha }}-${{ matrix.containers }}
@@ -76,7 +78,7 @@ jobs:
         run: pnpm dlx wait-on http://localhost:3000 --timeout 60000 --strict
 
       - name: Cypress run
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7.1.2
         with:
           record: true
           parallel: true
@@ -91,7 +93,7 @@ jobs:
 
       - name: Delete neon branch
         if: always()
-        uses: neondatabase/delete-branch-action@v3
+        uses: neondatabase/delete-branch-action@v3.2.0
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch: test-${{ steps.short-sha.outputs.short_sha }}-${{ matrix.containers }}
