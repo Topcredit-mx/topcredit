@@ -341,72 +341,79 @@ As an admin, I want to select any company and view its data like an assigned emp
 
 ---
 
-## 🛠 Tech Stack
+## Tech stack
 
-- **Framework**: Next.js 14 (App Router)
-- **Database**: PostgreSQL (Neon) with Drizzle ORM
-- **Authentication**: NextAuth.js
-- **Styling**: Tailwind CSS v4, shadcn/ui
-- **Email**: Resend
-- **Deployment**: Vercel
-- **Language**: TypeScript
-- **Linting**: Biome
-- **Monitoring**: TBD (considering Sentry)
+- Next.js 16 (App Router), TypeScript
+- PostgreSQL (Neon), Drizzle ORM
+- NextAuth (email OTP, TOTP, backup codes)
+- Tailwind v4, shadcn/ui
+- Resend (email), Vercel (deploy), Biome (lint)
 
-## 📁 Project Structure
+## Getting started
+
+```bash
+git clone <repo-url>
+cd topcredit
+pnpm install
+cp .env.example .env   # then fill in values
+pnpm db:push           # sync schema to local DB
+pnpm dev
+```
+
+## Environment
+
+Copy `.env.example` to `.env` and set:
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Postgres connection string (Neon) |
+| `AUTH_SECRET` | NextAuth secret (e.g. `openssl rand -base64 32`) |
+| `AUTH_URL` | App URL (`http://localhost:3000` in dev) |
+| `EMAIL_FROM` | Sender address for Resend |
+| `RESEND_API_KEY` | Resend API key |
+
+## Scripts
+
+| Command | Purpose |
+|---------|---------|
+| `pnpm dev` | Start dev server |
+| `pnpm build` | Production build |
+| `pnpm start` | Run production server |
+| `pnpm db:generate` | Generate migration files from schema |
+| `pnpm db:migrate` | Apply migrations (use in prod) |
+| `pnpm db:push` | Push schema to DB without migration files (dev only) |
+| `pnpm db:studio` | Open Drizzle Studio |
+| `pnpm db:reset` | Wipe DB data (dev); `--seed` to seed after |
+| `pnpm typecheck` | Run TypeScript check |
+| `pnpm check` | Run Biome lint |
+| `pnpm cy:open` | Open Cypress UI |
+| `pnpm cy:run` | Run Cypress E2E headless |
+
+## Database
+
+- **Local dev:** `pnpm db:push` to sync schema, or `pnpm db:migrate` if you use migrations.
+- **Production:** Migrations only. Commit files under `drizzle/` and `src/server/db/schema.ts`; CI runs `db:generate` (fails if schema changed but migrations not committed), then `db:migrate` against the production DB.
+- Schema lives in `src/server/db/schema.ts`; migration files in `drizzle/`.
+
+## CI/CD
+
+| Workflow | Trigger | What it does |
+|----------|---------|--------------|
+| Type Check | Every push | `pnpm typecheck` |
+| Cypress Tests | Every push | E2E tests (Neon branch per run, then teardown) |
+| Prod DB | Push to `main` when `drizzle/**` or `src/server/db/schema.ts` change | Runs in `production` env: generate, fail on uncommitted migration drift, then `db:migrate`. Needs `DATABASE_URL` in production environment secrets. |
+
+## Project structure
 
 ```
 src/
-├── app/                       # Next.js app router
-│   ├── (auth)/               # Auth pages (login, signup, verify)
-│   ├── apply/                # Credit application
-│   ├── dashboard/            # User dashboard
-│   ├── settings/             # Account settings
-│   └── api/auth/             # NextAuth API routes
-├── components/
-│   ├── credit/               # Credit application components
-│   ├── landing/              # Landing page sections
-│   ├── ui/                   # shadcn UI components
-│   └── ...                   # Feature components
-├── lib/
-│   ├── user-flow.ts          # User journey/redirect logic
-│   ├── totp.ts               # TOTP utilities
-│   └── utils.ts              # Shared utilities
-└── server/
-    ├── auth/                 # Auth config & actions
-    │   ├── config.ts         # NextAuth configuration
-    │   ├── actions.ts        # Auth server actions
-    │   └── lib.ts            # Auth utilities
-    ├── db/
-    │   ├── index.ts          # Database client
-    │   └── schema.ts         # Drizzle schema
-    └── email.ts              # Email utilities
+├── app/              # Routes (dashboard, app, settings, login, api/auth)
+├── components/       # UI + feature components
+├── lib/              # Shared utils, auth-utils, totp
+├── server/           # db (schema, client), auth (config, users), mutations, queries
+└── proxy.ts          # Next 16 proxy (auth redirects, route protection)
 ```
 
-## 🚀 Getting Started
-
-1. **Clone & Install**
-   ```bash
-   git clone <repo-url>
-   cd topcredit
-   pnpm install
-   ```
-
-2. **Environment Setup**
-   - Copy `.env.example` to `.env`
-   - Add your database URL, NextAuth secret, Resend API key, etc.
-
-3. **Database Setup**
-   ```bash
-   pnpm db:push          # Push schema to database
-   pnpm db:studio        # Open Drizzle Studio
-   ```
-
-4. **Development**
-   ```bash
-   pnpm dev              # Start dev server
-   pnpm build            # Build for production
-   pnpm start            # Start production server
-   ```
+---
 
 The goal is to provide accessible, transparent credit to Mexican employees while maintaining rigorous security and compliance standards.
