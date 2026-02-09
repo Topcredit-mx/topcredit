@@ -1,10 +1,15 @@
 import 'dotenv/config'
 import { neon } from '@neondatabase/serverless'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import * as schema from '../src/server/db/schema'
+import {
+	seedCompanies,
+	seedUsers,
+	userCompanyAssignments,
+} from './seed.fixtures'
 
-const { users, userRoles } = schema
+const { users, userRoles, companies, userCompanies } = schema
 
 export function getDb() {
 	const databaseUrl = process.env.DATABASE_URL
@@ -19,68 +24,92 @@ export function getDb() {
 export async function seedDatabase(db: ReturnType<typeof getDb>) {
 	console.log('🌱 Seeding database...\n')
 
-	// Admin user
-	const adminEmail = 'admin@topcredit.mx'
-	const adminName = 'Admin'
+	const userIdByEmail = new Map<string, number>()
 
-	const existingAdmin = await db.query.users.findFirst({
-		where: eq(users.email, adminEmail),
-	})
-
-	if (existingAdmin) {
-		console.log(`  ✓ Admin user already exists: ${adminEmail}`)
-	} else {
-		const [admin] = await db
-			.insert(users)
-			.values({
-				email: adminEmail,
-				name: adminName,
-			})
-			.returning()
-
-		if (!admin) {
-			console.error('❌ Failed to create admin user')
-			process.exit(1)
+	// Users + roles
+	for (const u of seedUsers) {
+		let user = await db.query.users.findFirst({
+			where: eq(users.email, u.email),
+		})
+		if (!user) {
+			const [inserted] = await db
+				.insert(users)
+				.values({ email: u.email, name: u.name })
+				.returning()
+			if (!inserted) {
+				console.error(`❌ Failed to create user: ${u.email}`)
+				process.exit(1)
+			}
+			user = inserted
+			console.log(`  ✓ Created user: ${u.email}`)
+		} else {
+			console.log(`  ✓ User already exists: ${u.email}`)
 		}
+		userIdByEmail.set(u.email, user.id)
 
-		await db.insert(userRoles).values([
-			{ userId: admin.id, role: 'employee' },
-			{ userId: admin.id, role: 'admin' },
-		])
-
-		console.log(`  ✓ Created admin user: ${adminEmail}`)
+		const existingRoles = await db.query.userRoles.findMany({
+			where: eq(userRoles.userId, user.id),
+		})
+		const toAdd = u.roles.filter(
+			(role) => !existingRoles.some((r) => r.role === role),
+		)
+		if (toAdd.length > 0) {
+			await db.insert(userRoles).values(
+				toAdd.map((role) => ({ userId: user.id, role })),
+			)
+			console.log(`  ✓ Ensured roles for ${u.email}: ${toAdd.join(', ')}`)
+		}
 	}
 
-	// Requests user
-	const requestsEmail = 'solicitudes@topcredit.mx'
-	const requestsName = 'Solicitudes'
-
-	const existingRequests = await db.query.users.findFirst({
-		where: eq(users.email, requestsEmail),
-	})
-
-	if (existingRequests) {
-		console.log(`  ✓ Requests user already exists: ${requestsEmail}`)
-	} else {
-		const [requestsUser] = await db
-			.insert(users)
-			.values({
-				email: requestsEmail,
-				name: requestsName,
-			})
-			.returning()
-
-		if (!requestsUser) {
-			console.error('❌ Failed to create requests user')
-			process.exit(1)
+	// Companies
+	const companyIdByDomain = new Map<string, number>()
+	for (const co of seedCompanies) {
+		const existing = await db.query.companies.findFirst({
+			where: eq(companies.domain, co.domain),
+		})
+		if (existing) {
+			companyIdByDomain.set(co.domain, existing.id)
+		} else {
+			const [inserted] = await db
+				.insert(companies)
+				.values({
+					name: co.name,
+					domain: co.domain,
+					rate: co.rate,
+					borrowingCapacityRate: co.borrowingCapacityRate,
+					employeeSalaryFrequency: co.employeeSalaryFrequency,
+					active: co.active,
+				})
+				.returning()
+			if (inserted) {
+				companyIdByDomain.set(co.domain, inserted.id)
+				console.log(`  ✓ Created company: ${co.name} (${co.domain})`)
+			}
 		}
+	}
 
-		await db.insert(userRoles).values([
-			{ userId: requestsUser.id, role: 'employee' },
-			{ userId: requestsUser.id, role: 'requests' },
-		])
-
-		console.log(`  ✓ Created requests user: ${requestsEmail}`)
+	// Assign companies to users that require them (e.g. requests); admin does not need assignments
+	for (const [userEmail, domains] of Object.entries(userCompanyAssignments)) {
+		const userId = userIdByEmail.get(userEmail)
+		if (userId == null) continue
+		for (const domain of domains) {
+			const companyId = companyIdByDomain.get(domain)
+			if (companyId == null) continue
+			const existing = await db.query.userCompanies.findFirst({
+				where: and(
+					eq(userCompanies.userId, userId),
+					eq(userCompanies.companyId, companyId),
+				),
+			})
+			if (!existing) {
+				await db.insert(userCompanies).values({
+					userId,
+					companyId,
+				})
+				const co = seedCompanies.find((c) => c.domain === domain)
+				console.log(`  ✓ Assigned ${co?.name ?? domain} to ${userEmail}`)
+			}
+		}
 	}
 
 	console.log('\n✅ Seed completed!')
