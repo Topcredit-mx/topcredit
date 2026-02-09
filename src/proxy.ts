@@ -17,13 +17,15 @@ export default withAuth(
 
 		const isEmployee = roles.includes('employee')
 
-		// Redirect authenticated users from landing page to their dashboard
+		// Redirect authenticated users from landing page only if they have a known app role
 		if (token && path === '/') {
 			if (isEmployee) {
 				return NextResponse.redirect(new URL('/app', req.url))
 			}
-
-			return NextResponse.redirect(new URL('/dashboard', req.url))
+			if (roles.includes('customer')) {
+				return NextResponse.redirect(new URL('/dashboard', req.url))
+			}
+			// Token with no employee/customer role (e.g. stale session): allow public home
 		}
 
 		// Redirect authenticated users from auth pages to their dashboard
@@ -31,8 +33,10 @@ export default withAuth(
 			if (isEmployee) {
 				return NextResponse.redirect(new URL('/app', req.url))
 			}
-
-			return NextResponse.redirect(new URL('/dashboard', req.url))
+			if (roles.includes('customer')) {
+				return NextResponse.redirect(new URL('/dashboard', req.url))
+			}
+			// No known role: allow staying on auth page
 		}
 
 		// Admin routes - admin only
@@ -81,6 +85,7 @@ export const config = {
 		'/dashboard/:path*',
 		'/app',
 		'/app/:path*',
+		'/settings',
 		'/settings/:path*',
 		'/login',
 		'/signup',

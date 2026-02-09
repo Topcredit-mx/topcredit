@@ -5,22 +5,14 @@ import { getUserByEmail } from '~/server/auth/users'
 
 export default async function TotpSettingsPage() {
 	const sessionUser = await getRequiredUser()
-
-	if (!sessionUser.email) {
-		throw new Error('User email is required')
-	}
+	if (!sessionUser.email) redirect('/unauthorized')
 
 	const user = await getUserByEmail(sessionUser.email)
+	if (!user) redirect('/unauthorized')
 
-	if (!user) {
-		throw new Error('User not found in database')
-	}
+	if (!user.totpEnabled) redirect('/settings/security')
 
-	if (!user.totpEnabled) {
-		redirect('/settings')
-	}
-
-	// Calculate backup codes count
+	// Backup codes count for TOTP page
 	let backupCodesCount = 0
 	if (user.totpBackupCodes) {
 		try {

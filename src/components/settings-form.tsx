@@ -1,9 +1,11 @@
 'use client'
 
-import { CheckCircle2, Mail, XCircle } from 'lucide-react'
+import { CheckCircle2, Mail, Shield, XCircle } from 'lucide-react'
 import { useState } from 'react'
+import type { Role } from '~/lib/auth-utils'
 import { EmailChangeModal } from '~/components/email-change-modal'
 import { TotpSettingsCard } from '~/components/totp-settings-card'
+import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
 	Card,
@@ -12,6 +14,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from '~/components/ui/card'
+
+const ROLE_LABELS: Record<Role, string> = {
+	customer: 'Cliente',
+	employee: 'Empleado',
+	requests: 'Solicitudes',
+	admin: 'Administrador',
+}
 
 interface User {
 	id: number
@@ -25,9 +34,10 @@ interface User {
 
 interface SettingsFormProps {
 	user: User
+	roles: Role[]
 }
 
-export function SettingsForm({ user }: SettingsFormProps) {
+export function SettingsForm({ user, roles }: SettingsFormProps) {
 	const [currentUser, setCurrentUser] = useState(user)
 	const [showEmailModal, setShowEmailModal] = useState(false)
 
@@ -49,6 +59,34 @@ export function SettingsForm({ user }: SettingsFormProps) {
 
 	return (
 		<div className="space-y-6">
+			{/* Assigned Roles */}
+			<Card>
+				<CardHeader>
+					<CardTitle className="flex items-center gap-2">
+						<Shield className="h-5 w-5" />
+						Roles asignados
+					</CardTitle>
+					<CardDescription>
+						Roles de tu cuenta en la plataforma (solo lectura)
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div className="flex flex-wrap gap-2">
+						{roles.length === 0 ? (
+							<span className="text-muted-foreground text-sm">
+								Ningún rol asignado
+							</span>
+						) : (
+							roles.map((role) => (
+								<Badge key={role} variant="secondary">
+									{ROLE_LABELS[role]}
+								</Badge>
+							))
+						)}
+					</div>
+				</CardContent>
+			</Card>
+
 			{/* Email Settings */}
 			<Card>
 				<CardHeader>

@@ -44,7 +44,7 @@ describe('Login Flow', () => {
 		cy.login(employeeUser.email)
 		cy.visit('/app')
 		cy.url().should('include', '/app')
-		cy.contains(/panel de empleados/i).should('be.visible')
+		cy.contains('Sin empresas asignadas').should('be.visible')
 	})
 
 	it('should show unauthorized page when employee tries to access customer dashboard', () => {
@@ -52,5 +52,19 @@ describe('Login Flow', () => {
 		cy.visit('/dashboard')
 		cy.url().should('include', '/unauthorized')
 		cy.contains('h1', '403 - No Autorizado').should('be.visible')
+	})
+
+	describe('Settings', () => {
+		it('should not allow access to /settings when unauthenticated', () => {
+			cy.visit('/settings')
+			cy.url().should('not.include', '/settings')
+		})
+
+		it('should allow authenticated user to access settings', () => {
+			cy.login(testUser.email)
+			cy.visit('/settings')
+			cy.url().should('include', '/settings')
+			cy.contains('h1', 'Configuración').should('be.visible')
+		})
 	})
 })
