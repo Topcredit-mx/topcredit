@@ -62,6 +62,9 @@ export default withAuth(
 		return NextResponse.next()
 	},
 	{
+		pages: {
+			signIn: '/login',
+		},
 		callbacks: {
 			authorized: ({ token, req }) => {
 				const path = req.nextUrl.pathname
