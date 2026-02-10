@@ -44,9 +44,11 @@ export function DataTableHeader<TData>({
 		>
 			<div className="flex items-center gap-2">
 				<Input
+					type="search"
 					placeholder={filterPlaceholder}
 					onChange={(e) => table.setGlobalFilter(String(e.target.value))}
 					className="max-w-xs"
+					aria-label={filterPlaceholder}
 				/>
 			</div>
 			<div className="flex items-center gap-2">

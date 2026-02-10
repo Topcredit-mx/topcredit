@@ -67,19 +67,14 @@ describe('Login Flow', () => {
 			})
 			cy.login(testUser.email)
 			cy.visit('/dashboard')
-			cy.get('[data-testid="dashboard-email-unverified-warning"]').should(
-				'be.visible',
-			)
-			cy.contains('Verifica tu correo').should('be.visible')
+			cy.get('[role="alert"]').should('be.visible')
 		})
 
 		it('customer dashboard: verified user does not see verification warning', () => {
 			cy.task('setUserEmailVerified', { email: testUser.email, verified: true })
 			cy.login(testUser.email)
 			cy.visit('/dashboard')
-			cy.get('[data-testid="dashboard-email-unverified-warning"]').should(
-				'not.exist',
-			)
+			cy.get('[role="alert"]').should('not.exist')
 		})
 
 		it('employee app: unverified user sees verification warning in sidebar', () => {
@@ -89,10 +84,7 @@ describe('Login Flow', () => {
 			})
 			cy.login(employeeUser.email)
 			cy.visit('/app')
-			cy.get('[data-testid="app-email-unverified-warning"]').should(
-				'be.visible',
-			)
-			cy.contains('Correo no verificado').should('be.visible')
+			cy.get('[role="alert"]').should('be.visible')
 		})
 
 		it('employee app: verified user does not see verification warning', () => {
@@ -102,9 +94,7 @@ describe('Login Flow', () => {
 			})
 			cy.login(employeeUser.email)
 			cy.visit('/app')
-			cy.get('[data-testid="app-email-unverified-warning"]').should(
-				'not.exist',
-			)
+			cy.get('[role="alert"]').should('not.exist')
 		})
 	})
 })

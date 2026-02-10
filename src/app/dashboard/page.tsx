@@ -43,8 +43,8 @@ export default async function DashboardPage() {
 			<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 				{!emailVerified && (
 					<div
+						role="alert"
 						className="mb-6 flex items-center gap-2 rounded-md bg-amber-50 px-4 py-3 text-amber-800 text-sm"
-						data-testid="dashboard-email-unverified-warning"
 					>
 						<AlertTriangle className="h-4 w-4 shrink-0" />
 						<span>

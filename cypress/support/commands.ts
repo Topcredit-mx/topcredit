@@ -48,10 +48,10 @@ Cypress.Commands.add('selectRadix', (selector: string, optionText: string) => {
 })
 
 /**
- * Find a table row by name.
- * @param name - The name of the row to find.
+ * Find a table row by cell text, scoped to the main data table.
+ * @param name - Cell text that uniquely identifies the row (e.g. company or user name).
  * @example cy.findTableRow('Jane Requests')
  */
 Cypress.Commands.add('findTableRow', (name: string) => {
-	return cy.contains('td', name).parent('tr')
+	return cy.get('table').contains('td', name).parent('tr')
 })

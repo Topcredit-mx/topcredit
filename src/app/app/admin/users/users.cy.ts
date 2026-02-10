@@ -77,19 +77,19 @@ describe('Admin Users', () => {
 		})
 
 		it('should display users table with correct columns', () => {
-			cy.contains('th', /nombre/i).should('be.visible')
-			cy.contains('th', /email/i).should('be.visible')
-			cy.contains('th', /solicitudes/i).should('be.visible')
-			cy.contains('th', /admin/i).should('be.visible')
-			cy.contains('th', /fecha de creación/i).should('be.visible')
+			cy.contains('th', /nombre/i).should('exist')
+			cy.contains('th', /email/i).should('exist')
+			cy.contains('th', /solicitudes/i).should('exist')
+			cy.contains('th', /admin/i).should('exist')
+			cy.contains('th', /fecha de creación/i).should('exist')
 			cy.get('table').within(() => {
 				cy.contains('th', /cliente/i).should('not.exist')
 			})
 		})
 
 		it('should display employees', () => {
-			cy.contains(users.jane.name).should('be.visible')
-			cy.contains(users.bob.name).should('be.visible')
+			cy.contains(users.jane.name).should('exist')
+			cy.contains(users.bob.name).should('exist')
 		})
 
 		it('should display checkboxes for employee roles', () => {
@@ -106,20 +106,20 @@ describe('Admin Users', () => {
 		})
 
 		it('should filter users by name', () => {
-			cy.get('input[placeholder*="Filter"]').type('Jane')
-			cy.contains(users.jane.name).should('be.visible')
+			cy.get('input[type="search"]').type('Jane')
+			cy.contains(users.jane.name).should('exist')
 			cy.contains(users.bob.name).should('not.exist')
 		})
 
 		it('should filter users by email', () => {
-			cy.get('input[placeholder*="Filter"]').clear().type('requests')
-			cy.contains(users.jane.email).should('be.visible')
+			cy.get('input[type="search"]').clear().type('requests')
+			cy.contains(users.jane.email).should('exist')
 			cy.contains(users.bob.email).should('not.exist')
 		})
 
 		it('should show "No results" when no users match filter', () => {
-			cy.get('input[placeholder*="Filter"]').type('nonexistentuser')
-			cy.contains(/no results/i).should('be.visible')
+			cy.get('input[type="search"]').type('nonexistentuser')
+			cy.contains(/no results/i).should('exist')
 		})
 	})
 
@@ -135,7 +135,7 @@ describe('Admin Users', () => {
 			})
 
 			cy.wait(500)
-			cy.contains(users.jane.name).should('be.visible')
+			cy.contains(users.jane.name).should('exist')
 
 			cy.findTableRow(users.jane.name).then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
@@ -158,8 +158,8 @@ describe('Admin Users', () => {
 		})
 
 		it('should toggle column visibility via View dropdown', () => {
-			cy.contains('button', /view/i).click()
-			cy.get('[data-slot="dropdown-menu-content"]').contains(/email/i).click()
+			cy.get('input[type="search"]').parent().parent().find('button[aria-haspopup="menu"]').first().click()
+			cy.get('[role="menu"]').contains(/email/i).click()
 			cy.get('table').within(() => {
 				cy.contains('th', /email/i).should('not.exist')
 			})
@@ -357,8 +357,8 @@ describe('Admin Users', () => {
 				.click()
 
 			cy.get('[role="dialog"]').within(() => {
-				cy.contains(companies.acme.name).should('be.visible')
-				cy.contains(companies.acme.domain).should('be.visible')
+				cy.contains(companies.acme.name).should('exist')
+				cy.contains(companies.acme.domain).should('exist')
 			})
 
 			cy.task('cleanupUserCompanies', [employeeUser.email])

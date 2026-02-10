@@ -45,8 +45,8 @@ export function NavUser({ user }: NavUserProps) {
 			<SidebarMenuItem>
 				{showUnverifiedWarning && (
 					<div
+						role="alert"
 						className="mb-2 flex items-start gap-2 rounded-md bg-amber-50 px-2 py-1.5 text-amber-800 text-xs"
-						data-testid="app-email-unverified-warning"
 					>
 						<AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
 						<span>

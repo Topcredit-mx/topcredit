@@ -8,9 +8,10 @@ export const adminUser = {
 	roles: ['employee', 'admin'] as const,
 }
 
+// Names prefixed with "E2E " so they never match seed/other data when multiple companies exist
 export const companies = {
 	acme: {
-		name: 'Acme Corporation',
+		name: 'E2E Acme Corporation',
 		domain: 'acme.com',
 		rate: '0.0250',
 		borrowingCapacityRate: '0.30', // 30% of salary
@@ -18,7 +19,7 @@ export const companies = {
 		active: true,
 	},
 	techstart: {
-		name: 'TechStart Inc',
+		name: 'E2E TechStart Inc',
 		domain: 'techstart.mx',
 		rate: '0.0300',
 		borrowingCapacityRate: null,
@@ -26,7 +27,7 @@ export const companies = {
 		active: true,
 	},
 	inactive: {
-		name: 'Inactive Corp',
+		name: 'E2E Inactive Corp',
 		domain: 'inactive.com',
 		rate: '0.0200',
 		borrowingCapacityRate: '0.25', // 25% of salary
