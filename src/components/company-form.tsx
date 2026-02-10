@@ -35,6 +35,7 @@ function formatPercentage(value: string, decimals: number = 2): string {
 
 export function CompanyForm({ company }: CompanyFormProps) {
 	const t = useTranslations('admin')
+	const tCommon = useTranslations('common')
 	// Use useActionState for form state management
 	const [state, action, pending] = useActionState(
 		company ? updateCompany : createCompany,
@@ -86,12 +87,12 @@ export function CompanyForm({ company }: CompanyFormProps) {
 
 			<Field>
 				<FieldLabel htmlFor={nameId}>
-					Nombre <span className="text-destructive">*</span>
+					{t('company-form-label-name')} <span className="text-destructive">*</span>
 				</FieldLabel>
 				<Input
 					id={nameId}
 					name="name"
-					placeholder="Ej: Acme Corporation"
+					placeholder={t('company-form-placeholder-name')}
 					defaultValue={initialName}
 					aria-required="true"
 					aria-invalid={!!state.errors?.name}
@@ -101,12 +102,12 @@ export function CompanyForm({ company }: CompanyFormProps) {
 
 			<Field>
 				<FieldLabel htmlFor={domainId}>
-					Dominio <span className="text-destructive">*</span>
+					{t('company-form-label-domain')} <span className="text-destructive">*</span>
 				</FieldLabel>
 				<Input
 					id={domainId}
 					name="domain"
-					placeholder="ejemplo.com"
+					placeholder={t('company-form-placeholder-domain')}
 					defaultValue={initialDomain}
 					disabled={!!company}
 					aria-required="true"
@@ -118,21 +119,21 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					<FieldDescription>
 						{company
 							? t('company-form-domain-readonly')
-							: 'Dominio de email de la empresa (debe ser único)'}
+							: t('company-form-domain-description')}
 					</FieldDescription>
 				)}
 			</Field>
 
 			<Field>
 				<FieldLabel htmlFor={rateId}>
-					Tasa de Interés (%) <span className="text-destructive">*</span>
+					{t('company-form-label-rate')} <span className="text-destructive">*</span>
 				</FieldLabel>
 				<Input
 					id={rateId}
 					name="rate"
 					type="number"
 					step="0.01"
-					placeholder="2.50"
+					placeholder={t('company-form-placeholder-rate')}
 					defaultValue={initialRate}
 					aria-required="true"
 					aria-invalid={!!state.errors?.rate}
@@ -140,38 +141,33 @@ export function CompanyForm({ company }: CompanyFormProps) {
 				{state.errors?.rate ? (
 					<FieldError>{state.errors.rate}</FieldError>
 				) : (
-					<FieldDescription>
-						Tasa de interés anual (ej: 2.50 para 2.5%)
-					</FieldDescription>
+					<FieldDescription>{t('company-form-rate-description')}</FieldDescription>
 				)}
 			</Field>
 
 			<Field>
 				<FieldLabel htmlFor={borrowingCapacityRateId}>
-					Capacidad de Préstamo (%)
+					{t('company-form-label-borrowing')}
 				</FieldLabel>
 				<Input
 					id={borrowingCapacityRateId}
 					name="borrowingCapacityRate"
 					type="number"
 					step="1"
-					placeholder="30"
+					placeholder={t('company-form-placeholder-borrowing')}
 					defaultValue={initialBorrowingCapacityRate}
 					aria-invalid={!!state.errors?.borrowingCapacityRate}
 				/>
 				{state.errors?.borrowingCapacityRate ? (
 					<FieldError>{state.errors.borrowingCapacityRate}</FieldError>
 				) : (
-					<FieldDescription>
-						Porcentaje del salario que puede usarse para capacidad de deuda
-						(0-100%). Opcional.
-					</FieldDescription>
+					<FieldDescription>{t('company-form-borrowing-description')}</FieldDescription>
 				)}
 			</Field>
 
 			<Field>
 				<FieldLabel htmlFor={employeeSalaryFrequencyId}>
-					Frecuencia de Pago <span className="text-destructive">*</span>
+					{t('company-form-label-frequency')} <span className="text-destructive">*</span>
 				</FieldLabel>
 				<Select
 					value={employeeSalaryFrequency}
@@ -183,11 +179,11 @@ export function CompanyForm({ company }: CompanyFormProps) {
 						id={employeeSalaryFrequencyId}
 						name="employeeSalaryFrequency"
 					>
-						<SelectValue placeholder="Selecciona la frecuencia" />
+						<SelectValue placeholder={t('company-form-placeholder-frequency')} />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="monthly">Mensual</SelectItem>
-						<SelectItem value="bi-monthly">Quincenal</SelectItem>
+						<SelectItem value="monthly">{t('company-form-frequency-monthly')}</SelectItem>
+						<SelectItem value="bi-monthly">{t('company-form-frequency-bi-monthly')}</SelectItem>
 					</SelectContent>
 				</Select>
 				{state.errors?.employeeSalaryFrequency && (
@@ -202,23 +198,23 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					onCheckedChange={(checked) => setActive(checked === true)}
 				/>
 				<Label htmlFor={activeId} className="cursor-pointer">
-					Activa
+					{t('company-form-label-active')}
 				</Label>
 			</div>
 			<p className="text-muted-foreground text-sm">
-				Las empresas inactivas no aparecerán en las listas por defecto
+				{t('company-form-inactive-note')}
 			</p>
 
 			<div className="flex gap-4">
 				<Button type="submit" disabled={pending}>
 					{pending
-						? 'Guardando...'
+						? t('company-form-submit-saving')
 						: company
-							? 'Guardar Cambios'
-							: 'Crear Empresa'}
+							? t('company-form-submit-save-changes')
+							: t('company-form-submit-create')}
 				</Button>
 				<Button type="button" variant="outline" disabled={pending}>
-					Cancelar
+					{tCommon('cancel')}
 				</Button>
 			</div>
 		</form>

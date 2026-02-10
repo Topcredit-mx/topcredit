@@ -1,6 +1,7 @@
 'use client'
 
 import { CheckCircle2, Mail, Shield, XCircle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import type { Role } from '~/lib/auth-utils'
 import { EmailChangeModal } from '~/components/email-change-modal'
@@ -14,13 +15,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from '~/components/ui/card'
-
-const ROLE_LABELS: Record<Role, string> = {
-	customer: 'Cliente',
-	employee: 'Empleado',
-	requests: 'Solicitudes',
-	admin: 'Administrador',
-}
 
 interface User {
 	id: number
@@ -37,7 +31,16 @@ interface SettingsFormProps {
 	roles: Role[]
 }
 
+const ROLE_KEYS: Record<Role, string> = {
+	customer: 'role-customer',
+	employee: 'role-employee',
+	requests: 'role-requests',
+	admin: 'role-admin',
+}
+
 export function SettingsForm({ user, roles }: SettingsFormProps) {
+	const tProfile = useTranslations('profile')
+	const tSecurity = useTranslations('security')
 	const [currentUser, setCurrentUser] = useState(user)
 	const [showEmailModal, setShowEmailModal] = useState(false)
 
@@ -50,7 +53,7 @@ export function SettingsForm({ user, roles }: SettingsFormProps) {
 	}
 
 	const formatDate = (date: Date | null) => {
-		if (!date) return 'Nunca'
+		if (!date) return tProfile('never')
 		return new Intl.DateTimeFormat('es-ES', {
 			dateStyle: 'medium',
 			timeStyle: 'short',
@@ -64,22 +67,20 @@ export function SettingsForm({ user, roles }: SettingsFormProps) {
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2">
 						<Shield className="h-5 w-5" />
-						Roles asignados
+						{tProfile('roles-title')}
 					</CardTitle>
-					<CardDescription>
-						Roles de tu cuenta en la plataforma (solo lectura)
-					</CardDescription>
+					<CardDescription>{tProfile('roles-description')}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<div className="flex flex-wrap gap-2">
 						{roles.length === 0 ? (
 							<span className="text-muted-foreground text-sm">
-								Ningún rol asignado
+								{tProfile('no-roles')}
 							</span>
 						) : (
 							roles.map((role) => (
 								<Badge key={role} variant="secondary">
-									{ROLE_LABELS[role]}
+									{tProfile(ROLE_KEYS[role])}
 								</Badge>
 							))
 						)}
@@ -92,11 +93,9 @@ export function SettingsForm({ user, roles }: SettingsFormProps) {
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2">
 						<Mail className="h-5 w-5" />
-						Dirección de Correo
+						{tSecurity('email-card-title')}
 					</CardTitle>
-					<CardDescription>
-						Tu dirección de correo se usa para autenticación y notificaciones.
-					</CardDescription>
+					<CardDescription>{tSecurity('email-card-description')}</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<div className="flex items-center justify-between">
@@ -107,28 +106,27 @@ export function SettingsForm({ user, roles }: SettingsFormProps) {
 									<>
 										<CheckCircle2 className="h-4 w-4 text-green-600" />
 										<span className="text-green-600">
-											Verificado el {formatDate(currentUser.emailVerified)}
+											{tSecurity('verified-at', { date: formatDate(currentUser.emailVerified) })}
 										</span>
 									</>
 								) : (
 									<>
 										<XCircle className="h-4 w-4 text-orange-600" />
-										<span className="text-orange-600">No verificado</span>
+										<span className="text-orange-600">{tSecurity('not-verified')}</span>
 									</>
 								)}
 							</div>
 						</div>
 						<Button variant="outline" onClick={() => setShowEmailModal(true)}>
-							Cambiar Correo
+							{tSecurity('change-email')}
 						</Button>
 					</div>
 
 					{!currentUser.emailVerified && (
 						<div className="rounded-md bg-orange-50 p-3">
 							<p className="text-orange-800 text-sm">
-								<strong>Acción requerida:</strong> Por favor verifica tu
-								dirección de correo para asegurar tu cuenta. La próxima vez que
-								inicies sesión, tu correo será verificado automáticamente.
+								<strong>{tSecurity('action-required')}</strong>{' '}
+								{tSecurity('verify-prompt')}
 							</p>
 						</div>
 					)}

@@ -75,7 +75,7 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 		const content = [
 			t('backup-codes-header'),
 			`Generados: ${new Date().toLocaleDateString()}`,
-			`Email: ${user.email}`,
+			`${t('email-label')}: ${user.email}`,
 			'',
 			t('backup-codes-important'),
 			'',

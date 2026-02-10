@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useEffect, useId, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button } from '~/components/ui/button'
 import {
 	Dialog,
@@ -31,6 +32,8 @@ export function EmailChangeModal({
 	currentEmail,
 	onEmailChanged,
 }: EmailChangeModalProps) {
+	const t = useTranslations('security')
+	const tCommon = useTranslations('common')
 	const [step, setStep] = useState<'email' | 'otp'>('email')
 	const [newEmail, setNewEmail] = useState('')
 	const [otp, setOtp] = useState('')
@@ -80,11 +83,11 @@ export function EmailChangeModal({
 		<Dialog open={open} onOpenChange={handleClose}>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>Cambiar Dirección de Correo</DialogTitle>
+					<DialogTitle>{t('email-change-title')}</DialogTitle>
 					<DialogDescription>
 						{step === 'email'
-							? 'Ingresa tu nueva dirección de correo para recibir un código de verificación.'
-							: `Ingresa el código de 6 dígitos enviado a ${newEmail}`}
+							? t('email-change-description-email')
+							: t('email-change-description-otp', { email: newEmail })}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -92,7 +95,7 @@ export function EmailChangeModal({
 					{step === 'email' ? (
 						<form action={emailAction} className="space-y-4" noValidate>
 							<Field>
-								<FieldLabel htmlFor={currentEmailId}>Correo Actual</FieldLabel>
+								<FieldLabel htmlFor={currentEmailId}>{t('email-change-current-label')}</FieldLabel>
 								<Input
 									id={currentEmailId}
 									value={currentEmail}
@@ -103,7 +106,7 @@ export function EmailChangeModal({
 
 							<Field>
 								<FieldLabel htmlFor={newEmailId}>
-									Nueva Dirección de Correo{' '}
+									{t('email-change-new-label')}{' '}
 									<span className="text-destructive">*</span>
 								</FieldLabel>
 								<Input
@@ -133,7 +136,7 @@ export function EmailChangeModal({
 									className="flex-1"
 									disabled={emailPending}
 								>
-									Cancelar
+									{tCommon('cancel')}
 								</Button>
 								<Button
 									type="submit"
@@ -141,8 +144,8 @@ export function EmailChangeModal({
 									className="flex-1"
 								>
 									{emailPending
-										? 'Enviando...'
-										: 'Enviar Código de Verificación'}
+										? t('email-change-sending')
+										: t('email-change-send-code')}
 								</Button>
 							</div>
 						</form>
@@ -157,7 +160,7 @@ export function EmailChangeModal({
 							<input type="hidden" name="otp" value={otp} />
 							<div className="text-center">
 								<p className="text-muted-foreground text-sm">
-									Enviamos un código de verificación a:
+									{t('email-change-sent-to')}
 								</p>
 								<p className="font-medium">{newEmail}</p>
 							</div>
@@ -209,8 +212,8 @@ export function EmailChangeModal({
 							<div className="text-center">
 								<p className="text-muted-foreground text-sm">
 									{otpPending
-										? 'Verificando...'
-										: 'Ingresa el código de 6 dígitos'}
+										? t('email-change-verifying')
+										: t('email-change-otp-hint')}
 								</p>
 							</div>
 
@@ -225,7 +228,7 @@ export function EmailChangeModal({
 									className="flex-1"
 									disabled={otpPending}
 								>
-									← Atrás
+									{t('email-change-back')}
 								</Button>
 								<Button
 									type="button"
@@ -234,7 +237,7 @@ export function EmailChangeModal({
 									className="flex-1"
 									disabled={otpPending}
 								>
-									Cancelar
+									{tCommon('cancel')}
 								</Button>
 							</div>
 						</form>

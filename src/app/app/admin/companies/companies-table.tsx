@@ -72,7 +72,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 			),
 			cell: ({ row }) => {
 				const frequency = row.getValue('employeeSalaryFrequency') as string
-				return <div>{frequency === 'bi-monthly' ? 'Quincenal' : 'Mensual'}</div>
+				return <div>{frequency === 'bi-monthly' ? t('company-form-frequency-bi-monthly') : t('company-form-frequency-monthly')}</div>
 			},
 		},
 		{

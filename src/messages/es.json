@@ -23,6 +23,7 @@
 		"nav-admin-companies": "Empresas",
 		"brand-name": "TopCredit",
 		"brand-tagline": "Panel de empleados",
+		"page-title": "Panel de Empleados",
 		"footer-profile": "Perfil",
 		"footer-authentication": "Autenticación",
 		"email-unverified": "Correo no verificado.",
@@ -82,7 +83,27 @@
 		"table-view": "Ver",
 		"table-filter-companies": "Filtrar empresas...",
 		"table-filter-users": "Filtrar usuarios...",
-		"company-form-domain-readonly": "El dominio no puede ser modificado después de la creación"
+		"company-form-domain-readonly": "El dominio no puede ser modificado después de la creación",
+		"company-form-label-name": "Nombre",
+		"company-form-label-domain": "Dominio",
+		"company-form-label-rate": "Tasa de Interés (%)",
+		"company-form-label-borrowing": "Capacidad de Préstamo (%)",
+		"company-form-label-frequency": "Frecuencia de Pago",
+		"company-form-label-active": "Activa",
+		"company-form-placeholder-name": "Ej: Acme Corporation",
+		"company-form-placeholder-domain": "ejemplo.com",
+		"company-form-placeholder-rate": "2.50",
+		"company-form-placeholder-borrowing": "30",
+		"company-form-placeholder-frequency": "Selecciona la frecuencia",
+		"company-form-domain-description": "Dominio de email de la empresa (debe ser único)",
+		"company-form-rate-description": "Tasa de interés anual (ej: 2.50 para 2.5%)",
+		"company-form-borrowing-description": "Porcentaje del salario que puede usarse para capacidad de deuda (0-100%). Opcional.",
+		"company-form-inactive-note": "Las empresas inactivas no aparecerán en las listas por defecto",
+		"company-form-frequency-monthly": "Mensual",
+		"company-form-frequency-bi-monthly": "Quincenal",
+		"company-form-submit-saving": "Guardando...",
+		"company-form-submit-save-changes": "Guardar Cambios",
+		"company-form-submit-create": "Crear Empresa"
 	},
 	"dashboard": {
 		"title": "Mi Cuenta",
@@ -155,7 +176,18 @@
 		"not-verified": "No verificado",
 		"change-email": "Cambiar correo",
 		"action-required": "Acción requerida:",
-		"verify-prompt": "Verifica tu correo para asegurar tu cuenta. Se verificará automáticamente en el próximo inicio de sesión."
+		"verify-prompt": "Verifica tu correo para asegurar tu cuenta. Se verificará automáticamente en el próximo inicio de sesión.",
+		"email-change-title": "Cambiar Dirección de Correo",
+		"email-change-description-email": "Ingresa tu nueva dirección de correo para recibir un código de verificación.",
+		"email-change-description-otp": "Ingresa el código de 6 dígitos enviado a {email}",
+		"email-change-current-label": "Correo Actual",
+		"email-change-new-label": "Nuevo Correo",
+		"email-change-send-code": "Enviar Código de Verificación",
+		"email-change-sending": "Enviando...",
+		"email-change-sent-to": "Enviamos un código de verificación a:",
+		"email-change-verifying": "Verificando...",
+		"email-change-otp-hint": "Ingresa el código de 6 dígitos",
+		"email-change-back": "← Atrás"
 	},
 	"totp": {
 		"page-title": "Configuración TOTP",
@@ -178,7 +210,8 @@
 		"error-regenerate": "Error al generar nuevos códigos de respaldo",
 		"backup-codes-copied": "¡Códigos de respaldo copiados al portapapeles!",
 		"backup-codes-header": "TopCredit - Códigos de Respaldo",
-		"backup-codes-important": "IMPORTANTE: Cada código solo puede usarse una vez. Guarda estos códigos en un lugar seguro."
+		"backup-codes-important": "IMPORTANTE: Cada código solo puede usarse una vez. Guarda estos códigos en un lugar seguro.",
+		"email-label": "Email"
 	},
 	"verify-otp": {
 		"title": "Verificación",
@@ -238,6 +271,7 @@
 		"need-login": "Puede que necesites iniciar sesión para acceder a este recurso."
 	},
 	"errors": {
+		"title": "Error",
 		"invalid-email": "Correo inválido",
 		"email-required": "Email requerido para verificación TOTP"
 	}
