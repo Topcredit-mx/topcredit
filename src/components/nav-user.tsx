@@ -1,8 +1,9 @@
 'use client'
 
-import { AlertTriangle, ChevronsUpDown, LogOut } from 'lucide-react'
+import { AlertTriangle, ChevronsUpDown, KeyRound, LogOut, User } from 'lucide-react'
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
+import { useTranslations } from 'next-intl'
 
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import {
@@ -30,6 +31,8 @@ export interface NavUserProps {
 }
 
 export function NavUser({ user }: NavUserProps) {
+	const t = useTranslations('app')
+	const tCommon = useTranslations('common')
 	const { isMobile } = useSidebar()
 	const showUnverifiedWarning = user.emailVerified === false
 
@@ -103,9 +106,22 @@ export function NavUser({ user }: NavUserProps) {
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
+						<DropdownMenuItem asChild>
+							<Link href="/settings/profile" className="flex cursor-pointer items-center gap-2">
+								<User className="size-4" />
+								{t('footer-profile')}
+							</Link>
+						</DropdownMenuItem>
+						<DropdownMenuItem asChild>
+							<Link href="/settings/security" className="flex cursor-pointer items-center gap-2">
+								<KeyRound className="size-4" />
+								{t('footer-authentication')}
+							</Link>
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
 						<DropdownMenuItem onClick={handleLogout}>
 							<LogOut />
-							Cerrar Sesión
+							{tCommon('sign-out')}
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

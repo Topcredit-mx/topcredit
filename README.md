@@ -18,14 +18,14 @@
 - [x] Email verification: unverified users see warning on dashboard/app
 - [x] E2E: login (redirects, roles), home/landing, settings (profile, security)
 - [x] CI: typecheck on push; Cypress E2E (Neon branch per run); prod DB workflow (generate + drift check + migrate on push to main when schema/drizzle change, production env)
-- [ ] i18n: UI is Spanish-only (hardcoded); no locale switching or translation layer yet
+- [x] i18n: next-intl (request config, messages); dashboard and app sidebar (nav + user popup: Perfil, Autenticación, Cerrar sesión) use translations; kebab-case keys; single locale (es), no switching yet
 
 ### Phase 2: Employees & roles
 - [x] Roles: customer, employee, requests, admin (junction table `user_roles`)
 - [x] Auth helpers: requireAuth, requireAnyRole, requireAllRoles, hasRole, redirectIfLoggedIn
 - [x] Proxy: role-based route protection (dashboard = customer, app = employee, admin routes = admin)
 - [x] Unauthorized page (403)
-- [x] App layout & sidebar (company switcher, nav, user menu)
+- [x] App layout & sidebar (company switcher, nav, user menu with profile/authentication links in footer popup)
 - [x] Admin: role management UI (users table, assign/remove roles)
 
 #### Phase 2.1: Company CRUD
@@ -300,12 +300,12 @@
 
 ## Tech stack
 
-- Next.js 16 (App Router), TypeScript
+- Next.js 16 (App Router), TypeScript, `next.config.ts`
 - PostgreSQL (Neon), Drizzle ORM
 - NextAuth (email OTP, TOTP, backup codes)
 - Tailwind v4, shadcn/ui
 - Resend (email), Vercel (deploy), Biome (lint)
-- **i18n:** Spanish only, hardcoded (no translation layer yet; see [i18n](#i18n) below)
+- **i18n:** next-intl; Spanish default, `src/messages/es.json`, kebab-case keys (see [i18n](#i18n))
 
 ## Getting started
 
@@ -366,17 +366,23 @@ Copy `.env.example` to `.env` and set:
 ```
 src/
 ├── app/              # Routes (dashboard, app, settings, login, api/auth)
-├── components/       # UI + feature components
+├── components/       # UI + feature components (incl. i18n-provider)
+├── i18n/             # next-intl request config (request.ts)
 ├── lib/              # Shared utils, auth-utils, totp
+├── messages/         # i18n: es.json (and later en.json)
 ├── server/           # db (schema, client), auth (config, users), mutations, queries
 └── proxy.ts          # Next 16 proxy (auth redirects, route protection)
 ```
 
 ## i18n
 
-**Current:** All UI copy is in Spanish and hardcoded. Root layout sets `lang="es"` and metadata uses `locale: 'es_MX'`. No translation library or locale switching.
+**Stack:** [next-intl](https://next-intl.dev) (App Router). Default locale `es`. Messages in `src/messages/es.json`; keys use **kebab-case** (e.g. `sign-out`, `footer-profile`). Request config: `src/i18n/request.ts`. Next 16 uses Turbopack; the plugin’s alias is set in `next.config.ts` under `turbopack.resolveAlias['next-intl/config']` so the config is found at build time.
 
-**To add later:** Use a single default locale (e.g. `es`) and either (1) next-intl (or similar) with App Router, or (2) a simple `messages/{locale}.json` + `t(key)` helper and locale from cookie or path. Then move strings into message keys and add a language switcher if needed.
+**Usage:** Server: `getTranslations('namespace')` then `t('key')` or `t('key', { var: value })`. Client: `useTranslations('namespace')`. Root layout wraps with `NextIntlClientProvider`; messages are loaded via the plugin from the request config.
+
+**Namespaces:** `common` (save, cancel, settings, sign-out, etc.), `app` (sidebar nav, brand, footer-profile, footer-authentication), `dashboard`, `settings`, `auth`. Translated UI: customer dashboard (title, cards, account overview, quick links), app sidebar (nav items, group label, brand; user dropdown: Perfil → `/settings/profile`, Autenticación → `/settings/security`, Cerrar sesión).
+
+**Remaining:** Locale switching (cookie/path) and a second locale (e.g. `en`) are not implemented. Some screens (e.g. settings pages, login/signup) still have hardcoded copy; migrate to message keys as needed.
 
 ---
 

@@ -1,0 +1,58 @@
+{
+	"common": {
+		"save": "Guardar",
+		"cancel": "Cancelar",
+		"close": "Cerrar",
+		"settings": "Configuración",
+		"sign-out": "Cerrar Sesión"
+	},
+	"app": {
+		"navigation": "Navegación",
+		"nav-dashboard": "Dashboard",
+		"nav-users": "Usuarios",
+		"nav-companies": "Empresas",
+		"nav-data": "Datos",
+		"nav-requests": "Solicitudes",
+		"nav-credits": "Créditos",
+		"nav-payments": "Pagos",
+		"nav-admin": "Administración",
+		"nav-admin-users": "Usuarios",
+		"nav-admin-companies": "Empresas",
+		"brand-name": "TopCredit",
+		"brand-tagline": "Panel de empleados",
+		"footer-profile": "Perfil",
+		"footer-authentication": "Autenticación"
+	},
+	"dashboard": {
+		"title": "Mi Cuenta",
+		"welcome": "Bienvenido, {email}",
+		"verify-email": "Verifica tu correo en",
+		"verify-email-suffix": "para acceder a todas las funciones.",
+		"request-credit": "Solicitar Crédito",
+		"request-credit-desc": "Inicia una nueva solicitud de crédito",
+		"request-now": "Solicitar Ahora",
+		"application-status": "Estado de Solicitud",
+		"application-status-desc": "Revisa el progreso de tu solicitud",
+		"view-status": "Ver Estado",
+		"account-security": "Administra tu cuenta y seguridad",
+		"configure": "Configurar",
+		"account-overview": "Resumen de Cuenta",
+		"available-balance": "Balance Disponible",
+		"active-requests": "Solicitudes Activas",
+		"account-status": "Estado de Cuenta",
+		"active": "Activa",
+		"quick-links": "Enlaces Rápidos",
+		"my-profile": "Mi Perfil",
+		"documents": "Documentos",
+		"help": "Ayuda",
+		"contact": "Contacto"
+	},
+	"settings": {
+		"title": "Configuración",
+		"subtitle": "Perfil y seguridad de tu cuenta"
+	},
+	"auth": {
+		"login": "Iniciar Sesión",
+		"sign-up": "Registrarse"
+	}
+}

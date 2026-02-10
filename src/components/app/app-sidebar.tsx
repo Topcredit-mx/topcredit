@@ -9,6 +9,7 @@ import {
 	Users,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { CompanySwitcher } from '~/components/app/company-switcher'
 import { type NavItem, NavMain } from '~/components/nav-main'
 import { NavUser } from '~/components/nav-user'
@@ -40,37 +41,38 @@ export function AppSidebar({
 	companies,
 	selectedCompanyId,
 }: AppSidebarProps) {
+	const t = useTranslations('app')
 	const isAdmin = user.roles?.includes('admin')
 	const disableNav =
 		!isAdmin && companies.length > 0 && selectedCompanyId === null
 
 	const navigationItems: NavItem[] = [
 		{
-			title: 'Dashboard',
+			title: t('nav-dashboard'),
 			url: '/app',
 			icon: Home,
 		},
 		{
-			title: 'Usuarios',
+			title: t('nav-users'),
 			url: '/app/users',
 			icon: Users,
 		},
 		{
-			title: 'Empresas',
+			title: t('nav-companies'),
 			url: '/app/companies',
 			icon: Building2,
 		},
 		{
-			title: 'Datos',
+			title: t('nav-data'),
 			url: '/app/data',
 			icon: FileText,
 			items: [
-				{ title: 'Solicitudes', url: '/app/applications' },
-				{ title: 'Créditos', url: '/app/credits' },
+				{ title: t('nav-requests'), url: '/app/applications' },
+				{ title: t('nav-credits'), url: '/app/credits' },
 			],
 		},
 		{
-			title: 'Pagos',
+			title: t('nav-payments'),
 			url: '/app/payments',
 			icon: CreditCard,
 		},
@@ -79,12 +81,12 @@ export function AppSidebar({
 	// Add admin section if user is admin
 	if (isAdmin) {
 		navigationItems.push({
-			title: 'Administración',
+			title: t('nav-admin'),
 			url: '/app/admin',
 			icon: Shield,
 			items: [
-				{ title: 'Usuarios', url: '/app/admin/users' },
-				{ title: 'Empresas', url: '/app/admin/companies' },
+				{ title: t('nav-admin-users'), url: '/app/admin/users' },
+				{ title: t('nav-admin-companies'), url: '/app/admin/companies' },
 			],
 		})
 	}
@@ -107,8 +109,8 @@ export function AppSidebar({
 										<Building2 className="size-4" />
 									</div>
 									<div className="grid flex-1 text-left text-sm leading-tight">
-										<span className="truncate font-semibold">TopCredit</span>
-										<span className="truncate text-xs">Admin Dashboard</span>
+										<span className="truncate font-semibold">{t('brand-name')}</span>
+										<span className="truncate text-xs">{t('brand-tagline')}</span>
 									</div>
 								</Link>
 							</SidebarMenuButton>
@@ -118,7 +120,11 @@ export function AppSidebar({
 			</SidebarHeader>
 
 			<SidebarContent>
-				<NavMain items={navigationItems} disabled={disableNav} />
+				<NavMain
+				items={navigationItems}
+				disabled={disableNav}
+				groupLabel={t('navigation')}
+			/>
 			</SidebarContent>
 
 			<SidebarFooter>

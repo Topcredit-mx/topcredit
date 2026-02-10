@@ -37,9 +37,11 @@ export interface NavItem {
 export function NavMain({
 	items,
 	disabled = false,
+	groupLabel = 'Navegación',
 }: {
 	items: NavItem[]
 	disabled?: boolean
+	groupLabel?: string
 }) {
 	const pathname = usePathname()
 
@@ -56,7 +58,7 @@ export function NavMain({
 
 	return (
 		<SidebarGroup>
-			<SidebarGroupLabel>Navegación</SidebarGroupLabel>
+			<SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
 			<SidebarMenu>
 				{items.map((item) =>
 					item.items?.length ? (
