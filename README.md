@@ -4,94 +4,51 @@
 
 > Plataforma de créditos empresariales para empleados de empresas afiliadas
 
-## 📊 Current Status
+## Current status
 
 ### Phase 1: Foundation
-- [x] Vercel deployment & CI/CD
-- [x] PostgreSQL database (Neon) with Drizzle ORM
-- [x] NextAuth authentication with email OTP
-- [x] TOTP 2FA with backup codes
-- [x] Rate limiting & security
-- [x] Professional landing page (Spanish)
-- [x] User authentication flows
-- [x] Settings & account management
-- [x] User flow redirect logic
+- [x] Next.js 16, Vercel deploy
+- [x] PostgreSQL (Neon) + Drizzle ORM, migrations
+- [x] NextAuth: email OTP, TOTP 2FA, backup codes
+- [x] Rate limiting & security (login attempts, etc.)
+- [x] Landing page (Spanish)
+- [x] Auth flows: login, signup, verify OTP/TOTP/backup-code, setup TOTP
+- [x] Settings: profile, security (email, TOTP), nav
+- [x] Proxy (`src/proxy.ts`): redirect logged-in users from `/`, `/login`, `/signup`, verify-* to dashboard/app; protect `/dashboard`, `/app`, `/settings` by role; sign-out redirects to `/login`
+- [x] Email verification: unverified users see warning on dashboard/app
+- [x] E2E: login (redirects, roles), home/landing, settings (profile, security)
+- [x] CI: typecheck on push; Cypress E2E (Neon branch per run); prod DB workflow (generate + drift check + migrate on push to main when schema/drizzle change, production env)
+- [ ] i18n: UI is Spanish-only (hardcoded); no locale switching or translation layer yet
 
-### Phase 2: Employees & Role Management
-- [x] Multi-role system with junction table (userRoles)
-- [x] Role management utilities (assignRole, removeRole, setUserRoles)
-- [x] Auth utilities for role checks (requireAnyRole, requireAllRoles, hasRole)
-- [x] Middleware for route protection
+### Phase 2: Employees & roles
+- [x] Roles: customer, employee, requests, admin (junction table `user_roles`)
+- [x] Auth helpers: requireAuth, requireAnyRole, requireAllRoles, hasRole, redirectIfLoggedIn
+- [x] Proxy: role-based route protection (dashboard = customer, app = employee, admin routes = admin)
 - [x] Unauthorized page (403)
-- [x] Employee dashboard layout
-- [x] Admin panel for role management UI
+- [x] App layout & sidebar (company switcher, nav, user menu)
+- [x] Admin: role management UI (users table, assign/remove roles)
 
 #### Phase 2.1: Company CRUD
-- [x] Company schema (name, domain, rate, borrowingCapacityRate, employeeSalaryFrequency, active)
-- [x] Company queries (list, byId, byDomain, search, activeOnly filter)
-- [x] Company mutations (create, update, soft delete)
-- [x] Admin UI: Company list page with data table
-- [x] Admin UI: Company create page with form
-- [x] Admin UI: Company edit page with form
-- [x] Domain validation & uniqueness (enforced at DB level)
-- [x] Company CRUD E2E tests (access control, display, search, filtering, create, edit, validation)
+- [x] Company schema & queries & mutations (create, update, list, byDomain, search, active filter)
+- [x] Admin UI: companies list, create, edit; domain validation & uniqueness
+- [x] E2E: companies (access, list, search, create, edit), users (access, role checkboxes)
 
-#### Phase 2.2: Employee-Company Relationship
+#### Phase 2.2: Employee–company relationship
+- [x] **US-2.2.1** Admin assigns companies to employees (UI + persist)
+- [x] **US-2.2.2** Admin removes company assignments
+- [x] **US-2.2.3** Employee sees only assigned companies in switcher; selected company filters data; inactive shown disabled
+- [x] **US-2.2.4** Employee with no assignments sees empty state, no company data
+- [x] **US-2.2.5** Admin overview dashboard (aggregated, no company selected)
+- [x] **US-2.2.6** Admin can pick any company in switcher, view as employee; “Vista general” to return; selection in cookie
+- [x] E2E: company switcher, admin company switcher, employee no assignments, employee no company picked, admin overview dashboard
 
-**US-2.2.1: Admin assigns companies to employees**
-As an admin, I want to assign companies to an employee, so that they can manage those companies' data.
-- [x] Admin can view employee's current company assignments
-- [x] Admin can assign one or more companies to an employee
-- [x] Assignment persists and shows in the user row (admin users table)
-
-**US-2.2.2: Admin removes company assignments**
-As an admin, I want to remove company assignments from an employee, so that they no longer have access.
-- [x] Admin can see list of assigned companies for an employee
-- [x] Admin can remove company assignments
-- [x] Removal takes effect immediately
-
-**US-2.2.3: Employee sees only assigned companies**
-As an employee, I want to see only my assigned companies, so that I focus on relevant data.
-- [x] Sidebar company switcher shows only assigned companies (and active)
-- [x] assigned companies that are not active should be shown but as a disabled option
-- [x] Employee can switch between assigned companies via sidebar
-- [x] Selected company filters all data views
-- [x] Unassigned companies are not visible in switcher
-
-**US-2.2.4: Employee without assignments sees appropriate message**
-As an employee without company assignments, I should see a helpful message, so that I understand I need assignments.
-- [x] Empty state message displayed when no assignments
-- [x] No company data accessible
-
-**US-2.2.5: Admin sees general overview dashboard**
-As an admin, I want to see a general overview dashboard, so that I can monitor the entire system.
-- [x] Admin dashboard shows aggregated data across all companies
-- [x] Overview is the default view for admins
-- [x] Shows when no company is selected on the company switcher in the sidebar
-
-**US-2.2.6: Admin can view any company as an employee would**
-As an admin, I want to select any company and view its data like an assigned employee, so that I can support employees and troubleshoot.
-- [x] Sidebar company switcher shows all companies for admin (only active)
-- [x] Admin can select any company via sidebar switcher
-- [x] Selected company view matches what an assigned employee sees
-- [x] Selected company persists on page reload (stored in cookie)
-- [x] Admin can switch companies or select "Vista general" to return to overview dashboard
-
-### Phase 3: Credit Application Flow
-- [ ] Users - Credit application creation
-- [ ] Users - Credit application status overview
-- [ ] Employees - Review, authorize, reject credit applications
-- [ ] Users - review rejected applications and resubmit
-- [ ] Users - Pre-Authorized Credit application submit contract signing & document uploads
-- [ ] Employees - Review, authorize, reject pre-authorized credits
-- [ ] Employees - HR Review, authorize, reject pre-authorized credits
-- [ ] Users - review authorized credits, wait for disbursement
-- [ ] Employees - Credit disbursement and payment tracking
-- [ ] Users - Active Credit Dashboard
-- [ ] Users - Payment schedule and tracking
-- [ ] Employees - Active credits overview and tracking
-- [ ] Employees - Payment tracking and management
-- [ ] Employees - Completed credits reporting
+### Phase 3: Credit application flow
+- [ ] Users: credit application creation, status overview
+- [ ] Employees: review / authorize / reject applications
+- [ ] Users: resubmit rejected, pre-authorized flow (contract, docs)
+- [ ] Employees: pre-authorized review, HR review
+- [ ] Disbursement, active credit dashboard, payment schedule and tracking
+- [ ] Employees: active credits overview, payment management, completed credits reporting
 
 ---
 
@@ -348,6 +305,7 @@ As an admin, I want to select any company and view its data like an assigned emp
 - NextAuth (email OTP, TOTP, backup codes)
 - Tailwind v4, shadcn/ui
 - Resend (email), Vercel (deploy), Biome (lint)
+- **i18n:** Spanish only, hardcoded (no translation layer yet; see [i18n](#i18n) below)
 
 ## Getting started
 
@@ -413,6 +371,12 @@ src/
 ├── server/           # db (schema, client), auth (config, users), mutations, queries
 └── proxy.ts          # Next 16 proxy (auth redirects, route protection)
 ```
+
+## i18n
+
+**Current:** All UI copy is in Spanish and hardcoded. Root layout sets `lang="es"` and metadata uses `locale: 'es_MX'`. No translation library or locale switching.
+
+**To add later:** Use a single default locale (e.g. `es`) and either (1) next-intl (or similar) with App Router, or (2) a simple `messages/{locale}.json` + `t(key)` helper and locale from cookie or path. Then move strings into message keys and add a language switcher if needed.
 
 ---
 
