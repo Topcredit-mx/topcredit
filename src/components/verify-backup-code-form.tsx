@@ -1,7 +1,8 @@
 'use client'
 
-import { Link } from 'lucide-react'
+import Link from 'next/link'
 import { signIn } from 'next-auth/react'
+import { useTranslations } from 'next-intl'
 import { useId, useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
@@ -13,6 +14,7 @@ interface VerifyBackupCodeFormProps {
 }
 
 export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
+	const t = useTranslations('verify-backup-code')
 	const [backupCode, setBackupCode] = useState('')
 	const [error, setError] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
@@ -32,11 +34,11 @@ export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
 			})
 
 			if (!signInResult?.ok) {
-				setError('Error al iniciar sesión. Por favor intenta de nuevo.')
+				setError(t('error-login'))
 			}
 		} catch (err) {
 			setError(
-				err instanceof Error ? err.message : 'Código de respaldo inválido',
+				err instanceof Error ? err.message : t('error-invalid'),
 			)
 		} finally {
 			setIsLoading(false)
@@ -46,20 +48,19 @@ export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
 	return (
 		<Card className="w-full max-w-md">
 			<CardHeader>
-				<CardTitle>Usar Código de Respaldo</CardTitle>
+				<CardTitle>{t('card-title')}</CardTitle>
 				<p className="text-muted-foreground text-sm">
-					Ingresa uno de tus códigos de respaldo para acceder a tu cuenta. Cada
-					código de respaldo solo puede usarse una vez.
+					{t('card-description')}
 				</p>
 			</CardHeader>
 			<CardContent>
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div className="space-y-2">
-						<Label htmlFor={backupCodeId}>Código de Respaldo</Label>
+						<Label htmlFor={backupCodeId}>{t('label')}</Label>
 						<Input
 							id={backupCodeId}
 							type="text"
-							placeholder="Ingresa código de 8 caracteres"
+							placeholder={t('placeholder')}
 							value={backupCode}
 							onChange={(e) => setBackupCode(e.target.value)}
 							maxLength={8}
@@ -78,13 +79,13 @@ export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
 						className="w-full"
 						disabled={!backupCode.trim() || isLoading}
 					>
-						{isLoading ? 'Verificando...' : 'Verificar Código de Respaldo'}
+						{isLoading ? t('verifying') : t('submit')}
 					</Button>
 				</form>
 
 				<div className="mt-4 text-center">
 					<Button variant="link" className="text-sm" asChild>
-						<Link href="/verify-totp">← Volver a verificación TOTP</Link>
+						<Link href="/verify-totp">{t('back-to-totp')}</Link>
 					</Button>
 				</div>
 			</CardContent>

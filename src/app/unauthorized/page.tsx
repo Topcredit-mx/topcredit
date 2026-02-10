@@ -1,11 +1,14 @@
 import { AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import { getServerSession } from 'next-auth'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { authOptions } from '~/server/auth/config'
 
 export default async function UnauthorizedPage() {
+	const t = await getTranslations('unauthorized')
+	const tAuth = await getTranslations('auth')
 	const session = await getServerSession(authOptions)
 
 	return (
@@ -18,30 +21,23 @@ export default async function UnauthorizedPage() {
 				</div>
 
 				<h1 className="mb-2 font-bold text-3xl text-gray-900">
-					403 - No Autorizado
+					{t('title')}
 				</h1>
 
-				<p className="mb-6 text-gray-600">
-					No tienes los permisos necesarios para acceder a esta página.
-				</p>
+				<p className="mb-6 text-gray-600">{t('description')}</p>
 
 				{session?.user ? (
 					<div className="space-y-3">
-						<p className="text-gray-500 text-sm">
-							Si crees que esto es un error, contacta al administrador del
-							sistema.
-						</p>
+						<p className="text-gray-500 text-sm">{t('contact-admin')}</p>
 						<Button asChild className="w-full">
-							<Link href="/">Volver al Inicio</Link>
+							<Link href="/">{t('back-home')}</Link>
 						</Button>
 					</div>
 				) : (
 					<div className="space-y-3">
-						<p className="text-gray-500 text-sm">
-							Puede que necesites iniciar sesión para acceder a este recurso.
-						</p>
+						<p className="text-gray-500 text-sm">{t('need-login')}</p>
 						<Button asChild className="w-full">
-							<Link href="/login">Iniciar Sesión</Link>
+							<Link href="/login">{tAuth('login')}</Link>
 						</Button>
 					</div>
 				)}

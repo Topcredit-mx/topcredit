@@ -1,6 +1,7 @@
 'use client'
 
 import { CheckCircle2, Mail, XCircle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { EmailChangeModal } from '~/components/email-change-modal'
 import { TotpSettingsCard } from '~/components/totp-settings-card'
@@ -23,6 +24,7 @@ interface SecurityFormProps {
 }
 
 export function SecurityForm({ user }: SecurityFormProps) {
+	const t = useTranslations('security')
 	const [currentEmail, setCurrentEmail] = useState(user.email)
 	const [emailVerified, setEmailVerified] = useState(user.emailVerified)
 	const [showEmailModal, setShowEmailModal] = useState(false)
@@ -33,7 +35,7 @@ export function SecurityForm({ user }: SecurityFormProps) {
 	}
 
 	const formatDate = (date: Date | null) => {
-		if (!date) return 'Nunca'
+		if (!date) return null
 		return new Intl.DateTimeFormat('es-ES', {
 			dateStyle: 'medium',
 			timeStyle: 'short',
@@ -46,11 +48,9 @@ export function SecurityForm({ user }: SecurityFormProps) {
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2">
 						<Mail className="h-5 w-5" />
-						Dirección de correo
+						{t('email-card-title')}
 					</CardTitle>
-					<CardDescription>
-						Tu correo se usa para autenticación y notificaciones.
-					</CardDescription>
+					<CardDescription>{t('email-card-description')}</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<div className="flex items-center justify-between">
@@ -61,27 +61,27 @@ export function SecurityForm({ user }: SecurityFormProps) {
 									<>
 										<CheckCircle2 className="h-4 w-4 text-green-600" />
 										<span className="text-green-600">
-											Verificado el {formatDate(emailVerified)}
+											{t('verified-at', {
+												date: formatDate(emailVerified) ?? '',
+											})}
 										</span>
 									</>
 								) : (
 									<>
 										<XCircle className="h-4 w-4 text-orange-600" />
-										<span className="text-orange-600">No verificado</span>
+										<span className="text-orange-600">{t('not-verified')}</span>
 									</>
 								)}
 							</div>
 						</div>
 						<Button variant="outline" onClick={() => setShowEmailModal(true)}>
-							Cambiar correo
+							{t('change-email')}
 						</Button>
 					</div>
 					{!emailVerified && (
 						<div className="rounded-md bg-orange-50 p-3">
 							<p className="text-orange-800 text-sm">
-								<strong>Acción requerida:</strong> Verifica tu correo para
-								asegurar tu cuenta. Se verificará automáticamente en el próximo
-								inicio de sesión.
+								<strong>{t('action-required')}</strong> {t('verify-prompt')}
 							</p>
 						</div>
 					)}

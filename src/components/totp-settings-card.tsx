@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Download, Key, Shield, ShieldCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '~/components/ui/button'
 import {
@@ -27,12 +28,10 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 	const [newBackupCodes, setNewBackupCodes] = useState<string[] | null>(null)
 	const router = useRouter()
 
+	const t = useTranslations('totp')
+	const tCommon = useTranslations('common')
 	const handleDisableTotp = async () => {
-		if (
-			!confirm(
-				'¿Estás seguro que quieres deshabilitar la autenticación de dos factores? Esto hará tu cuenta menos segura.',
-			)
-		) {
+		if (!confirm(t('disable-confirm'))) {
 			return
 		}
 
@@ -43,20 +42,14 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 			await disableTotpSetup(user.email)
 			router.refresh()
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : 'Error al deshabilitar TOTP',
-			)
+			setError(err instanceof Error ? err.message : t('error-disable'))
 		} finally {
 			setIsLoading(false)
 		}
 	}
 
 	const handleGenerateNewBackupCodes = async () => {
-		if (
-			!confirm(
-				'Esto invalidará todos tus códigos de respaldo existentes. Asegúrate de guardar los nuevos. ¿Continuar?',
-			)
-		) {
+		if (!confirm(t('regenerate-confirm'))) {
 			return
 		}
 
@@ -69,9 +62,7 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 			router.refresh()
 		} catch (err) {
 			setError(
-				err instanceof Error
-					? err.message
-					: 'Error al generar nuevos códigos de respaldo',
+				err instanceof Error ? err.message : t('error-regenerate'),
 			)
 		} finally {
 			setIsLoading(false)
@@ -82,11 +73,11 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 		if (!newBackupCodes) return
 
 		const content = [
-			'TopCredit - Códigos de Respaldo',
+			t('backup-codes-header'),
 			`Generados: ${new Date().toLocaleDateString()}`,
 			`Email: ${user.email}`,
 			'',
-			'IMPORTANTE: Cada código solo puede usarse una vez. Guarda estos códigos en un lugar seguro.',
+			t('backup-codes-important'),
 			'',
 			...newBackupCodes.map((code, index) => `${index + 1}. ${code}`),
 		].join('\n')
@@ -107,7 +98,7 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 
 		const content = newBackupCodes.join('\n')
 		navigator.clipboard.writeText(content)
-		alert('¡Códigos de respaldo copiados al portapapeles!')
+		alert(t('backup-codes-copied'))
 	}
 
 	return (
@@ -115,12 +106,9 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
 					<Shield className="h-5 w-5" />
-					Autenticación de Dos Factores
+					{t('card-title')}
 				</CardTitle>
-				<CardDescription>
-					Agrega una capa extra de seguridad a tu cuenta con Google
-					Authenticator o aplicaciones TOTP similares.
-				</CardDescription>
+				<CardDescription>{t('card-description')}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				{error && (
@@ -139,14 +127,12 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 						)}
 						<div>
 							<p className="font-medium">
-								{user.totpEnabled
-									? 'La autenticación de dos factores está habilitada'
-									: 'La autenticación de dos factores está deshabilitada'}
+								{user.totpEnabled ? t('enabled') : t('disabled')}
 							</p>
 							<p className="text-muted-foreground text-sm">
 								{user.totpEnabled
-									? `Te quedan ${user.backupCodesCount} códigos de respaldo`
-									: 'Asegura tu cuenta con una aplicación autenticadora'}
+									? t('backup-codes-left', { count: user.backupCodesCount })
+									: t('secure-account')}
 							</p>
 						</div>
 					</div>
@@ -159,7 +145,7 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 									disabled={isLoading}
 									size="sm"
 								>
-									Regenerar Códigos
+									{t('regenerate-codes')}
 								</Button>
 								<Button
 									variant="destructive"
@@ -167,7 +153,7 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 									disabled={isLoading}
 									size="sm"
 								>
-									Deshabilitar
+									{t('disable')}
 								</Button>
 							</>
 						) : (
@@ -176,7 +162,7 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 								disabled={isLoading}
 								size="sm"
 							>
-								Habilitar TOTP
+								{t('enable-totp')}
 							</Button>
 						)}
 					</div>
@@ -186,13 +172,10 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 					<div className="space-y-4 rounded-lg border bg-muted/50 p-4">
 						<div className="flex items-center gap-2">
 							<AlertTriangle className="h-4 w-4 text-orange-600" />
-							<p className="font-medium text-sm">
-								Nuevos códigos de respaldo generados
-							</p>
+							<p className="font-medium text-sm">{t('new-codes-title')}</p>
 						</div>
 						<p className="text-muted-foreground text-sm">
-							Tus códigos de respaldo antiguos ya no son válidos. Guarda estos
-							nuevos códigos en un lugar seguro.
+							{t('new-codes-description')}
 						</p>
 						<div className="grid grid-cols-2 gap-2 font-mono text-sm">
 							{newBackupCodes.map((code) => (
@@ -212,7 +195,7 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 								onClick={copyBackupCodes}
 								className="flex items-center gap-2"
 							>
-								Copiar Todo
+								{t('copy-all')}
 							</Button>
 							<Button
 								variant="outline"
@@ -221,7 +204,7 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 								className="flex items-center gap-2"
 							>
 								<Download className="h-4 w-4" />
-								Descargar
+								{tCommon('download')}
 							</Button>
 						</div>
 					</div>

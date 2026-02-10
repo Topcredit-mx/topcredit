@@ -50,12 +50,12 @@ export function NavUser({ user }: NavUserProps) {
 					>
 						<AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
 						<span>
-							Correo no verificado.{' '}
+							{t('email-unverified')}{' '}
 							<Link
 								href="/settings/security"
 								className="font-medium underline underline-offset-1"
 							>
-								Verificar
+								{t('verify')}
 							</Link>
 						</span>
 					</div>

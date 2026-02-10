@@ -4,7 +4,10 @@
 		"cancel": "Cancelar",
 		"close": "Cerrar",
 		"settings": "Configuración",
-		"sign-out": "Cerrar Sesión"
+		"sign-out": "Cerrar Sesión",
+		"loading": "Cargando...",
+		"download": "Descargar",
+		"copied": "¡Copiado!"
 	},
 	"app": {
 		"navigation": "Navegación",
@@ -21,7 +24,9 @@
 		"brand-name": "TopCredit",
 		"brand-tagline": "Panel de empleados",
 		"footer-profile": "Perfil",
-		"footer-authentication": "Autenticación"
+		"footer-authentication": "Autenticación",
+		"email-unverified": "Correo no verificado.",
+		"verify": "Verificar"
 	},
 	"dashboard": {
 		"title": "Mi Cuenta",
@@ -49,10 +54,135 @@
 	},
 	"settings": {
 		"title": "Configuración",
-		"subtitle": "Perfil y seguridad de tu cuenta"
+		"subtitle": "Perfil y seguridad de tu cuenta",
+		"nav-profile": "Perfil",
+		"nav-security": "Seguridad"
 	},
 	"auth": {
 		"login": "Iniciar Sesión",
-		"sign-up": "Registrarse"
+		"sign-up": "Registrarse",
+		"welcome": "Bienvenido a Topcredit",
+		"no-account": "¿No tienes una cuenta?",
+		"sign-up-link": "Regístrate",
+		"email": "Correo electrónico",
+		"email-placeholder": "yo@empresa.com",
+		"submit-login": "Iniciar sesión",
+		"terms-prefix": "Al hacer clic en continuar, aceptas nuestros",
+		"terms": "Términos de Servicio",
+		"privacy": "Política de Privacidad",
+		"full-name": "Nombre completo",
+		"name-placeholder": "Tu nombre",
+		"submit-signup": "Regístrate",
+		"already-have-account": "¿Ya tienes una cuenta?",
+		"sign-in-link": "Iniciar sesión"
+	},
+	"profile": {
+		"card-title": "Datos del perfil",
+		"card-description": "Información básica de tu cuenta (solo lectura)",
+		"name": "Nombre",
+		"email": "Correo electrónico",
+		"email-verified-at": "Correo verificado el {date}",
+		"email-not-verified": "Correo no verificado",
+		"roles-title": "Roles asignados",
+		"roles-description": "Roles de tu cuenta en la plataforma (solo lectura)",
+		"no-roles": "Ningún rol asignado",
+		"role-customer": "Cliente",
+		"role-employee": "Empleado",
+		"role-requests": "Solicitudes",
+		"role-admin": "Administrador",
+		"never": "Nunca"
+	},
+	"security": {
+		"email-card-title": "Dirección de correo",
+		"email-card-description": "Tu correo se usa para autenticación y notificaciones.",
+		"verified-at": "Verificado el {date}",
+		"not-verified": "No verificado",
+		"change-email": "Cambiar correo",
+		"action-required": "Acción requerida:",
+		"verify-prompt": "Verifica tu correo para asegurar tu cuenta. Se verificará automáticamente en el próximo inicio de sesión."
+	},
+	"totp": {
+		"page-title": "Configuración TOTP",
+		"page-description": "Administra la autenticación de dos factores y los códigos de respaldo.",
+		"card-title": "Autenticación de Dos Factores",
+		"card-description": "Agrega una capa extra de seguridad a tu cuenta con Google Authenticator o aplicaciones TOTP similares.",
+		"enabled": "La autenticación de dos factores está habilitada",
+		"disabled": "La autenticación de dos factores está deshabilitada",
+		"backup-codes-left": "Te quedan {count} códigos de respaldo",
+		"secure-account": "Asegura tu cuenta con una aplicación autenticadora",
+		"regenerate-codes": "Regenerar Códigos",
+		"disable": "Deshabilitar",
+		"enable-totp": "Habilitar TOTP",
+		"disable-confirm": "¿Estás seguro que quieres deshabilitar la autenticación de dos factores? Esto hará tu cuenta menos segura.",
+		"regenerate-confirm": "Esto invalidará todos tus códigos de respaldo existentes. Asegúrate de guardar los nuevos. ¿Continuar?",
+		"new-codes-title": "Nuevos códigos de respaldo generados",
+		"new-codes-description": "Tus códigos de respaldo antiguos ya no son válidos. Guarda estos nuevos códigos en un lugar seguro.",
+		"copy-all": "Copiar Todo",
+		"error-disable": "Error al deshabilitar TOTP",
+		"error-regenerate": "Error al generar nuevos códigos de respaldo",
+		"backup-codes-copied": "¡Códigos de respaldo copiados al portapapeles!",
+		"backup-codes-header": "TopCredit - Códigos de Respaldo",
+		"backup-codes-important": "IMPORTANTE: Cada código solo puede usarse una vez. Guarda estos códigos en un lugar seguro."
+	},
+	"verify-otp": {
+		"title": "Verificación",
+		"sent-to": "Si tienes una cuenta, hemos enviado un código a {email}. Ingrésalo a continuación.",
+		"invalid-code": "Código OTP inválido o expirado",
+		"validating": "Validando...",
+		"back": "← Atrás",
+		"resend": "Reenviar código",
+		"resending": "Reenviando..."
+	},
+	"verify-totp": {
+		"title": "Verificación de dos factores",
+		"description": "Ingresa el código de 6 dígitos de tu aplicación autenticadora",
+		"email-label": "Email:",
+		"invalid-code": "Código de verificación inválido"
+	},
+	"verify-backup-code": {
+		"page-title": "Recuperación de cuenta",
+		"page-description": "Usa un código de respaldo para acceder a tu cuenta.",
+		"card-title": "Usar Código de Respaldo",
+		"card-description": "Ingresa uno de tus códigos de respaldo para acceder a tu cuenta. Cada código de respaldo solo puede usarse una vez.",
+		"label": "Código de Respaldo",
+		"placeholder": "Ingresa código de 8 caracteres",
+		"submit": "Verificar Código de Respaldo",
+		"verifying": "Verificando...",
+		"back-to-totp": "← Volver a verificación TOTP",
+		"error-login": "Error al iniciar sesión. Por favor intenta de nuevo.",
+		"error-invalid": "Código de respaldo inválido"
+	},
+	"setup-totp": {
+		"title": "Configurar Google Authenticator",
+		"description": "Configura la autenticación de dos factores para mayor seguridad",
+		"step1-title": "Paso 1: Generar Secreto",
+		"step1-description": "Primero, generaremos un secreto único para tu cuenta",
+		"generate": "Generar Secreto TOTP",
+		"generating": "Generando...",
+		"step2-title": "Paso 2: Escanear Código QR",
+		"step2-description": "Abre Google Authenticator y escanea este código QR",
+		"qr-alt": "Código QR TOTP",
+		"manual-entry": "¿No puedes escanear? Ingresa este código manualmente:",
+		"added-account": "He Agregado la Cuenta",
+		"step3-title": "Paso 3: Verificar Configuración",
+		"step3-description": "Ingresa el código de 6 dígitos de Google Authenticator para confirmar la configuración",
+		"verify-hint": "Ingresa el código de verificación de tu aplicación autenticadora",
+		"step4-title": "Paso 4: Guardar Códigos de Respaldo",
+		"step4-description": "Guarda estos códigos de respaldo de manera segura. Cada uno solo puede usarse una vez para recuperar tu cuenta.",
+		"copy-codes": "Copiar Códigos",
+		"complete": "Completar Configuración",
+		"error-generate": "Error al generar configuración TOTP",
+		"error-verify": "Código de verificación inválido"
+	},
+	"unauthorized": {
+		"title": "403 - No Autorizado",
+		"description": "No tienes los permisos necesarios para acceder a esta página.",
+		"contact-admin": "Si crees que esto es un error, contacta al administrador del sistema.",
+		"back-home": "Volver al Inicio",
+		"need-login": "Puede que necesites iniciar sesión para acceder a este recurso."
+	},
+	"errors": {
+		"invalid-email": "Correo inválido",
+		"email-required": "Email requerido para verificación TOTP"
 	}
 }

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { TotpSettingsCard } from '~/components/totp-settings-card'
 import { getRequiredUser } from '~/server/auth/lib'
 import { getUserByEmail } from '~/server/auth/users'
@@ -31,14 +32,15 @@ export default async function TotpSettingsPage() {
 		backupCodesCount,
 	}
 
+	const t = await getTranslations('totp')
 	return (
 		<div className="mx-auto min-h-screen max-w-4xl px-4 py-12">
 			<div className="space-y-6">
 				<div>
-					<h1 className="font-bold text-3xl text-gray-900">TOTP Settings</h1>
-					<p className="mt-2 text-gray-600">
-						Manage your two-factor authentication settings and backup codes.
-					</p>
+					<h1 className="font-bold text-3xl text-gray-900">
+						{t('page-title')}
+					</h1>
+					<p className="mt-2 text-gray-600">{t('page-description')}</p>
 				</div>
 
 				<TotpSettingsCard user={totpUser} />

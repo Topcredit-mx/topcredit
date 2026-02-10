@@ -2,6 +2,7 @@
 
 import { Check, Copy, Download, GalleryVerticalEnd } from 'lucide-react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '~/components/ui/button'
 import {
@@ -33,6 +34,8 @@ export function SetupTotpForm({
 	email,
 	...props
 }: React.ComponentProps<'div'> & { email: string }) {
+	const t = useTranslations('setup-totp')
+	const tCommon = useTranslations('common')
 	const [currentStep, setCurrentStep] = useState<SetupStep>('generate')
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -51,9 +54,7 @@ export function SetupTotpForm({
 			setCurrentStep('scan')
 		} catch (err) {
 			setError(
-				err instanceof Error
-					? err.message
-					: 'Error al generar configuración TOTP',
+				err instanceof Error ? err.message : t('error-generate'),
 			)
 		} finally {
 			setLoading(false)
@@ -72,7 +73,7 @@ export function SetupTotpForm({
 			setCurrentStep('backup-codes')
 		} catch (err) {
 			setError(
-				err instanceof Error ? err.message : 'Código de verificación inválido',
+				err instanceof Error ? err.message : t('error-verify'),
 			)
 		} finally {
 			setLoading(false)
@@ -103,9 +104,9 @@ export function SetupTotpForm({
 				<div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent">
 					<GalleryVerticalEnd className="h-8 w-8" />
 				</div>
-				<h1 className="font-bold text-2xl">Configurar Google Authenticator</h1>
+				<h1 className="font-bold text-2xl">{t('title')}</h1>
 				<p className="text-balance text-muted-foreground">
-					Configura la autenticación de dos factores para mayor seguridad
+					{t('description')}
 				</p>
 			</div>
 
@@ -119,10 +120,8 @@ export function SetupTotpForm({
 			{currentStep === 'generate' && (
 				<Card>
 					<CardHeader>
-						<CardTitle>Paso 1: Generar Secreto</CardTitle>
-						<CardDescription>
-							Primero, generaremos un secreto único para tu cuenta
-						</CardDescription>
+						<CardTitle>{t('step1-title')}</CardTitle>
+						<CardDescription>{t('step1-description')}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<Button
@@ -130,7 +129,7 @@ export function SetupTotpForm({
 							disabled={loading}
 							className="w-full"
 						>
-							{loading ? 'Generando...' : 'Generar Secreto TOTP'}
+							{loading ? t('generating') : t('generate')}
 						</Button>
 					</CardContent>
 				</Card>
@@ -140,16 +139,14 @@ export function SetupTotpForm({
 			{currentStep === 'scan' && totpData && (
 				<Card>
 					<CardHeader>
-						<CardTitle>Paso 2: Escanear Código QR</CardTitle>
-						<CardDescription>
-							Abre Google Authenticator y escanea este código QR
-						</CardDescription>
+						<CardTitle>{t('step2-title')}</CardTitle>
+						<CardDescription>{t('step2-description')}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<div className="flex justify-center">
 							<Image
 								src={totpData.qrCodeUrl}
-								alt="Código QR TOTP"
+								alt={t('qr-alt')}
 								width={200}
 								height={200}
 								className="rounded-lg border"
@@ -157,14 +154,14 @@ export function SetupTotpForm({
 						</div>
 						<div className="text-center">
 							<p className="mb-2 text-muted-foreground text-sm">
-								¿No puedes escanear? Ingresa este código manualmente:
+								{t('manual-entry')}
 							</p>
 							<code className="rounded bg-muted px-2 py-1 font-mono text-sm">
 								{totpData.manualEntryKey}
 							</code>
 						</div>
 						<Button onClick={() => setCurrentStep('verify')} className="w-full">
-							He Agregado la Cuenta
+							{t('added-account')}
 						</Button>
 					</CardContent>
 				</Card>
@@ -174,11 +171,8 @@ export function SetupTotpForm({
 			{currentStep === 'verify' && (
 				<Card>
 					<CardHeader>
-						<CardTitle>Paso 3: Verificar Configuración</CardTitle>
-						<CardDescription>
-							Ingresa el código de 6 dígitos de Google Authenticator para
-							confirmar la configuración
-						</CardDescription>
+						<CardTitle>{t('step3-title')}</CardTitle>
+						<CardDescription>{t('step3-description')}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-6">
 						<div className="flex flex-col items-center gap-4">
@@ -218,7 +212,7 @@ export function SetupTotpForm({
 								</InputOTPGroup>
 							</InputOTP>
 							<p className="text-center text-muted-foreground text-sm">
-								Ingresa el código de verificación de tu aplicación autenticadora
+								{t('verify-hint')}
 							</p>
 						</div>
 					</CardContent>
@@ -229,11 +223,8 @@ export function SetupTotpForm({
 			{currentStep === 'backup-codes' && backupCodes.length > 0 && (
 				<Card>
 					<CardHeader>
-						<CardTitle>Paso 4: Guardar Códigos de Respaldo</CardTitle>
-						<CardDescription>
-							Guarda estos códigos de respaldo de manera segura. Cada uno solo
-							puede usarse una vez para recuperar tu cuenta.
-						</CardDescription>
+						<CardTitle>{t('step4-title')}</CardTitle>
+						<CardDescription>{t('step4-description')}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-4 font-mono text-sm">
@@ -254,12 +245,12 @@ export function SetupTotpForm({
 								{copiedCodes ? (
 									<>
 										<Check className="mr-2 h-4 w-4" />
-										¡Copiado!
+										{tCommon('copied')}
 									</>
 								) : (
 									<>
 										<Copy className="mr-2 h-4 w-4" />
-										Copiar Códigos
+										{t('copy-codes')}
 									</>
 								)}
 							</Button>
@@ -269,7 +260,7 @@ export function SetupTotpForm({
 								className="flex-1"
 							>
 								<Download className="mr-2 h-4 w-4" />
-								Descargar
+								{tCommon('download')}
 							</Button>
 						</div>
 
@@ -280,7 +271,7 @@ export function SetupTotpForm({
 									window.location.href = '/'
 								}}
 							>
-								Completar Configuración
+								{t('complete')}
 							</Button>
 						</div>
 					</CardContent>

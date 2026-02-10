@@ -2,6 +2,7 @@
 
 import { GalleryVerticalEnd } from 'lucide-react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { useActionState, useId } from 'react'
 import { Button } from '~/components/ui/button'
 import {
@@ -17,6 +18,8 @@ export function SignupForm({
 	className,
 	...props
 }: React.ComponentProps<'div'>) {
+	const t = useTranslations('auth')
+	const tCommon = useTranslations('common')
 	const [state, action, loading] = useActionState(registerUser, { message: '' })
 	const emailId = useId()
 	const nameId = useId()
@@ -35,18 +38,18 @@ export function SignupForm({
 							</div>
 							<span className="sr-only">Topcredit.</span>
 						</Link>
-						<h1 className="font-bold text-xl">Bienvenido a Topcredit</h1>
+						<h1 className="font-bold text-xl">{t('welcome')}</h1>
 					</div>
 					<div className="flex flex-col gap-6">
 						<Field>
 							<FieldLabel htmlFor={emailId}>
-								Correo electrónico <span className="text-destructive">*</span>
+								{t('email')} <span className="text-destructive">*</span>
 							</FieldLabel>
 							<Input
 								id={emailId}
 								name="email"
 								type="email"
-								placeholder="yo@empresa.com"
+								placeholder={t('email-placeholder')}
 								aria-required="true"
 							/>
 							{state.message?.includes('email') && (
@@ -55,13 +58,13 @@ export function SignupForm({
 						</Field>
 						<Field>
 							<FieldLabel htmlFor={nameId}>
-								Nombre completo <span className="text-destructive">*</span>
+								{t('full-name')} <span className="text-destructive">*</span>
 							</FieldLabel>
 							<Input
 								id={nameId}
 								name="name"
 								type="text"
-								placeholder="Tu nombre"
+								placeholder={t('name-placeholder')}
 								aria-required="true"
 							/>
 							{state.message?.includes('nombre') && (
@@ -74,15 +77,15 @@ export function SignupForm({
 							</div>
 						)}
 						<Button type="submit" className="w-full" disabled={loading}>
-							{loading ? 'Cargando...' : 'Regístrate'}
+							{loading ? tCommon('loading') : t('submit-signup')}
 						</Button>
 					</div>
 				</div>
 			</form>
 			<div className="text-balance text-center text-muted-foreground text-xs *:[a]:underline *:[a]:underline-offset-4 *:[a]:hover:text-primary">
-				Al hacer clic en continuar, aceptas nuestros{' '}
-				<Link href="#">Términos de Servicio</Link> y{' '}
-				<Link href="#">Política de Privacidad</Link>.
+				{t('terms-prefix')}{' '}
+				<Link href="#">{t('terms')}</Link> y{' '}
+				<Link href="#">{t('privacy')}</Link>.
 			</div>
 		</div>
 	)

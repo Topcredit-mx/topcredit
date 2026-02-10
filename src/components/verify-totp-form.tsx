@@ -3,6 +3,7 @@
 import { GalleryVerticalEnd } from 'lucide-react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import {
 	InputOTP,
@@ -16,6 +17,7 @@ export function VerifyTotpForm({
 	email,
 	...props
 }: React.ComponentProps<'div'> & { email: string }) {
+	const t = useTranslations('verify-totp')
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [value, setValue] = useState('')
@@ -33,7 +35,7 @@ export function VerifyTotpForm({
 		})
 
 		if (!result?.ok) {
-			setError('Código de verificación inválido')
+			setError(t('invalid-code'))
 			setValue('')
 			setLoading(false)
 		}
@@ -45,12 +47,12 @@ export function VerifyTotpForm({
 				<div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent">
 					<GalleryVerticalEnd className="h-8 w-8" />
 				</div>
-				<h1 className="font-bold text-2xl">Verificación de dos factores</h1>
+				<h1 className="font-bold text-2xl">{t('title')}</h1>
 				<p className="text-balance text-muted-foreground">
-					Ingresa el código de 6 dígitos de tu aplicación autenticadora
+					{t('description')}
 				</p>
 				<div className="rounded-lg bg-muted p-3 text-sm">
-					<strong>Email:</strong> {email}
+					<strong>{t('email-label')}</strong> {email}
 				</div>
 			</div>
 

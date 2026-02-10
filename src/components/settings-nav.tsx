@@ -2,15 +2,20 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Shield, User } from 'lucide-react'
 
 const base = '/settings'
-const nav = [
-	{ href: `${base}/profile`, label: 'Perfil', icon: User },
-	{ href: `${base}/security`, label: 'Seguridad', icon: Shield },
-] as const
+function useSettingsNav() {
+	const t = useTranslations('settings')
+	return [
+		{ href: `${base}/profile`, label: t('nav-profile'), icon: User },
+		{ href: `${base}/security`, label: t('nav-security'), icon: Shield },
+	] as const
+}
 
 export function SettingsNav() {
+	const nav = useSettingsNav()
 	const pathname = usePathname()
 	return (
 		<nav className="flex gap-1 border-b pb-4">

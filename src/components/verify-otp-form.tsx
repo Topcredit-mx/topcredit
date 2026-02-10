@@ -3,6 +3,7 @@
 import { GalleryVerticalEnd } from 'lucide-react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import {
 	InputOTP,
@@ -17,6 +18,8 @@ export function VerifyOTPForm({
 	email,
 	...props
 }: React.ComponentProps<'div'> & { email: string }) {
+	const t = useTranslations('verify-otp')
+	const tAuth = useTranslations('auth')
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [value, setValue] = useState('')
@@ -37,7 +40,7 @@ export function VerifyOTPForm({
 		})
 
 		if (result?.error) {
-			setError('Código OTP inválido o expirado')
+			setError(t('invalid-code'))
 			setValue('') // Clear the OTP input on error
 		} else if (result?.ok) {
 			// Success - redirect manually
@@ -85,14 +88,12 @@ export function VerifyOTPForm({
 							</div>
 							<span className="sr-only">Acme Inc.</span>
 						</Link>
-						<h1 className="font-bold text-2xl">Verificación</h1>
+						<h1 className="font-bold text-2xl">{t('title')}</h1>
 					</div>
 					<div className="flex flex-col gap-8">
 						<div className="flex flex-col items-center gap-6">
 							<p className="text-center text-muted-foreground text-sm leading-relaxed">
-								Si tienes una cuenta, hemos enviado un código a{' '}
-								<span className="font-medium text-foreground">{email}</span>.
-								Ingrésalo a continuación.
+								{t('sent-to', { email })}
 							</p>
 							<InputOTP
 								maxLength={6}
@@ -134,7 +135,7 @@ export function VerifyOTPForm({
 							)}
 							{loading && (
 								<p className="text-center text-muted-foreground text-sm">
-									Validando...
+									{t('validating')}
 								</p>
 							)}
 						</div>
@@ -144,7 +145,7 @@ export function VerifyOTPForm({
 								href="/login"
 								className="flex items-center gap-1 text-blue-500 text-sm hover:underline"
 							>
-								← Atrás
+								{t('back')}
 							</Link>
 							<button
 								type="button"
@@ -152,7 +153,7 @@ export function VerifyOTPForm({
 								disabled={resendLoading}
 								className="flex items-center gap-1 text-blue-500 text-sm hover:underline disabled:cursor-not-allowed disabled:opacity-50"
 							>
-								{resendLoading ? 'Reenviando...' : 'Reenviar código'}
+								{resendLoading ? t('resending') : t('resend')}
 							</button>
 							{resendMessage && (
 								<p
@@ -168,9 +169,9 @@ export function VerifyOTPForm({
 						</div>
 
 						<div className="text-center text-muted-foreground text-sm">
-							¿No tienes una cuenta?{' '}
+							{tAuth('no-account')}{' '}
 							<Link href="/signup" className="text-blue-500 hover:underline">
-								Regístrate
+								{tAuth('sign-up-link')}
 							</Link>
 						</div>
 					</div>

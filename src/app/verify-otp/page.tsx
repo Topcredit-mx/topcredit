@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server'
 import { VerifyOTPForm } from '~/components/verify-otp-form'
 
 export default async function VerifyOTPPage({
@@ -5,9 +6,10 @@ export default async function VerifyOTPPage({
 }: {
 	searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+	const t = await getTranslations('errors')
 	const { email } = await searchParams
 	if (!email || Array.isArray(email)) {
-		return <div>Invalid email</div>
+		return <div>{t('invalid-email')}</div>
 	}
 
 	return (
