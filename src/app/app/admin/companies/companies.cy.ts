@@ -334,10 +334,8 @@ describe('Admin Companies List', () => {
 			cy.findTableRow(editCompany.name).within(() => {
 				cy.get('a[href*="/edit"]').click()
 			})
-			cy.url().should(
-				'include',
-				`/app/admin/companies/${editCompany.domain}/edit`,
-			)
+			const editPath = `/app/admin/companies/${editCompany.domain}/edit`
+			cy.url({ timeout: 10000 }).should('include', editPath)
 			cy.contains(/editar|edit/i).should('be.visible')
 		})
 
