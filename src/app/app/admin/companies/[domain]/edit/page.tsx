@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { CompanyForm } from '~/components/company-form'
 import { toCompanySubject } from '~/lib/abilities'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
@@ -24,14 +25,13 @@ export default async function EditCompanyPage({
 
 	const ability = await getAbility()
 	requireAbility(ability, 'update', toCompanySubject(company))
+	const t = await getTranslations('admin')
 
 	return (
 		<div className="container mx-auto py-6">
 			<div className="mb-6">
-				<h1 className="font-bold text-3xl">Editar Empresa</h1>
-				<p className="text-muted-foreground">
-					Modifica los detalles de la empresa
-				</p>
+				<h1 className="font-bold text-3xl">{t('companies-edit-title')}</h1>
+				<p className="text-muted-foreground">{t('companies-edit-subtitle')}</p>
 			</div>
 
 			<div className="max-w-2xl">

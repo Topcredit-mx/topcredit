@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { Settings2 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '../button'
@@ -23,9 +24,19 @@ export function DataTableHeader<TData>({
 	disableCreateButton,
 	className,
 }: DataTableHeaderProps) {
-	const { table, label, schema, createButtonHref } = useDataTable<TData>()
-
-	const filterPlaceholder = `Filter ${label ?? schema}...`
+	const {
+		table,
+		label,
+		schema,
+		createButtonHref,
+		createButtonText,
+		filterPlaceholder: contextFilterPlaceholder,
+	} = useDataTable<TData>()
+	const t = useTranslations('admin')
+	const filterPlaceholder =
+		contextFilterPlaceholder ?? `Filter ${label ?? schema}...`
+	const createLabel =
+		createButtonText ?? (label ? `Nuevo ${label}` : `Nuevo ${schema}`)
 
 	return (
 		<div
@@ -44,7 +55,7 @@ export function DataTableHeader<TData>({
 					<DropdownMenuTrigger asChild>
 						<Button variant="outline" size="sm">
 							<Settings2 />
-							View
+							{t('table-view')}
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
@@ -69,13 +80,7 @@ export function DataTableHeader<TData>({
 				</DropdownMenu>
 				{!disableCreateButton && createButtonHref && (
 					<Button size="sm" asChild>
-						<Link href={createButtonHref}>
-							{label === 'Empresas'
-								? 'Nueva Empresa'
-								: label === 'Usuarios'
-									? 'Nuevo Usuario'
-									: `Nuevo ${label ?? schema}`}
-						</Link>
+						<Link href={createButtonHref}>{createLabel}</Link>
 					</Button>
 				)}
 			</div>

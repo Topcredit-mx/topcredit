@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useActionState, useId, useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -18,8 +19,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-import type { Company } from '~/server/queries'
 import { createCompany, updateCompany } from '~/server/mutations'
+import type { Company } from '~/server/queries'
 
 interface CompanyFormProps {
 	company?: Company
@@ -33,6 +34,7 @@ function formatPercentage(value: string, decimals: number = 2): string {
 }
 
 export function CompanyForm({ company }: CompanyFormProps) {
+	const t = useTranslations('admin')
 	// Use useActionState for form state management
 	const [state, action, pending] = useActionState(
 		company ? updateCompany : createCompany,
@@ -115,7 +117,7 @@ export function CompanyForm({ company }: CompanyFormProps) {
 				) : (
 					<FieldDescription>
 						{company
-							? 'El dominio no puede ser modificado después de la creación'
+							? t('company-form-domain-readonly')
 							: 'Dominio de email de la empresa (debe ser único)'}
 					</FieldDescription>
 				)}

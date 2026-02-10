@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server'
 import { requireAuth } from '~/lib/auth-utils'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import { getAllCompaniesForAssignment, getUsers } from '~/server/queries'
@@ -25,13 +26,12 @@ export default async function UsersPage() {
 			? Number.parseInt(session.user.id, 10)
 			: session.user.id
 
+	const t = await getTranslations('admin')
 	return (
 		<div className="container mx-auto py-6">
 			<div className="mb-6">
-				<h1 className="font-bold text-3xl">Usuarios</h1>
-				<p className="text-muted-foreground">
-					Administra los usuarios del sistema
-				</p>
+				<h1 className="font-bold text-3xl">{t('users-title')}</h1>
+				<p className="text-muted-foreground">{t('users-subtitle')}</p>
 			</div>
 
 			<UsersTable

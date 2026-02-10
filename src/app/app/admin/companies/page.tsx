@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server'
 import { requireAuth } from '~/lib/auth-utils'
 import { getCompanies } from '~/server/queries'
 import {
@@ -54,13 +55,12 @@ export default async function CompaniesPage({
 		companyIds,
 	})
 
+	const t = await getTranslations('admin')
 	return (
 		<div className="container mx-auto py-6">
 			<div className="mb-6">
-				<h1 className="font-bold text-3xl">Empresas</h1>
-				<p className="text-muted-foreground">
-					Administra las empresas afiliadas del sistema
-				</p>
+				<h1 className="font-bold text-3xl">{t('companies-title')}</h1>
+				<p className="text-muted-foreground">{t('companies-subtitle')}</p>
 			</div>
 
 			<CompaniesTable companies={items} />

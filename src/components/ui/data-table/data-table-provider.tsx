@@ -20,6 +20,8 @@ export interface IDataTableContext<TData> {
 	table: Table<TData>
 	columnsLength: number
 	createButtonHref?: string
+	createButtonText?: string
+	filterPlaceholder?: string
 	label?: string
 	schema?: string
 }
@@ -35,6 +37,8 @@ interface DataTableProps<TData, TValue> {
 	schema: string
 	label?: string
 	createLink?: string
+	createButtonText?: string
+	filterPlaceholder?: string
 	children?: React.ReactNode
 }
 
@@ -46,6 +50,8 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 	columns,
 	data,
 	createLink,
+	createButtonText,
+	filterPlaceholder,
 	schema,
 	label,
 	children,
@@ -89,6 +95,8 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 				setRowSelection,
 				table,
 				createButtonHref,
+				createButtonText,
+				filterPlaceholder,
 				label,
 				schema,
 				columnsLength: columns.length,

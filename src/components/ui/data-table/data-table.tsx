@@ -9,6 +9,8 @@ interface DataTableProps<TData extends BaseData, TValue> {
 	schema: string
 	label?: string
 	createLink?: string
+	createButtonText?: string
+	filterPlaceholder?: string
 	children?: React.ReactNode
 }
 
@@ -16,6 +18,8 @@ function DataTable<TData extends BaseData, TValue>({
 	columns,
 	data,
 	createLink,
+	createButtonText,
+	filterPlaceholder,
 	schema,
 	label,
 	children,
@@ -25,6 +29,8 @@ function DataTable<TData extends BaseData, TValue>({
 			columns={columns}
 			data={data}
 			createLink={createLink}
+			createButtonText={createButtonText}
+			filterPlaceholder={filterPlaceholder}
 			schema={schema}
 			label={label}
 		>

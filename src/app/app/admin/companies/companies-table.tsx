@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
@@ -18,11 +19,12 @@ interface CompaniesTableProps {
 }
 
 export function CompaniesTable({ companies }: CompaniesTableProps) {
+	const t = useTranslations('admin')
 	const columns: ColumnDef<Company>[] = [
 		{
 			accessorKey: 'name',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Nombre" />
+				<DataTableColumnHeader column={column} title={t('companies-col-name')} />
 			),
 			cell: ({ row }) => {
 				return <div className="font-medium">{row.getValue('name')}</div>
@@ -31,7 +33,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'domain',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Dominio" />
+				<DataTableColumnHeader column={column} title={t('companies-col-domain')} />
 			),
 			cell: ({ row }) => {
 				return (
@@ -42,7 +44,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'rate',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Tasa" />
+				<DataTableColumnHeader column={column} title={t('companies-col-rate')} />
 			),
 			cell: ({ row }) => {
 				const rate = Number.parseFloat(row.getValue('rate'))
@@ -52,7 +54,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'borrowingCapacityRate',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Capacidad de Préstamo" />
+				<DataTableColumnHeader column={column} title={t('companies-col-borrowing')} />
 			),
 			cell: ({ row }) => {
 				const rate = row.getValue('borrowingCapacityRate') as string | null
@@ -66,7 +68,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'employeeSalaryFrequency',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Frecuencia de Pago" />
+				<DataTableColumnHeader column={column} title={t('companies-col-frequency')} />
 			),
 			cell: ({ row }) => {
 				const frequency = row.getValue('employeeSalaryFrequency') as string
@@ -76,13 +78,13 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'active',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Estado" />
+				<DataTableColumnHeader column={column} title={t('companies-col-status')} />
 			),
 			cell: ({ row }) => {
 				const active = row.getValue('active') as boolean
 				return (
 					<Badge variant={active ? 'default' : 'secondary'}>
-						{active ? 'Activa' : 'Inactiva'}
+						{active ? t('companies-active') : t('companies-inactive')}
 					</Badge>
 				)
 			},
@@ -90,7 +92,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'createdAt',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Fecha de Creación" />
+				<DataTableColumnHeader column={column} title={t('companies-col-created')} />
 			),
 			cell: ({ row }) => {
 				const date = row.getValue('createdAt') as Date
@@ -107,7 +109,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		},
 		{
 			id: 'actions',
-			header: 'Acciones',
+			header: t('companies-actions'),
 			cell: ({ row }) => {
 				const company = row.original
 				return (
@@ -115,7 +117,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 						<Link
 							href={`/app/admin/companies/${encodeURIComponent(company.domain)}/edit`}
 						>
-							Editar
+							{t('companies-edit')}
 						</Link>
 					</Button>
 				)
@@ -129,8 +131,10 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				columns={columns}
 				data={companies}
 				schema="companies"
-				label="Empresas"
+				label={t('companies-title')}
 				createLink="/app/admin/companies/new"
+				createButtonText={t('companies-new')}
+				filterPlaceholder={t('table-filter-companies')}
 			>
 				<DataTableHeader />
 				<DataTableContent />

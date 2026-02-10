@@ -3,6 +3,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { Building2, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 import {
 	AlertDialog,
@@ -31,13 +32,6 @@ import type { Role } from '~/lib/auth-utils'
 import { toggleUserRole, updateUserCompanies } from '~/server/mutations'
 import type { CompanyBasic, UserWithRoles } from '~/server/queries'
 
-const roleLabels: Record<Role, string> = {
-	customer: 'Cliente',
-	employee: 'Empleado',
-	requests: 'Solicitudes',
-	admin: 'Admin',
-}
-
 function RoleCheckbox({
 	userId,
 	role,
@@ -49,9 +43,13 @@ function RoleCheckbox({
 	hasRole: boolean
 	isCurrentUser: boolean
 }) {
+	const t = useTranslations('admin')
+	const tCommon = useTranslations('common')
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
 	const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+	const roleLabel =
+		role === 'requests' ? t('users-role-requests') : t('users-role-admin')
 
 	const handleToggle = () => {
 		// Show confirmation if admin is removing their own admin role
@@ -85,7 +83,7 @@ function RoleCheckbox({
 						checked={hasRole}
 						disabled={isPending}
 						onCheckedChange={handleToggle}
-						aria-label={`Toggle ${roleLabels[role]} role`}
+						aria-label={`Toggle ${roleLabel} role`}
 					/>
 				)}
 			</div>
@@ -93,22 +91,18 @@ function RoleCheckbox({
 			<AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>
-							¿Eliminar tu rol de administrador?
-						</AlertDialogTitle>
+						<AlertDialogTitle>{t('users-remove-admin-title')}</AlertDialogTitle>
 						<AlertDialogDescription>
-							Estás a punto de eliminar tu propio rol de administrador. Perderás
-							acceso a esta página y a otras funciones administrativas. Esta
-							acción no se puede deshacer fácilmente.
+							{t('users-remove-admin-description')}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancelar</AlertDialogCancel>
+						<AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={handleConfirmRemove}
 							className="bg-destructive text-white hover:bg-destructive/90"
 						>
-							Sí, eliminar mi rol de admin
+							{t('users-remove-admin-confirm')}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -126,6 +120,8 @@ function CompanyAssignmentCell({
 	allCompanies: CompanyBasic[]
 	onUserCompaniesChange: (userId: number, companyIds: number[]) => void
 }) {
+	const t = useTranslations('admin')
+	const tCommon = useTranslations('common')
 	const [isPending, startTransition] = useTransition()
 	const [showDialog, setShowDialog] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -171,20 +167,24 @@ function CompanyAssignmentCell({
 		<>
 			<div className="flex items-center gap-2">
 				{user.companies.length === 0 ? (
-					<span className="text-muted-foreground text-sm">Sin empresas</span>
+					<span className="text-muted-foreground text-sm">
+						{t('users-no-companies')}
+					</span>
 				) : user.companies.length === 1 ? (
 					<Badge variant="secondary">
 						{user.companies[0]?.name ?? 'Empresa'}
 					</Badge>
 				) : (
-					<Badge variant="secondary">{user.companies.length} empresas</Badge>
+					<Badge variant="secondary">
+						{t('users-companies-count', { count: user.companies.length })}
+					</Badge>
 				)}
 				<Button
 					variant="ghost"
 					size="icon"
 					className="h-8 w-8"
 					onClick={handleOpenDialog}
-					aria-label="Asignar empresas"
+					aria-label={t('users-assign-aria')}
 				>
 					<Building2 className="h-4 w-4" />
 				</Button>
@@ -193,9 +193,9 @@ function CompanyAssignmentCell({
 			<Dialog open={showDialog} onOpenChange={handleDialogOpenChange}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Asignar Empresas</DialogTitle>
+						<DialogTitle>{t('users-assign-dialog-title')}</DialogTitle>
 						<DialogDescription>
-							Selecciona las empresas que {user.name} puede administrar.
+							{t('users-assign-dialog-description', { name: user.name })}
 						</DialogDescription>
 					</DialogHeader>
 
@@ -211,7 +211,7 @@ function CompanyAssignmentCell({
 					<div className="max-h-[300px] space-y-3 overflow-y-auto py-4">
 						{allCompanies.length === 0 ? (
 							<p className="text-muted-foreground text-sm">
-								No hay empresas disponibles.
+								{t('users-assign-no-available')}
 							</p>
 						) : (
 							allCompanies.map((company) => (
@@ -241,16 +241,16 @@ function CompanyAssignmentCell({
 							onClick={() => setShowDialog(false)}
 							disabled={isPending}
 						>
-							Cancelar
+							{tCommon('cancel')}
 						</Button>
 						<Button onClick={handleSave} disabled={isPending}>
 							{isPending ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Guardando...
+									{t('users-saving')}
 								</>
 							) : (
-								'Guardar'
+								tCommon('save')
 							)}
 						</Button>
 					</DialogFooter>
@@ -264,15 +264,22 @@ export function createColumns(
 	currentUserId: number,
 	allCompanies: CompanyBasic[],
 	onUserCompaniesChange: (userId: number, companyIds: number[]) => void,
+	t: ReturnType<typeof useTranslations<'admin'>>,
 ): ColumnDef<UserWithRoles>[] {
 	// Only show employee roles (not customer)
 	const rolesToShow: Role[] = ['requests', 'admin']
+	const roleLabels: Record<Role, string> = {
+		customer: 'Cliente',
+		employee: 'Empleado',
+		requests: t('users-role-requests'),
+		admin: t('users-role-admin'),
+	}
 
 	return [
 		{
 			accessorKey: 'name',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Nombre" />
+				<DataTableColumnHeader column={column} title={t('users-col-name')} />
 			),
 			cell: ({ row }) => {
 				return <div className="font-medium">{row.getValue('name')}</div>
@@ -281,7 +288,7 @@ export function createColumns(
 		{
 			accessorKey: 'email',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Email" />
+				<DataTableColumnHeader column={column} title={t('users-col-email')} />
 			),
 			cell: ({ row }) => {
 				return (
@@ -315,7 +322,10 @@ export function createColumns(
 		{
 			id: 'companies',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Empresas" />
+				<DataTableColumnHeader
+					column={column}
+					title={t('users-col-companies')}
+				/>
 			),
 			cell: ({ row }) => {
 				const user = row.original
@@ -331,7 +341,7 @@ export function createColumns(
 		{
 			accessorKey: 'createdAt',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Fecha de Creación" />
+				<DataTableColumnHeader column={column} title={t('users-col-created')} />
 			),
 			cell: ({ row }) => {
 				const date = row.getValue('createdAt') as Date

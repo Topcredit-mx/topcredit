@@ -2,6 +2,7 @@
 
 import { Building2, ChevronsUpDown, LayoutDashboard } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -32,13 +33,12 @@ function companyInitials(name: string): string {
 	return first.slice(0, 2).toUpperCase()
 }
 
-const OVERVIEW_LABEL = 'Vista general'
-
 export function CompanySwitcher({
 	companies,
 	selectedCompanyId,
 	isAdmin = false,
 }: CompanySwitcherProps) {
+	const t = useTranslations('admin')
 	const router = useRouter()
 	const selectedCompany = companies.find((c) => c.id === selectedCompanyId)
 	const isOverview = selectedCompanyId === null && isAdmin
@@ -58,15 +58,15 @@ export function CompanySwitcher({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<SidebarMenuButton size="lg" aria-label="Seleccionar empresa">
+				<SidebarMenuButton size="lg" aria-label={t('switcher-select-company')}>
 					<div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
 						<Building2 className="size-4" />
 					</div>
 					<div className="min-w-0 flex-1 text-left text-sm">
 						<span className="truncate font-semibold">
 							{isOverview
-								? OVERVIEW_LABEL
-								: selectedCompany?.name ?? 'TopCredit'}
+								? t('switcher-overview')
+								: (selectedCompany?.name ?? 'TopCredit')}
 						</span>
 					</div>
 					<ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
@@ -80,23 +80,20 @@ export function CompanySwitcher({
 			>
 				{isAdmin && (
 					<>
-						<DropdownMenuItem
-							onSelect={onSelectOverview}
-							className="gap-2"
-						>
+						<DropdownMenuItem onSelect={onSelectOverview} className="gap-2">
 							<div
 								className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted font-medium text-muted-foreground text-xs"
 								aria-hidden
 							>
 								<LayoutDashboard className="size-4" />
 							</div>
-							<span className="truncate">{OVERVIEW_LABEL}</span>
+							<span className="truncate">{t('switcher-overview')}</span>
 						</DropdownMenuItem>
 						<DropdownMenuSeparator />
 					</>
 				)}
 				<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
-					Empresas
+					{t('switcher-companies')}
 				</DropdownMenuLabel>
 				{companies.map((company) => (
 					<DropdownMenuItem
@@ -118,7 +115,7 @@ export function CompanySwitcher({
 						</div>
 						<span className="truncate">
 							{company.name}
-							{!company.active && ' (inactiva)'}
+							{!company.active && t('switcher-inactive')}
 						</span>
 					</DropdownMenuItem>
 				))}

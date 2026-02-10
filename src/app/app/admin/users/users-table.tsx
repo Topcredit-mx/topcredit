@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import {
 	DataTable,
@@ -21,6 +22,7 @@ export function UsersTable({
 	currentUserId,
 	allCompanies,
 }: UsersTableProps) {
+	const t = useTranslations('admin')
 	const [users, setUsers] = useState(initialUsers)
 
 	useEffect(() => {
@@ -42,11 +44,18 @@ export function UsersTable({
 		currentUserId,
 		allCompanies,
 		onUserCompaniesChange,
+		t,
 	)
 
 	return (
 		<div className="space-y-4">
-			<DataTable columns={columns} data={users} schema="users" label="Usuarios">
+			<DataTable
+				columns={columns}
+				data={users}
+				schema="users"
+				label={t('users-title')}
+				filterPlaceholder={t('table-filter-users')}
+			>
 				<DataTableHeader disableCreateButton />
 				<DataTableContent />
 				<DataTablePagination />

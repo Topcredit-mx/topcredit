@@ -1,31 +1,33 @@
 import { Building2, Users } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import type { AdminOverviewStats } from '~/server/queries'
 
-export function AdminOverviewDashboard({
+export async function AdminOverviewDashboard({
 	stats,
 }: {
 	stats: AdminOverviewStats
 }) {
+	const t = await getTranslations('admin')
 	return (
 		<div>
 			<div className="mb-6">
-				<h1 className="font-bold text-3xl text-gray-900">Vista general</h1>
-				<p className="mt-1 text-gray-600">
-					Resumen del sistema cuando no hay empresa seleccionada.
-				</p>
+				<h1 className="font-bold text-3xl text-gray-900">
+					{t('overview-title')}
+				</h1>
+				<p className="mt-1 text-gray-600">{t('overview-subtitle')}</p>
 			</div>
 
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 				<StatCard
-					title="Empresas"
+					title={t('users-stats-companies')}
 					value={stats.companiesTotal}
-					subtitle={`${stats.companiesActive} activas`}
+					subtitle={`${stats.companiesActive} ${t('users-stats-active')}`}
 					icon={Building2}
 				/>
 				<StatCard
-					title="Usuarios"
+					title={t('users-stats-users')}
 					value={stats.usersTotal}
-					subtitle={`${stats.employeesTotal} empleados`}
+					subtitle={`${stats.employeesTotal} ${t('users-stats-employees')}`}
 					icon={Users}
 				/>
 			</div>
