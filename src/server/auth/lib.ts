@@ -98,11 +98,11 @@ export async function getRequiredUser(): Promise<{
 }
 
 /**
- * Gets the current user and verifies they have the employee role.
+ * Gets the current user and verifies they have the applicant role.
  *
- * Use this in /app routes to ensure the user is an employee.
+ * Use this in /dashboard routes to ensure the user is an applicant.
  */
-export async function getRequiredEmployeeUser(): Promise<{
+export async function getRequiredApplicantUser(): Promise<{
 	id: number
 	name?: string | null
 	email?: string | null
@@ -111,9 +111,9 @@ export async function getRequiredEmployeeUser(): Promise<{
 }> {
 	const user = await getRequiredUser()
 
-	if (!user.roles.includes('employee')) {
+	if (!user.roles.includes('applicant')) {
 		throw new Error(
-			'Unauthorized: User does not have the employee role. This should not happen due to middleware protection.',
+			'Unauthorized: User does not have the applicant role. This should not happen due to middleware protection.',
 		)
 	}
 
@@ -121,11 +121,11 @@ export async function getRequiredEmployeeUser(): Promise<{
 }
 
 /**
- * Gets the current user and verifies they have the customer role.
+ * Gets the current user and verifies they have the agent role.
  *
- * Use this in /dashboard routes to ensure the user is a customer.
+ * Use this in /app routes to ensure the user is an agent.
  */
-export async function getRequiredCustomerUser(): Promise<{
+export async function getRequiredAgentUser(): Promise<{
 	id: number
 	name?: string | null
 	email?: string | null
@@ -134,9 +134,9 @@ export async function getRequiredCustomerUser(): Promise<{
 }> {
 	const user = await getRequiredUser()
 
-	if (!user.roles.includes('customer')) {
+	if (!user.roles.includes('agent')) {
 		throw new Error(
-			'Unauthorized: User does not have customer role. This should not happen due to middleware protection.',
+			'Unauthorized: User does not have the agent role. This should not happen due to middleware protection.',
 		)
 	}
 

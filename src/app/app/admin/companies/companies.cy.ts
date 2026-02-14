@@ -4,8 +4,8 @@ describe('Admin Companies List', () => {
 	before(() => {
 		// Clean up any stale data from previous interrupted runs
 		const allDomains = companyList.map((c) => c.domain)
-		cy.task('cleanupTestCompanies', allDomains)
-		cy.task('cleanupTestUsers', [adminUser.email])
+		cy.task('deleteCompaniesByDomain', allDomains)
+		cy.task('deleteUsersByEmail', [adminUser.email])
 		// Create admin user
 		cy.task('createUser', adminUser)
 		// Create test companies
@@ -15,26 +15,26 @@ describe('Admin Companies List', () => {
 	after(() => {
 		// Cleanup all test companies
 		const allDomains = companyList.map((c) => c.domain)
-		cy.task('cleanupTestCompanies', allDomains)
+		cy.task('deleteCompaniesByDomain', allDomains)
 		// Cleanup admin user
-		cy.task('cleanupTestUsers', [adminUser.email])
+		cy.task('deleteUsersByEmail', [adminUser.email])
 	})
 
 	describe('Access Control', () => {
 		it('should redirect non-admin users to unauthorized page', () => {
-			// Create a non-admin employee
-			const employeeUser = {
-				name: 'Employee User',
-				email: 'employee@example.com',
-				roles: ['employee', 'requests'] as const,
+			// Create a non-admin agent
+			const agentUser = {
+				name: 'Agent User',
+				email: 'agent.companies@example.com',
+				roles: ['agent', 'requests'] as const,
 			}
-			cy.task('createUser', employeeUser)
-			cy.login(employeeUser.email)
+			cy.task('createUser', agentUser)
+			cy.login(agentUser.email)
 			cy.visit('/app/admin/companies')
 			cy.url().should('include', '/unauthorized')
 
 			// Cleanup
-			cy.task('cleanupTestUsers', [employeeUser.email])
+			cy.task('deleteUsersByEmail', [agentUser.email])
 		})
 
 		it('should allow admin users to access companies page', () => {
@@ -190,7 +190,7 @@ describe('Admin Companies List', () => {
 			cy.contains(newCompany.domain).should('exist')
 
 			// Cleanup
-			cy.task('cleanupTestCompanies', [newCompany.domain])
+			cy.task('deleteCompaniesByDomain', [newCompany.domain])
 		})
 
 		it('should create company without borrowingCapacityRate', () => {
@@ -215,7 +215,7 @@ describe('Admin Companies List', () => {
 			cy.contains(newCompany.name).should('exist')
 
 			// Cleanup
-			cy.task('cleanupTestCompanies', [newCompany.domain])
+			cy.task('deleteCompaniesByDomain', [newCompany.domain])
 		})
 
 		it('should validate required fields', () => {
@@ -321,7 +321,7 @@ describe('Admin Companies List', () => {
 		})
 
 		after(() => {
-			cy.task('cleanupTestCompanies', [editCompany.domain])
+			cy.task('deleteCompaniesByDomain', [editCompany.domain])
 		})
 
 		beforeEach(() => {

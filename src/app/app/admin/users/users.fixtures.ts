@@ -5,39 +5,39 @@
 export const adminUser = {
 	name: 'Admin User',
 	email: 'admin@example.com',
-	roles: ['employee', 'admin'] as const,
+	roles: ['agent', 'admin'] as const,
 }
 
-export const customerOnlyUser = {
-	name: 'Customer Only User',
-	email: 'customer@example.com',
-	roles: ['customer'] as const,
+export const applicantOnlyUser = {
+	name: 'Applicant Only User',
+	email: 'applicant.only@example.com',
+	roles: ['applicant'] as const,
 }
 
 export const users = {
 	jane: {
 		name: 'Jane Requests',
 		email: 'jane.requests@example.com',
-		roles: ['employee', 'requests'] as const,
+		roles: ['agent', 'requests'] as const,
 	},
 	bob: {
 		name: 'Bob Admin',
 		email: 'bob.admin@example.com',
-		roles: ['employee', 'admin'] as const,
+		roles: ['agent', 'admin'] as const,
 	},
 	charlie: {
 		name: 'Charlie Multi',
 		email: 'charlie.multi@example.com',
-		roles: ['employee', 'requests', 'admin'] as const,
+		roles: ['agent', 'requests', 'admin'] as const,
 	},
 }
 
 export const userList = Object.values(users)
 
-export const employeeUser = {
-	name: 'Test Employee',
-	email: 'employee@example.com',
-	roles: ['employee'] as const,
+export const agentOnlyUser = {
+	name: 'Test Agent',
+	email: 'agent.only@example.com',
+	roles: ['agent'] as const,
 }
 
 export const companies = {

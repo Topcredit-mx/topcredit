@@ -48,8 +48,13 @@ function RoleCheckbox({
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
 	const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-	const roleLabel =
-		role === 'requests' ? t('users-role-requests') : t('users-role-admin')
+	const roleLabels: Record<Role, string> = {
+		applicant: t('users-role-applicant'),
+		agent: t('users-role-agent'),
+		requests: t('users-role-requests'),
+		admin: t('users-role-admin'),
+	}
+	const roleLabel = roleLabels[role]
 
 	const handleToggle = () => {
 		// Show confirmation if admin is removing their own admin role
@@ -266,11 +271,11 @@ export function createColumns(
 	onUserCompaniesChange: (userId: number, companyIds: number[]) => void,
 	t: ReturnType<typeof useTranslations<'admin'>>,
 ): ColumnDef<UserWithRoles>[] {
-	// Only show employee roles (not customer)
+	// Only show assignable roles (not applicant, not base agent - removing agent would drop user from this page with no way to restore)
 	const rolesToShow: Role[] = ['requests', 'admin']
 	const roleLabels: Record<Role, string> = {
-		customer: 'Cliente',
-		employee: 'Empleado',
+		applicant: t('users-role-applicant'),
+		agent: t('users-role-agent'),
 		requests: t('users-role-requests'),
 		admin: t('users-role-admin'),
 	}

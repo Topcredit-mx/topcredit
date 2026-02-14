@@ -5,7 +5,7 @@
 export const adminOverviewAdmin = {
 	name: 'Admin Overview',
 	email: 'admin.overview@example.com',
-	roles: ['employee', 'admin'] as const,
+	roles: ['agent', 'admin'] as const,
 }
 
 export const overviewCompanyList = [

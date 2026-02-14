@@ -310,7 +310,7 @@ From `src/server/auth/get-ability.ts` and `src/lib/abilities.ts`:
 
 - **`getAbility()`** – Builds ability from session + DB (roles, company assignments)
 - **`requireAbility(ability, action, subject)`** – Throws if forbidden; use at top of mutations and protected queries
-- **Scoping** – `getAssignedCompanyIds(userId)` in `scopes.ts`; pass `companyIds` to queries when employee sees only assigned companies
+- **Scoping** – `getAssignedCompanyIds(userId)` in `scopes.ts`; pass `companyIds` to queries when agent sees only assigned companies
 
 ## Optimistic Updates Example
 

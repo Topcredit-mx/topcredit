@@ -4,14 +4,14 @@ import { getTranslations } from 'next-intl/server'
 import { eq } from 'drizzle-orm'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
-import { getRequiredCustomerUser } from '~/server/auth/lib'
+import { getRequiredApplicantUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
 
 export default async function DashboardPage() {
 	const tCommon = await getTranslations('common')
 	const tDashboard = await getTranslations('dashboard')
-	const sessionUser = await getRequiredCustomerUser()
+	const sessionUser = await getRequiredApplicantUser()
 	const user = await db.query.users.findFirst({
 		where: eq(users.id, sessionUser.id),
 		columns: { emailVerified: true },

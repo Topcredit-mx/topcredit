@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation'
 import { toCompanySubject } from '~/lib/abilities'
 import type { Role } from '~/lib/auth-utils'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
-import { getRequiredEmployeeUser } from '~/server/auth/lib'
+import { getRequiredAgentUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import { companies, userCompanies, userRoles } from '~/server/db/schema'
 import { fromErrorToFormState } from '~/server/errors/errors'
@@ -17,7 +17,7 @@ import { getCompaniesForSwitcher } from '~/server/scopes'
 // ---- Selected company (sidebar switcher) ----
 
 export async function setSelectedCompanyId(companyId: number | null) {
-	const user = await getRequiredEmployeeUser()
+	const user = await getRequiredAgentUser()
 	const isAdmin = user.roles?.includes('admin') ?? false
 	const allowed = await getCompaniesForSwitcher(user.id, isAdmin)
 	const allowedIds = new Set(allowed.map((c) => c.id))

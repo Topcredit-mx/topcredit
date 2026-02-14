@@ -1,5 +1,5 @@
 /**
- * US-2.2.6: Admin can view any company as an employee would
+ * US-2.2.6: Admin can view any company as an agent would
  * - Sidebar company switcher shows all active companies for admin
  * - Admin can select any company via sidebar switcher
  * - Selected company persists on page reload
@@ -16,16 +16,16 @@ describe('Admin company switcher (US-2.2.6)', () => {
 	const companyDomains = overviewCompanyList.map((c) => c.domain)
 
 	before(() => {
-		cy.task('cleanupTestUsers', [adminEmail])
-		cy.task('cleanupTestCompanies', companyDomains)
+		cy.task('deleteUsersByEmail', [adminEmail])
+		cy.task('deleteCompaniesByDomain', companyDomains)
 
 		cy.task('createUser', adminOverviewAdmin)
 		cy.task('createMultipleCompanies', overviewCompanyList)
 	})
 
 	after(() => {
-		cy.task('cleanupTestUsers', [adminEmail])
-		cy.task('cleanupTestCompanies', companyDomains)
+		cy.task('deleteUsersByEmail', [adminEmail])
+		cy.task('deleteCompaniesByDomain', companyDomains)
 	})
 
 	beforeEach(() => {

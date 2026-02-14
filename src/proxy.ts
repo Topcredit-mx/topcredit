@@ -21,9 +21,9 @@ async function redirectLoggedInFromAuthRoutes(
 
 	const token = await getToken({ req })
 	const roles: Role[] = token?.roles ?? []
-	if (roles.includes('employee'))
+	if (roles.includes('agent'))
 		return NextResponse.redirect(new URL('/app', req.url))
-	if (roles.includes('customer'))
+	if (roles.includes('applicant'))
 		return NextResponse.redirect(new URL('/dashboard', req.url))
 	return null
 }
@@ -33,15 +33,15 @@ const withAuthMiddleware = withAuth(
 		const token = req.nextauth.token
 		const path = req.nextUrl.pathname
 		const roles: Role[] = token?.roles ?? []
-		const isEmployee = roles.includes('employee')
+		const isAgent = roles.includes('agent')
 
 		if (path.startsWith('/app/admin') && !roles.includes('admin')) {
 			return NextResponse.redirect(new URL('/unauthorized', req.url))
 		}
-		if (path.startsWith('/app') && !isEmployee) {
+		if (path.startsWith('/app') && !isAgent) {
 			return NextResponse.redirect(new URL('/unauthorized', req.url))
 		}
-		if (path.startsWith('/dashboard') && !roles.includes('customer')) {
+		if (path.startsWith('/dashboard') && !roles.includes('applicant')) {
 			return NextResponse.redirect(new URL('/unauthorized', req.url))
 		}
 

@@ -97,8 +97,8 @@ export async function getUsersByRole(role: Role) {
 }
 
 /**
- * Initialize default role for a new user (customer)
+ * Initialize default role for a new user (applicant)
  */
 export async function initializeUserRoles(userId: number) {
-	await assignRoleToUser(userId, 'customer')
+	await assignRoleToUser(userId, 'applicant')
 }

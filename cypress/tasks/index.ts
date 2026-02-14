@@ -76,6 +76,8 @@ export type CreateUserTaskParams = {
 	name: string
 	email: string
 	roles?: Role[]
+	/** Default true. Set false for verification-specific E2E tests. */
+	verified?: boolean
 }
 
 export const createUser = async (params: CreateUserTaskParams) => {
@@ -92,12 +94,13 @@ export const createUser = async (params: CreateUserTaskParams) => {
 		await db.delete(users).where(eq(users.email, params.email))
 	}
 
-	// Create user
+	// Create user (verified by default so "Correo no verificado" doesn't show in most tests)
 	const [newUser] = await db
 		.insert(users)
 		.values({
 			email: params.email,
 			name: params.name,
+			emailVerified: params.verified !== false ? new Date() : null,
 		})
 		.returning()
 
@@ -126,14 +129,6 @@ export const createUser = async (params: CreateUserTaskParams) => {
 	return user
 }
 
-export type DeleteUserTaskParams = string
-
-export const deleteUser = async (email: DeleteUserTaskParams) => {
-	const db = getDb(process.env.DATABASE_URL || '')
-	await db.delete(users).where(eq(users.email, email))
-	return null
-}
-
 export type CreateMultipleUsersTaskParams = CreateUserTaskParams[]
 
 export const createMultipleUsers = async (
@@ -149,6 +144,7 @@ export const createMultipleUsers = async (
 			.values({
 				email: params.email,
 				name: params.name,
+				emailVerified: params.verified !== false ? new Date() : null,
 			})
 			.returning()
 
@@ -198,28 +194,6 @@ export const assignRole = async (params: AssignRoleTaskParams) => {
 
 export type EnableTotpForUserTaskParams = string
 
-export type SetUserEmailVerifiedTaskParams = { email: string; verified: boolean }
-
-/** Set emailVerified for a user (for E2E: verified vs unverified tests). */
-export const setUserEmailVerified = async (
-	params: SetUserEmailVerifiedTaskParams,
-) => {
-	const db = getDb(process.env.DATABASE_URL || '')
-	const user = await db.query.users.findFirst({
-		where: eq(users.email, params.email),
-	})
-	if (!user) {
-		throw new Error(`User with email ${params.email} not found`)
-	}
-	await db
-		.update(users)
-		.set({
-			emailVerified: params.verified ? new Date() : null,
-		})
-		.where(eq(users.id, user.id))
-	return null
-}
-
 /** Enable TOTP for a user by email (for E2E: security screen with TOTP enabled). */
 export const enableTotpForUser = async (
 	email: EnableTotpForUserTaskParams,
@@ -243,9 +217,9 @@ export const enableTotpForUser = async (
 	return null
 }
 
-export type CleanupTestUsersTaskParams = string[]
+export type DeleteUsersByEmailTaskParams = string[]
 
-export const cleanupTestUsers = async (emails: CleanupTestUsersTaskParams) => {
+export const deleteUsersByEmail = async (emails: DeleteUsersByEmailTaskParams) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 
 	for (const email of emails) {
@@ -318,10 +292,10 @@ export const createMultipleCompanies = async (
 	return createdCompanies
 }
 
-export type CleanupTestCompaniesTaskParams = string[]
+export type DeleteCompaniesByDomainTaskParams = string[]
 
-export const cleanupTestCompanies = async (
-	domains: CleanupTestCompaniesTaskParams,
+export const deleteCompaniesByDomain = async (
+	domains: DeleteCompaniesByDomainTaskParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 
@@ -382,10 +356,10 @@ export const assignCompanyToUser = async (
 	return assignment
 }
 
-export type CleanupUserCompaniesTaskParams = string[] // User emails
+export type DeleteUserCompanyAssignmentsByEmailTaskParams = string[] // User emails
 
-export const cleanupUserCompanies = async (
-	emails: CleanupUserCompaniesTaskParams,
+export const deleteUserCompanyAssignmentsByEmail = async (
+	emails: DeleteUserCompanyAssignmentsByEmailTaskParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 
@@ -400,34 +374,4 @@ export const cleanupUserCompanies = async (
 	}
 
 	return null
-}
-
-export type GetUserCompaniesTaskParams = string // User email
-
-export const getUserCompanies = async (email: GetUserCompaniesTaskParams) => {
-	const db = getDb(process.env.DATABASE_URL || '')
-
-	const user = await db.query.users.findFirst({
-		where: eq(users.email, email),
-	})
-
-	if (!user) {
-		throw new Error(`User with email ${email} not found`)
-	}
-
-	const assignments = await db.query.userCompanies.findMany({
-		where: eq(userCompanies.userId, user.id),
-	})
-
-	// Get company details
-	const companyIds = assignments.map((a) => a.companyId)
-	if (companyIds.length === 0) {
-		return []
-	}
-
-	const companyList = await db.query.companies.findMany({
-		where: (c, { inArray }) => inArray(c.id, companyIds),
-	})
-
-	return companyList
 }

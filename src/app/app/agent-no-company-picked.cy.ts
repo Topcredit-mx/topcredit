@@ -1,51 +1,51 @@
 /**
- * Sidebar nav is disabled when employee has companies but none selected.
+ * Sidebar nav is disabled when agent has companies but none selected.
  * - All sidebar navigation buttons are disabled when no company is picked
  * - Company switcher remains enabled so the user can pick a company
  */
 
 import {
+	agentWithAssignments,
 	companyAssignedActive,
 	companyAssignedActive2,
 	companyAssignedInactive,
-	employeeWithAssignments,
 	switcherCompanyList,
 } from './company-switcher.fixtures'
 
-describe('Employee with no company picked', () => {
-	const employeeEmail = employeeWithAssignments.email
+describe('Agent with no company picked', () => {
+	const agentEmail = agentWithAssignments.email
 	const companyDomains = switcherCompanyList.map((c) => c.domain)
 
 	before(() => {
-		cy.task('cleanupUserCompanies', [employeeEmail])
-		cy.task('cleanupTestUsers', [employeeEmail])
-		cy.task('cleanupTestCompanies', companyDomains)
+		cy.task('deleteUserCompanyAssignmentsByEmail', [agentEmail])
+		cy.task('deleteUsersByEmail', [agentEmail])
+		cy.task('deleteCompaniesByDomain', companyDomains)
 
-		cy.task('createUser', employeeWithAssignments)
+		cy.task('createUser', agentWithAssignments)
 		cy.task('createMultipleCompanies', switcherCompanyList)
 
 		cy.task('assignCompanyToUser', {
-			userEmail: employeeEmail,
+			userEmail: agentEmail,
 			companyDomain: companyAssignedActive.domain,
 		})
 		cy.task('assignCompanyToUser', {
-			userEmail: employeeEmail,
+			userEmail: agentEmail,
 			companyDomain: companyAssignedActive2.domain,
 		})
 		cy.task('assignCompanyToUser', {
-			userEmail: employeeEmail,
+			userEmail: agentEmail,
 			companyDomain: companyAssignedInactive.domain,
 		})
 	})
 
 	after(() => {
-		cy.task('cleanupUserCompanies', [employeeEmail])
-		cy.task('cleanupTestUsers', [employeeEmail])
-		cy.task('cleanupTestCompanies', companyDomains)
+		cy.task('deleteUserCompanyAssignmentsByEmail', [agentEmail])
+		cy.task('deleteUsersByEmail', [agentEmail])
+		cy.task('deleteCompaniesByDomain', companyDomains)
 	})
 
 	beforeEach(() => {
-		cy.login(employeeEmail)
+		cy.login(agentEmail)
 		cy.clearCookie('selected_company_id')
 		cy.visit('/app')
 	})

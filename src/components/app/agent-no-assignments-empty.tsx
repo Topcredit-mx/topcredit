@@ -1,7 +1,7 @@
 import { Building2 } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
-export async function EmployeeNoCompanyPickedEmpty() {
+export async function AgentNoAssignmentsEmpty() {
 	const t = await getTranslations('admin')
 	return (
 		<div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-muted/30 p-12 text-center">
@@ -10,10 +10,10 @@ export async function EmployeeNoCompanyPickedEmpty() {
 			</div>
 			<div className="space-y-1">
 				<h2 className="font-semibold text-lg">
-					{t('empty-pick-company-title')}
+					{t('empty-no-assignments-title')}
 				</h2>
 				<p className="max-w-sm text-muted-foreground text-sm">
-					{t('empty-pick-company-description')}
+					{t('empty-no-assignments-description')}
 				</p>
 			</div>
 		</div>

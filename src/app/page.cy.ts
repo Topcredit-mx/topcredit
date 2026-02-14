@@ -1,14 +1,14 @@
-import { employeeUser, testUser } from './login/login.fixtures'
+import { agentUser, applicantUser } from './login/login.fixtures'
 
 describe('Home / Landing', () => {
 	before(() => {
-		cy.task('cleanupTestUsers', [testUser.email, employeeUser.email])
-		cy.task('createUser', testUser)
-		cy.task('createUser', employeeUser)
+		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
+		cy.task('createUser', applicantUser)
+		cy.task('createUser', agentUser)
 	})
 
 	after(() => {
-		cy.task('cleanupTestUsers', [testUser.email, employeeUser.email])
+		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
 	})
 
 	it('shows landing page to unauthenticated users', () => {
@@ -18,15 +18,15 @@ describe('Home / Landing', () => {
 		cy.contains('a', 'Inicia ahora').should('be.visible')
 	})
 
-	it('redirects logged-in customer to dashboard', () => {
-		cy.login(testUser.email)
+	it('redirects logged-in applicant to dashboard', () => {
+		cy.login(applicantUser.email)
 		cy.visit('/')
 		cy.url().should('include', '/dashboard')
 		cy.contains('h1', 'Mi Cuenta').should('be.visible')
 	})
 
-	it('redirects logged-in employee to app', () => {
-		cy.login(employeeUser.email)
+	it('redirects logged-in agent to app', () => {
+		cy.login(agentUser.email)
 		cy.visit('/')
 		cy.url().should('include', '/app')
 		cy.contains('Sin empresas asignadas').should('be.visible')

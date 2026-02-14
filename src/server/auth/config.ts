@@ -58,7 +58,7 @@ export const authOptions = {
 				if (token.roles?.length) {
 					session.user.roles = token.roles
 				} else {
-					session.user.roles = ['customer']
+					session.user.roles = ['applicant']
 				}
 			}
 			return session

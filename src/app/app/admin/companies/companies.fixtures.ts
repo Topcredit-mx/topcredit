@@ -5,7 +5,7 @@
 export const adminUser = {
 	name: 'Admin User',
 	email: 'admin@example.com',
-	roles: ['employee', 'admin'] as const,
+	roles: ['agent', 'admin'] as const,
 }
 
 // Names prefixed with "E2E " so they never match seed/other data when multiple companies exist

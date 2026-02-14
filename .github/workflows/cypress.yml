@@ -82,7 +82,7 @@ jobs:
         with:
           record: true
           parallel: true
-          group: '3x Electron'
+          group: 'Electron'
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           CYPRESS_DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
