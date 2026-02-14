@@ -21,12 +21,5 @@ declare namespace Cypress {
 type CreateUserTaskParams = {
 	name: string
 	email: string
-	roles?: Array<
-		| 'customer'
-		| 'sales_rep'
-		| 'credit_analyst'
-		| 'accountant'
-		| 'support'
-		| 'admin'
-	>
+	roles?: Array<'applicant' | 'agent' | 'requests' | 'admin'>
 }

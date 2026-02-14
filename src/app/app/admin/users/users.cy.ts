@@ -1,9 +1,9 @@
 import {
 	adminUser,
+	agentOnlyUser,
+	applicantOnlyUser,
 	companies,
 	companyList,
-	customerOnlyUser,
-	employeeUser,
 	findRoleCheckbox,
 	userList,
 	users,
@@ -13,8 +13,8 @@ describe('Admin Users', () => {
 	before(() => {
 		const allUserEmails = [
 			adminUser.email,
-			customerOnlyUser.email,
-			employeeUser.email,
+			applicantOnlyUser.email,
+			agentOnlyUser.email,
 			...userList.map((u) => u.email),
 		]
 		const companyDomains = companyList.map((c) => c.domain)
@@ -24,8 +24,8 @@ describe('Admin Users', () => {
 		cy.task('cleanupTestCompanies', companyDomains)
 
 		cy.task('createUser', adminUser)
-		cy.task('createUser', customerOnlyUser)
-		cy.task('createUser', employeeUser)
+		cy.task('createUser', applicantOnlyUser)
+		cy.task('createUser', agentOnlyUser)
 		cy.task('createMultipleUsers', userList)
 		cy.task('createMultipleCompanies', companyList)
 	})
@@ -33,8 +33,8 @@ describe('Admin Users', () => {
 	after(() => {
 		const allUserEmails = [
 			adminUser.email,
-			customerOnlyUser.email,
-			employeeUser.email,
+			applicantOnlyUser.email,
+			agentOnlyUser.email,
 			...userList.map((u) => u.email),
 		]
 		const companyDomains = companyList.map((c) => c.domain)
@@ -46,7 +46,7 @@ describe('Admin Users', () => {
 
 	describe('Access Control', () => {
 		it('should redirect non-admin users to unauthorized page', () => {
-			cy.login(customerOnlyUser.email)
+			cy.login(applicantOnlyUser.email)
 			cy.visit('/app/admin/users')
 			cy.url().should('include', '/unauthorized')
 		})
@@ -63,8 +63,8 @@ describe('Admin Users', () => {
 			cy.url().should('include', '/unauthorized')
 		})
 
-		it('should not allow customer users to access admin users page', () => {
-			cy.login(customerOnlyUser.email)
+		it('should not allow applicant users to access admin users page', () => {
+			cy.login(applicantOnlyUser.email)
 			cy.visit('/app/admin/users', { failOnStatusCode: false })
 			cy.url().should('include', '/unauthorized')
 		})
@@ -79,22 +79,23 @@ describe('Admin Users', () => {
 		it('should display users table with correct columns', () => {
 			cy.contains('th', /nombre/i).should('exist')
 			cy.contains('th', /email/i).should('exist')
+			cy.contains('th', /agente/i).should('exist')
 			cy.contains('th', /solicitudes/i).should('exist')
 			cy.contains('th', /admin/i).should('exist')
 			cy.contains('th', /fecha de creación/i).should('exist')
 			cy.get('table').within(() => {
-				cy.contains('th', /cliente/i).should('not.exist')
+				cy.contains('th', /solicitante/i).should('not.exist')
 			})
 		})
 
-		it('should display employees', () => {
+		it('should display agents', () => {
 			cy.contains(users.jane.name).should('exist')
 			cy.contains(users.bob.name).should('exist')
 		})
 
-		it('should display checkboxes for employee roles', () => {
+		it('should display checkboxes for agent roles', () => {
 			cy.findTableRow(users.jane.name).within(() => {
-				cy.get('button[role="checkbox"]').should('have.length', 2)
+				cy.get('button[role="checkbox"]').should('have.length', 3)
 			})
 		})
 	})
@@ -235,33 +236,33 @@ describe('Admin Users', () => {
 			cy.login(adminUser.email)
 		})
 
-		it('should show "No companies assigned" for employee without assignments', () => {
+		it('should show "No companies assigned" for agent without assignments', () => {
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name).within(() => {
+			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(/sin empresas|no companies|0 empresas/i).should('exist')
 			})
 		})
 
 		it('should display assigned companies after assignment', () => {
 			cy.task('assignCompanyToUser', {
-				userEmail: employeeUser.email,
+				userEmail: agentOnlyUser.email,
 				companyDomain: companies.acme.domain,
 			})
 
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name).within(() => {
+			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(companies.acme.name).should('exist')
 			})
 
-			cy.task('cleanupUserCompanies', [employeeUser.email])
+			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
 		})
 
 		it('should open company assignment dialog when clicking assign button', () => {
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name)
+			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
 				.click()
 
@@ -272,7 +273,7 @@ describe('Admin Users', () => {
 		it('should list all available companies in assignment dialog', () => {
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name)
+			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
 				.click()
 
@@ -283,10 +284,10 @@ describe('Admin Users', () => {
 			})
 		})
 
-		it('should assign single company to employee', () => {
+		it('should assign single company to agent', () => {
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name)
+			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
 				.click()
 
@@ -297,15 +298,15 @@ describe('Admin Users', () => {
 
 			cy.get('[role="dialog"]').should('not.exist')
 
-			cy.findTableRow(employeeUser.name).within(() => {
+			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(companies.acme.name).should('exist')
 			})
 		})
 
-		it('should assign multiple companies to employee', () => {
+		it('should assign multiple companies to agent', () => {
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name)
+			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
 				.click()
 
@@ -317,20 +318,20 @@ describe('Admin Users', () => {
 
 			cy.get('[role="dialog"]').should('not.exist')
 
-			cy.findTableRow(employeeUser.name).within(() => {
+			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(/2 empresas|acme|globex/i).should('exist')
 			})
 		})
 
 		it('should show current assignments pre-checked when reopening dialog', () => {
 			cy.task('assignCompanyToUser', {
-				userEmail: employeeUser.email,
+				userEmail: agentOnlyUser.email,
 				companyDomain: companies.acme.domain,
 			})
 
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name)
+			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
 				.click()
 
@@ -341,18 +342,18 @@ describe('Admin Users', () => {
 					.should('have.attr', 'data-state', 'checked')
 			})
 
-			cy.task('cleanupUserCompanies', [employeeUser.email])
+			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
 		})
 
 		it('should show list of assigned companies in assignment dialog', () => {
 			cy.task('assignCompanyToUser', {
-				userEmail: employeeUser.email,
+				userEmail: agentOnlyUser.email,
 				companyDomain: companies.acme.domain,
 			})
 
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name)
+			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
 				.click()
 
@@ -361,22 +362,22 @@ describe('Admin Users', () => {
 				cy.contains(companies.acme.domain).should('exist')
 			})
 
-			cy.task('cleanupUserCompanies', [employeeUser.email])
+			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
 		})
 
 		it('should remove one company assignment when unchecking and saving', () => {
 			cy.task('assignCompanyToUser', {
-				userEmail: employeeUser.email,
+				userEmail: agentOnlyUser.email,
 				companyDomain: companies.acme.domain,
 			})
 			cy.task('assignCompanyToUser', {
-				userEmail: employeeUser.email,
+				userEmail: agentOnlyUser.email,
 				companyDomain: companies.globex.domain,
 			})
 
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name)
+			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
 				.click()
 
@@ -387,23 +388,23 @@ describe('Admin Users', () => {
 
 			cy.get('[role="dialog"]').should('not.exist')
 
-			cy.findTableRow(employeeUser.name).within(() => {
+			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(companies.globex.name).should('exist')
 				cy.contains(companies.acme.name).should('not.exist')
 			})
 
-			cy.task('cleanupUserCompanies', [employeeUser.email])
+			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
 		})
 
 		it('should remove all company assignments when unchecking all and saving', () => {
 			cy.task('assignCompanyToUser', {
-				userEmail: employeeUser.email,
+				userEmail: agentOnlyUser.email,
 				companyDomain: companies.acme.domain,
 			})
 
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name)
+			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
 				.click()
 
@@ -414,26 +415,26 @@ describe('Admin Users', () => {
 
 			cy.get('[role="dialog"]').should('not.exist')
 
-			cy.findTableRow(employeeUser.name).within(() => {
+			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(/sin empresas/i).should('exist')
 			})
 
-			cy.task('cleanupUserCompanies', [employeeUser.email])
+			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
 		})
 
 		it('removal takes effect immediately without page reload', () => {
 			cy.task('assignCompanyToUser', {
-				userEmail: employeeUser.email,
+				userEmail: agentOnlyUser.email,
 				companyDomain: companies.acme.domain,
 			})
 
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name).within(() => {
+			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(companies.acme.name).should('exist')
 			})
 
-			cy.findTableRow(employeeUser.name)
+			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
 				.click()
 
@@ -443,16 +444,16 @@ describe('Admin Users', () => {
 			})
 
 			cy.get('[role="dialog"]').should('not.exist')
-			cy.findTableRow(employeeUser.name).within(() => {
+			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(/sin empresas/i).should('exist')
 			})
 
-			cy.task('cleanupUserCompanies', [employeeUser.email])
+			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
 		})
 
 		it('should keep dialog open and show error when save fails (e.g. network error)', () => {
 			cy.task('assignCompanyToUser', {
-				userEmail: employeeUser.email,
+				userEmail: agentOnlyUser.email,
 				companyDomain: companies.acme.domain,
 			})
 
@@ -462,11 +463,11 @@ describe('Admin Users', () => {
 
 			cy.visit('/app/admin/users')
 
-			cy.findTableRow(employeeUser.name).within(() => {
+			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(companies.acme.name).should('exist')
 			})
 
-			cy.findTableRow(employeeUser.name)
+			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
 				.click()
 
@@ -480,11 +481,11 @@ describe('Admin Users', () => {
 			cy.get('[role="dialog"]').should('be.visible')
 			cy.get('[role="alert"]').should('be.visible')
 
-			cy.findTableRow(employeeUser.name).within(() => {
+			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(companies.acme.name).should('exist')
 			})
 
-			cy.task('cleanupUserCompanies', [employeeUser.email])
+			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
 		})
 	})
 })

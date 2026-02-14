@@ -79,7 +79,7 @@ export async function getAssignedCompanyIds(
 
 	const roleNames = roles.map((r) => r.role)
 	if (roleNames.includes('admin')) return 'all'
-	if (!roleNames.includes('employee')) return []
+	if (!roleNames.includes('agent')) return []
 
 	const assignments = await getUserCompanyAssignments(userId)
 	return assignments.map((c) => c.id)

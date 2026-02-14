@@ -22,19 +22,19 @@ describe('Admin Companies List', () => {
 
 	describe('Access Control', () => {
 		it('should redirect non-admin users to unauthorized page', () => {
-			// Create a non-admin employee
-			const employeeUser = {
-				name: 'Employee User',
-				email: 'employee@example.com',
-				roles: ['employee', 'requests'] as const,
+			// Create a non-admin agent
+			const agentUser = {
+				name: 'Agent User',
+				email: 'agent.companies@example.com',
+				roles: ['agent', 'requests'] as const,
 			}
-			cy.task('createUser', employeeUser)
-			cy.login(employeeUser.email)
+			cy.task('createUser', agentUser)
+			cy.login(agentUser.email)
 			cy.visit('/app/admin/companies')
 			cy.url().should('include', '/unauthorized')
 
 			// Cleanup
-			cy.task('cleanupTestUsers', [employeeUser.email])
+			cy.task('cleanupTestUsers', [agentUser.email])
 		})
 
 		it('should allow admin users to access companies page', () => {

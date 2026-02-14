@@ -13,8 +13,8 @@ import {
 } from 'drizzle-orm/pg-core'
 
 export const rolesEnum = pgEnum('roles', [
-	'customer',
-	'employee',
+	'applicant',
+	'agent',
 	'requests',
 	'admin',
 ])

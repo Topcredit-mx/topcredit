@@ -27,7 +27,7 @@ export async function AdminOverviewDashboard({
 				<StatCard
 					title={t('users-stats-users')}
 					value={stats.usersTotal}
-					subtitle={`${stats.employeesTotal} ${t('users-stats-employees')}`}
+					subtitle={`${stats.agentsTotal} ${t('users-stats-agents')}`}
 					icon={Users}
 				/>
 			</div>

@@ -1,18 +1,18 @@
 /**
- * US-2.2.4: Employee without assignments sees appropriate message
+ * US-2.2.4: Agent without assignments sees appropriate message
  * - Empty state message displayed when no assignments
  * - No company data accessible
  */
 
-import { employeeNoAssignments } from './employee-no-assignments.fixtures'
+import { agentNoAssignments } from './agent-no-assignments.fixtures'
 
-describe('Employee without assignments (US-2.2.4)', () => {
-	const email = employeeNoAssignments.email
+describe('Agent without assignments (US-2.2.4)', () => {
+	const email = agentNoAssignments.email
 
 	before(() => {
 		cy.task('cleanupUserCompanies', [email])
 		cy.task('cleanupTestUsers', [email])
-		cy.task('createUser', employeeNoAssignments)
+		cy.task('createUser', agentNoAssignments)
 	})
 
 	after(() => {
@@ -24,7 +24,7 @@ describe('Employee without assignments (US-2.2.4)', () => {
 		cy.login(email)
 	})
 
-	it('shows empty state message when employee has no company assignments', () => {
+	it('shows empty state message when agent has no company assignments', () => {
 		cy.visit('/app')
 		cy.contains('Sin empresas asignadas').should('be.visible')
 		cy.contains('Contacta a un administrador').should('be.visible')

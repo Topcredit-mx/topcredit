@@ -1,54 +1,54 @@
-import { employeeUser, testUser } from './login.fixtures'
+import { agentUser, applicantUser } from './login.fixtures'
 
 describe('Login Flow', () => {
 	before(() => {
 		// Clean up any stale data from previous interrupted runs
-		cy.task('cleanupTestUsers', [testUser.email, employeeUser.email])
-		cy.task('createUser', testUser)
-		cy.task('createUser', employeeUser)
+		cy.task('cleanupTestUsers', [applicantUser.email, agentUser.email])
+		cy.task('createUser', applicantUser)
+		cy.task('createUser', agentUser)
 	})
 
 	after(() => {
-		cy.task('cleanupTestUsers', [testUser.email, employeeUser.email])
+		cy.task('cleanupTestUsers', [applicantUser.email, agentUser.email])
 	})
 
-	it('should access customer dashboard after login', () => {
-		cy.login(testUser.email)
+	it('should access applicant dashboard after login', () => {
+		cy.login(applicantUser.email)
 		cy.visit('/dashboard')
 		cy.url().should('include', '/dashboard')
 		cy.contains('h1', 'Mi Cuenta').should('be.visible')
 	})
 
 	it('should redirect to dashboard from /login when authenticated', () => {
-		cy.login(testUser.email)
+		cy.login(applicantUser.email)
 		cy.visit('/login')
 		cy.url().should('include', '/dashboard')
 		cy.contains('h1', 'Mi Cuenta').should('be.visible')
 	})
 
 	it('should redirect to dashboard from / when authenticated', () => {
-		cy.login(testUser.email)
+		cy.login(applicantUser.email)
 		cy.visit('/')
 		cy.url().should('include', '/dashboard')
 		cy.contains('h1', 'Mi Cuenta').should('be.visible')
 	})
 
-	it('should show unauthorized page when customer tries to access employee app', () => {
-		cy.login(testUser.email)
+	it('should show unauthorized page when applicant tries to access app', () => {
+		cy.login(applicantUser.email)
 		cy.visit('/app')
 		cy.url().should('include', '/unauthorized')
 		cy.contains('h1', '403 - No Autorizado').should('be.visible')
 	})
 
-	it('should allow employee to access app routes', () => {
-		cy.login(employeeUser.email)
+	it('should allow agent to access app routes', () => {
+		cy.login(agentUser.email)
 		cy.visit('/app')
 		cy.url().should('include', '/app')
 		cy.contains('Sin empresas asignadas').should('be.visible')
 	})
 
-	it('should show unauthorized page when employee tries to access customer dashboard', () => {
-		cy.login(employeeUser.email)
+	it('should show unauthorized page when agent tries to access dashboard', () => {
+		cy.login(agentUser.email)
 		cy.visit('/dashboard')
 		cy.url().should('include', '/unauthorized')
 		cy.contains('h1', '403 - No Autorizado').should('be.visible')
@@ -60,39 +60,42 @@ describe('Login Flow', () => {
 	})
 
 	describe('Email verification (dashboard / app)', () => {
-		it('customer dashboard: unverified user sees verification warning', () => {
+		it('applicant dashboard: unverified user sees verification warning', () => {
 			cy.task('setUserEmailVerified', {
-				email: testUser.email,
+				email: applicantUser.email,
 				verified: false,
 			})
-			cy.login(testUser.email)
+			cy.login(applicantUser.email)
 			cy.visit('/dashboard')
 			cy.get('[role="alert"]').should('be.visible')
 		})
 
-		it('customer dashboard: verified user does not see verification warning', () => {
-			cy.task('setUserEmailVerified', { email: testUser.email, verified: true })
-			cy.login(testUser.email)
+		it('applicant dashboard: verified user does not see verification warning', () => {
+			cy.task('setUserEmailVerified', {
+				email: applicantUser.email,
+				verified: true,
+			})
+			cy.login(applicantUser.email)
 			cy.visit('/dashboard')
 			cy.get('[role="alert"]').should('not.exist')
 		})
 
-		it('employee app: unverified user sees verification warning in sidebar', () => {
+		it('agent app: unverified user sees verification warning in sidebar', () => {
 			cy.task('setUserEmailVerified', {
-				email: employeeUser.email,
+				email: agentUser.email,
 				verified: false,
 			})
-			cy.login(employeeUser.email)
+			cy.login(agentUser.email)
 			cy.visit('/app')
 			cy.get('[role="alert"]').should('be.visible')
 		})
 
-		it('employee app: verified user does not see verification warning', () => {
+		it('agent app: verified user does not see verification warning', () => {
 			cy.task('setUserEmailVerified', {
-				email: employeeUser.email,
+				email: agentUser.email,
 				verified: true,
 			})
-			cy.login(employeeUser.email)
+			cy.login(agentUser.email)
 			cy.visit('/app')
 			cy.get('[role="alert"]').should('not.exist')
 		})

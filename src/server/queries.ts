@@ -27,7 +27,7 @@ export type GetUsersParams = {
 	limit?: number
 	search?: string
 	roleFilter?: Role
-	employeesOnly?: boolean
+	agentsOnly?: boolean
 }
 
 export type GetUsersResult = {
@@ -49,7 +49,7 @@ export async function getUsers(
 		limit = 50,
 		search,
 		roleFilter,
-		employeesOnly = false,
+		agentsOnly = false,
 	} = params
 
 	const offset = (page - 1) * limit
@@ -114,9 +114,9 @@ export async function getUsers(
 	)
 
 	let filteredByType = usersWithRoles
-	if (employeesOnly) {
+	if (agentsOnly) {
 		filteredByType = usersWithRoles.filter((user) =>
-			user.roles.includes('employee'),
+			user.roles.includes('agent'),
 		)
 	}
 
@@ -296,7 +296,7 @@ export type AdminOverviewStats = {
 	companiesTotal: number
 	companiesActive: number
 	usersTotal: number
-	employeesTotal: number
+	agentsTotal: number
 }
 
 export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
@@ -307,7 +307,7 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
 		companiesTotalResult,
 		companiesActiveResult,
 		usersTotalResult,
-		employeesResult,
+		agentsResult,
 	] = await Promise.all([
 		db.select({ count: sql<number>`count(*)` }).from(companies),
 		db
@@ -318,15 +318,15 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
 		db
 			.select({ userId: userRoles.userId })
 			.from(userRoles)
-			.where(eq(userRoles.role, 'employee')),
+			.where(eq(userRoles.role, 'agent')),
 	])
 
-	const employeesTotal = new Set(employeesResult.map((r) => r.userId)).size
+	const agentsTotal = new Set(agentsResult.map((r) => r.userId)).size
 
 	return {
 		companiesTotal: Number(companiesTotalResult[0]?.count ?? 0),
 		companiesActive: Number(companiesActiveResult[0]?.count ?? 0),
 		usersTotal: Number(usersTotalResult[0]?.count ?? 0),
-		employeesTotal,
+		agentsTotal,
 	}
 }

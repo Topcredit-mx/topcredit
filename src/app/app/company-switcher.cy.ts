@@ -1,54 +1,54 @@
 /**
- * US-2.2.3: Employee sees only assigned companies
+ * US-2.2.3: Agent sees only assigned companies
  * - Sidebar company switcher shows only assigned companies (active + inactive)
  * - Inactive assigned companies shown as disabled
- * - Employee can switch between assigned companies
+ * - Agent can switch between assigned companies
  * - Unassigned companies are not visible
  */
 
 import {
+	agentWithAssignments,
 	companyAssignedActive,
 	companyAssignedActive2,
 	companyAssignedInactive,
 	companyUnassigned,
-	employeeWithAssignments,
 	switcherCompanyList,
 } from './company-switcher.fixtures'
 
 describe('Company Switcher (US-2.2.3)', () => {
-	const employeeEmail = employeeWithAssignments.email
+	const agentEmail = agentWithAssignments.email
 	const companyDomains = switcherCompanyList.map((c) => c.domain)
 
 	before(() => {
-		cy.task('cleanupUserCompanies', [employeeEmail])
-		cy.task('cleanupTestUsers', [employeeEmail])
+		cy.task('cleanupUserCompanies', [agentEmail])
+		cy.task('cleanupTestUsers', [agentEmail])
 		cy.task('cleanupTestCompanies', companyDomains)
 
-		cy.task('createUser', employeeWithAssignments)
+		cy.task('createUser', agentWithAssignments)
 		cy.task('createMultipleCompanies', switcherCompanyList)
 
 		cy.task('assignCompanyToUser', {
-			userEmail: employeeEmail,
+			userEmail: agentEmail,
 			companyDomain: companyAssignedActive.domain,
 		})
 		cy.task('assignCompanyToUser', {
-			userEmail: employeeEmail,
+			userEmail: agentEmail,
 			companyDomain: companyAssignedActive2.domain,
 		})
 		cy.task('assignCompanyToUser', {
-			userEmail: employeeEmail,
+			userEmail: agentEmail,
 			companyDomain: companyAssignedInactive.domain,
 		})
 	})
 
 	after(() => {
-		cy.task('cleanupUserCompanies', [employeeEmail])
-		cy.task('cleanupTestUsers', [employeeEmail])
+		cy.task('cleanupUserCompanies', [agentEmail])
+		cy.task('cleanupTestUsers', [agentEmail])
 		cy.task('cleanupTestCompanies', companyDomains)
 	})
 
 	beforeEach(() => {
-		cy.login(employeeEmail)
+		cy.login(agentEmail)
 		cy.visit('/app')
 	})
 
@@ -90,7 +90,7 @@ describe('Company Switcher (US-2.2.3)', () => {
 		})
 	})
 
-	it('employee can switch between assigned companies', () => {
+	it('agent can switch between assigned companies', () => {
 		openCompanySwitcher()
 		cy.contains(
 			'[data-slot="dropdown-menu-item"]',

@@ -2,14 +2,14 @@
  * Test fixtures for login E2E tests
  */
 
-export const testUser = {
-	name: 'Usuario de Prueba',
-	email: 'test@example.com',
-	roles: ['customer'] as const,
+export const applicantUser = {
+	name: 'Usuario Solicitante',
+	email: 'applicant@example.com',
+	roles: ['applicant'] as const,
 }
 
-export const employeeUser = {
-	name: 'Employee User',
-	email: 'employee@example.com',
-	roles: ['employee', 'requests'] as const,
+export const agentUser = {
+	name: 'Agent User',
+	email: 'agent@example.com',
+	roles: ['agent', 'requests'] as const,
 }

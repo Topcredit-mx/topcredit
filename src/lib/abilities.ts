@@ -28,19 +28,19 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 	const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility)
 
 	const isAdmin = ctx.roles.includes('admin')
-	const isEmployee = ctx.roles.includes('employee')
-	const isCustomer = ctx.roles.includes('customer')
+	const isAgent = ctx.roles.includes('agent')
+	const isApplicant = ctx.roles.includes('applicant')
 
 	if (isAdmin) {
 		can('manage', 'all')
 		return build()
 	}
 
-	if (isCustomer) {
+	if (isApplicant) {
 		return build()
 	}
 
-	if (isEmployee) {
+	if (isAgent) {
 		if (ctx.assignedCompanyIds === 'all') {
 			can('manage', 'Company')
 		} else if (ctx.assignedCompanyIds.length > 0) {

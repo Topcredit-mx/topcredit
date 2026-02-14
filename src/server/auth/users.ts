@@ -39,7 +39,7 @@ export async function getUserByEmail(email: string) {
 
 	return {
 		...user,
-		roles: roles.length > 0 ? roles : (['customer'] as Role[]), // Default to customer if no roles assigned
+		roles: roles.length > 0 ? roles : (['applicant'] as Role[]), // Default to applicant if no roles assigned
 	}
 }
 
@@ -53,7 +53,7 @@ export async function registerUser(_prevState: unknown, formData: FormData) {
 
 	const [newUser] = await db.insert(users).values({ email, name }).returning()
 
-	// Assign default customer role to new user
+	// Assign default applicant role to new user
 	if (newUser) {
 		await initializeUserRoles(newUser.id)
 	}

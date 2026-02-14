@@ -11,7 +11,7 @@ export async function getAbility(): Promise<AppAbility> {
 
 	const assignedCompanyIds: number[] | 'all' = roles.includes('admin')
 		? 'all'
-		: roles.includes('employee')
+		: roles.includes('agent')
 			? (await getUserCompanyAssignments(userId)).map((c) => c.id)
 			: []
 

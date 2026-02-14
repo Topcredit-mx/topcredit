@@ -20,10 +20,10 @@
 - [x] CI: typecheck on push; Cypress E2E (Neon branch per run); prod DB workflow (generate + drift check + migrate on push to main when schema/drizzle change, production env)
 - [x] i18n: next-intl (request config, messages); dashboard and app sidebar (nav + user popup: Perfil, Autenticación, Cerrar sesión) use translations; kebab-case keys; single locale (es), no switching yet
 
-### Phase 2: Employees & roles
-- [x] Roles: customer, employee, requests, admin (junction table `user_roles`)
+### Phase 2: Applicants, agents & roles
+- [x] Roles: applicant, agent, requests, admin (junction table `user_roles`)
 - [x] Auth helpers: requireAuth, requireAnyRole, requireAllRoles, hasRole, redirectIfLoggedIn
-- [x] Proxy: role-based route protection (dashboard = customer, app = employee, admin routes = admin)
+- [x] Proxy: role-based route protection (dashboard = applicant, app = agent, admin routes = admin)
 - [x] Unauthorized page (403)
 - [x] App layout & sidebar (company switcher, nav, user menu with profile/authentication links in footer popup)
 - [x] Admin: role management UI (users table, assign/remove roles)
@@ -33,22 +33,22 @@
 - [x] Admin UI: companies list, create, edit; domain validation & uniqueness
 - [x] E2E: companies (access, list, search, create, edit), users (access, role checkboxes)
 
-#### Phase 2.2: Employee–company relationship
-- [x] **US-2.2.1** Admin assigns companies to employees (UI + persist)
+#### Phase 2.2: Agent–company relationship
+- [x] **US-2.2.1** Admin assigns companies to agents (UI + persist)
 - [x] **US-2.2.2** Admin removes company assignments
-- [x] **US-2.2.3** Employee sees only assigned companies in switcher; selected company filters data; inactive shown disabled
-- [x] **US-2.2.4** Employee with no assignments sees empty state, no company data
+- [x] **US-2.2.3** Agent sees only assigned companies in switcher; selected company filters data; inactive shown disabled
+- [x] **US-2.2.4** Agent with no assignments sees empty state, no company data
 - [x] **US-2.2.5** Admin overview dashboard (aggregated, no company selected)
-- [x] **US-2.2.6** Admin can pick any company in switcher, view as employee; “Vista general” to return; selection in cookie
-- [x] E2E: company switcher, admin company switcher, employee no assignments, employee no company picked, admin overview dashboard
+- [x] **US-2.2.6** Admin can pick any company in switcher, view as agent; “Vista general” to return; selection in cookie
+- [x] E2E: company switcher, admin company switcher, agent no assignments, agent no company picked, admin overview dashboard
 
 ### Phase 3: Credit application flow
-- [ ] Users: credit application creation, status overview
-- [ ] Employees: review / authorize / reject applications
-- [ ] Users: resubmit rejected, pre-authorized flow (contract, docs)
-- [ ] Employees: pre-authorized review, HR review
+- [ ] Applicants: credit application creation, status overview
+- [ ] Agents: review / authorize / reject applications
+- [ ] Applicants: resubmit rejected, pre-authorized flow (contract, docs)
+- [ ] Agents: pre-authorized review, HR review
 - [ ] Disbursement, active credit dashboard, payment schedule and tracking
-- [ ] Employees: active credits overview, payment management, completed credits reporting
+- [ ] Agents: active credits overview, payment management, completed credits reporting
 
 ---
 
@@ -205,18 +205,18 @@
 - Provide role-specific navigation (SidebarRoutes)
 
 ### HR integration and processes
-- Employees can be assigned to one or many companies (many-to-many)
-- Employees without company assignments see no company data
-- Employees with assignments see only their assigned companies' data
+- Agents can be assigned to one or many companies (many-to-many)
+- Agents without company assignments see no company data
+- Agents with assignments see only their assigned companies' data
 - HR approval workflow for credits (hrStatus)
 - HR payment confirmation (hrConfirmedAt)
-- Company employee management
+- Company–agent assignment management
 
 ### Role-based access and permissions
 - Enforce role-based access to features
 - Restrict data access based on user roles and company assignments
-- Employees with company assignments see only their assigned companies' data
-- Employees without assignments see no company data
+- Agents with company assignments see only their assigned companies' data
+- Agents without assignments see no company data
 - Admin users have full system access (see all data)
 
 ## Activity & Monitoring
@@ -380,10 +380,10 @@ src/
 
 **Usage:** Server: `getTranslations('namespace')` then `t('key')` or `t('key', { var: value })`. Client: `useTranslations('namespace')`. Root layout wraps with `NextIntlClientProvider`; messages are loaded via the plugin from the request config.
 
-**Namespaces:** `common` (save, cancel, settings, sign-out, etc.), `app` (sidebar nav, brand, footer-profile, footer-authentication), `dashboard`, `settings`, `auth`. Translated UI: customer dashboard (title, cards, account overview, quick links), app sidebar (nav items, group label, brand; user dropdown: Perfil → `/settings/profile`, Autenticación → `/settings/security`, Cerrar sesión).
+**Namespaces:** `common` (save, cancel, settings, sign-out, etc.), `app` (sidebar nav, brand, footer-profile, footer-authentication), `dashboard`, `settings`, `auth`. Translated UI: applicant dashboard (title, cards, account overview, quick links), app sidebar (nav items, group label, brand; user dropdown: Perfil → `/settings/profile`, Autenticación → `/settings/security`, Cerrar sesión).
 
 **Remaining:** Locale switching (cookie/path) and a second locale (e.g. `en`) are not implemented. Some screens (e.g. settings pages, login/signup) still have hardcoded copy; migrate to message keys as needed.
 
 ---
 
-The goal is to provide accessible, transparent credit to Mexican employees while maintaining rigorous security and compliance standards.
+The goal is to provide accessible, transparent credit to applicants (workers at affiliated companies) while maintaining rigorous security and compliance standards.

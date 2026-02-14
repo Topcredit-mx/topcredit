@@ -15,7 +15,7 @@ export default async function UsersPage() {
 		getUsers({
 			limit: 1000,
 			page: 1,
-			employeesOnly: true,
+			agentsOnly: true,
 		}),
 		getAllCompaniesForAssignment(),
 	])

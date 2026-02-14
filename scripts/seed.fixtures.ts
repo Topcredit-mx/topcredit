@@ -4,12 +4,12 @@ export const seedUsers = [
 	{
 		name: 'Admin',
 		email: 'admin@topcredit.mx',
-		roles: ['employee', 'admin'] as Role[],
+		roles: ['agent', 'admin'] as Role[],
 	},
 	{
 		name: 'Solicitudes',
 		email: 'solicitudes@topcredit.mx',
-		roles: ['employee', 'requests'] as Role[],
+		roles: ['agent', 'requests'] as Role[],
 	},
 ] as const
 
@@ -40,7 +40,7 @@ export const seedCompanies = [
 	},
 ] as const
 
-/** Requests (and other non-admin employees) need assigned companies. Admin does not. */
+/** Requests (and other non-admin agents) need assigned companies. Admin does not. */
 export const userCompanyAssignments: Record<string, readonly string[]> = {
 	'solicitudes@topcredit.mx': ['acme.topcredit.mx', 'techstart.topcredit.mx'],
 }

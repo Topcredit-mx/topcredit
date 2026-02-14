@@ -1,11 +1,11 @@
 import { eq } from 'drizzle-orm'
 import { AppSidebar } from '~/components/app/app-sidebar'
-import { EmployeeNoAssignmentsEmpty } from '~/components/app/employee-no-assignments-empty'
-import { EmployeeNoCompanyPickedEmpty } from '~/components/app/employee-no-company-picked-empty'
+import { AgentNoAssignmentsEmpty } from '~/components/app/agent-no-assignments-empty'
+import { AgentNoCompanyPickedEmpty } from '~/components/app/agent-no-company-picked-empty'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
-import { getRequiredEmployeeUser } from '~/server/auth/lib'
+import { getRequiredAgentUser } from '~/server/auth/lib'
 import {
 	getCompaniesForSwitcher,
 	getSelectedCompanyId,
@@ -16,7 +16,7 @@ export default async function AppLayout({
 }: {
 	children: React.ReactNode
 }) {
-	const user = await getRequiredEmployeeUser()
+	const user = await getRequiredAgentUser()
 	const dbUser = await db.query.users.findFirst({
 		where: eq(users.id, user.id),
 		columns: { emailVerified: true },
@@ -47,9 +47,9 @@ export default async function AppLayout({
 				</header>
 				<div className="flex-1 overflow-y-auto bg-gray-50 p-8">
 					{showNoAssignmentsEmpty ? (
-						<EmployeeNoAssignmentsEmpty />
+						<AgentNoAssignmentsEmpty />
 					) : showNoCompanyPickedEmpty ? (
-						<EmployeeNoCompanyPickedEmpty />
+						<AgentNoCompanyPickedEmpty />
 					) : (
 						children
 					)}

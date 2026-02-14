@@ -6,33 +6,33 @@ This project uses a **junction table approach** for implementing multi-role acce
 
 | Role | Description |
 |------|-------------|
-| `customer` | Regular customer applying for credit - base role for customers |
-| `employee` | Base role for all employees - required for /app access |
-| `requests` | Employee who can handle credit requests |
+| `applicant` | Person applying for credit - base role for dashboard access |
+| `agent` | Internal staff - base role for /app (back office) access |
+| `requests` | Agent who can handle credit requests |
 | `admin` | System administrator with full access |
 
 ## User Types
 
-### Customers
-- Have the `customer` role
+### Applicants
+- Have the `applicant` role
 - Access the `/dashboard` routes
 - Cannot access `/app` routes
 
-### Employees
-- **Must** have the `employee` role (base identity)
+### Agents
+- **Must** have the `agent` role (base identity)
 - Can additionally have `requests` and/or `admin` roles
 - Access the `/app` routes
-- Cannot access `/dashboard` routes (employees are not customers)
+- Cannot access `/dashboard` routes (agents are not applicants)
 
-**Important:** Employees cannot have the `customer` role, and customers cannot have the `employee` role.
+**Important:** Agents cannot have the `applicant` role, and applicants cannot have the `agent` role.
 
 ## Database Schema
 
 ```typescript
 // Roles enum
 export const rolesEnum = pgEnum('roles', [
-  'customer',
-  'employee',
+  'applicant',
+  'agent',
   'requests',
   'admin',
 ])
@@ -57,17 +57,17 @@ export const userRoles = pgTable('user_roles', {
 ## Example User Role Assignments
 
 ```typescript
-// Customer
-{ roles: ['customer'] }
+// Applicant
+{ roles: ['applicant'] }
 
-// Employee with requests access
-{ roles: ['employee', 'requests'] }
+// Agent with requests access
+{ roles: ['agent', 'requests'] }
 
-// Employee with admin access
-{ roles: ['employee', 'admin'] }
+// Agent with admin access
+{ roles: ['agent', 'admin'] }
 
-// Employee with full access
-{ roles: ['employee', 'requests', 'admin'] }
+// Agent with full access
+{ roles: ['agent', 'requests', 'admin'] }
 ```
 
 ## Usage Examples
@@ -81,7 +81,7 @@ import { requireAnyRole } from '~/lib/auth-utils'
 export default async function AdminUsersPage() {
   // Only admins can access
   await requireAnyRole(['admin'])
-  
+
   return <AdminUsersContent />
 }
 ```
@@ -95,16 +95,16 @@ import { requireAuth } from '~/lib/auth-utils'
 export default async function AppDashboard() {
   const session = await requireAuth()
   const roles = session.user.roles
-  
+
   return (
     <div>
-      <h1>Employee Dashboard</h1>
-      
-      {/* Show for employees with requests role */}
+      <h1>Agent Dashboard</h1>
+
+      {/* Show for agents with requests role */}
       {roles.includes('requests') && (
         <RequestsPanel />
       )}
-      
+
       {/* Show only for admins */}
       {roles.includes('admin') && (
         <AdminPanel />
@@ -125,11 +125,11 @@ import Link from 'next/link'
 export function Navigation() {
   const { data: session } = useSession()
   const roles = session?.user?.roles || []
-  
+
   return (
     <nav>
       <Link href="/app">Dashboard</Link>
-      
+
       {/* Admin only */}
       {roles.includes('admin') && (
         <Link href="/app/admin/users">Manage Users</Link>
@@ -164,7 +164,7 @@ await removeRoleFromUser(userId, 'requests')
 import { setUserRoles } from '~/server/auth/role-management'
 
 // Replace all roles with new set
-await setUserRoles(userId, ['employee', 'requests', 'admin'])
+await setUserRoles(userId, ['agent', 'requests', 'admin'])
 ```
 
 ### Checking Roles
@@ -176,7 +176,7 @@ import { userHasRole, getUserRoles } from '~/server/auth/role-management'
 const isAdmin = await userHasRole(userId, 'admin')
 
 // Get all user roles
-const roles = await getUserRoles(userId) // ['employee', 'requests']
+const roles = await getUserRoles(userId) // ['agent', 'requests']
 ```
 
 ## Available Auth Utility Functions
@@ -195,15 +195,15 @@ const roles = await getUserRoles(userId) // ['employee', 'requests']
 
 The middleware (`src/proxy.ts`) automatically protects routes:
 
-- `/app/*` - Requires `employee` role
+- `/app/*` - Requires `agent` role
 - `/app/admin/*` - Requires `admin` role
-- `/dashboard/*` - Requires `customer` role
+- `/dashboard/*` - Requires `applicant` role
 
 ## Best Practices
 
 1. **Always use server-side checks** for authorization (pages, API routes)
 2. **Client-side checks** are only for UI/UX (hiding/showing elements)
-3. **Default role** for new users signing up is `customer`
-4. **Employee role** is the base for all employees - never remove it
-5. **Admin role** should have access to everything within the employee app
+3. **Default role** for new users signing up is `applicant`
+4. **Agent role** is the base for internal staff - required for /app access
+5. **Admin role** should have access to everything within the agent app
 6. **Use `requireAnyRole()`** for most cases (flexible, allows admin access)

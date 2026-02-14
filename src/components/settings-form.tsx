@@ -32,8 +32,8 @@ interface SettingsFormProps {
 }
 
 const ROLE_KEYS: Record<Role, string> = {
-	customer: 'role-customer',
-	employee: 'role-employee',
+	applicant: 'role-applicant',
+	agent: 'role-agent',
 	requests: 'role-requests',
 	admin: 'role-admin',
 }

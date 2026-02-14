@@ -2,13 +2,13 @@
  * Test fixtures for company switcher E2E (US-2.2.3)
  */
 
-export const employeeWithAssignments = {
-	name: 'Employee With Companies',
-	email: 'employee.switcher@example.com',
-	roles: ['employee'] as const,
+export const agentWithAssignments = {
+	name: 'Agent With Companies',
+	email: 'agent.switcher@example.com',
+	roles: ['agent'] as const,
 }
 
-/** Assigned to employee: active */
+/** Assigned to agent: active */
 export const companyAssignedActive = {
 	name: 'Assigned Active Co',
 	domain: 'assigned-active-switcher.com',
@@ -17,7 +17,7 @@ export const companyAssignedActive = {
 	active: true,
 }
 
-/** Assigned to employee: active (second) */
+/** Assigned to agent: active (second) */
 export const companyAssignedActive2 = {
 	name: 'Beta Corp',
 	domain: 'beta-corp-switcher.com',
@@ -26,7 +26,7 @@ export const companyAssignedActive2 = {
 	active: true,
 }
 
-/** Assigned to employee: inactive (shown but disabled in switcher) */
+/** Assigned to agent: inactive (shown but disabled in switcher) */
 export const companyAssignedInactive = {
 	name: 'Assigned Inactive Co',
 	domain: 'assigned-inactive-switcher.com',
@@ -35,7 +35,7 @@ export const companyAssignedInactive = {
 	active: false,
 }
 
-/** Not assigned to employee - must not appear in switcher */
+/** Not assigned to agent - must not appear in switcher */
 export const companyUnassigned = {
 	name: 'Unassigned Company',
 	domain: 'unassigned-switcher.com',

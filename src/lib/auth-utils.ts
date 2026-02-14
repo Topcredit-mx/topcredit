@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '~/server/auth/config'
 
-export type Role = 'customer' | 'employee' | 'requests' | 'admin'
+export type Role = 'applicant' | 'agent' | 'requests' | 'admin'
 
 /**
  * If user is logged in with a known role, redirect to their app (dashboard or /app).
@@ -12,8 +12,8 @@ export type Role = 'customer' | 'employee' | 'requests' | 'admin'
 export async function redirectIfLoggedIn() {
 	const session = await getServerSession(authOptions)
 	const roles = session?.user?.roles ?? []
-	if (roles.includes('employee')) redirect('/app')
-	if (roles.includes('customer')) redirect('/dashboard')
+	if (roles.includes('agent')) redirect('/app')
+	if (roles.includes('applicant')) redirect('/dashboard')
 }
 
 /**
