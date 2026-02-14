@@ -2,13 +2,13 @@ import { agentUser, applicantUser } from './login/login.fixtures'
 
 describe('Home / Landing', () => {
 	before(() => {
-		cy.task('cleanupTestUsers', [applicantUser.email, agentUser.email])
+		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
 		cy.task('createUser', applicantUser)
 		cy.task('createUser', agentUser)
 	})
 
 	after(() => {
-		cy.task('cleanupTestUsers', [applicantUser.email, agentUser.email])
+		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
 	})
 
 	it('shows landing page to unauthenticated users', () => {

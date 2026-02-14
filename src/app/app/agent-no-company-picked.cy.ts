@@ -17,9 +17,9 @@ describe('Agent with no company picked', () => {
 	const companyDomains = switcherCompanyList.map((c) => c.domain)
 
 	before(() => {
-		cy.task('cleanupUserCompanies', [agentEmail])
-		cy.task('cleanupTestUsers', [agentEmail])
-		cy.task('cleanupTestCompanies', companyDomains)
+		cy.task('deleteUserCompanyAssignmentsByEmail', [agentEmail])
+		cy.task('deleteUsersByEmail', [agentEmail])
+		cy.task('deleteCompaniesByDomain', companyDomains)
 
 		cy.task('createUser', agentWithAssignments)
 		cy.task('createMultipleCompanies', switcherCompanyList)
@@ -39,9 +39,9 @@ describe('Agent with no company picked', () => {
 	})
 
 	after(() => {
-		cy.task('cleanupUserCompanies', [agentEmail])
-		cy.task('cleanupTestUsers', [agentEmail])
-		cy.task('cleanupTestCompanies', companyDomains)
+		cy.task('deleteUserCompanyAssignmentsByEmail', [agentEmail])
+		cy.task('deleteUsersByEmail', [agentEmail])
+		cy.task('deleteCompaniesByDomain', companyDomains)
 	})
 
 	beforeEach(() => {

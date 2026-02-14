@@ -228,7 +228,7 @@ export const createUser = async (params: CreateUserTaskParams) => {
   return user
 }
 
-export const cleanupTestUsers = async (emails: string[]) => {
+export const deleteUsersByEmail = async (emails: string[]) => {
   const db = getDb(process.env.DATABASE_URL || '')
 
   for (const email of emails) {
@@ -318,7 +318,7 @@ describe('Admin Users Table', () => {
   before(() => {
     // Clean up any stale data from previous interrupted runs
     const allEmails = [adminUser.email, ...testUsers.map((u) => u.email)]
-    cy.task('cleanupTestUsers', allEmails)
+    cy.task('deleteUsersByEmail', allEmails)
     // Create test users before all tests
     cy.task('createUser', adminUser)
     cy.task('createMultipleUsers', testUsers)
@@ -327,7 +327,7 @@ describe('Admin Users Table', () => {
   after(() => {
     // Cleanup all test users after tests complete
     const allEmails = [adminUser.email, ...testUsers.map((u) => u.email)]
-    cy.task('cleanupTestUsers', allEmails)
+    cy.task('deleteUsersByEmail', allEmails)
   })
 
   beforeEach(() => {
@@ -390,14 +390,14 @@ const testUser = {
 describe('My Test Suite', () => {
   before(() => {
     // 1. Clean up any stale data from previous interrupted runs
-    cy.task('cleanupTestUsers', [testUser.email])
+    cy.task('deleteUsersByEmail', [testUser.email])
     // 2. Create fresh test data
     cy.task('createUser', testUser)
   })
 
   after(() => {
     // 3. Clean up after normal completion
-    cy.task('cleanupTestUsers', [testUser.email])
+    cy.task('deleteUsersByEmail', [testUser.email])
   })
 
   // ... tests
@@ -487,12 +487,12 @@ it('updates same user', () => { /* depends on previous test */ })
 describe('User Management', () => {
   before(() => {
     // Clean up stale data from previous interrupted runs
-    cy.task('cleanupTestUsers', [testUser.email])
+    cy.task('deleteUsersByEmail', [testUser.email])
     cy.task('createUser', testUser)
   })
 
   after(() => {
-    cy.task('cleanupTestUsers', [testUser.email])
+    cy.task('deleteUsersByEmail', [testUser.email])
   })
 
   it('creates user', () => {

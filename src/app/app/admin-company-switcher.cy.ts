@@ -16,16 +16,16 @@ describe('Admin company switcher (US-2.2.6)', () => {
 	const companyDomains = overviewCompanyList.map((c) => c.domain)
 
 	before(() => {
-		cy.task('cleanupTestUsers', [adminEmail])
-		cy.task('cleanupTestCompanies', companyDomains)
+		cy.task('deleteUsersByEmail', [adminEmail])
+		cy.task('deleteCompaniesByDomain', companyDomains)
 
 		cy.task('createUser', adminOverviewAdmin)
 		cy.task('createMultipleCompanies', overviewCompanyList)
 	})
 
 	after(() => {
-		cy.task('cleanupTestUsers', [adminEmail])
-		cy.task('cleanupTestCompanies', companyDomains)
+		cy.task('deleteUsersByEmail', [adminEmail])
+		cy.task('deleteCompaniesByDomain', companyDomains)
 	})
 
 	beforeEach(() => {

@@ -2,12 +2,12 @@ import { applicantUser } from '../../login/login.fixtures'
 
 describe('Settings Profile', () => {
 	before(() => {
-		cy.task('cleanupTestUsers', [applicantUser.email])
+		cy.task('deleteUsersByEmail', [applicantUser.email])
 		cy.task('createUser', applicantUser)
 	})
 
 	after(() => {
-		cy.task('cleanupTestUsers', [applicantUser.email])
+		cy.task('deleteUsersByEmail', [applicantUser.email])
 	})
 
 	it('should redirect to login when accessing /settings/profile unauthenticated', () => {
@@ -39,20 +39,14 @@ describe('Settings Profile', () => {
 	})
 
 	it('should show unverified state for user without verified email', () => {
-		cy.task('setUserEmailVerified', {
-			email: applicantUser.email,
-			verified: false,
-		})
+		cy.task('createUser', { ...applicantUser, verified: false })
 		cy.login(applicantUser.email)
 		cy.visit('/settings/profile')
 		cy.contains('Correo no verificado').should('be.visible')
 	})
 
 	it('should show verified state for user with verified email', () => {
-		cy.task('setUserEmailVerified', {
-			email: applicantUser.email,
-			verified: true,
-		})
+		cy.task('createUser', { ...applicantUser, verified: true })
 		cy.login(applicantUser.email)
 		cy.visit('/settings/profile')
 		cy.contains('Correo verificado').should('be.visible')

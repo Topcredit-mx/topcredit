@@ -14,7 +14,6 @@ declare namespace Cypress {
 			event: 'createUser',
 			params: CreateUserTaskParams,
 		): Chainable<{ id: number }>
-		task(event: 'deleteUser', params: string): Chainable<null>
 	}
 }
 
@@ -22,4 +21,6 @@ type CreateUserTaskParams = {
 	name: string
 	email: string
 	roles?: Array<'applicant' | 'agent' | 'requests' | 'admin'>
+	/** Default true. Set false for verification-specific E2E tests. */
+	verified?: boolean
 }

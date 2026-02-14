@@ -3,13 +3,13 @@ import { agentUser, applicantUser } from './login.fixtures'
 describe('Login Flow', () => {
 	before(() => {
 		// Clean up any stale data from previous interrupted runs
-		cy.task('cleanupTestUsers', [applicantUser.email, agentUser.email])
+		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
 		cy.task('createUser', applicantUser)
 		cy.task('createUser', agentUser)
 	})
 
 	after(() => {
-		cy.task('cleanupTestUsers', [applicantUser.email, agentUser.email])
+		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
 	})
 
 	it('should access applicant dashboard after login', () => {
@@ -61,40 +61,28 @@ describe('Login Flow', () => {
 
 	describe('Email verification (dashboard / app)', () => {
 		it('applicant dashboard: unverified user sees verification warning', () => {
-			cy.task('setUserEmailVerified', {
-				email: applicantUser.email,
-				verified: false,
-			})
+			cy.task('createUser', { ...applicantUser, verified: false })
 			cy.login(applicantUser.email)
 			cy.visit('/dashboard')
 			cy.get('[role="alert"]').should('be.visible')
 		})
 
 		it('applicant dashboard: verified user does not see verification warning', () => {
-			cy.task('setUserEmailVerified', {
-				email: applicantUser.email,
-				verified: true,
-			})
+			cy.task('createUser', { ...applicantUser, verified: true })
 			cy.login(applicantUser.email)
 			cy.visit('/dashboard')
 			cy.get('[role="alert"]').should('not.exist')
 		})
 
 		it('agent app: unverified user sees verification warning in sidebar', () => {
-			cy.task('setUserEmailVerified', {
-				email: agentUser.email,
-				verified: false,
-			})
+			cy.task('createUser', { ...agentUser, verified: false })
 			cy.login(agentUser.email)
 			cy.visit('/app')
 			cy.get('[role="alert"]').should('be.visible')
 		})
 
 		it('agent app: verified user does not see verification warning', () => {
-			cy.task('setUserEmailVerified', {
-				email: agentUser.email,
-				verified: true,
-			})
+			cy.task('createUser', { ...agentUser, verified: true })
 			cy.login(agentUser.email)
 			cy.visit('/app')
 			cy.get('[role="alert"]').should('not.exist')

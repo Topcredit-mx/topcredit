@@ -19,9 +19,9 @@ describe('Admin Users', () => {
 		]
 		const companyDomains = companyList.map((c) => c.domain)
 
-		cy.task('cleanupUserCompanies', allUserEmails)
-		cy.task('cleanupTestUsers', allUserEmails)
-		cy.task('cleanupTestCompanies', companyDomains)
+		cy.task('deleteUserCompanyAssignmentsByEmail', allUserEmails)
+		cy.task('deleteUsersByEmail', allUserEmails)
+		cy.task('deleteCompaniesByDomain', companyDomains)
 
 		cy.task('createUser', adminUser)
 		cy.task('createUser', applicantOnlyUser)
@@ -39,9 +39,9 @@ describe('Admin Users', () => {
 		]
 		const companyDomains = companyList.map((c) => c.domain)
 
-		cy.task('cleanupUserCompanies', allUserEmails)
-		cy.task('cleanupTestUsers', allUserEmails)
-		cy.task('cleanupTestCompanies', companyDomains)
+		cy.task('deleteUserCompanyAssignmentsByEmail', allUserEmails)
+		cy.task('deleteUsersByEmail', allUserEmails)
+		cy.task('deleteCompaniesByDomain', companyDomains)
 	})
 
 	describe('Access Control', () => {
@@ -255,7 +255,7 @@ describe('Admin Users', () => {
 				cy.contains(companies.acme.name).should('exist')
 			})
 
-			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
+			cy.task('deleteUserCompanyAssignmentsByEmail', [agentOnlyUser.email])
 		})
 
 		it('should open company assignment dialog when clicking assign button', () => {
@@ -341,7 +341,7 @@ describe('Admin Users', () => {
 					.should('have.attr', 'data-state', 'checked')
 			})
 
-			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
+			cy.task('deleteUserCompanyAssignmentsByEmail', [agentOnlyUser.email])
 		})
 
 		it('should show list of assigned companies in assignment dialog', () => {
@@ -361,7 +361,7 @@ describe('Admin Users', () => {
 				cy.contains(companies.acme.domain).should('exist')
 			})
 
-			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
+			cy.task('deleteUserCompanyAssignmentsByEmail', [agentOnlyUser.email])
 		})
 
 		it('should remove one company assignment when unchecking and saving', () => {
@@ -392,7 +392,7 @@ describe('Admin Users', () => {
 				cy.contains(companies.acme.name).should('not.exist')
 			})
 
-			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
+			cy.task('deleteUserCompanyAssignmentsByEmail', [agentOnlyUser.email])
 		})
 
 		it('should remove all company assignments when unchecking all and saving', () => {
@@ -418,7 +418,7 @@ describe('Admin Users', () => {
 				cy.contains(/sin empresas/i).should('exist')
 			})
 
-			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
+			cy.task('deleteUserCompanyAssignmentsByEmail', [agentOnlyUser.email])
 		})
 
 		it('removal takes effect immediately without page reload', () => {
@@ -447,7 +447,7 @@ describe('Admin Users', () => {
 				cy.contains(/sin empresas/i).should('exist')
 			})
 
-			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
+			cy.task('deleteUserCompanyAssignmentsByEmail', [agentOnlyUser.email])
 		})
 
 		it('should keep dialog open and show error when save fails (e.g. network error)', () => {
@@ -484,7 +484,7 @@ describe('Admin Users', () => {
 				cy.contains(companies.acme.name).should('exist')
 			})
 
-			cy.task('cleanupUserCompanies', [agentOnlyUser.email])
+			cy.task('deleteUserCompanyAssignmentsByEmail', [agentOnlyUser.email])
 		})
 	})
 })
