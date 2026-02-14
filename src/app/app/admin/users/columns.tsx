@@ -271,8 +271,8 @@ export function createColumns(
 	onUserCompaniesChange: (userId: number, companyIds: number[]) => void,
 	t: ReturnType<typeof useTranslations<'admin'>>,
 ): ColumnDef<UserWithRoles>[] {
-	// Only show agent/manageable roles (not applicant)
-	const rolesToShow: Role[] = ['agent', 'requests', 'admin']
+	// Only show assignable roles (not applicant, not base agent - removing agent would drop user from this page with no way to restore)
+	const rolesToShow: Role[] = ['requests', 'admin']
 	const roleLabels: Record<Role, string> = {
 		applicant: t('users-role-applicant'),
 		agent: t('users-role-agent'),

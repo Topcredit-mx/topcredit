@@ -79,7 +79,6 @@ describe('Admin Users', () => {
 		it('should display users table with correct columns', () => {
 			cy.contains('th', /nombre/i).should('exist')
 			cy.contains('th', /email/i).should('exist')
-			cy.contains('th', /agente/i).should('exist')
 			cy.contains('th', /solicitudes/i).should('exist')
 			cy.contains('th', /admin/i).should('exist')
 			cy.contains('th', /fecha de creación/i).should('exist')
@@ -93,9 +92,9 @@ describe('Admin Users', () => {
 			cy.contains(users.bob.name).should('exist')
 		})
 
-		it('should display checkboxes for agent roles', () => {
+		it('should display checkboxes for requests and admin roles', () => {
 			cy.findTableRow(users.jane.name).within(() => {
-				cy.get('button[role="checkbox"]').should('have.length', 3)
+				cy.get('button[role="checkbox"]').should('have.length', 2)
 			})
 		})
 	})
