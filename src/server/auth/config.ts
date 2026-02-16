@@ -1,11 +1,13 @@
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import {
-	getUserByEmail,
 	verifyBackupCodeLogin,
 	verifyOtp,
 	verifyTotpLogin,
-} from './users'
+} from './actions-no-ability'
+import { getApplicantEligibilityData } from './eligibility'
+import { getUserByEmail } from './users'
+import { isEligibleForNewCredit } from '~/lib/abilities'
 
 export const authOptions = {
 	providers: [
@@ -19,7 +21,13 @@ export const authOptions = {
 				if (!credentials?.email || !credentials?.otp) return null
 
 				await verifyOtp(credentials.email, credentials.otp)
-				return await getUserByEmail(credentials.email)
+				const user = await getUserByEmail(credentials.email)
+				if (!user) return null
+				if (user.roles?.includes('applicant')) {
+					const eligibility = await getApplicantEligibilityData(credentials.email)
+					if (!isEligibleForNewCredit(eligibility)) return null
+				}
+				return user
 			},
 		}),
 		CredentialsProvider({
@@ -33,7 +41,13 @@ export const authOptions = {
 				if (!credentials?.email || !credentials?.totp) return null
 
 				await verifyTotpLogin(credentials.email, credentials.totp)
-				return await getUserByEmail(credentials.email)
+				const user = await getUserByEmail(credentials.email)
+				if (!user) return null
+				if (user.roles?.includes('applicant')) {
+					const eligibility = await getApplicantEligibilityData(credentials.email)
+					if (!isEligibleForNewCredit(eligibility)) return null
+				}
+				return user
 			},
 		}),
 		CredentialsProvider({
@@ -47,7 +61,13 @@ export const authOptions = {
 				if (!credentials?.email || !credentials?.backupCode) return null
 
 				await verifyBackupCodeLogin(credentials.email, credentials.backupCode)
-				return await getUserByEmail(credentials.email)
+				const user = await getUserByEmail(credentials.email)
+				if (!user) return null
+				if (user.roles?.includes('applicant')) {
+					const eligibility = await getApplicantEligibilityData(credentials.email)
+					if (!isEligibleForNewCredit(eligibility)) return null
+				}
+				return user
 			},
 		}),
 	],

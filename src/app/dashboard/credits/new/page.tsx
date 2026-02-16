@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
+import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import { getRequiredApplicantUser } from '~/server/auth/lib'
 import {
 	getCompanyByEmailDomain,
@@ -9,7 +10,12 @@ import {
 import { CreditApplicationForm } from './credit-application-form'
 
 export default async function NewCreditPage() {
-	const user = await getRequiredApplicantUser()
+	const [ability, user] = await Promise.all([
+		getAbility(),
+		getRequiredApplicantUser(),
+	])
+	requireAbility(ability, 'create', 'Credit')
+
 	const email = user.email ?? ''
 	const company = await getCompanyByEmailDomain(email)
 

@@ -20,10 +20,31 @@ export type AppAbility = MongoAbility<
 	[AppAction, AppSubject | CompanySubject | UserSubject | CreditSubject]
 >
 
+/** Data used to decide if an applicant can create a Credit. Fetched in server; logic lives here. */
+export type ApplicantEligibilityData = {
+	hasCompany: boolean
+	borrowingCapacityRate: number | null
+	termOfferingsCount: number
+}
+
+export function isEligibleForNewCredit(
+	data: ApplicantEligibilityData | null | undefined,
+): boolean {
+	if (!data) return false
+	return (
+		data.hasCompany &&
+		data.borrowingCapacityRate != null &&
+		data.borrowingCapacityRate > 0 &&
+		data.termOfferingsCount > 0
+	)
+}
+
 export type AbilityContext = {
 	roles: string[]
 	assignedCompanyIds: number[] | 'all'
 	userId?: number
+	/** For applicants: company/rate/term data so we can gate create Credit and reuse elsewhere. */
+	applicantEligibilityData?: ApplicantEligibilityData | null
 }
 
 function companyIdCondition(ids: number[]): MongoQuery<CompanySubject> {
@@ -43,12 +64,16 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 	}
 
 	if (isApplicant && ctx.userId != null) {
-		can('create', 'Credit')
+		if (isEligibleForNewCredit(ctx.applicantEligibilityData)) {
+			can('create', 'Credit')
+		}
 		can('read', 'Credit', { borrowerId: ctx.userId })
+		can('update', 'User', { id: ctx.userId })
 		return build()
 	}
 
-	if (isAgent) {
+	if (isAgent && ctx.userId != null) {
+		can('update', 'User', { id: ctx.userId })
 		if (ctx.assignedCompanyIds === 'all') {
 			can('manage', 'Company')
 		} else if (ctx.assignedCompanyIds.length > 0) {
@@ -84,4 +109,8 @@ export function toCreditSubject(credit: {
 		id: credit.id,
 		borrowerId: credit.borrowerId,
 	}
+}
+
+export function toUserSubject(user: { id: number }): UserSubject {
+	return { __typename: 'User', id: user.id }
 }

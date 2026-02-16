@@ -1,8 +1,13 @@
 import { redirect } from 'next/navigation'
-import type { AppAbility } from '~/lib/abilities'
-import { type AbilityContext, defineAbilityFor } from '~/lib/abilities'
+import type {
+	AbilityContext,
+	AppAbility,
+	ApplicantEligibilityData,
+} from '~/lib/abilities'
+import { defineAbilityFor } from '~/lib/abilities'
 import { requireAuth } from '~/lib/auth-utils'
 import { getUserCompanyAssignments } from '~/server/scopes'
+import { getApplicantEligibilityData } from './eligibility'
 
 export async function getAbility(): Promise<AppAbility> {
 	const session = await requireAuth()
@@ -15,10 +20,17 @@ export async function getAbility(): Promise<AppAbility> {
 			? (await getUserCompanyAssignments(userId)).map((c) => c.id)
 			: []
 
+	let applicantEligibilityData: ApplicantEligibilityData | null = null
+	if (roles.includes('applicant')) {
+		const email = session.user.email ?? ''
+		applicantEligibilityData = await getApplicantEligibilityData(email)
+	}
+
 	const ctx: AbilityContext = {
 		roles,
 		assignedCompanyIds,
 		userId: session.user.id,
+		applicantEligibilityData,
 	}
 	return defineAbilityFor(ctx)
 }

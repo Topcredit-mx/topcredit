@@ -8,7 +8,7 @@ import { Button } from '~/components/ui/button'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
 import { cn } from '~/lib/utils'
-import { registerUser } from '~/server/auth/users'
+import { registerUser } from '~/server/auth/actions-no-ability'
 
 export function SignupForm({
 	className,
