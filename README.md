@@ -340,8 +340,9 @@ Copy `.env.example` to `.env` and set:
 | `pnpm db:generate` | Generate migration files from schema |
 | `pnpm db:migrate` | Apply migrations (use in prod) |
 | `pnpm db:push` | Push schema to DB without migration files (dev only) |
+| `pnpm db:nuke` | Drop public + drizzle schemas (dev only); run `db:push` after to recreate |
+| `pnpm db:nuke:push` | Nuke then push — full hard reset (dev only) |
 | `pnpm db:studio` | Open Drizzle Studio |
-| `pnpm db:reset` | Wipe DB data (dev); `--seed` to seed after |
 | `pnpm typecheck` | Run TypeScript check |
 | `pnpm check` | Run Biome lint |
 | `pnpm cy:open` | Open Cypress UI |
