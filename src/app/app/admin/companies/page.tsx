@@ -1,10 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { requireAuth } from '~/lib/auth-utils'
 import { getCompanies } from '~/server/queries'
-import {
-	getAssignedCompanyIds,
-	getSelectedCompanyId,
-} from '~/server/scopes'
+import { getAssignedCompanyIds, getSelectedCompanyId } from '~/server/scopes'
 import { CompaniesTable } from './companies-table'
 
 interface CompaniesPageProps {

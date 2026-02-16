@@ -61,9 +61,7 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 			setNewBackupCodes(result.backupCodes)
 			router.refresh()
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : t('error-regenerate'),
-			)
+			setError(err instanceof Error ? err.message : t('error-regenerate'))
 		} finally {
 			setIsLoading(false)
 		}

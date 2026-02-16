@@ -11,7 +11,9 @@ export default async function NewCompanyPage() {
 		<div className="container mx-auto py-6">
 			<div className="mb-6">
 				<h1 className="font-bold text-3xl">{t('companies-create-title')}</h1>
-				<p className="text-muted-foreground">{t('companies-create-subtitle')}</p>
+				<p className="text-muted-foreground">
+					{t('companies-create-subtitle')}
+				</p>
 			</div>
 
 			<div className="max-w-2xl">

@@ -1,6 +1,12 @@
 'use client'
 
-import { AlertTriangle, ChevronsUpDown, KeyRound, LogOut, User } from 'lucide-react'
+import {
+	AlertTriangle,
+	ChevronsUpDown,
+	KeyRound,
+	LogOut,
+	User,
+} from 'lucide-react'
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
@@ -107,13 +113,19 @@ export function NavUser({ user }: NavUserProps) {
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem asChild>
-							<Link href="/settings/profile" className="flex cursor-pointer items-center gap-2">
+							<Link
+								href="/settings/profile"
+								className="flex cursor-pointer items-center gap-2"
+							>
 								<User className="size-4" />
 								{t('footer-profile')}
 							</Link>
 						</DropdownMenuItem>
 						<DropdownMenuItem asChild>
-							<Link href="/settings/security" className="flex cursor-pointer items-center gap-2">
+							<Link
+								href="/settings/security"
+								className="flex cursor-pointer items-center gap-2"
+							>
 								<KeyRound className="size-4" />
 								{t('footer-authentication')}
 							</Link>

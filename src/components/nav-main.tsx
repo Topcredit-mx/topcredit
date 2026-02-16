@@ -70,10 +70,7 @@ export function NavMain({
 						>
 							<SidebarMenuItem>
 								<CollapsibleTrigger asChild>
-									<SidebarMenuButton
-										tooltip={item.title}
-										disabled={disabled}
-									>
+									<SidebarMenuButton tooltip={item.title} disabled={disabled}>
 										{item.icon && <item.icon />}
 										<span>{item.title}</span>
 										<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />

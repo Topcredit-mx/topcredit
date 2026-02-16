@@ -1,7 +1,7 @@
 'use client'
 
-import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import { Button } from '~/components/ui/button'
 import {
 	Dialog,
@@ -95,7 +95,9 @@ export function EmailChangeModal({
 					{step === 'email' ? (
 						<form action={emailAction} className="space-y-4" noValidate>
 							<Field>
-								<FieldLabel htmlFor={currentEmailId}>{t('email-change-current-label')}</FieldLabel>
+								<FieldLabel htmlFor={currentEmailId}>
+									{t('email-change-current-label')}
+								</FieldLabel>
 								<Input
 									id={currentEmailId}
 									value={currentEmail}

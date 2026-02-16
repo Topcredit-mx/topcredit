@@ -5,11 +5,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useActionState, useId } from 'react'
 import { Button } from '~/components/ui/button'
-import {
-	Field,
-	FieldError,
-	FieldLabel,
-} from '~/components/ui/field'
+import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
 import { cn } from '~/lib/utils'
 import { registerUser } from '~/server/auth/users'
@@ -71,11 +67,13 @@ export function SignupForm({
 								<FieldError>{state.message}</FieldError>
 							)}
 						</Field>
-						{state.message && !state.message?.includes('email') && !state.message?.includes('nombre') && (
-							<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-								{state.message}
-							</div>
-						)}
+						{state.message &&
+							!state.message?.includes('email') &&
+							!state.message?.includes('nombre') && (
+								<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
+									{state.message}
+								</div>
+							)}
 						<Button type="submit" className="w-full" disabled={loading}>
 							{loading ? tCommon('loading') : t('submit-signup')}
 						</Button>
@@ -83,8 +81,7 @@ export function SignupForm({
 				</div>
 			</form>
 			<div className="text-balance text-center text-muted-foreground text-xs *:[a]:underline *:[a]:underline-offset-4 *:[a]:hover:text-primary">
-				{t('terms-prefix')}{' '}
-				<Link href="#">{t('terms')}</Link> y{' '}
+				{t('terms-prefix')} <Link href="#">{t('terms')}</Link> y{' '}
 				<Link href="#">{t('privacy')}</Link>.
 			</div>
 		</div>

@@ -54,9 +54,9 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 			(role) => !existingRoles.some((r) => r.role === role),
 		)
 		if (toAdd.length > 0) {
-			await db.insert(userRoles).values(
-				toAdd.map((role) => ({ userId: user.id, role })),
-			)
+			await db
+				.insert(userRoles)
+				.values(toAdd.map((role) => ({ userId: user.id, role })))
 			console.log(`  ✓ Ensured roles for ${u.email}: ${toAdd.join(', ')}`)
 		}
 	}

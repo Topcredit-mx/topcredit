@@ -53,9 +53,7 @@ export function SetupTotpForm({
 			setTotpData(result)
 			setCurrentStep('scan')
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : t('error-generate'),
-			)
+			setError(err instanceof Error ? err.message : t('error-generate'))
 		} finally {
 			setLoading(false)
 		}
@@ -72,9 +70,7 @@ export function SetupTotpForm({
 			setBackupCodes(result.backupCodes)
 			setCurrentStep('backup-codes')
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : t('error-verify'),
-			)
+			setError(err instanceof Error ? err.message : t('error-verify'))
 		} finally {
 			setLoading(false)
 		}
@@ -105,9 +101,7 @@ export function SetupTotpForm({
 					<GalleryVerticalEnd className="h-8 w-8" />
 				</div>
 				<h1 className="font-bold text-2xl">{t('title')}</h1>
-				<p className="text-balance text-muted-foreground">
-					{t('description')}
-				</p>
+				<p className="text-balance text-muted-foreground">{t('description')}</p>
 			</div>
 
 			{error && (

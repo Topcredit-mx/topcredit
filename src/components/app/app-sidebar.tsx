@@ -109,8 +109,12 @@ export function AppSidebar({
 										<Building2 className="size-4" />
 									</div>
 									<div className="grid flex-1 text-left text-sm leading-tight">
-										<span className="truncate font-semibold">{t('brand-name')}</span>
-										<span className="truncate text-xs">{t('brand-tagline')}</span>
+										<span className="truncate font-semibold">
+											{t('brand-name')}
+										</span>
+										<span className="truncate text-xs">
+											{t('brand-tagline')}
+										</span>
 									</div>
 								</Link>
 							</SidebarMenuButton>
@@ -121,10 +125,10 @@ export function AppSidebar({
 
 			<SidebarContent>
 				<NavMain
-				items={navigationItems}
-				disabled={disableNav}
-				groupLabel={t('navigation')}
-			/>
+					items={navigationItems}
+					disabled={disableNav}
+					groupLabel={t('navigation')}
+				/>
 			</SidebarContent>
 
 			<SidebarFooter>

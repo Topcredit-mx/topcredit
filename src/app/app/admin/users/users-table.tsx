@@ -34,9 +34,7 @@ export function UsersTable({
 			.map((id) => allCompanies.find((c) => c.id === id))
 			.filter((c): c is CompanyBasic => c != null)
 		setUsers((prev) =>
-			prev.map((u) =>
-				u.id === userId ? { ...u, companies } : u,
-			),
+			prev.map((u) => (u.id === userId ? { ...u, companies } : u)),
 		)
 	}
 

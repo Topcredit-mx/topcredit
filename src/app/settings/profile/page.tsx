@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
+import { ProfileView } from '~/components/profile-view'
 import { getRequiredUser } from '~/server/auth/lib'
 import { getUserByEmail } from '~/server/auth/users'
-import { ProfileView } from '~/components/profile-view'
 
 export default async function SettingsProfilePage() {
 	const sessionUser = await getRequiredUser()

@@ -1,15 +1,12 @@
 import { eq } from 'drizzle-orm'
-import { AppSidebar } from '~/components/app/app-sidebar'
 import { AgentNoAssignmentsEmpty } from '~/components/app/agent-no-assignments-empty'
 import { AgentNoCompanyPickedEmpty } from '~/components/app/agent-no-company-picked-empty'
+import { AppSidebar } from '~/components/app/app-sidebar'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
+import { getRequiredAgentUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
-import { getRequiredAgentUser } from '~/server/auth/lib'
-import {
-	getCompaniesForSwitcher,
-	getSelectedCompanyId,
-} from '~/server/scopes'
+import { getCompaniesForSwitcher, getSelectedCompanyId } from '~/server/scopes'
 
 export default async function AppLayout({
 	children,

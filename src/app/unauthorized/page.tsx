@@ -1,7 +1,7 @@
 import { AlertCircle } from 'lucide-react'
 import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
 import { getServerSession } from 'next-auth'
+import { getTranslations } from 'next-intl/server'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { authOptions } from '~/server/auth/config'
@@ -20,9 +20,7 @@ export default async function UnauthorizedPage() {
 					</div>
 				</div>
 
-				<h1 className="mb-2 font-bold text-3xl text-gray-900">
-					{t('title')}
-				</h1>
+				<h1 className="mb-2 font-bold text-3xl text-gray-900">{t('title')}</h1>
 
 				<p className="mb-6 text-gray-600">{t('description')}</p>
 

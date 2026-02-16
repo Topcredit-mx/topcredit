@@ -48,9 +48,7 @@ export function VerifyTotpForm({
 					<GalleryVerticalEnd className="h-8 w-8" />
 				</div>
 				<h1 className="font-bold text-2xl">{t('title')}</h1>
-				<p className="text-balance text-muted-foreground">
-					{t('description')}
-				</p>
+				<p className="text-balance text-muted-foreground">{t('description')}</p>
 				<div className="rounded-lg bg-muted p-3 text-sm">
 					<strong>{t('email-label')}</strong> {email}
 				</div>

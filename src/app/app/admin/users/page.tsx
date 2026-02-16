@@ -20,7 +20,6 @@ export default async function UsersPage() {
 		getAllCompaniesForAssignment(),
 	])
 
-
 	const t = await getTranslations('admin')
 	return (
 		<div className="container mx-auto py-6">

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
+import { SecurityForm } from '~/components/security-form'
 import { getRequiredUser } from '~/server/auth/lib'
 import { getUserByEmail } from '~/server/auth/users'
-import { SecurityForm } from '~/components/security-form'
 
 export default async function SettingsSecurityPage() {
 	const sessionUser = await getRequiredUser()
