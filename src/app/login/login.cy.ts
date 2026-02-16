@@ -1,15 +1,56 @@
 import { agentUser, applicantUser } from './login.fixtures'
 
+const LOGIN_APPLICANT_DOMAIN = 'example.com'
+
 describe('Login Flow', () => {
+	/** Set in before(); used so applicant has 1 credit and stays on dashboard (not redirected to /dashboard/credits/new). Also used by unverified-user test. */
+	let termOfferingId: number | undefined
+
 	before(() => {
 		// Clean up any stale data from previous interrupted runs
 		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
+		cy.task('deleteCompaniesByDomain', [LOGIN_APPLICANT_DOMAIN])
+
 		cy.task('createUser', applicantUser)
 		cy.task('createUser', agentUser)
+
+		// Give applicant a company and one credit so /dashboard shows "Mi Cuenta" instead of redirecting to /dashboard/credits/new
+		cy.task('createCompany', {
+			name: 'Login E2E Company',
+			domain: LOGIN_APPLICANT_DOMAIN,
+			rate: '0.0250',
+			borrowingCapacityRate: '0.30',
+			employeeSalaryFrequency: 'monthly',
+			active: true,
+		}).then((company) => {
+			cy.task('createTerm', { durationType: 'monthly', duration: 12 }).then(
+				(term) => {
+					cy.task('createTermOffering', {
+						companyId: company.id,
+						termId: term.id,
+						disabled: false,
+					}).then((offering) => {
+						termOfferingId = offering.id
+						cy.task('getUserIdByEmail', applicantUser.email).then(
+							(borrowerId) => {
+								if (borrowerId != null)
+									cy.task('createCredit', {
+										borrowerId,
+										termOfferingId: offering.id,
+										creditAmount: '10000',
+										salaryAtApplication: '100000',
+									})
+							},
+						)
+					})
+				},
+			)
+		})
 	})
 
 	after(() => {
 		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
+		cy.task('deleteCompaniesByDomain', [LOGIN_APPLICANT_DOMAIN])
 	})
 
 	it('should access applicant dashboard after login', () => {
@@ -61,7 +102,19 @@ describe('Login Flow', () => {
 
 	describe('Email verification (dashboard / app)', () => {
 		it('applicant dashboard: unverified user sees verification warning', () => {
+			if (termOfferingId == null) {
+				throw new Error('termOfferingId not set in before()')
+			}
 			cy.task('createUser', { ...applicantUser, verified: false })
+			cy.task('getUserIdByEmail', applicantUser.email).then((borrowerId) => {
+				if (borrowerId == null) throw new Error('applicant not found')
+				cy.task('createCredit', {
+					borrowerId,
+					termOfferingId,
+					creditAmount: '10000',
+					salaryAtApplication: '100000',
+				})
+			})
 			cy.login(applicantUser.email)
 			cy.visit('/dashboard')
 			cy.get('[role="alert"]').should('be.visible')
