@@ -5,8 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { toCompanySubject } from '~/lib/abilities'
-import type { Role } from '~/lib/auth-utils'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
+import type { Role } from '~/lib/auth-utils'
 import {
 	getRequiredAgentUser,
 	getRequiredApplicantUser,
@@ -34,6 +34,10 @@ import { getCompaniesForSwitcher } from '~/server/scopes'
 
 export async function setSelectedCompanyId(companyId: number | null) {
 	const user = await getRequiredAgentUser()
+	if (companyId !== null) {
+		const ability = await getAbility()
+		requireAbility(ability, 'read', toCompanySubject({ id: companyId }))
+	}
 	const isAdmin = user.roles?.includes('admin') ?? false
 	const allowed = await getCompaniesForSwitcher(user.id, isAdmin)
 	const allowedIds = new Set(allowed.map((c) => c.id))

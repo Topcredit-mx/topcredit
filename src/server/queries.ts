@@ -1,4 +1,8 @@
 import { and, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm'
+import {
+	toCompanySubject,
+	toCreditSubject,
+} from '~/lib/abilities'
 import type { Role } from '~/lib/auth-utils'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import { db } from '~/server/db'
@@ -271,6 +275,9 @@ export async function getCompanies(
 }
 
 export async function getCompanyById(id: number): Promise<Company | null> {
+	const ability = await getAbility()
+	requireAbility(ability, 'read', toCompanySubject({ id }))
+
 	const company = await db.query.companies.findFirst({
 		where: eq(companies.id, id),
 	})
@@ -292,6 +299,9 @@ export async function getCompanyByDomain(
 	})
 
 	if (!company) return null
+
+	const ability = await getAbility()
+	requireAbility(ability, 'read', toCompanySubject({ id: company.id }))
 
 	return {
 		...company,
@@ -334,6 +344,13 @@ export type CreditListItem = {
 export async function getCreditsByBorrowerId(
 	userId: number,
 ): Promise<CreditListItem[]> {
+	const ability = await getAbility()
+	requireAbility(
+		ability,
+		'read',
+		toCreditSubject({ id: 0, borrowerId: userId }),
+	)
+
 	const list = await db.query.credits.findMany({
 		where: eq(credits.borrowerId, userId),
 		orderBy: (c, { desc }) => [desc(c.createdAt)],

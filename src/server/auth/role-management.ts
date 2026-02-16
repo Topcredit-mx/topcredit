@@ -4,11 +4,15 @@ import { and, eq } from 'drizzle-orm'
 import type { Role } from '~/lib/auth-utils'
 import { db } from '~/server/db'
 import { userRoles, users } from '~/server/db/schema'
+import { getAbility, requireAbility } from './get-ability'
 
 /**
  * Assign a role to a user
  */
 export async function assignRoleToUser(userId: number, role: Role) {
+	const ability = await getAbility()
+	requireAbility(ability, 'manage', 'User')
+
 	// Check if role already exists
 	const existingRole = await db
 		.select()
@@ -28,6 +32,9 @@ export async function assignRoleToUser(userId: number, role: Role) {
  * Remove a role from a user
  */
 export async function removeRoleFromUser(userId: number, role: Role) {
+	const ability = await getAbility()
+	requireAbility(ability, 'manage', 'User')
+
 	await db
 		.delete(userRoles)
 		.where(and(eq(userRoles.userId, userId), eq(userRoles.role, role)))
@@ -39,18 +46,24 @@ export async function removeRoleFromUser(userId: number, role: Role) {
  * Get all roles for a user
  */
 export async function getUserRoles(userId: number): Promise<Role[]> {
+	const ability = await getAbility()
+	requireAbility(ability, 'manage', 'User')
+
 	const roles = await db
 		.select({ role: userRoles.role })
 		.from(userRoles)
 		.where(eq(userRoles.userId, userId))
 
-	return roles.map((r) => r.role as Role)
+	return roles.map((r) => r.role)
 }
 
 /**
  * Set user roles (replaces all existing roles)
  */
 export async function setUserRoles(userId: number, roles: Role[]) {
+	const ability = await getAbility()
+	requireAbility(ability, 'manage', 'User')
+
 	// Remove all existing roles
 	await db.delete(userRoles).where(eq(userRoles.userId, userId))
 
@@ -69,6 +82,9 @@ export async function userHasRole(
 	userId: number,
 	role: Role,
 ): Promise<boolean> {
+	const ability = await getAbility()
+	requireAbility(ability, 'manage', 'User')
+
 	const result = await db
 		.select()
 		.from(userRoles)
@@ -82,6 +98,9 @@ export async function userHasRole(
  * Get all users with a specific role
  */
 export async function getUsersByRole(role: Role) {
+	const ability = await getAbility()
+	requireAbility(ability, 'manage', 'User')
+
 	const usersWithRole = await db
 		.select({
 			id: users.id,
