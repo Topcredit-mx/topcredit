@@ -19,15 +19,9 @@ export default async function CompaniesPage({
 	searchParams,
 }: CompaniesPageProps) {
 	const session = await requireAuth()
-	const rawId = session.user.id
-	const userId =
-		typeof rawId === 'number'
-			? rawId
-			: Number.parseInt(String(rawId ?? ''), 10)
-	if (!Number.isInteger(userId)) throw new Error('Invalid user id')
 
 	const [assignedCompanyIds, selectedCompanyId] = await Promise.all([
-		getAssignedCompanyIds(userId),
+		getAssignedCompanyIds(session.user.id),
 		getSelectedCompanyId(),
 	])
 

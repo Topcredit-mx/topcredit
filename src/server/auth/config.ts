@@ -53,8 +53,13 @@ export const authOptions = {
 	],
 	callbacks: {
 		async session({ session, token }) {
-			if (session.user && token.sub) {
-				session.user.id = Number(token.sub)
+			if (session.user) {
+				// Normalize id to number once here so session.user.id is always number app-wide
+				const id = Number(token.sub)
+				if (!Number.isInteger(id)) {
+					throw new Error('Invalid session: missing or invalid user id')
+				}
+				session.user.id = id
 				if (token.roles?.length) {
 					session.user.roles = token.roles
 				} else {
@@ -65,6 +70,7 @@ export const authOptions = {
 		},
 		async jwt({ token, user }) {
 			if (user) {
+				token.sub = String(user.id)
 				token.roles = user.roles
 			}
 			return token
