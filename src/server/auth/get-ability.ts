@@ -15,7 +15,11 @@ export async function getAbility(): Promise<AppAbility> {
 			? (await getUserCompanyAssignments(userId)).map((c) => c.id)
 			: []
 
-	const ctx: AbilityContext = { roles, assignedCompanyIds }
+	const ctx: AbilityContext = {
+		roles,
+		assignedCompanyIds,
+		userId: session.user.id,
+	}
 	return defineAbilityFor(ctx)
 }
 

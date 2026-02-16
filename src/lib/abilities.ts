@@ -6,18 +6,24 @@ import {
 } from '@casl/ability'
 
 export type AppAction = 'manage' | 'create' | 'read' | 'update' | 'delete'
-export type AppSubject = 'Company' | 'User' | 'Admin' | 'all'
+export type AppSubject = 'Company' | 'User' | 'Admin' | 'Credit' | 'all'
 
 export type CompanySubject = { __typename: 'Company'; id: number }
 export type UserSubject = { __typename: 'User'; id: number }
+export type CreditSubject = {
+	__typename: 'Credit'
+	id: number
+	borrowerId: number
+}
 
 export type AppAbility = MongoAbility<
-	[AppAction, AppSubject | CompanySubject | UserSubject]
+	[AppAction, AppSubject | CompanySubject | UserSubject | CreditSubject]
 >
 
 export type AbilityContext = {
 	roles: string[]
 	assignedCompanyIds: number[] | 'all'
+	userId?: number
 }
 
 function companyIdCondition(ids: number[]): MongoQuery<CompanySubject> {
@@ -36,7 +42,9 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		return build()
 	}
 
-	if (isApplicant) {
+	if (isApplicant && ctx.userId != null) {
+		can('create', 'Credit')
+		can('read', 'Credit', { borrowerId: ctx.userId })
 		return build()
 	}
 
@@ -65,4 +73,15 @@ export function isCompanySubject(subject: unknown): subject is CompanySubject {
 
 export function toCompanySubject(company: { id: number }): CompanySubject {
 	return { __typename: 'Company', id: company.id }
+}
+
+export function toCreditSubject(credit: {
+	id: number
+	borrowerId: number
+}): CreditSubject {
+	return {
+		__typename: 'Credit',
+		id: credit.id,
+		borrowerId: credit.borrowerId,
+	}
 }

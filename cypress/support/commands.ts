@@ -13,28 +13,33 @@ Cypress.Commands.add('login', (email: string) => {
  *
  * @param selector - Can be:
  *   - name attribute: 'employeeSalaryFrequency'
- *   - label text: 'Frecuencia de Pago'
+ *   - label text: 'Frecuencia de Pago' (multi-word forces label)
+ *   - label: prefix for single-word labels: 'label:Plazo'
  *   - CSS selector: '[name="employeeSalaryFrequency"]'
  * @param optionText - The visible text of the option to select
  *
  * @example
  * cy.selectRadix('employeeSalaryFrequency', 'Mensual')
  * cy.selectRadix('Frecuencia de Pago', 'Quincenal')
+ * cy.selectRadix('label:Plazo', 'Mensual - 12 meses')
  * cy.selectRadix('[name="status"]', 'Active')
  */
 Cypress.Commands.add('selectRadix', (selector: string, optionText: string) => {
+	const byLabel = selector.startsWith('label:')
+	const labelText = byLabel ? selector.slice(6) : selector
+
 	// Find trigger - try multiple strategies
 	if (selector.startsWith('[') || selector.startsWith('.')) {
 		// CSS selector provided directly
 		cy.get(selector).click()
-	} else if (selector.match(/^[a-zA-Z][a-zA-Z0-9_-]*$/)) {
+	} else if (!byLabel && selector.match(/^[a-zA-Z][a-zA-Z0-9_-]*$/)) {
 		// Looks like a name attribute (no spaces, starts with letter)
 		// Exclude hidden inputs - we want the visible SelectTrigger, not hidden form inputs
 		cy.get(`[name="${selector}"]:not(input[type="hidden"])`).click()
 	} else {
-		// Assume it's label text - find label and get next sibling trigger
-		cy.contains('label', new RegExp(selector, 'i'))
-			.next()
+		// Label text (or label:...) - find label, then trigger inside same field
+		cy.contains('label', new RegExp(labelText, 'i'))
+			.closest('[data-slot="field"]')
 			.find('[data-slot="select-trigger"], button')
 			.first()
 			.click()

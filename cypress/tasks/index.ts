@@ -1,7 +1,15 @@
 import { eq } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import type { Role } from '~/lib/auth-utils'
-import { companies, userCompanies, userRoles, users } from '~/server/db/schema'
+import {
+	companies,
+	credits,
+	termOfferings,
+	terms,
+	userCompanies,
+	userRoles,
+	users,
+} from '~/server/db/schema'
 import { getDb } from './cypress-db'
 
 export type LoginTaskParams = string
@@ -195,9 +203,7 @@ export const assignRole = async (params: AssignRoleTaskParams) => {
 export type EnableTotpForUserTaskParams = string
 
 /** Enable TOTP for a user by email (for E2E: security screen with TOTP enabled). */
-export const enableTotpForUser = async (
-	email: EnableTotpForUserTaskParams,
-) => {
+export const enableTotpForUser = async (email: EnableTotpForUserTaskParams) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	const user = await db.query.users.findFirst({
 		where: eq(users.email, email),
@@ -219,7 +225,9 @@ export const enableTotpForUser = async (
 
 export type DeleteUsersByEmailTaskParams = string[]
 
-export const deleteUsersByEmail = async (emails: DeleteUsersByEmailTaskParams) => {
+export const deleteUsersByEmail = async (
+	emails: DeleteUsersByEmailTaskParams,
+) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 
 	for (const email of emails) {
@@ -374,4 +382,135 @@ export const deleteUserCompanyAssignmentsByEmail = async (
 	}
 
 	return null
+}
+
+// Terms and term offerings (for applicant credit E2E)
+
+export type CreateTermTaskParams = {
+	durationType: 'bi-monthly' | 'monthly'
+	duration: number
+}
+
+export const createTerm = async (params: CreateTermTaskParams) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const [term] = await db
+		.insert(terms)
+		.values({
+			durationType: params.durationType,
+			duration: params.duration,
+		})
+		.returning()
+
+	if (!term) {
+		throw new Error('Failed to create term')
+	}
+
+	return term
+}
+
+export type CreateTermOfferingTaskParams = {
+	companyId: number
+	termId: number
+	disabled?: boolean
+}
+
+export const createTermOffering = async (
+	params: CreateTermOfferingTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const [offering] = await db
+		.insert(termOfferings)
+		.values({
+			companyId: params.companyId,
+			termId: params.termId,
+			disabled: params.disabled ?? false,
+		})
+		.returning()
+
+	if (!offering) {
+		throw new Error('Failed to create term offering')
+	}
+
+	return offering
+}
+
+export type DeleteCreditsByBorrowerIdTaskParams = number // userId
+
+export const deleteCreditsByBorrowerId = async (
+	userId: DeleteCreditsByBorrowerIdTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	await db.delete(credits).where(eq(credits.borrowerId, userId))
+
+	return null
+}
+
+export type CreateCreditTaskParams = {
+	borrowerId: number
+	termOfferingId: number
+	creditAmount: string
+	salaryAtApplication: string
+	status?:
+		| 'new'
+		| 'pending'
+		| 'invalid-documentation'
+		| 'authorized'
+		| 'denied'
+		| 'dispersed'
+		| 'settled'
+		| 'defaulted'
+}
+
+export const createCredit = async (params: CreateCreditTaskParams) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const [credit] = await db
+		.insert(credits)
+		.values({
+			borrowerId: params.borrowerId,
+			termOfferingId: params.termOfferingId,
+			creditAmount: params.creditAmount,
+			salaryAtApplication: params.salaryAtApplication,
+			status: params.status ?? 'new',
+		})
+		.returning()
+
+	if (!credit) {
+		throw new Error('Failed to create credit')
+	}
+
+	return credit
+}
+
+/** Delete term offerings by company id (for E2E cleanup). Credits must be deleted first. */
+export const deleteTermOfferingsByCompanyId = async (companyId: number) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	await db.delete(termOfferings).where(eq(termOfferings.companyId, companyId))
+
+	return null
+}
+
+export const deleteTermById = async (termId: number) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	await db.delete(terms).where(eq(terms.id, termId))
+
+	return null
+}
+
+export const getUserIdByEmail = async (
+	email: string,
+): Promise<number | null> => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const user = await db.query.users.findFirst({
+		where: eq(users.email, email),
+		columns: { id: true },
+	})
+
+	return user?.id ?? null
 }

@@ -1,22 +1,42 @@
-import { AlertTriangle, CreditCard, FileText, Settings, User } from 'lucide-react'
-import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
 import { eq } from 'drizzle-orm'
+import {
+	AlertTriangle,
+	CreditCard,
+	FileText,
+	Settings,
+	User,
+} from 'lucide-react'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { getRequiredApplicantUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
+import { getCreditsByBorrowerId } from '~/server/queries'
 
 export default async function DashboardPage() {
 	const tCommon = await getTranslations('common')
 	const tDashboard = await getTranslations('dashboard')
 	const sessionUser = await getRequiredApplicantUser()
-	const user = await db.query.users.findFirst({
-		where: eq(users.id, sessionUser.id),
-		columns: { emailVerified: true },
-	})
+	const [user, creditsList] = await Promise.all([
+		db.query.users.findFirst({
+			where: eq(users.id, sessionUser.id),
+			columns: { emailVerified: true },
+		}),
+		getCreditsByBorrowerId(sessionUser.id),
+	])
+
+	// Applicant entry: after login, 0 credits → create first application; ≥1 → show dashboard
+	if (creditsList.length === 0) {
+		redirect('/dashboard/credits/new')
+	}
+
 	const emailVerified = user?.emailVerified != null
+	const activeRequestsCount = creditsList.filter((c) =>
+		['new', 'pending', 'invalid-documentation'].includes(c.status),
+	).length
 
 	return (
 		<div className="min-h-screen bg-gray-50">
@@ -74,7 +94,9 @@ export default async function DashboardPage() {
 							</div>
 						</div>
 						<Button asChild className="mt-4 w-full">
-							<Link href="/">{tDashboard('request-now')}</Link>
+							<Link href="/dashboard/credits/new">
+								{tDashboard('request-now')}
+							</Link>
 						</Button>
 					</Card>
 
@@ -92,7 +114,7 @@ export default async function DashboardPage() {
 							</div>
 						</div>
 						<Button asChild variant="outline" className="mt-4 w-full">
-							<Link href="/application-status">{tDashboard('view-status')}</Link>
+							<Link href="/dashboard/credits">{tDashboard('view-status')}</Link>
 						</Button>
 					</Card>
 
@@ -129,7 +151,9 @@ export default async function DashboardPage() {
 								</div>
 							</div>
 							<div className="text-center">
-								<div className="font-bold text-2xl text-gray-600">0</div>
+								<div className="font-bold text-2xl text-gray-600">
+									{activeRequestsCount}
+								</div>
 								<div className="text-gray-500 text-sm">
 									{tDashboard('active-requests')}
 								</div>

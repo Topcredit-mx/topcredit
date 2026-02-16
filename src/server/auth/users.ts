@@ -17,6 +17,10 @@ import {
 import { db } from '~/server/db'
 import { emailOtps, userRoles, users } from '~/server/db/schema'
 import { sendGenericEmail, sendOtpEmail } from '~/server/email'
+import {
+	getCompanyByEmailDomain,
+	getTermOfferingsForCompany,
+} from '~/server/queries'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import { checkRateLimit, getRequiredUser, updateRateLimitCounters } from './lib'
 import { initializeUserRoles } from './role-management'
@@ -43,12 +47,35 @@ export async function getUserByEmail(email: string) {
 	}
 }
 
+/** Registration guard: only allow sign-up if email domain matches a valid-and-ready company (active + borrowingCapacityRate + ≥1 enabled term offering). */
 export async function registerUser(_prevState: unknown, formData: FormData) {
 	const email = formData.get('email') as string
 	const name = formData.get('name') as string
 
 	if (!email || !name) {
 		return { message: 'Email and name are required' }
+	}
+
+	const company = await getCompanyByEmailDomain(email)
+	if (!company) {
+		return {
+			message:
+				'Tu correo no está asociado a ninguna empresa afiliada. No puedes registrarte.',
+		}
+	}
+	const borrowingCapacityRate = company.borrowingCapacityRate
+	if (!borrowingCapacityRate || Number(borrowingCapacityRate) <= 0) {
+		return {
+			message:
+				'Tu empresa no tiene configuración de crédito. No puedes registrarte.',
+		}
+	}
+	const offerings = await getTermOfferingsForCompany(company.id)
+	if (offerings.length === 0) {
+		return {
+			message:
+				'Tu empresa no tiene plazos disponibles. No puedes registrarte.',
+		}
 	}
 
 	const [newUser] = await db.insert(users).values({ email, name }).returning()

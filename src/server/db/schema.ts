@@ -9,6 +9,7 @@ import {
 	serial,
 	text,
 	timestamp,
+	unique,
 	uuid,
 } from 'drizzle-orm/pg-core'
 
@@ -22,6 +23,22 @@ export const rolesEnum = pgEnum('roles', [
 export const employeeSalaryFrequencyEnum = pgEnum('employee_salary_frequency', [
 	'bi-monthly',
 	'monthly',
+])
+
+export const durationTypeEnum = pgEnum('duration_type', [
+	'bi-monthly',
+	'monthly',
+])
+
+export const creditStatusEnum = pgEnum('credit_status', [
+	'new',
+	'pending',
+	'invalid-documentation',
+	'authorized',
+	'denied',
+	'dispersed',
+	'settled',
+	'defaulted',
 ])
 
 export const users = pgTable('users', {
@@ -124,13 +141,94 @@ export const userCompanies = pgTable(
 	}),
 )
 
+export const terms = pgTable('terms', {
+	id: serial('id').primaryKey(),
+	durationType: durationTypeEnum('duration_type').notNull(),
+	duration: integer('duration').notNull(), // e.g. months
+	createdAt: timestamp('created_at', { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+})
+
+export const termOfferings = pgTable(
+	'term_offerings',
+	{
+		id: serial('id').primaryKey(),
+		companyId: integer('company_id')
+			.notNull()
+			.references(() => companies.id, { onDelete: 'cascade' }),
+		termId: integer('term_id')
+			.notNull()
+			.references(() => terms.id, { onDelete: 'cascade' }),
+		disabled: boolean('disabled').default(false).notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [unique().on(table.companyId, table.termId)],
+)
+
+export const credits = pgTable('credits', {
+	id: serial('id').primaryKey(),
+	borrowerId: integer('borrower_id')
+		.notNull()
+		.references(() => users.id, { onDelete: 'cascade' }),
+	termOfferingId: integer('term_offering_id')
+		.notNull()
+		.references(() => termOfferings.id),
+	creditAmount: numeric('credit_amount', { precision: 12, scale: 2 }).notNull(),
+	salaryAtApplication: numeric('salary_at_application', {
+		precision: 12,
+		scale: 2,
+	}).notNull(),
+	status: creditStatusEnum('status').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+})
+
 export const usersRelations = relations(users, ({ many }) => ({
 	roles: many(userRoles),
 	companies: many(userCompanies),
+	credits: many(credits),
 }))
 
 export const companiesRelations = relations(companies, ({ many }) => ({
 	users: many(userCompanies),
+	termOfferings: many(termOfferings),
+}))
+
+export const termsRelations = relations(terms, ({ many }) => ({
+	termOfferings: many(termOfferings),
+}))
+
+export const termOfferingsRelations = relations(
+	termOfferings,
+	({ one, many }) => ({
+		company: one(companies, {
+			fields: [termOfferings.companyId],
+			references: [companies.id],
+		}),
+		term: one(terms, {
+			fields: [termOfferings.termId],
+			references: [terms.id],
+		}),
+		credits: many(credits),
+	}),
+)
+
+export const creditsRelations = relations(credits, ({ one }) => ({
+	borrower: one(users, {
+		fields: [credits.borrowerId],
+		references: [users.id],
+	}),
+	termOffering: one(termOfferings, {
+		fields: [credits.termOfferingId],
+		references: [termOfferings.id],
+	}),
 }))
 
 export const userRolesRelations = relations(userRoles, ({ one }) => ({

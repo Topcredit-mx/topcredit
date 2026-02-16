@@ -1,8 +1,16 @@
-import { eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm'
+import { and, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm'
 import type { Role } from '~/lib/auth-utils'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import { db } from '~/server/db'
-import { companies, userCompanies, userRoles, users } from '~/server/db/schema'
+import {
+	companies,
+	credits,
+	termOfferings,
+	terms,
+	userCompanies,
+	userRoles,
+	users,
+} from '~/server/db/schema'
 import type { CompanyBasic } from '~/server/scopes'
 
 export type { CompanyBasic } from '~/server/scopes'
@@ -290,6 +298,99 @@ export async function getCompanyByDomain(
 		rate: company.rate,
 		borrowingCapacityRate: company.borrowingCapacityRate,
 	}
+}
+
+/** Extract domain from email (e.g. user@acme.com → acme.com) and return active company. */
+export async function getCompanyByEmailDomain(
+	email: string,
+): Promise<Company | null> {
+	const domain = email.split('@')[1]?.toLowerCase()
+	if (!domain) return null
+
+	const company = await db.query.companies.findFirst({
+		where: and(eq(companies.domain, domain), eq(companies.active, true)),
+	})
+
+	if (!company) return null
+
+	return {
+		...company,
+		rate: company.rate,
+		borrowingCapacityRate: company.borrowingCapacityRate,
+	}
+}
+
+export type CreditListItem = {
+	id: number
+	borrowerId: number
+	termOfferingId: number
+	creditAmount: string
+	salaryAtApplication: string
+	status: string
+	createdAt: Date
+	updatedAt: Date
+}
+
+export async function getCreditsByBorrowerId(
+	userId: number,
+): Promise<CreditListItem[]> {
+	const list = await db.query.credits.findMany({
+		where: eq(credits.borrowerId, userId),
+		orderBy: (c, { desc }) => [desc(c.createdAt)],
+		columns: {
+			id: true,
+			borrowerId: true,
+			termOfferingId: true,
+			creditAmount: true,
+			salaryAtApplication: true,
+			status: true,
+			createdAt: true,
+			updatedAt: true,
+		},
+	})
+
+	return list.map((row) => ({
+		...row,
+		creditAmount: row.creditAmount,
+		salaryAtApplication: row.salaryAtApplication,
+		status: row.status,
+	}))
+}
+
+export type TermOfferingForCompany = {
+	id: number
+	companyId: number
+	termId: number
+	disabled: boolean
+	durationType: 'bi-monthly' | 'monthly'
+	duration: number
+	createdAt: Date
+}
+
+export async function getTermOfferingsForCompany(
+	companyId: number,
+): Promise<TermOfferingForCompany[]> {
+	const list = await db
+		.select({
+			id: termOfferings.id,
+			companyId: termOfferings.companyId,
+			termId: termOfferings.termId,
+			disabled: termOfferings.disabled,
+			durationType: terms.durationType,
+			duration: terms.duration,
+			createdAt: termOfferings.createdAt,
+		})
+		.from(termOfferings)
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.where(
+			and(
+				eq(termOfferings.companyId, companyId),
+				eq(termOfferings.disabled, false),
+			),
+		)
+		.orderBy(termOfferings.id)
+
+	return list
 }
 
 export type AdminOverviewStats = {
