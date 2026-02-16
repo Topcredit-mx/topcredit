@@ -3,8 +3,8 @@ import { defineConfig } from 'cypress'
 import * as tasks from './cypress/tasks'
 
 export default defineConfig({
+	allowCypressEnv: false,
 	projectId: 'qv8a5k',
-
 	e2e: {
 		baseUrl: 'http://localhost:3000',
 		specPattern: ['src/**/*.cy.{js,ts}'],
