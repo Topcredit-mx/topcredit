@@ -7,19 +7,19 @@ import {
 	getCompanyByEmailDomain,
 	getTermOfferingsForCompany,
 } from '~/server/queries'
-import { CreditApplicationForm } from './credit-application-form'
+import { ApplicationForm } from './application-form'
 
-export default async function NewCreditPage() {
+export default async function NewApplicationPage() {
 	const [ability, user] = await Promise.all([
 		getAbility(),
 		getRequiredApplicantUser(),
 	])
-	requireAbility(ability, 'create', 'Credit')
+	requireAbility(ability, 'create', 'Application')
 
 	const email = user.email ?? ''
 	const company = await getCompanyByEmailDomain(email)
 
-	const t = await getTranslations('dashboard.credits')
+	const t = await getTranslations('dashboard.applications')
 
 	if (!company) {
 		return (
@@ -110,7 +110,7 @@ export default async function NewCreditPage() {
 			</header>
 			<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 				<Card className="max-w-lg p-6">
-					<CreditApplicationForm termOfferings={termOfferings} />
+					<ApplicationForm termOfferings={termOfferings} />
 				</Card>
 			</main>
 		</div>

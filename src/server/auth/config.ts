@@ -7,7 +7,7 @@ import {
 } from './actions-no-ability'
 import { getApplicantEligibilityData } from './eligibility'
 import { getUserByEmail } from './users'
-import { isEligibleForNewCredit } from '~/lib/abilities'
+import { isEligibleForNewApplication } from '~/lib/abilities'
 
 export const authOptions = {
 	providers: [
@@ -25,7 +25,7 @@ export const authOptions = {
 				if (!user) return null
 				if (user.roles?.includes('applicant')) {
 					const eligibility = await getApplicantEligibilityData(credentials.email)
-					if (!isEligibleForNewCredit(eligibility)) return null
+					if (!isEligibleForNewApplication(eligibility)) return null
 				}
 				return user
 			},
@@ -45,7 +45,7 @@ export const authOptions = {
 				if (!user) return null
 				if (user.roles?.includes('applicant')) {
 					const eligibility = await getApplicantEligibilityData(credentials.email)
-					if (!isEligibleForNewCredit(eligibility)) return null
+					if (!isEligibleForNewApplication(eligibility)) return null
 				}
 				return user
 			},
@@ -65,7 +65,7 @@ export const authOptions = {
 				if (!user) return null
 				if (user.roles?.includes('applicant')) {
 					const eligibility = await getApplicantEligibilityData(credentials.email)
-					if (!isEligibleForNewCredit(eligibility)) return null
+					if (!isEligibleForNewApplication(eligibility)) return null
 				}
 				return user
 			},

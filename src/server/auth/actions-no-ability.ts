@@ -3,7 +3,7 @@
 import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
-import { isEligibleForNewCredit } from '~/lib/abilities'
+import { isEligibleForNewApplication } from '~/lib/abilities'
 import {
 	generateBackupCodes,
 	generateTotpSetup,
@@ -37,7 +37,7 @@ export async function registerUser(
 	}
 
 	const eligibility = await getApplicantEligibilityData(email)
-	if (!isEligibleForNewCredit(eligibility)) {
+	if (!isEligibleForNewApplication(eligibility)) {
 		return {
 			message:
 				'Tu correo no está asociado a una empresa con crédito disponible. No puedes registrarte.',
@@ -74,7 +74,7 @@ export async function sendOtpForm(
 	const userWithRoles = await getUserByEmail(email)
 	if (userWithRoles?.roles?.includes('applicant')) {
 		const eligibility = await getApplicantEligibilityData(email)
-		if (!isEligibleForNewCredit(eligibility)) {
+		if (!isEligibleForNewApplication(eligibility)) {
 			return {
 				message:
 					'Tu cuenta no tiene acceso al crédito. Contacta a tu empresa o a soporte.',

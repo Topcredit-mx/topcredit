@@ -14,28 +14,28 @@ import { Card } from '~/components/ui/card'
 import { getRequiredApplicantUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
-import { getCreditsByBorrowerId } from '~/server/queries'
+import { getApplicationsByApplicantId } from '~/server/queries'
 
 export default async function DashboardPage() {
 	const tCommon = await getTranslations('common')
 	const tDashboard = await getTranslations('dashboard')
 	const sessionUser = await getRequiredApplicantUser()
-	const [user, creditsList] = await Promise.all([
+	const [user, applicationsList] = await Promise.all([
 		db.query.users.findFirst({
 			where: eq(users.id, sessionUser.id),
 			columns: { emailVerified: true },
 		}),
-		getCreditsByBorrowerId(sessionUser.id),
+		getApplicationsByApplicantId(sessionUser.id),
 	])
 
-	// Applicant entry: after login, 0 credits → create first application; ≥1 → show dashboard
-	if (creditsList.length === 0) {
-		redirect('/dashboard/credits/new')
+	// Applicant entry: after login, 0 applications → create first solicitud; ≥1 → show dashboard
+	if (applicationsList.length === 0) {
+		redirect('/dashboard/applications/new')
 	}
 
 	const emailVerified = user?.emailVerified != null
-	const activeRequestsCount = creditsList.filter((c) =>
-		['new', 'pending', 'invalid-documentation'].includes(c.status),
+	const activeRequestsCount = applicationsList.filter((a) =>
+		['new', 'pending', 'invalid-documentation', 'pre-authorized'].includes(a.status),
 	).length
 
 	return (
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
 							</div>
 						</div>
 						<Button asChild className="mt-4 w-full">
-							<Link href="/dashboard/credits/new">
+							<Link href="/dashboard/applications/new">
 								{tDashboard('request-now')}
 							</Link>
 						</Button>
@@ -114,7 +114,7 @@ export default async function DashboardPage() {
 							</div>
 						</div>
 						<Button asChild variant="outline" className="mt-4 w-full">
-							<Link href="/dashboard/credits">{tDashboard('view-status')}</Link>
+							<Link href="/dashboard/applications">{tDashboard('view-status')}</Link>
 						</Button>
 					</Card>
 

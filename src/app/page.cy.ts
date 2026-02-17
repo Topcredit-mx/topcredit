@@ -10,7 +10,7 @@ describe('Home / Landing', () => {
 		cy.task('createUser', applicantUser)
 		cy.task('createUser', agentUser)
 
-		// Give applicant one credit so /dashboard shows "Mi Cuenta" instead of redirecting to /dashboard/credits/new
+		// Give applicant one application so /dashboard shows "Mi Cuenta" instead of redirecting to /dashboard/applications/new
 		cy.task('createCompany', {
 			name: 'Home E2E Company',
 			domain: LOGIN_APPLICANT_DOMAIN,
@@ -27,10 +27,10 @@ describe('Home / Landing', () => {
 						disabled: false,
 					}).then((offering) => {
 						cy.task('getUserIdByEmail', applicantUser.email).then(
-							(borrowerId) => {
-								if (borrowerId != null)
-									cy.task('createCredit', {
-										borrowerId,
+							(applicantId) => {
+								if (applicantId != null)
+									cy.task('createApplication', {
+										applicantId,
 										termOfferingId: offering.id,
 										creditAmount: '10000',
 										salaryAtApplication: '100000',

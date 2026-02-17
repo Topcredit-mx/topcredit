@@ -1,11 +1,20 @@
-import { and, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm'
+import {
+	and,
+	desc,
+	eq,
+	ilike,
+	inArray,
+	or,
+	type SQL,
+	sql,
+} from 'drizzle-orm'
 import { subject } from '~/lib/abilities'
 import type { Role } from '~/lib/auth-utils'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import { db } from '~/server/db'
 import {
+	applications,
 	companies,
-	credits,
 	termOfferings,
 	terms,
 	userCompanies,
@@ -329,37 +338,49 @@ export async function getCompanyByEmailDomain(
 	}
 }
 
-export type CreditListItem = {
+// ---- Application (solicitud) ----
+
+export type ApplicationStatus =
+	| 'new'
+	| 'pending'
+	| 'invalid-documentation'
+	| 'pre-authorized'
+	| 'authorized'
+	| 'denied'
+
+export type ApplicationListItem = {
 	id: number
-	borrowerId: number
+	applicantId: number
 	termOfferingId: number
 	creditAmount: string
 	salaryAtApplication: string
-	status: string
+	status: ApplicationStatus
+	denialReason: string | null
 	createdAt: Date
 	updatedAt: Date
 }
 
-export async function getCreditsByBorrowerId(
+export async function getApplicationsByApplicantId(
 	userId: number,
-): Promise<CreditListItem[]> {
+): Promise<ApplicationListItem[]> {
 	const ability = await getAbility()
 	requireAbility(
 		ability,
 		'read',
-		subject('Credit', { id: 0, borrowerId: userId }),
+		subject('Application', { id: 0, applicantId: userId }),
 	)
 
-	const list = await db.query.credits.findMany({
-		where: eq(credits.borrowerId, userId),
-		orderBy: (c, { desc }) => [desc(c.createdAt)],
+	const list = await db.query.applications.findMany({
+		where: eq(applications.applicantId, userId),
+		orderBy: (a, { desc }) => [desc(a.createdAt)],
 		columns: {
 			id: true,
-			borrowerId: true,
+			applicantId: true,
 			termOfferingId: true,
 			creditAmount: true,
 			salaryAtApplication: true,
 			status: true,
+			denialReason: true,
 			createdAt: true,
 			updatedAt: true,
 		},
@@ -369,8 +390,163 @@ export async function getCreditsByBorrowerId(
 		...row,
 		creditAmount: row.creditAmount,
 		salaryAtApplication: row.salaryAtApplication,
-		status: row.status,
+		status: row.status as ApplicationStatus,
 	}))
+}
+
+export type ApplicationForReview = {
+	id: number
+	applicantId: number
+	termOfferingId: number
+	companyId: number
+	creditAmount: string
+	salaryAtApplication: string
+	status: ApplicationStatus
+	denialReason: string | null
+	createdAt: Date
+	updatedAt: Date
+	applicant: { id: number; name: string; email: string }
+	termOffering: {
+		id: number
+		companyId: number
+		termId: number
+		durationType: 'bi-monthly' | 'monthly'
+		duration: number
+	}
+}
+
+export async function getApplicationsForReview(params: {
+	companyId: number
+	statusFilter?: ApplicationStatus[]
+}): Promise<ApplicationForReview[]> {
+	const { companyId, statusFilter } = params
+	const ability = await getAbility()
+	requireAbility(ability, 'read', subject('Company', { id: companyId }))
+
+	const condition = eq(termOfferings.companyId, companyId)
+	const list = await db
+		.select({
+			id: applications.id,
+			applicantId: applications.applicantId,
+			termOfferingId: applications.termOfferingId,
+			companyId: termOfferings.companyId,
+			creditAmount: applications.creditAmount,
+			salaryAtApplication: applications.salaryAtApplication,
+			status: applications.status,
+			denialReason: applications.denialReason,
+			createdAt: applications.createdAt,
+			updatedAt: applications.updatedAt,
+			applicantName: users.name,
+			applicantEmail: users.email,
+			durationType: terms.durationType,
+			duration: terms.duration,
+			toId: termOfferings.id,
+			termId: termOfferings.termId,
+		})
+		.from(applications)
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.innerJoin(users, eq(applications.applicantId, users.id))
+		.where(
+			statusFilter && statusFilter.length > 0
+				? and(condition, inArray(applications.status, statusFilter))
+				: condition,
+		)
+		.orderBy(desc(applications.createdAt), applications.id)
+
+	return list.map((row) => ({
+		id: row.id,
+		applicantId: row.applicantId,
+		termOfferingId: row.termOfferingId,
+		companyId: row.companyId,
+		creditAmount: row.creditAmount,
+		salaryAtApplication: row.salaryAtApplication,
+		status: row.status as ApplicationStatus,
+		denialReason: row.denialReason,
+		createdAt: row.createdAt,
+		updatedAt: row.updatedAt,
+		applicant: {
+			id: row.applicantId,
+			name: row.applicantName,
+			email: row.applicantEmail,
+		},
+		termOffering: {
+			id: row.toId,
+			companyId: row.companyId,
+			termId: row.termId,
+			durationType: row.durationType,
+			duration: row.duration,
+		},
+	}))
+}
+
+export async function getApplicationForReview(
+	applicationId: number,
+): Promise<ApplicationForReview | null> {
+	const ability = await getAbility()
+
+	const rows = await db
+		.select({
+			id: applications.id,
+			applicantId: applications.applicantId,
+			termOfferingId: applications.termOfferingId,
+			companyId: termOfferings.companyId,
+			creditAmount: applications.creditAmount,
+			salaryAtApplication: applications.salaryAtApplication,
+			status: applications.status,
+			denialReason: applications.denialReason,
+			createdAt: applications.createdAt,
+			updatedAt: applications.updatedAt,
+			applicantName: users.name,
+			applicantEmail: users.email,
+			durationType: terms.durationType,
+			duration: terms.duration,
+			toId: termOfferings.id,
+			termId: termOfferings.termId,
+		})
+		.from(applications)
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.innerJoin(users, eq(applications.applicantId, users.id))
+		.where(eq(applications.id, applicationId))
+
+	const row = rows[0]
+	if (!row) return null
+
+	requireAbility(
+		ability,
+		'read',
+		subject('Application', {
+			id: row.id,
+			applicantId: row.applicantId,
+			companyId: row.companyId,
+		}),
+	)
+
+	return {
+		id: row.id,
+		applicantId: row.applicantId,
+		termOfferingId: row.termOfferingId,
+		companyId: row.companyId,
+		creditAmount: row.creditAmount,
+		salaryAtApplication: row.salaryAtApplication,
+		status: row.status as ApplicationStatus,
+		denialReason: row.denialReason,
+		createdAt: row.createdAt,
+		updatedAt: row.updatedAt,
+		applicant: {
+			id: row.applicantId,
+			name: row.applicantName,
+			email: row.applicantEmail,
+		},
+		termOffering: {
+			id: row.toId,
+			companyId: row.companyId,
+			termId: row.termId,
+			durationType: row.durationType,
+			duration: row.duration,
+		},
+	}
 }
 
 export type TermOfferingForCompany = {
