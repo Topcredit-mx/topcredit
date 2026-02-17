@@ -1,17 +1,9 @@
-import {
-	and,
-	desc,
-	eq,
-	ilike,
-	inArray,
-	or,
-	type SQL,
-	sql,
-} from 'drizzle-orm'
+import { and, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm'
 import { subject } from '~/lib/abilities'
 import type { Role } from '~/lib/auth-utils'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import { db } from '~/server/db'
+import type { ApplicationStatus } from '~/server/db/schema'
 import {
 	applications,
 	companies,
@@ -206,8 +198,13 @@ export async function getCompanies(
 	params: GetCompaniesParams = {},
 ): Promise<GetCompaniesResult> {
 	const ability = await getAbility()
-	const { page = 1, limit = 50, search, activeOnly = false, companyIds } =
-		params
+	const {
+		page = 1,
+		limit = 50,
+		search,
+		activeOnly = false,
+		companyIds,
+	} = params
 	const firstCompanyId =
 		companyIds && companyIds !== 'all' && companyIds.length > 0
 			? companyIds[0]
@@ -340,14 +337,6 @@ export async function getCompanyByEmailDomain(
 
 // ---- Application (solicitud) ----
 
-export type ApplicationStatus =
-	| 'new'
-	| 'pending'
-	| 'invalid-documentation'
-	| 'pre-authorized'
-	| 'authorized'
-	| 'denied'
-
 export type ApplicationListItem = {
 	id: number
 	applicantId: number
@@ -390,7 +379,6 @@ export async function getApplicationsByApplicantId(
 		...row,
 		creditAmount: row.creditAmount,
 		salaryAtApplication: row.salaryAtApplication,
-		status: row.status as ApplicationStatus,
 	}))
 }
 
@@ -461,7 +449,7 @@ export async function getApplicationsForReview(params: {
 		companyId: row.companyId,
 		creditAmount: row.creditAmount,
 		salaryAtApplication: row.salaryAtApplication,
-		status: row.status as ApplicationStatus,
+		status: row.status,
 		denialReason: row.denialReason,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
@@ -530,7 +518,7 @@ export async function getApplicationForReview(
 		companyId: row.companyId,
 		creditAmount: row.creditAmount,
 		salaryAtApplication: row.salaryAtApplication,
-		status: row.status as ApplicationStatus,
+		status: row.status,
 		denialReason: row.denialReason,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,

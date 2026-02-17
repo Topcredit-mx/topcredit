@@ -30,14 +30,56 @@ export const durationTypeEnum = pgEnum('duration_type', [
 	'monthly',
 ])
 
-export const applicationStatusEnum = pgEnum('application_status', [
+const APPLICATION_STATUS_VALUES = [
 	'new',
 	'pending',
 	'invalid-documentation',
 	'pre-authorized',
 	'authorized',
 	'denied',
-])
+] as const
+
+export type ApplicationStatus = (typeof APPLICATION_STATUS_VALUES)[number]
+
+export const applicationStatusEnum = pgEnum(
+	'application_status',
+	APPLICATION_STATUS_VALUES,
+)
+
+/** Statuses that count as "active" (in progress) for dashboard metrics. */
+export const ACTIVE_APPLICATION_STATUSES: readonly ApplicationStatus[] = [
+	'new',
+	'pending',
+	'invalid-documentation',
+	'pre-authorized',
+]
+
+const ACTIVE_APPLICATION_STATUS_SET = new Set<ApplicationStatus>(
+	ACTIVE_APPLICATION_STATUSES,
+)
+
+export function isActiveApplicationStatus(
+	status: ApplicationStatus,
+): boolean {
+	return ACTIVE_APPLICATION_STATUS_SET.has(status)
+}
+
+/** Statuses from which an application can transition (update). */
+export const ALLOWED_UPDATE_FROM_STATUSES: readonly ApplicationStatus[] = [
+	'new',
+	'pending',
+	'pre-authorized',
+]
+
+const ALLOWED_UPDATE_FROM_SET = new Set<ApplicationStatus>(
+	ALLOWED_UPDATE_FROM_STATUSES,
+)
+
+export function canTransitionApplicationFrom(
+	status: ApplicationStatus,
+): boolean {
+	return ALLOWED_UPDATE_FROM_SET.has(status)
+}
 
 export const users = pgTable('users', {
 	id: serial('id').primaryKey(),

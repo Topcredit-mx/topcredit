@@ -1,12 +1,12 @@
 'use server'
 
-import { and, eq } from 'drizzle-orm'
+import { and, eq, gte } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { subject } from '~/lib/abilities'
-import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import type { Role } from '~/lib/auth-utils'
+import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import {
 	getRequiredAgentUser,
 	getRequiredApplicantUser,
@@ -14,6 +14,7 @@ import {
 import { db } from '~/server/db'
 import {
 	applications,
+	canTransitionApplicationFrom,
 	companies,
 	userCompanies,
 	userRoles,
@@ -316,10 +317,10 @@ export async function createApplication(
 		})
 
 		const offering = offerings.find((o) => o.id === data.termOfferingId)
-		if (!offering) {
+		if (!offering || offering.disabled) {
 			return {
 				errors: {
-					termOfferingId: 'El plazo seleccionado no es válido.',
+					termOfferingId: 'El plazo seleccionado no está disponible.',
 				},
 			}
 		}
@@ -333,6 +334,24 @@ export async function createApplication(
 				errors: {
 					creditAmount: `El monto no puede superar el máximo permitido (${maxLoanAmount.toLocaleString('es-MX', { maximumFractionDigits: 0 })}).`,
 				},
+			}
+		}
+
+		const sixtySecondsAgo = new Date(Date.now() - 60_000)
+		const duplicate = await db.query.applications.findFirst({
+			where: and(
+				eq(applications.applicantId, user.id),
+				eq(applications.termOfferingId, data.termOfferingId),
+				eq(applications.creditAmount, String(amount.toFixed(2))),
+				eq(applications.salaryAtApplication, String(salary.toFixed(2))),
+				gte(applications.createdAt, sixtySecondsAgo),
+			),
+			columns: { id: true },
+		})
+		if (duplicate) {
+			return {
+				message:
+					'Ya enviaste esta solicitud. Por favor espera un momento antes de intentar de nuevo.',
 			}
 		}
 
@@ -377,14 +396,17 @@ export async function updateApplicationStatus(
 	if (!app?.termOffering) return { error: 'Solicitud no encontrada' }
 
 	const companyId = app.termOffering.companyId
-	requireAbility(ability, 'update', subject('Application', {
-		id: app.id,
-		applicantId: app.applicantId,
-		companyId,
-	}))
+	requireAbility(
+		ability,
+		'update',
+		subject('Application', {
+			id: app.id,
+			applicantId: app.applicantId,
+			companyId,
+		}),
+	)
 
-	const allowedFrom = ['new', 'pending', 'pre-authorized'] as const
-	if (!allowedFrom.includes(app.status as (typeof allowedFrom)[number])) {
+	if (!canTransitionApplicationFrom(app.status)) {
 		return { error: 'La solicitud no puede cambiar de estado' }
 	}
 
@@ -399,7 +421,9 @@ export async function updateApplicationStatus(
 		.set({
 			status: parsed.data.status,
 			denialReason:
-				parsed.data.reason?.trim() && (parsed.data.status === 'denied' || parsed.data.status === 'invalid-documentation')
+				parsed.data.reason?.trim() &&
+				(parsed.data.status === 'denied' ||
+					parsed.data.status === 'invalid-documentation')
 					? parsed.data.reason.trim()
 					: null,
 			updatedAt: new Date(),
@@ -410,4 +434,3 @@ export async function updateApplicationStatus(
 	revalidatePath('/app/applications/[id]')
 	return {}
 }
-

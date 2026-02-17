@@ -80,9 +80,9 @@ describe('Dashboard Applications', () => {
 	describe('Applicant entry redirect', () => {
 		it('applicant with no applications visiting /dashboard redirects to new application page', () => {
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId != null)
-						cy.task('deleteApplicationsByApplicantId', borrowerId)
+				(applicantId) => {
+					if (applicantId != null)
+						cy.task('deleteApplicationsByApplicantId', applicantId)
 				},
 			)
 			cy.login(applicantWithCompany.email)
@@ -98,11 +98,11 @@ describe('Dashboard Applications', () => {
 				throw new Error('termOfferingId not set in before()')
 			}
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId == null) throw new Error('applicant not found')
-					cy.task('deleteApplicationsByApplicantId', borrowerId)
+				(applicantId) => {
+					if (applicantId == null) throw new Error('applicant not found')
+					cy.task('deleteApplicationsByApplicantId', applicantId)
 					cy.task('createApplication', {
-						applicantId: borrowerId,
+						applicantId,
 						termOfferingId,
 						creditAmount: '15000',
 						salaryAtApplication: '100000',
@@ -206,9 +206,9 @@ describe('Dashboard Applications', () => {
 				throw new Error('termOfferingId not set in before()')
 			}
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId != null)
-						cy.task('deleteApplicationsByApplicantId', borrowerId)
+				(applicantId) => {
+					if (applicantId != null)
+						cy.task('deleteApplicationsByApplicantId', applicantId)
 				},
 			)
 			cy.login(applicantWithCompany.email)
@@ -243,11 +243,11 @@ describe('Dashboard Applications', () => {
 				throw new Error('termOfferingId not set in before()')
 			}
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId == null) throw new Error('applicant A not found')
-					cy.task('deleteApplicationsByApplicantId', borrowerId)
+				(applicantId) => {
+					if (applicantId == null) throw new Error('applicant A not found')
+					cy.task('deleteApplicationsByApplicantId', applicantId)
 					cy.task('createApplication', {
-						applicantId: borrowerId,
+						applicantId,
 						termOfferingId,
 						creditAmount: '50000',
 						salaryAtApplication: '200000',
@@ -268,9 +268,9 @@ describe('Dashboard Applications', () => {
 	describe('Status overview', () => {
 		it('shows empty state when applicant has no applications', () => {
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId != null)
-						cy.task('deleteApplicationsByApplicantId', borrowerId)
+				(applicantId) => {
+					if (applicantId != null)
+						cy.task('deleteApplicationsByApplicantId', applicantId)
 				},
 			)
 			cy.login(applicantWithCompany.email)
@@ -283,11 +283,11 @@ describe('Dashboard Applications', () => {
 		it('shows list with one application after creating one', () => {
 			if (termOfferingId == null) return
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId == null) return
-					cy.task('deleteApplicationsByApplicantId', borrowerId)
+				(applicantId) => {
+					if (applicantId == null) return
+					cy.task('deleteApplicationsByApplicantId', applicantId)
 					cy.task('createApplication', {
-						applicantId: borrowerId,
+						applicantId,
 						termOfferingId,
 						creditAmount: '25000',
 						salaryAtApplication: '100000',
@@ -303,14 +303,14 @@ describe('Dashboard Applications', () => {
 	})
 
 	describe('Submit application', () => {
-		it('applicant can submit a application and see it in the list', () => {
+		it('applicant can submit an application and see it in the list', () => {
 			if (termOfferingId == null) {
 				throw new Error('termOfferingId not set in before()')
 			}
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId == null) throw new Error('applicant not found')
-					cy.task('deleteApplicationsByApplicantId', borrowerId)
+				(applicantId) => {
+					if (applicantId == null) throw new Error('applicant not found')
+					cy.task('deleteApplicationsByApplicantId', applicantId)
 				},
 			)
 			cy.login(applicantWithCompany.email)
@@ -333,11 +333,11 @@ describe('Dashboard Applications', () => {
 		beforeEach(() => {
 			if (termOfferingId == null) return
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId == null) return
-					cy.task('deleteApplicationsByApplicantId', borrowerId)
+				(applicantId) => {
+					if (applicantId == null) return
+					cy.task('deleteApplicationsByApplicantId', applicantId)
 					cy.task('createApplication', {
-						applicantId: borrowerId,
+						applicantId,
 						termOfferingId,
 						creditAmount: '10000',
 						salaryAtApplication: '100000',

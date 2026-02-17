@@ -13,7 +13,10 @@ import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { getRequiredApplicantUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
-import { users } from '~/server/db/schema'
+import {
+	isActiveApplicationStatus,
+	users,
+} from '~/server/db/schema'
 import { getApplicationsByApplicantId } from '~/server/queries'
 
 export default async function DashboardPage() {
@@ -35,7 +38,7 @@ export default async function DashboardPage() {
 
 	const emailVerified = user?.emailVerified != null
 	const activeRequestsCount = applicationsList.filter((a) =>
-		['new', 'pending', 'invalid-documentation', 'pre-authorized'].includes(a.status),
+		isActiveApplicationStatus(a.status),
 	).length
 
 	return (
@@ -145,7 +148,7 @@ export default async function DashboardPage() {
 						</h2>
 						<div className="grid gap-4 md:grid-cols-3">
 							<div className="text-center">
-								<div className="font-bold text-2xl text-blue-600">$0</div>
+								<div className="font-bold text-2xl text-muted-foreground">—</div>
 								<div className="text-gray-500 text-sm">
 									{tDashboard('available-balance')}
 								</div>

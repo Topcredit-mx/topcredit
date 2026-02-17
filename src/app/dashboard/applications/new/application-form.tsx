@@ -123,7 +123,10 @@ export function ApplicationForm({
 			</Field>
 
 			<div className="flex gap-2">
-				<Button type="submit" disabled={pending}>
+				<Button
+					type="submit"
+					disabled={pending || !termOfferingId}
+				>
 					{pending ? tCommon('save') : t('submit')}
 				</Button>
 				<Button type="button" variant="outline" asChild>
