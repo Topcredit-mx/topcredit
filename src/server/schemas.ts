@@ -50,8 +50,6 @@ export const updateCompanySchema = createCompanySchema
 	.partial()
 	.omit({ domain: true })
 
-// ---- Credit (applicant) ----
-
 const positiveNumericString = z
 	.string()
 	.min(1, 'El valor es requerido')
@@ -59,8 +57,20 @@ const positiveNumericString = z
 		message: 'Debe ser un número positivo',
 	})
 
-export const createCreditSchema = z.object({
+// ---- Application (solicitud) ----
+
+export const createApplicationSchema = z.object({
 	termOfferingId: z.coerce.number().int().positive('Selecciona un plazo'),
 	creditAmount: positiveNumericString,
 	salaryAtApplication: positiveNumericString,
+})
+
+export const updateApplicationStatusSchema = z.object({
+	status: z.enum(
+		['pre-authorized', 'authorized', 'denied', 'invalid-documentation'],
+		{
+			message: 'Estado no válido',
+		},
+	),
+	reason: z.string().max(1000).optional(),
 })

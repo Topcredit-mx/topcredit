@@ -130,7 +130,7 @@
 		"documents": "Documentos",
 		"help": "Ayuda",
 		"contact": "Contacto",
-		"credits": {
+		"applications": {
 			"title": "Mis Solicitudes de Crédito",
 			"empty": "No tienes solicitudes de crédito.",
 			"new-application": "Nueva Solicitud",
@@ -140,11 +140,9 @@
 			"status-new": "Nueva",
 			"status-pending": "Pendiente",
 			"status-invalid-documentation": "Documentación inválida",
+			"status-pre-authorized": "Preautorizado",
 			"status-authorized": "Autorizado",
 			"status-denied": "Denegado",
-			"status-dispersed": "Dispersado",
-			"status-settled": "Liquidado",
-			"status-defaulted": "En default",
 			"label-term": "Plazo",
 			"placeholder-term": "Selecciona un plazo",
 			"label-salary": "Salario mensual",

@@ -27,7 +27,7 @@ export interface IDataTableContext<TData> {
 }
 
 export const DataTableContext = createContext<
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	// biome-ignore lint/suspicious/noExplicitAny: generic context; Table<TData> is invariant, cannot use unknown without casting
 	IDataTableContext<any> | undefined
 >(undefined)
 

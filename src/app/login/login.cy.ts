@@ -3,7 +3,7 @@ import { agentUser, applicantUser } from './login.fixtures'
 const LOGIN_APPLICANT_DOMAIN = 'example.com'
 
 describe('Login Flow', () => {
-	/** Set in before(); used so applicant has 1 credit and stays on dashboard (not redirected to /dashboard/credits/new). Also used by unverified-user test. */
+	/** Set in before(); used so applicant has 1 application and stays on dashboard (not redirected to /dashboard/applications/new). Also used by unverified-user test. */
 	let termOfferingId: number | undefined
 
 	before(() => {
@@ -14,7 +14,7 @@ describe('Login Flow', () => {
 		cy.task('createUser', applicantUser)
 		cy.task('createUser', agentUser)
 
-		// Give applicant a company and one credit so /dashboard shows "Mi Cuenta" instead of redirecting to /dashboard/credits/new
+		// Give applicant a company and one application so /dashboard shows "Mi Cuenta" instead of redirecting to /dashboard/applications/new
 		cy.task('createCompany', {
 			name: 'Login E2E Company',
 			domain: LOGIN_APPLICANT_DOMAIN,
@@ -32,10 +32,10 @@ describe('Login Flow', () => {
 					}).then((offering) => {
 						termOfferingId = offering.id
 						cy.task('getUserIdByEmail', applicantUser.email).then(
-							(borrowerId) => {
-								if (borrowerId != null)
-									cy.task('createCredit', {
-										borrowerId,
+							(applicantId) => {
+								if (applicantId != null)
+									cy.task('createApplication', {
+										applicantId,
 										termOfferingId: offering.id,
 										creditAmount: '10000',
 										salaryAtApplication: '100000',
@@ -106,10 +106,10 @@ describe('Login Flow', () => {
 				throw new Error('termOfferingId not set in before()')
 			}
 			cy.task('createUser', { ...applicantUser, verified: false })
-			cy.task('getUserIdByEmail', applicantUser.email).then((borrowerId) => {
-				if (borrowerId == null) throw new Error('applicant not found')
-				cy.task('createCredit', {
-					borrowerId,
+			cy.task('getUserIdByEmail', applicantUser.email).then((applicantId) => {
+				if (applicantId == null) throw new Error('applicant not found')
+				cy.task('createApplication', {
+					applicantId,
 					termOfferingId,
 					creditAmount: '10000',
 					salaryAtApplication: '100000',

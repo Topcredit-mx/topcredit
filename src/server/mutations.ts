@@ -1,20 +1,21 @@
 'use server'
 
-import { and, eq } from 'drizzle-orm'
+import { and, eq, gte } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { subject } from '~/lib/abilities'
-import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import type { Role } from '~/lib/auth-utils'
+import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import {
 	getRequiredAgentUser,
 	getRequiredApplicantUser,
 } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import {
+	applications,
+	canTransitionApplicationFrom,
 	companies,
-	credits,
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
@@ -24,8 +25,9 @@ import {
 	getTermOfferingsForCompany,
 } from '~/server/queries'
 import {
+	createApplicationSchema,
 	createCompanySchema,
-	createCreditSchema,
+	updateApplicationStatusSchema,
 	updateCompanySchema,
 } from '~/server/schemas'
 import { getCompaniesForSwitcher } from '~/server/scopes'
@@ -275,15 +277,15 @@ export async function deleteCompany(id: number) {
 	}
 }
 
-// ---- Credit (applicant) ----
+// ---- Application (solicitud) ----
 
-export async function createCredit(
+export async function createApplication(
 	_prevState: unknown,
 	formData: FormData,
 ): Promise<{ errors?: Record<string, string>; message?: string }> {
 	const user = await getRequiredApplicantUser()
 	const ability = await getAbility()
-	requireAbility(ability, 'create', 'Credit')
+	requireAbility(ability, 'create', 'Application')
 
 	const email = user.email ?? ''
 	const company = await getCompanyByEmailDomain(email)
@@ -308,17 +310,17 @@ export async function createCredit(
 	}
 
 	try {
-		const data = createCreditSchema.parse({
+		const data = createApplicationSchema.parse({
 			termOfferingId: formData.get('termOfferingId'),
 			creditAmount: formData.get('creditAmount'),
 			salaryAtApplication: formData.get('salaryAtApplication'),
 		})
 
 		const offering = offerings.find((o) => o.id === data.termOfferingId)
-		if (!offering) {
+		if (!offering || offering.disabled) {
 			return {
 				errors: {
-					termOfferingId: 'El plazo seleccionado no es válido.',
+					termOfferingId: 'El plazo seleccionado no está disponible.',
 				},
 			}
 		}
@@ -335,19 +337,100 @@ export async function createCredit(
 			}
 		}
 
-		await db.insert(credits).values({
-			borrowerId: user.id,
+		const sixtySecondsAgo = new Date(Date.now() - 60_000)
+		const duplicate = await db.query.applications.findFirst({
+			where: and(
+				eq(applications.applicantId, user.id),
+				eq(applications.termOfferingId, data.termOfferingId),
+				eq(applications.creditAmount, String(amount.toFixed(2))),
+				eq(applications.salaryAtApplication, String(salary.toFixed(2))),
+				gte(applications.createdAt, sixtySecondsAgo),
+			),
+			columns: { id: true },
+		})
+		if (duplicate) {
+			return {
+				message:
+					'Ya enviaste esta solicitud. Por favor espera un momento antes de intentar de nuevo.',
+			}
+		}
+
+		await db.insert(applications).values({
+			applicantId: user.id,
 			termOfferingId: data.termOfferingId,
 			creditAmount: String(amount.toFixed(2)),
 			salaryAtApplication: String(salary.toFixed(2)),
 			status: 'new',
 		})
 
-		revalidatePath('/dashboard/credits')
+		revalidatePath('/dashboard/applications')
 	} catch (error) {
 		return fromErrorToFormState(error)
 	}
 
-	redirect('/dashboard/credits')
+	redirect('/dashboard/applications')
 }
 
+export async function updateApplicationStatus(
+	applicationId: number,
+	status: 'pre-authorized' | 'authorized' | 'denied' | 'invalid-documentation',
+	reason?: string,
+): Promise<{ error?: string }> {
+	const ability = await getAbility()
+
+	const app = await db.query.applications.findFirst({
+		where: (a, { eq }) => eq(a.id, applicationId),
+		columns: {
+			id: true,
+			applicantId: true,
+			status: true,
+			termOfferingId: true,
+		},
+		with: {
+			termOffering: {
+				columns: { companyId: true },
+			},
+		},
+	})
+
+	if (!app?.termOffering) return { error: 'Solicitud no encontrada' }
+
+	const companyId = app.termOffering.companyId
+	requireAbility(
+		ability,
+		'update',
+		subject('Application', {
+			id: app.id,
+			applicantId: app.applicantId,
+			companyId,
+		}),
+	)
+
+	if (!canTransitionApplicationFrom(app.status)) {
+		return { error: 'La solicitud no puede cambiar de estado' }
+	}
+
+	const parsed = updateApplicationStatusSchema.safeParse({ status, reason })
+	if (!parsed.success) {
+		const first = parsed.error.issues[0]
+		return { error: first?.message ?? 'Datos inválidos' }
+	}
+
+	await db
+		.update(applications)
+		.set({
+			status: parsed.data.status,
+			denialReason:
+				parsed.data.reason?.trim() &&
+				(parsed.data.status === 'denied' ||
+					parsed.data.status === 'invalid-documentation')
+					? parsed.data.reason.trim()
+					: null,
+			updatedAt: new Date(),
+		})
+		.where(eq(applications.id, applicationId))
+
+	revalidatePath('/app/applications')
+	revalidatePath('/app/applications/[id]')
+	return {}
+}

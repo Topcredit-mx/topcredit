@@ -12,10 +12,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-import { createCredit } from '~/server/mutations'
+import { createApplication } from '~/server/mutations'
 import type { TermOfferingForCompany } from '~/server/queries'
 
-interface CreditApplicationFormProps {
+interface ApplicationFormProps {
 	termOfferings: TermOfferingForCompany[]
 }
 
@@ -27,13 +27,11 @@ function termOfferingLabel(offering: TermOfferingForCompany): string {
 	return `${offering.durationType === 'monthly' ? 'Mensual' : 'Quincenal'} - ${duration}`
 }
 
-export function CreditApplicationForm({
-	termOfferings,
-}: CreditApplicationFormProps) {
-	const t = useTranslations('dashboard.credits')
+export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
+	const t = useTranslations('dashboard.applications')
 	const tCommon = useTranslations('common')
 
-	const [state, action, pending] = useActionState(createCredit, {
+	const [state, action, pending] = useActionState(createApplication, {
 		errors: undefined,
 		message: undefined,
 	})
@@ -123,11 +121,11 @@ export function CreditApplicationForm({
 			</Field>
 
 			<div className="flex gap-2">
-				<Button type="submit" disabled={pending}>
+				<Button type="submit" disabled={pending || !termOfferingId}>
 					{pending ? tCommon('save') : t('submit')}
 				</Button>
 				<Button type="button" variant="outline" asChild>
-					<a href="/dashboard/credits">{tCommon('cancel')}</a>
+					<a href="/dashboard/applications">{tCommon('cancel')}</a>
 				</Button>
 			</div>
 		</form>

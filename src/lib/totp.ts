@@ -18,7 +18,7 @@ export async function generateTotpSetup(
 	// Generate secret using speakeasy
 	const secret = speakeasy.generateSecret({
 		name: `${issuer} (${userEmail})`,
-		issuer: issuer,
+		issuer,
 		length: 32,
 	})
 

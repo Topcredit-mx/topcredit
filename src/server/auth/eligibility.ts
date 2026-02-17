@@ -4,7 +4,7 @@ import {
 	getTermOfferingsForCompany,
 } from '~/server/queries'
 
-/** Fetches eligibility data for an applicant. Eligibility logic lives in ~/lib/abilities (isEligibleForNewCredit). */
+/** Fetches eligibility data for an applicant. Eligibility logic lives in ~/lib/abilities (isEligibleForNewApplication). */
 export async function getApplicantEligibilityData(
 	email: string,
 ): Promise<ApplicantEligibilityData> {

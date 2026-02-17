@@ -10,27 +10,28 @@ import {
 export { subject }
 
 export type AppAction = 'manage' | 'create' | 'read' | 'update' | 'delete'
-export type AppSubject = 'Company' | 'User' | 'Admin' | 'Credit' | 'all'
+export type AppSubject = 'Company' | 'User' | 'Admin' | 'Application' | 'all'
 
 export type CompanySubject = { id: number } & ForcedSubject<'Company'>
 export type UserSubject = { id: number } & ForcedSubject<'User'>
-export type CreditSubject = {
+export type ApplicationSubject = {
 	id: number
-	borrowerId: number
-} & ForcedSubject<'Credit'>
+	applicantId: number
+	companyId?: number
+} & ForcedSubject<'Application'>
 
 export type AppAbility = MongoAbility<
-	[AppAction, AppSubject | CompanySubject | UserSubject | CreditSubject]
+	[AppAction, AppSubject | CompanySubject | UserSubject | ApplicationSubject]
 >
 
-/** Data used to decide if an applicant can create a Credit. Fetched in server; logic lives here. */
+/** Data used to decide if an applicant can create an Application (solicitud). Fetched in server; logic lives here. */
 export type ApplicantEligibilityData = {
 	hasCompany: boolean
 	borrowingCapacityRate: number | null
 	termOfferingsCount: number
 }
 
-export function isEligibleForNewCredit(
+export function isEligibleForNewApplication(
 	data: ApplicantEligibilityData | null | undefined,
 ): boolean {
 	if (!data) return false
@@ -46,7 +47,7 @@ export type AbilityContext = {
 	roles: string[]
 	assignedCompanyIds: number[] | 'all'
 	userId?: number
-	/** For applicants: company/rate/term data so we can gate create Credit and reuse elsewhere. */
+	/** For applicants: company/rate/term data so we can gate create Application and reuse elsewhere. */
 	applicantEligibilityData?: ApplicantEligibilityData | null
 }
 
@@ -67,10 +68,10 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 	}
 
 	if (isApplicant && ctx.userId != null) {
-		if (isEligibleForNewCredit(ctx.applicantEligibilityData)) {
-			can('create', 'Credit')
+		if (isEligibleForNewApplication(ctx.applicantEligibilityData)) {
+			can('create', 'Application')
 		}
-		can('read', 'Credit', { borrowerId: ctx.userId })
+		can('read', 'Application', { applicantId: ctx.userId })
 		can('update', 'User', { id: ctx.userId })
 		return build()
 	}
@@ -79,10 +80,15 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		can('update', 'User', { id: ctx.userId })
 		if (ctx.assignedCompanyIds === 'all') {
 			can('manage', 'Company')
+			can('manage', 'Application')
 		} else if (ctx.assignedCompanyIds.length > 0) {
 			const condition = companyIdCondition(ctx.assignedCompanyIds)
 			can('read', 'Company', condition)
 			can('update', 'Company', condition)
+			can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
+			can('update', 'Application', {
+				companyId: { $in: ctx.assignedCompanyIds },
+			})
 		}
 	}
 

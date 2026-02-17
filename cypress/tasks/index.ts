@@ -2,8 +2,8 @@ import { eq } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import type { Role } from '~/lib/auth-utils'
 import {
+	applications,
 	companies,
-	credits,
 	termOfferings,
 	terms,
 	userCompanies,
@@ -436,20 +436,18 @@ export const createTermOffering = async (
 	return offering
 }
 
-export type DeleteCreditsByBorrowerIdTaskParams = number // userId
+export type DeleteApplicationsByApplicantIdTaskParams = number // applicantId
 
-export const deleteCreditsByBorrowerId = async (
-	userId: DeleteCreditsByBorrowerIdTaskParams,
+export const deleteApplicationsByApplicantId = async (
+	applicantId: DeleteApplicationsByApplicantIdTaskParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
-
-	await db.delete(credits).where(eq(credits.borrowerId, userId))
-
+	await db.delete(applications).where(eq(applications.applicantId, applicantId))
 	return null
 }
 
-export type CreateCreditTaskParams = {
-	borrowerId: number
+export type CreateApplicationTaskParams = {
+	applicantId: number
 	termOfferingId: number
 	creditAmount: string
 	salaryAtApplication: string
@@ -457,20 +455,20 @@ export type CreateCreditTaskParams = {
 		| 'new'
 		| 'pending'
 		| 'invalid-documentation'
+		| 'pre-authorized'
 		| 'authorized'
 		| 'denied'
-		| 'dispersed'
-		| 'settled'
-		| 'defaulted'
 }
 
-export const createCredit = async (params: CreateCreditTaskParams) => {
+export const createApplication = async (
+	params: CreateApplicationTaskParams,
+) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 
-	const [credit] = await db
-		.insert(credits)
+	const [app] = await db
+		.insert(applications)
 		.values({
-			borrowerId: params.borrowerId,
+			applicantId: params.applicantId,
 			termOfferingId: params.termOfferingId,
 			creditAmount: params.creditAmount,
 			salaryAtApplication: params.salaryAtApplication,
@@ -478,14 +476,14 @@ export const createCredit = async (params: CreateCreditTaskParams) => {
 		})
 		.returning()
 
-	if (!credit) {
-		throw new Error('Failed to create credit')
+	if (!app) {
+		throw new Error('Failed to create application')
 	}
 
-	return credit
+	return app
 }
 
-/** Delete term offerings by company id (for E2E cleanup). Credits must be deleted first. */
+/** Delete term offerings by company id (for E2E cleanup). Applications must be deleted first. */
 export const deleteTermOfferingsByCompanyId = async (companyId: number) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 

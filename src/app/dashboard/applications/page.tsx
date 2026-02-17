@@ -5,20 +5,18 @@ import { Card } from '~/components/ui/card'
 import { subject } from '~/lib/abilities'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import { getRequiredApplicantUser } from '~/server/auth/lib'
-import { getCreditsByBorrowerId } from '~/server/queries'
+import { getApplicationsByApplicantId } from '~/server/queries'
 
 const STATUS_KEYS: Record<string, string> = {
 	new: 'status-new',
 	pending: 'status-pending',
 	'invalid-documentation': 'status-invalid-documentation',
+	'pre-authorized': 'status-pre-authorized',
 	authorized: 'status-authorized',
 	denied: 'status-denied',
-	dispersed: 'status-dispersed',
-	settled: 'status-settled',
-	defaulted: 'status-defaulted',
 }
 
-export default async function CreditsListPage() {
+export default async function ApplicationsListPage() {
 	const [ability, user] = await Promise.all([
 		getAbility(),
 		getRequiredApplicantUser(),
@@ -26,28 +24,28 @@ export default async function CreditsListPage() {
 	requireAbility(
 		ability,
 		'read',
-		subject('Credit', { id: 0, borrowerId: user.id }),
+		subject('Application', { id: 0, applicantId: user.id }),
 	)
-	const creditsList = await getCreditsByBorrowerId(user.id)
-	const tCredits = await getTranslations('dashboard.credits')
+	const applicationsList = await getApplicationsByApplicantId(user.id)
+	const t = await getTranslations('dashboard.applications')
 
 	return (
 		<div className="min-h-screen bg-gray-50">
 			<header className="bg-white shadow">
 				<div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 					<h1 className="font-bold text-3xl text-gray-900 tracking-tight">
-						{tCredits('title')}
+						{t('title')}
 					</h1>
 				</div>
 			</header>
 
 			<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-				{creditsList.length === 0 ? (
+				{applicationsList.length === 0 ? (
 					<Card className="p-8 text-center">
-						<p className="text-gray-600">{tCredits('empty')}</p>
+						<p className="text-gray-600">{t('empty')}</p>
 						<Button asChild className="mt-4">
-							<Link href="/dashboard/credits/new">
-								{tCredits('new-application')}
+							<Link href="/dashboard/applications/new">
+								{t('new-application')}
 							</Link>
 						</Button>
 					</Card>
@@ -55,8 +53,8 @@ export default async function CreditsListPage() {
 					<>
 						<div className="mb-4 flex justify-end">
 							<Button asChild>
-								<Link href="/dashboard/credits/new">
-									{tCredits('new-application')}
+								<Link href="/dashboard/applications/new">
+									{t('new-application')}
 								</Link>
 							</Button>
 						</div>
@@ -66,35 +64,31 @@ export default async function CreditsListPage() {
 									<thead>
 										<tr className="border-b bg-gray-50 text-left text-gray-600 text-sm">
 											<th className="px-4 py-3 font-medium">
-												{tCredits('th-status')}
+												{t('th-status')}
 											</th>
 											<th className="px-4 py-3 font-medium">
-												{tCredits('th-amount')}
+												{t('th-amount')}
 											</th>
-											<th className="px-4 py-3 font-medium">
-												{tCredits('th-date')}
-											</th>
+											<th className="px-4 py-3 font-medium">{t('th-date')}</th>
 										</tr>
 									</thead>
 									<tbody>
-										{creditsList.map((credit) => (
+										{applicationsList.map((app) => (
 											<tr
-												key={credit.id}
+												key={app.id}
 												className="border-b last:border-0 hover:bg-gray-50"
 											>
 												<td className="px-4 py-3">
-													{tCredits(STATUS_KEYS[credit.status] ?? 'status-new')}
+													{t(STATUS_KEYS[app.status] ?? 'status-new')}
 												</td>
 												<td className="px-4 py-3">
-													{Number(credit.creditAmount).toLocaleString('es-MX', {
+													{Number(app.creditAmount).toLocaleString('es-MX', {
 														style: 'currency',
 														currency: 'MXN',
 													})}
 												</td>
 												<td className="px-4 py-3 text-gray-600">
-													{new Date(credit.createdAt).toLocaleDateString(
-														'es-MX',
-													)}
+													{new Date(app.createdAt).toLocaleDateString('es-MX')}
 												</td>
 											</tr>
 										))}

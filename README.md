@@ -43,7 +43,7 @@
 - [x] E2E: company switcher, admin company switcher, agent no assignments, agent no company picked, admin overview dashboard
 
 ### Phase 3: Credit application flow
-- [ ] Applicants: credit application creation, status overview
+- [x] Applicants: credit application creation, status overview
 - [ ] Agents: review / authorize / reject applications
 - [ ] Applicants: resubmit rejected, pre-authorized flow (contract, docs)
 - [ ] Agents: pre-authorized review, HR review

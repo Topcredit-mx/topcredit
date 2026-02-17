@@ -3,7 +3,8 @@
 import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
-import { isEligibleForNewCredit } from '~/lib/abilities'
+import { isEligibleForNewApplication } from '~/lib/abilities'
+import { getClientIP } from '~/lib/ip-location'
 import {
 	generateBackupCodes,
 	generateTotpSetup,
@@ -11,14 +12,13 @@ import {
 	verifyBackupCode,
 	verifyTotpToken,
 } from '~/lib/totp'
-import { getClientIP } from '~/lib/ip-location'
 import { db } from '~/server/db'
 import { emailOtps, users } from '~/server/db/schema'
 import { sendGenericEmail } from '~/server/email'
 import { getApplicantEligibilityData } from './eligibility'
-import { getUserByEmail, sendOtp } from './users'
 import { checkRateLimit, updateRateLimitCounters } from './lib'
 import { initializeUserRoles } from './role-management'
+import { getUserByEmail, sendOtp } from './users'
 
 /**
  * Auth mutations that run without a session (no CASL context).
@@ -37,7 +37,7 @@ export async function registerUser(
 	}
 
 	const eligibility = await getApplicantEligibilityData(email)
-	if (!isEligibleForNewCredit(eligibility)) {
+	if (!isEligibleForNewApplication(eligibility)) {
 		return {
 			message:
 				'Tu correo no está asociado a una empresa con crédito disponible. No puedes registrarte.',
@@ -74,7 +74,7 @@ export async function sendOtpForm(
 	const userWithRoles = await getUserByEmail(email)
 	if (userWithRoles?.roles?.includes('applicant')) {
 		const eligibility = await getApplicantEligibilityData(email)
-		if (!isEligibleForNewCredit(eligibility)) {
+		if (!isEligibleForNewApplication(eligibility)) {
 			return {
 				message:
 					'Tu cuenta no tiene acceso al crédito. Contacta a tu empresa o a soporte.',
@@ -248,7 +248,10 @@ export async function verifyTotpSetup(
 	return { backupCodes }
 }
 
-export async function verifyTotpLogin(email: string, token: string): Promise<void> {
+export async function verifyTotpLogin(
+	email: string,
+	token: string,
+): Promise<void> {
 	const user = await db.query.users.findFirst({
 		where: eq(users.email, email),
 	})

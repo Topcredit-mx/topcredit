@@ -7,7 +7,7 @@ import {
 	companyNoRate,
 	companyNoTerms,
 	companyWithTerms,
-} from './credits.fixtures'
+} from './applications.fixtures'
 
 const allApplicantEmails = [
 	applicantWithCompany.email,
@@ -23,7 +23,7 @@ const allTestDomains = [
 	companyNoTerms.domain,
 ]
 
-describe('Dashboard Credits', () => {
+describe('Dashboard Applications', () => {
 	/** Set in before(); used by tests that need the term offering created for companyWithTerms. */
 	let termOfferingId: number | undefined
 
@@ -71,38 +71,38 @@ describe('Dashboard Credits', () => {
 	})
 
 	after(() => {
-		// Cleanup all test users (removes credits via FK cascade)
+		// Cleanup all test users (removes applications via FK cascade)
 		cy.task('deleteUsersByEmail', allApplicantEmails)
 		// Cleanup all test companies
 		cy.task('deleteCompaniesByDomain', allTestDomains)
 	})
 
 	describe('Applicant entry redirect', () => {
-		it('applicant with no credits visiting /dashboard redirects to new credit page', () => {
+		it('applicant with no applications visiting /dashboard redirects to new application page', () => {
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId != null)
-						cy.task('deleteCreditsByBorrowerId', borrowerId)
+				(applicantId) => {
+					if (applicantId != null)
+						cy.task('deleteApplicationsByApplicantId', applicantId)
 				},
 			)
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard')
-			cy.url().should('include', '/dashboard/credits/new')
+			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(
 				/mis solicitudes de crédito|completa los datos para solicitar|plazo|monto solicitado/i,
 			).should('be.visible')
 		})
 
-		it('applicant with at least one credit visiting /dashboard stays on dashboard', () => {
+		it('applicant with at least one application visiting /dashboard stays on dashboard', () => {
 			if (termOfferingId == null) {
 				throw new Error('termOfferingId not set in before()')
 			}
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId == null) throw new Error('applicant not found')
-					cy.task('deleteCreditsByBorrowerId', borrowerId)
-					cy.task('createCredit', {
-						borrowerId,
+				(applicantId) => {
+					if (applicantId == null) throw new Error('applicant not found')
+					cy.task('deleteApplicationsByApplicantId', applicantId)
+					cy.task('createApplication', {
+						applicantId,
 						termOfferingId,
 						creditAmount: '15000',
 						salaryAtApplication: '100000',
@@ -112,7 +112,7 @@ describe('Dashboard Credits', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard')
 			cy.url().should('include', '/dashboard')
-			cy.url().should('not.include', '/dashboard/credits/new')
+			cy.url().should('not.include', '/dashboard/applications/new')
 			cy.contains(/solicitar ahora|ver estado|solicitudes activas/i).should(
 				'be.visible',
 			)
@@ -120,25 +120,25 @@ describe('Dashboard Credits', () => {
 	})
 
 	describe('Access Control', () => {
-		it('allows applicant to open credits list and new credit page', () => {
+		it('allows applicant to open applications list and new application page', () => {
 			cy.login(applicantWithCompany.email)
-			cy.visit('/dashboard/credits')
-			cy.url().should('include', '/dashboard/credits')
+			cy.visit('/dashboard/applications')
+			cy.url().should('include', '/dashboard/applications')
 
-			cy.visit('/dashboard/credits/new')
-			cy.url().should('include', '/dashboard/credits/new')
+			cy.visit('/dashboard/applications/new')
+			cy.url().should('include', '/dashboard/applications/new')
 		})
 
 		it('redirects non-applicant (agent) to unauthorized', () => {
 			const agent = {
-				name: 'Agent For Credits Test',
-				email: 'agent.credits@example.com',
+				name: 'Agent For Applications Test',
+				email: 'agent.applications@example.com',
 				roles: ['agent', 'requests'] as const,
 			}
 			cy.task('deleteUsersByEmail', [agent.email])
 			cy.task('createUser', agent)
 			cy.login(agent.email)
-			cy.visit('/dashboard/credits')
+			cy.visit('/dashboard/applications')
 			cy.url().should('include', '/unauthorized')
 
 			// Cleanup
@@ -149,10 +149,10 @@ describe('Dashboard Credits', () => {
 	describe('Email-domain validation', () => {
 		beforeEach(() => {
 			cy.login(applicantNoCompany.email)
-			cy.visit('/dashboard/credits/new')
+			cy.visit('/dashboard/applications/new')
 		})
 
-		it('applicant whose domain matches no company is redirected to unauthorized when visiting credits/new', () => {
+		it('applicant whose domain matches no company is redirected to unauthorized when visiting applications/new', () => {
 			cy.url().should('include', '/unauthorized')
 		})
 	})
@@ -160,7 +160,7 @@ describe('Dashboard Credits', () => {
 	describe('Company not ready – no rate', () => {
 		beforeEach(() => {
 			cy.login(applicantNoRate.email)
-			cy.visit('/dashboard/credits/new')
+			cy.visit('/dashboard/applications/new')
 		})
 
 		it('applicant whose company has no borrowingCapacityRate is redirected to unauthorized', () => {
@@ -171,7 +171,7 @@ describe('Dashboard Credits', () => {
 	describe('Company not ready – no terms', () => {
 		beforeEach(() => {
 			cy.login(applicantNoTerms.email)
-			cy.visit('/dashboard/credits/new')
+			cy.visit('/dashboard/applications/new')
 		})
 
 		it('applicant whose company has no enabled term offerings is redirected to unauthorized', () => {
@@ -188,9 +188,9 @@ describe('Dashboard Credits', () => {
 			cy.get('input[name="name"]').type('Test Orphan')
 			cy.contains('button', /regístrate|registrarse/i).click()
 			cy.url().should('include', '/signup')
-			cy.contains(
-				/Tu correo no está asociado.*No puedes registrarte/i,
-			).should('be.visible')
+			cy.contains(/Tu correo no está asociado.*No puedes registrarte/i).should(
+				'be.visible',
+			)
 			cy.task('getUserIdByEmail', badEmail).then((id) => {
 				expect(id).to.be.null
 			})
@@ -206,19 +206,19 @@ describe('Dashboard Credits', () => {
 				throw new Error('termOfferingId not set in before()')
 			}
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId != null)
-						cy.task('deleteCreditsByBorrowerId', borrowerId)
+				(applicantId) => {
+					if (applicantId != null)
+						cy.task('deleteApplicationsByApplicantId', applicantId)
 				},
 			)
 			cy.login(applicantWithCompany.email)
-			cy.visit('/dashboard/credits/new')
+			cy.visit('/dashboard/applications/new')
 			cy.selectRadix('label:Plazo', 'Mensual - 12 meses')
 			cy.get('input[name="salaryAtApplication"]').type('100000')
 			// max = 100000 * 0.30 = 30000; submit 50000
 			cy.get('input[name="creditAmount"]').type('50000')
 			cy.contains('button', /enviar solicitud/i).click()
-			cy.url().should('include', '/dashboard/credits/new')
+			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(/no puede superar el máximo permitido \(30,000\)/i).should(
 				'be.visible',
 			)
@@ -226,11 +226,11 @@ describe('Dashboard Credits', () => {
 
 		it('submitting with empty required fields shows field errors', () => {
 			cy.login(applicantWithCompany.email)
-			cy.visit('/dashboard/credits/new')
-			// Leave term unselected, salary and amount empty
+			cy.visit('/dashboard/applications/new')
+			// Select term so submit button is enabled; leave salary and amount empty
+			cy.selectRadix('label:Plazo', 'Mensual - 12 meses')
 			cy.contains('button', /enviar solicitud/i).click()
-			cy.url().should('include', '/dashboard/credits/new')
-			cy.contains(/selecciona un plazo|plazo/i).should('be.visible')
+			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(/requerido|valor es requerido|número positivo/i).should(
 				'be.visible',
 			)
@@ -238,16 +238,16 @@ describe('Dashboard Credits', () => {
 	})
 
 	describe('Isolation', () => {
-		it('applicant cannot see another applicant credits', () => {
+		it('applicant cannot see another applicant applications', () => {
 			if (termOfferingId == null) {
 				throw new Error('termOfferingId not set in before()')
 			}
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId == null) throw new Error('applicant A not found')
-					cy.task('deleteCreditsByBorrowerId', borrowerId)
-					cy.task('createCredit', {
-						borrowerId,
+				(applicantId) => {
+					if (applicantId == null) throw new Error('applicant A not found')
+					cy.task('deleteApplicationsByApplicantId', applicantId)
+					cy.task('createApplication', {
+						applicantId,
 						termOfferingId,
 						creditAmount: '50000',
 						salaryAtApplication: '200000',
@@ -255,45 +255,45 @@ describe('Dashboard Credits', () => {
 				},
 			)
 			cy.login(applicantB.email)
-			cy.visit('/dashboard/credits')
-			// Applicant B has no credits: must see empty state and must not see A's credit amount
+			cy.visit('/dashboard/applications')
+			// Applicant B has no applications: must see empty state and must not see A's application amount
 			cy.contains(
 				/no tienes solicitudes|no hay solicitudes|solicitudes de crédito/i,
 			).should('be.visible')
-			// A's credit is 50000 → displayed as 50,000 or $50,000 in es-MX
+			// A's application is 50000 → displayed as 50,000 or $50,000 in es-MX
 			cy.get('body').should('not.contain.text', '50,000')
 		})
 	})
 
 	describe('Status overview', () => {
-		it('shows empty state when applicant has no credits', () => {
+		it('shows empty state when applicant has no applications', () => {
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId != null)
-						cy.task('deleteCreditsByBorrowerId', borrowerId)
+				(applicantId) => {
+					if (applicantId != null)
+						cy.task('deleteApplicationsByApplicantId', applicantId)
 				},
 			)
 			cy.login(applicantWithCompany.email)
-			cy.visit('/dashboard/credits')
+			cy.visit('/dashboard/applications')
 			cy.contains(
 				/no tienes solicitudes|no hay solicitudes|solicitudes/i,
 			).should('be.visible')
 		})
 
-		it('shows list with one credit after creating one', () => {
+		it('shows list with one application after creating one', () => {
 			if (termOfferingId == null) return
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId == null) return
-					cy.task('deleteCreditsByBorrowerId', borrowerId)
-					cy.task('createCredit', {
-						borrowerId,
+				(applicantId) => {
+					if (applicantId == null) return
+					cy.task('deleteApplicationsByApplicantId', applicantId)
+					cy.task('createApplication', {
+						applicantId,
 						termOfferingId,
 						creditAmount: '25000',
 						salaryAtApplication: '100000',
 					}).then(() => {
 						cy.login(applicantWithCompany.email)
-						cy.visit('/dashboard/credits')
+						cy.visit('/dashboard/applications')
 						// Amount is displayed as currency (e.g. $25,000.00 in es-MX)
 						cy.contains('25,000').should('be.visible')
 					})
@@ -302,19 +302,19 @@ describe('Dashboard Credits', () => {
 		})
 	})
 
-	describe('Submit credit', () => {
-		it('applicant can submit a credit application and see it in the list', () => {
+	describe('Submit application', () => {
+		it('applicant can submit an application and see it in the list', () => {
 			if (termOfferingId == null) {
 				throw new Error('termOfferingId not set in before()')
 			}
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId == null) throw new Error('applicant not found')
-					cy.task('deleteCreditsByBorrowerId', borrowerId)
+				(applicantId) => {
+					if (applicantId == null) throw new Error('applicant not found')
+					cy.task('deleteApplicationsByApplicantId', applicantId)
 				},
 			)
 			cy.login(applicantWithCompany.email)
-			cy.visit('/dashboard/credits/new')
+			cy.visit('/dashboard/applications/new')
 			cy.contains(
 				/mis solicitudes de crédito|completa los datos para solicitar|plazo|monto solicitado/i,
 			).should('be.visible')
@@ -324,7 +324,7 @@ describe('Dashboard Credits', () => {
 			cy.get('input[name="creditAmount"]').type('25000')
 			cy.contains('button', /enviar solicitud/i).click()
 
-			cy.url().should('include', '/dashboard/credits')
+			cy.url().should('include', '/dashboard/applications')
 			cy.contains('25,000').should('be.visible')
 		})
 	})
@@ -333,11 +333,11 @@ describe('Dashboard Credits', () => {
 		beforeEach(() => {
 			if (termOfferingId == null) return
 			cy.task('getUserIdByEmail', applicantWithCompany.email).then(
-				(borrowerId) => {
-					if (borrowerId == null) return
-					cy.task('deleteCreditsByBorrowerId', borrowerId)
-					cy.task('createCredit', {
-						borrowerId,
+				(applicantId) => {
+					if (applicantId == null) return
+					cy.task('deleteApplicationsByApplicantId', applicantId)
+					cy.task('createApplication', {
+						applicantId,
 						termOfferingId,
 						creditAmount: '10000',
 						salaryAtApplication: '100000',
@@ -347,23 +347,23 @@ describe('Dashboard Credits', () => {
 			cy.login(applicantWithCompany.email)
 		})
 
-		it('Solicitar Ahora goes to new credit page', () => {
+		it('Solicitar Ahora goes to new application page', () => {
 			cy.visit('/dashboard')
 			cy.contains('a', /solicitar ahora/i)
-				.should('have.attr', 'href', '/dashboard/credits/new')
+				.should('have.attr', 'href', '/dashboard/applications/new')
 				.click()
-			cy.url().should('include', '/dashboard/credits/new')
+			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(
 				/mis solicitudes de crédito|completa los datos para solicitar|plazo|monto solicitado/i,
 			).should('be.visible')
 		})
 
-		it('Ver Estado goes to credits list', () => {
+		it('Ver Estado goes to applications list', () => {
 			cy.visit('/dashboard')
 			cy.contains('a', /ver estado/i).should(
 				'have.attr',
 				'href',
-				'/dashboard/credits',
+				'/dashboard/applications',
 			)
 		})
 	})

@@ -30,16 +30,54 @@ export const durationTypeEnum = pgEnum('duration_type', [
 	'monthly',
 ])
 
-export const creditStatusEnum = pgEnum('credit_status', [
+const APPLICATION_STATUS_VALUES = [
 	'new',
 	'pending',
 	'invalid-documentation',
+	'pre-authorized',
 	'authorized',
 	'denied',
-	'dispersed',
-	'settled',
-	'defaulted',
-])
+] as const
+
+export type ApplicationStatus = (typeof APPLICATION_STATUS_VALUES)[number]
+
+export const applicationStatusEnum = pgEnum(
+	'application_status',
+	APPLICATION_STATUS_VALUES,
+)
+
+/** Statuses that count as "active" (in progress) for dashboard metrics. */
+export const ACTIVE_APPLICATION_STATUSES: readonly ApplicationStatus[] = [
+	'new',
+	'pending',
+	'invalid-documentation',
+	'pre-authorized',
+]
+
+const ACTIVE_APPLICATION_STATUS_SET = new Set<ApplicationStatus>(
+	ACTIVE_APPLICATION_STATUSES,
+)
+
+export function isActiveApplicationStatus(status: ApplicationStatus): boolean {
+	return ACTIVE_APPLICATION_STATUS_SET.has(status)
+}
+
+/** Statuses from which an application can transition (update). */
+export const ALLOWED_UPDATE_FROM_STATUSES: readonly ApplicationStatus[] = [
+	'new',
+	'pending',
+	'pre-authorized',
+]
+
+const ALLOWED_UPDATE_FROM_SET = new Set<ApplicationStatus>(
+	ALLOWED_UPDATE_FROM_STATUSES,
+)
+
+export function canTransitionApplicationFrom(
+	status: ApplicationStatus,
+): boolean {
+	return ALLOWED_UPDATE_FROM_SET.has(status)
+}
 
 export const users = pgTable('users', {
 	id: serial('id').primaryKey(),
@@ -168,9 +206,9 @@ export const termOfferings = pgTable(
 	(table) => [unique().on(table.companyId, table.termId)],
 )
 
-export const credits = pgTable('credits', {
+export const applications = pgTable('applications', {
 	id: serial('id').primaryKey(),
-	borrowerId: integer('borrower_id')
+	applicantId: integer('applicant_id')
 		.notNull()
 		.references(() => users.id, { onDelete: 'cascade' }),
 	termOfferingId: integer('term_offering_id')
@@ -181,7 +219,8 @@ export const credits = pgTable('credits', {
 		precision: 12,
 		scale: 2,
 	}).notNull(),
-	status: creditStatusEnum('status').notNull(),
+	status: applicationStatusEnum('status').notNull(),
+	denialReason: text('denial_reason'),
 	createdAt: timestamp('created_at', { withTimezone: true })
 		.defaultNow()
 		.notNull(),
@@ -193,7 +232,7 @@ export const credits = pgTable('credits', {
 export const usersRelations = relations(users, ({ many }) => ({
 	roles: many(userRoles),
 	companies: many(userCompanies),
-	credits: many(credits),
+	applications: many(applications),
 }))
 
 export const companiesRelations = relations(companies, ({ many }) => ({
@@ -216,17 +255,17 @@ export const termOfferingsRelations = relations(
 			fields: [termOfferings.termId],
 			references: [terms.id],
 		}),
-		credits: many(credits),
+		applications: many(applications),
 	}),
 )
 
-export const creditsRelations = relations(credits, ({ one }) => ({
-	borrower: one(users, {
-		fields: [credits.borrowerId],
+export const applicationsRelations = relations(applications, ({ one }) => ({
+	applicant: one(users, {
+		fields: [applications.applicantId],
 		references: [users.id],
 	}),
 	termOffering: one(termOfferings, {
-		fields: [credits.termOfferingId],
+		fields: [applications.termOfferingId],
 		references: [termOfferings.id],
 	}),
 }))

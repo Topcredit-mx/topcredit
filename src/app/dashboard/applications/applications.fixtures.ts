@@ -1,5 +1,5 @@
 /**
- * Fixtures for dashboard credits E2E tests.
+ * Fixtures for dashboard applications E2E tests.
  * Applicant email domain must match company domain (e.g. applicant@example.com → company domain example.com).
  */
 
