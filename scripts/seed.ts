@@ -4,14 +4,22 @@ import { and, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import * as schema from '../src/server/db/schema'
 import {
+	seedApplications,
 	seedCompanies,
 	seedTermOfferings,
 	seedUsers,
 	userCompanyAssignments,
 } from './seed.fixtures'
 
-const { users, userRoles, companies, userCompanies, terms, termOfferings } =
-	schema
+const {
+	users,
+	userRoles,
+	companies,
+	userCompanies,
+	terms,
+	termOfferings,
+	applications,
+} = schema
 
 export function getDb() {
 	const databaseUrl = process.env.DATABASE_URL
@@ -92,9 +100,11 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 
 	// Terms and term offerings (applicant happy path: company with rate + terms)
 	const termByKey = new Map<string, number>()
+	const termOfferingByKey = new Map<string, number>()
 	for (const offering of seedTermOfferings) {
-		const key = `${offering.durationType}-${offering.duration}`
-		let termId = termByKey.get(key)
+		const termKey = `${offering.durationType}-${offering.duration}`
+		const offeringKey = `${offering.companyDomain}-${offering.durationType}-${offering.duration}`
+		let termId = termByKey.get(termKey)
 		if (termId == null) {
 			const existing = await db.query.terms.findFirst({
 				where: and(
@@ -120,7 +130,7 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 					)
 				}
 			}
-			if (termId != null) termByKey.set(key, termId)
+			if (termId != null) termByKey.set(termKey, termId)
 		}
 		if (termId != null) {
 			const companyId = companyIdByDomain.get(offering.companyDomain)
@@ -132,20 +142,57 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 					),
 					columns: { id: true },
 				})
-				if (!existing) {
-					await db.insert(termOfferings).values({
-						companyId,
-						termId,
-						disabled: false,
-					})
-					const co = seedCompanies.find(
-						(c) => c.domain === offering.companyDomain,
-					)
-					console.log(
-						`  ✓ Created term offering for ${co?.name ?? offering.companyDomain}`,
-					)
+				if (existing) {
+					termOfferingByKey.set(offeringKey, existing.id)
+				} else {
+					const [inserted] = await db
+						.insert(termOfferings)
+						.values({
+							companyId,
+							termId,
+							disabled: false,
+						})
+						.returning()
+					if (inserted) {
+						termOfferingByKey.set(offeringKey, inserted.id)
+						const co = seedCompanies.find(
+							(c) => c.domain === offering.companyDomain,
+						)
+						console.log(
+							`  ✓ Created term offering for ${co?.name ?? offering.companyDomain}`,
+						)
+					}
 				}
 			}
+		}
+	}
+
+	// Applications
+	for (const app of seedApplications) {
+		const applicantId = userIdByEmail.get(app.applicantEmail)
+		const offeringKey = `${app.companyDomain}-${app.durationType}-${app.duration}`
+		const termOfferingId = termOfferingByKey.get(offeringKey)
+		if (applicantId == null || termOfferingId == null) continue
+		const existing = await db.query.applications.findFirst({
+			where: and(
+				eq(applications.applicantId, applicantId),
+				eq(applications.termOfferingId, termOfferingId),
+				eq(applications.creditAmount, app.creditAmount),
+			),
+			columns: { id: true },
+		})
+		if (!existing) {
+			await db.insert(applications).values({
+				applicantId,
+				termOfferingId,
+				creditAmount: app.creditAmount,
+				salaryAtApplication: app.salaryAtApplication,
+				status: app.status,
+				denialReason: app.denialReason ?? null,
+			})
+			console.log(
+				`  ✓ Created application: ${app.applicantEmail} ${app.status} (${app.creditAmount})`,
+			)
 		}
 	}
 

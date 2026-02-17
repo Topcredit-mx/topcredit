@@ -67,3 +67,54 @@ export const seedTermOfferings: ReadonlyArray<{
 export const userCompanyAssignments: Record<string, readonly string[]> = {
 	'solicitudes@topcredit.mx': ['acme.topcredit.mx', 'techstart.topcredit.mx'],
 }
+
+export const applicationStatusEnum = [
+	'new',
+	'pending',
+	'invalid-documentation',
+	'pre-authorized',
+	'authorized',
+	'denied',
+] as const
+
+export type SeedApplicationStatus = (typeof applicationStatusEnum)[number]
+
+/** Applications to seed. Applicant email must exist in seedUsers; company domain + term must match seedTermOfferings. */
+export const seedApplications: ReadonlyArray<{
+	applicantEmail: string
+	companyDomain: string
+	durationType: 'monthly' | 'bi-monthly'
+	duration: number
+	creditAmount: string
+	salaryAtApplication: string
+	status: SeedApplicationStatus
+	denialReason?: string
+}> = [
+	{
+		applicantEmail: 'applicant@example.com',
+		companyDomain: 'example.com',
+		durationType: 'monthly',
+		duration: 12,
+		creditAmount: '5000.00',
+		salaryAtApplication: '25000.00',
+		status: 'new',
+	},
+	{
+		applicantEmail: 'applicant@example.com',
+		companyDomain: 'example.com',
+		durationType: 'monthly',
+		duration: 12,
+		creditAmount: '8000.00',
+		salaryAtApplication: '28000.00',
+		status: 'pending',
+	},
+	{
+		applicantEmail: 'applicant@example.com',
+		companyDomain: 'example.com',
+		durationType: 'monthly',
+		duration: 12,
+		creditAmount: '12000.00',
+		salaryAtApplication: '32000.00',
+		status: 'authorized',
+	},
+]
