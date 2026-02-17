@@ -227,10 +227,10 @@ describe('Dashboard Applications', () => {
 		it('submitting with empty required fields shows field errors', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
-			// Leave term unselected, salary and amount empty
+			// Select term so submit button is enabled; leave salary and amount empty
+			cy.selectRadix('label:Plazo', 'Mensual - 12 meses')
 			cy.contains('button', /enviar solicitud/i).click()
 			cy.url().should('include', '/dashboard/applications/new')
-			cy.contains(/selecciona un plazo|plazo/i).should('be.visible')
 			cy.contains(/requerido|valor es requerido|número positivo/i).should(
 				'be.visible',
 			)
