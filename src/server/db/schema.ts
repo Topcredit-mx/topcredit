@@ -30,15 +30,13 @@ export const durationTypeEnum = pgEnum('duration_type', [
 	'monthly',
 ])
 
-export const creditStatusEnum = pgEnum('credit_status', [
+export const applicationStatusEnum = pgEnum('application_status', [
 	'new',
 	'pending',
 	'invalid-documentation',
+	'pre-authorized',
 	'authorized',
 	'denied',
-	'dispersed',
-	'settled',
-	'defaulted',
 ])
 
 export const users = pgTable('users', {
@@ -168,9 +166,9 @@ export const termOfferings = pgTable(
 	(table) => [unique().on(table.companyId, table.termId)],
 )
 
-export const credits = pgTable('credits', {
+export const applications = pgTable('applications', {
 	id: serial('id').primaryKey(),
-	borrowerId: integer('borrower_id')
+	applicantId: integer('applicant_id')
 		.notNull()
 		.references(() => users.id, { onDelete: 'cascade' }),
 	termOfferingId: integer('term_offering_id')
@@ -181,7 +179,8 @@ export const credits = pgTable('credits', {
 		precision: 12,
 		scale: 2,
 	}).notNull(),
-	status: creditStatusEnum('status').notNull(),
+	status: applicationStatusEnum('status').notNull(),
+	denialReason: text('denial_reason'),
 	createdAt: timestamp('created_at', { withTimezone: true })
 		.defaultNow()
 		.notNull(),
@@ -193,7 +192,7 @@ export const credits = pgTable('credits', {
 export const usersRelations = relations(users, ({ many }) => ({
 	roles: many(userRoles),
 	companies: many(userCompanies),
-	credits: many(credits),
+	applications: many(applications),
 }))
 
 export const companiesRelations = relations(companies, ({ many }) => ({
@@ -216,17 +215,17 @@ export const termOfferingsRelations = relations(
 			fields: [termOfferings.termId],
 			references: [terms.id],
 		}),
-		credits: many(credits),
+		applications: many(applications),
 	}),
 )
 
-export const creditsRelations = relations(credits, ({ one }) => ({
-	borrower: one(users, {
-		fields: [credits.borrowerId],
+export const applicationsRelations = relations(applications, ({ one }) => ({
+	applicant: one(users, {
+		fields: [applications.applicantId],
 		references: [users.id],
 	}),
 	termOffering: one(termOfferings, {
-		fields: [credits.termOfferingId],
+		fields: [applications.termOfferingId],
 		references: [termOfferings.id],
 	}),
 }))
