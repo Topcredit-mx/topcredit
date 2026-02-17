@@ -609,8 +609,7 @@ function SidebarMenuSkeleton({
 	index?: number
 }) {
 	// Deterministic width: same index always yields same width (avoids hydration errors from Math.random).
-	const width =
-		index !== undefined ? `${50 + (index % 5) * 10}%` : '70%'
+	const width = index !== undefined ? `${50 + (index % 5) * 10}%` : '70%'
 
 	return (
 		<div
