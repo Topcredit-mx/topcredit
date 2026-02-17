@@ -42,12 +42,12 @@
 - [x] **US-2.2.6** Admin can pick any company in switcher, view as agent; “Vista general” to return; selection in cookie
 - [x] E2E: company switcher, admin company switcher, agent no assignments, agent no company picked, admin overview dashboard
 
-### Phase 3: Credit application flow
-- [x] Applicants: credit application creation, status overview
-- [ ] Agents: review / authorize / reject applications
+### Phase 3: Applications and credits
+- [x] Applicants: application creation, status overview (applications table; status: new → pending → invalid-documentation → pre-authorized → authorized/denied)
+- [-] Agents: review / authorize / reject applications
 - [ ] Applicants: resubmit rejected, pre-authorized flow (contract, docs)
 - [ ] Agents: pre-authorized review, HR review
-- [ ] Disbursement, active credit dashboard, payment schedule and tracking
+- [ ] Disbursement: when an application is disbursed, create the credit; then active credit dashboard, payment schedule and tracking
 - [ ] Agents: active credits overview, payment management, completed credits reporting
 
 ---
@@ -73,11 +73,10 @@
 - Filter by active/inactive status
 - Search by company name or domain
 
-### Company credit assignment and management
-- Assign credits to companies
-- Calculate max loan amount based on borrowingCapacityRate (percentage of salary)
-- Display company's active credits
-- Use borrowingCapacityRate in max loan calculations
+### Company applications and credits
+- Calculate max loan amount per company based on borrowingCapacityRate (percentage of salary)
+- Use borrowingCapacityRate in max loan calculations for applications
+- Display company's applications (pre-disbursement) and, once implemented, active credits (post-disbursement)
 
 ### Company term assignment (assign-term-form, new-term-form)
 - Create new terms with durationType (bi-monthly/monthly) and duration
@@ -85,25 +84,42 @@
 - Validate term duration is positive
 - Display assigned terms per company
 
-### Company credits overview and tracking
-- Show all credits associated with company
-- Display credit status distribution
+### Company credits overview and tracking (post-disbursement)
+- Show credits associated with company (created when applications are disbursed)
+- Display credit status distribution (dispersed, settled, defaulted)
 - Calculate total dispersed amounts
 - Track payment performance
 
-## Credit Management
+## Application Management (pre-disbursement)
 
-### Credit application creation (new-credit)
-- Create credit with creditAmount, termOffering, borrower
-- Status starts as "new"
-- CreditAmount must not exceed maxLoanAmount
+Applications are the first phase; once disbursed, a credit is created and the flow continues there.
+
+### Application creation (new-credit / application flow)
+- Create application with creditAmount, termOfferingId, applicantId (borrower), salaryAtApplication
+- Status starts as "new" (schema: application_status)
+- CreditAmount must not exceed maxLoanAmount (from company borrowingCapacityRate and salary)
 - Associate with specific company termOffering
-- Upload required documents (authorization, contract, payrollReceipt)
+- Upload required documents (authorization, contract, payrollReceipt) as per feature spec
+
+### Application listing and filtering
+- Display all applications with status, amount, applicant info
+- Filter by status: new, pending, invalid-documentation, pre-authorized, authorized, denied
+- Filter by date ranges (createdAt, updatedAt)
+- Search by applicant name or email
+
+### User's personal applications view (my-applications / my-credits)
+- Show only applications where current user is applicant (borrower)
+- Display application status, amount, link to credit once disbursed
+- Access to application documents
+
+## Credit Management (post-disbursement)
+
+Credits are created when an application is disbursed; they hold payment schedule, dispersedAt, and lifecycle status.
 
 ### Credit listing and filtering
-- Display all credits with status, amount, borrower info
-- Filter by status: new, pending, invalid-documentation, authorized, denied, dispersed, settled, defaulted
-- Filter by date ranges (createdAt, dispersedAt)
+- Display all credits (from disbursed applications) with status, amount, borrower info
+- Filter by status: dispersed, settled, defaulted
+- Filter by date ranges (e.g. dispersedAt)
 - Search by borrower name or email
 
 ### User's personal credits view (my-credits)
@@ -118,19 +134,17 @@
 - Show total amounts dispersed vs repaid
 - Track average settlement time
 
-### Credit status management and workflows
-- Transition: new → pending → invalid-documentation → authorized/denied → dispersed → settled/defaulted
-- Cannot skip status steps
-- Set dispersedAt when status becomes "dispersed"
-- Track reason for denials
+### Application and credit status workflows
+- **Application:** new → pending → invalid-documentation → pre-authorized → authorized/denied (schema: application_status). Cannot skip steps. Track denialReason.
+- **Credit:** Created on disbursement; then dispersed → settled/defaulted. Set dispersedAt when disbursed.
 
 ## Authorization & Approval Workflows
 
 ### Pending authorizations processing
-- List credits with status "pending"
+- List applications with status "pending"
 - Review uploaded documents (authorization, contract, payrollReceipt)
 - Approve/reject each document with status and rejection reasons
-- Progress to "authorized" when all docs approved
+- Progress application to "authorized" when all docs approved
 
 ### Pre-authorizations management
 - Manage users with status "pre-authorization"
@@ -139,14 +153,14 @@
 - Set user status to "pre-authorized" or "denied"
 
 ### Approval/denial workflows
-- Record hrStatus (approved/denied) for credits
-- Capture rejection reasons for denials
+- Record hrStatus (approved/denied) for applications (and credits where applicable)
+- Capture rejection reasons for denials (e.g. application denialReason)
 - Send notifications based on decision
 - Track approval/denial statistics
 
 ### Authorization routing and assignment
-- Route credits to appropriate authorizers based on amount
-- Assign credits to staff based on roles (pre_authorizations, authorizations)
+- Route applications to appropriate authorizers based on amount
+- Assign applications to staff based on roles (pre_authorizations, authorizations)
 - Track processing times and workload distribution
 - Escalate overdue authorizations
 
@@ -159,10 +173,10 @@
 - Handle bi-monthly vs monthly payment frequencies
 
 ### Dispersion calculations and processing
-- Calculate loan amount based on creditAmount and company rate
+- On disbursement: create credit from approved application; use application creditAmount and company rate
 - Set firstDiscountDate for payment schedule
-- Generate amortization schedule
-- Track dispersal amounts and dates
+- Generate amortization schedule for the new credit
+- Track dispersal amounts and dates (dispersedAt)
 
 ### Payment status monitoring
 - Monitor overdue payments (expectedAt < current date, paidAt = null)
@@ -205,11 +219,11 @@
 - Provide role-specific navigation (SidebarRoutes)
 
 ### HR integration and processes
-- Agents can be assigned to one or many companies (many-to-many)
+- Agents can be assigned to one or many companies (many-to-many, user_companies)
 - Agents without company assignments see no company data
 - Agents with assignments see only their assigned companies' data
-- HR approval workflow for credits (hrStatus)
-- HR payment confirmation (hrConfirmedAt)
+- HR approval workflow for applications (hrStatus); credits (post-disbursement) for payment confirmation
+- HR payment confirmation (hrConfirmedAt) for credits
 - Company–agent assignment management
 
 ### Role-based access and permissions
@@ -227,17 +241,17 @@
 - Maintain audit trail for compliance
 - Generate activity reports
 
-### Credit monitoring and alerts
-- Monitor credit status changes
-- Alert on overdue payments
-- Track document approval deadlines
+### Application and credit monitoring and alerts
+- Monitor application status changes (new → … → authorized/denied)
+- Monitor credit status and overdue payments (post-disbursement)
+- Track document approval deadlines for applications
 - Generate risk alerts
 
 ### Dashboard analytics and reporting
 - Real-time dashboard metrics
-- Credit portfolio performance
-- Payment collection rates
-- User status distributions
+- Application and credit portfolio performance
+- Payment collection rates (credits)
+- User and application status distributions
 
 ## Authentication Workflows
 
@@ -265,8 +279,9 @@
 - Generate notifications for all NotificationType events:
   - PendingUser, PreAuthorizationUser, DeniedUser
   - InvalidDocumentationUser, PreAuthorizedUser
-  - PendingCredit, InvalidDocumentationCredit
-  - AuthorizedCredit, DeniedCredit, DispersedCredit, InstalledCredit
+  - PendingApplication, InvalidDocumentationApplication (application phase)
+  - AuthorizedApplication, DeniedApplication (application phase)
+  - DispersedCredit, InstalledCredit (credit phase, after disbursement)
 - Store notification messages and metadata
 - Track notification delivery and read status
 
@@ -353,6 +368,7 @@ Copy `.env.example` to `.env` and set:
 - **Local dev:** `pnpm db:push` to sync schema, or `pnpm db:migrate` if you use migrations.
 - **Production:** Migrations only. Commit files under `drizzle/` and `src/server/db/schema.ts`; CI runs `db:generate` (fails if schema changed but migrations not committed), then `db:migrate` against the production DB.
 - Schema lives in `src/server/db/schema.ts`; migration files in `drizzle/`.
+- **Applications vs credits:** The schema defines an `applications` table (applicantId, termOfferingId, creditAmount, salaryAtApplication, status, denialReason) with statuses new → pending → invalid-documentation → pre-authorized → authorized/denied. Credits are created when an application is disbursed; payment schedule and lifecycle (dispersed, settled, defaulted) live on the credit side (to be added to schema as needed).
 
 ## CI/CD
 
