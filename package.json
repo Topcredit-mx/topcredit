@@ -11,8 +11,6 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:nuke": "tsx scripts/nuke.ts",
-		"db:nuke:push": "pnpm db:nuke && pnpm db:push",
-		"db:push": "drizzle-kit push",
 		"db:seed": "tsx scripts/seed.ts",
 		"db:studio": "drizzle-kit studio",
 		"cy:open": "cypress open",
