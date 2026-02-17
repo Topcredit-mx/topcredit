@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
+import { subject } from '~/lib/abilities'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import { getRequiredApplicantUser } from '~/server/auth/lib'
 import { getCreditsByBorrowerId } from '~/server/queries'
@@ -18,10 +19,15 @@ const STATUS_KEYS: Record<string, string> = {
 }
 
 export default async function CreditsListPage() {
-	const ability = await getAbility()
-	requireAbility(ability, 'read', 'Credit')
-
-	const user = await getRequiredApplicantUser()
+	const [ability, user] = await Promise.all([
+		getAbility(),
+		getRequiredApplicantUser(),
+	])
+	requireAbility(
+		ability,
+		'read',
+		subject('Credit', { id: 0, borrowerId: user.id }),
+	)
 	const creditsList = await getCreditsByBorrowerId(user.id)
 	const tCredits = await getTranslations('dashboard.credits')
 

@@ -152,13 +152,8 @@ describe('Dashboard Credits', () => {
 			cy.visit('/dashboard/credits/new')
 		})
 
-		it('applicant whose domain matches no company sees error on credits/new and no form', () => {
-			cy.url().should('include', '/dashboard/credits/new')
-			cy.contains('Tu correo no está asociado a ninguna empresa afiliada.').should(
-				'be.visible',
-			)
-			cy.contains('label', /plazo/i).should('not.exist')
-			cy.get('input[name="creditAmount"]').should('not.exist')
+		it('applicant whose domain matches no company is redirected to unauthorized when visiting credits/new', () => {
+			cy.url().should('include', '/unauthorized')
 		})
 	})
 
@@ -168,13 +163,8 @@ describe('Dashboard Credits', () => {
 			cy.visit('/dashboard/credits/new')
 		})
 
-		it('applicant whose company has no borrowingCapacityRate sees error and no form', () => {
-			cy.url().should('include', '/dashboard/credits/new')
-			cy.contains('Tu empresa no tiene configuración de crédito.').should(
-				'be.visible',
-			)
-			cy.contains('label', /plazo/i).should('not.exist')
-			cy.get('input[name="creditAmount"]').should('not.exist')
+		it('applicant whose company has no borrowingCapacityRate is redirected to unauthorized', () => {
+			cy.url().should('include', '/unauthorized')
 		})
 	})
 
@@ -184,13 +174,8 @@ describe('Dashboard Credits', () => {
 			cy.visit('/dashboard/credits/new')
 		})
 
-		it('applicant whose company has no enabled term offerings sees error and no form', () => {
-			cy.url().should('include', '/dashboard/credits/new')
-			cy.contains('Tu empresa no tiene plazos disponibles.').should(
-				'be.visible',
-			)
-			cy.contains('label', /plazo/i).should('not.exist')
-			cy.get('input[name="creditAmount"]').should('not.exist')
+		it('applicant whose company has no enabled term offerings is redirected to unauthorized', () => {
+			cy.url().should('include', '/unauthorized')
 		})
 	})
 

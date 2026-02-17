@@ -1,8 +1,5 @@
 import { and, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm'
-import {
-	toCompanySubject,
-	toCreditSubject,
-} from '~/lib/abilities'
+import { subject } from '~/lib/abilities'
 import type { Role } from '~/lib/auth-utils'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import { db } from '~/server/db'
@@ -200,15 +197,17 @@ export async function getCompanies(
 	params: GetCompaniesParams = {},
 ): Promise<GetCompaniesResult> {
 	const ability = await getAbility()
-	requireAbility(ability, 'read', 'Company')
-
-	const {
-		page = 1,
-		limit = 50,
-		search,
-		activeOnly = false,
-		companyIds,
-	} = params
+	const { page = 1, limit = 50, search, activeOnly = false, companyIds } =
+		params
+	const firstCompanyId =
+		companyIds && companyIds !== 'all' && companyIds.length > 0
+			? companyIds[0]
+			: undefined
+	const readSubject =
+		firstCompanyId != null
+			? subject('Company', { id: firstCompanyId })
+			: 'Company'
+	requireAbility(ability, 'read', readSubject)
 
 	const offset = (page - 1) * limit
 
@@ -276,7 +275,7 @@ export async function getCompanies(
 
 export async function getCompanyById(id: number): Promise<Company | null> {
 	const ability = await getAbility()
-	requireAbility(ability, 'read', toCompanySubject({ id }))
+	requireAbility(ability, 'read', subject('Company', { id }))
 
 	const company = await db.query.companies.findFirst({
 		where: eq(companies.id, id),
@@ -301,7 +300,7 @@ export async function getCompanyByDomain(
 	if (!company) return null
 
 	const ability = await getAbility()
-	requireAbility(ability, 'read', toCompanySubject({ id: company.id }))
+	requireAbility(ability, 'read', subject('Company', { id: company.id }))
 
 	return {
 		...company,
@@ -348,7 +347,7 @@ export async function getCreditsByBorrowerId(
 	requireAbility(
 		ability,
 		'read',
-		toCreditSubject({ id: 0, borrowerId: userId }),
+		subject('Credit', { id: 0, borrowerId: userId }),
 	)
 
 	const list = await db.query.credits.findMany({

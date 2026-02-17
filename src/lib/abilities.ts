@@ -1,20 +1,23 @@
 import {
 	AbilityBuilder,
 	createMongoAbility,
+	type ForcedSubject,
 	type MongoAbility,
 	type MongoQuery,
+	subject,
 } from '@casl/ability'
+
+export { subject }
 
 export type AppAction = 'manage' | 'create' | 'read' | 'update' | 'delete'
 export type AppSubject = 'Company' | 'User' | 'Admin' | 'Credit' | 'all'
 
-export type CompanySubject = { __typename: 'Company'; id: number }
-export type UserSubject = { __typename: 'User'; id: number }
+export type CompanySubject = { id: number } & ForcedSubject<'Company'>
+export type UserSubject = { id: number } & ForcedSubject<'User'>
 export type CreditSubject = {
-	__typename: 'Credit'
 	id: number
 	borrowerId: number
-}
+} & ForcedSubject<'Credit'>
 
 export type AppAbility = MongoAbility<
 	[AppAction, AppSubject | CompanySubject | UserSubject | CreditSubject]
@@ -84,33 +87,4 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 	}
 
 	return build()
-}
-
-export function isCompanySubject(subject: unknown): subject is CompanySubject {
-	return (
-		typeof subject === 'object' &&
-		subject !== null &&
-		'__typename' in subject &&
-		(subject as CompanySubject).__typename === 'Company' &&
-		typeof (subject as CompanySubject).id === 'number'
-	)
-}
-
-export function toCompanySubject(company: { id: number }): CompanySubject {
-	return { __typename: 'Company', id: company.id }
-}
-
-export function toCreditSubject(credit: {
-	id: number
-	borrowerId: number
-}): CreditSubject {
-	return {
-		__typename: 'Credit',
-		id: credit.id,
-		borrowerId: credit.borrowerId,
-	}
-}
-
-export function toUserSubject(user: { id: number }): UserSubject {
-	return { __typename: 'User', id: user.id }
 }

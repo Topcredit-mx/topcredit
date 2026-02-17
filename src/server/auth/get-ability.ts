@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { redirect } from 'next/navigation'
 import type {
 	AbilityContext,
@@ -9,7 +10,7 @@ import { requireAuth } from '~/lib/auth-utils'
 import { getUserCompanyAssignments } from '~/server/scopes'
 import { getApplicantEligibilityData } from './eligibility'
 
-export async function getAbility(): Promise<AppAbility> {
+export const getAbility = cache(async (): Promise<AppAbility> => {
 	const session = await requireAuth()
 	const userId = session.user.id
 	const roles = session.user.roles ?? []
@@ -33,7 +34,7 @@ export async function getAbility(): Promise<AppAbility> {
 		applicantEligibilityData,
 	}
 	return defineAbilityFor(ctx)
-}
+})
 
 export function requireAbility(
 	ability: AppAbility,

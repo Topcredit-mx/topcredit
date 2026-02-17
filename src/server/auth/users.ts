@@ -4,7 +4,7 @@ import { randomInt } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { toUserSubject } from '~/lib/abilities'
+import { subject } from '~/lib/abilities'
 import type { Role } from '~/lib/auth-utils'
 import { getClientIP } from '~/lib/ip-location'
 import { generateBackupCodes, hashBackupCodes } from '~/lib/totp'
@@ -60,7 +60,7 @@ export async function sendOtp(email: string, ipAddress: string) {
 export async function disableTotpSetup(email: string) {
 	const sessionUser = await getRequiredUser()
 	const ability = await getAbility()
-	requireAbility(ability, 'update', toUserSubject({ id: sessionUser.id }))
+	requireAbility(ability, 'update', subject('User', { id: sessionUser.id }))
 
 	if (sessionUser.email?.toLowerCase() !== email.toLowerCase()) {
 		throw new Error('User not found')
@@ -92,7 +92,7 @@ export async function disableTotpSetup(email: string) {
 export async function generateNewBackupCodes(email: string) {
 	const sessionUser = await getRequiredUser()
 	const ability = await getAbility()
-	requireAbility(ability, 'update', toUserSubject({ id: sessionUser.id }))
+	requireAbility(ability, 'update', subject('User', { id: sessionUser.id }))
 
 	if (sessionUser.email?.toLowerCase() !== email.toLowerCase()) {
 		throw new Error('User not found')
@@ -148,7 +148,7 @@ export async function sendEmailChangeOtp(
 	try {
 		const sessionUser = await getRequiredUser()
 		const ability = await getAbility()
-		requireAbility(ability, 'update', toUserSubject({ id: sessionUser.id }))
+		requireAbility(ability, 'update', subject('User', { id: sessionUser.id }))
 
 		if (!sessionUser.email) {
 			return { message: 'Usuario no autenticado' }
@@ -236,7 +236,7 @@ export async function verifyEmailChangeOtp(
 	try {
 		const sessionUser = await getRequiredUser()
 		const ability = await getAbility()
-		requireAbility(ability, 'update', toUserSubject({ id: sessionUser.id }))
+		requireAbility(ability, 'update', subject('User', { id: sessionUser.id }))
 
 		if (!sessionUser.email) {
 			return { message: 'Usuario no autenticado' }

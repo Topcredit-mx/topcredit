@@ -4,7 +4,7 @@ import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { toCompanySubject } from '~/lib/abilities'
+import { subject } from '~/lib/abilities'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import type { Role } from '~/lib/auth-utils'
 import {
@@ -36,7 +36,7 @@ export async function setSelectedCompanyId(companyId: number | null) {
 	const user = await getRequiredAgentUser()
 	if (companyId !== null) {
 		const ability = await getAbility()
-		requireAbility(ability, 'read', toCompanySubject({ id: companyId }))
+		requireAbility(ability, 'read', subject('Company', { id: companyId }))
 	}
 	const isAdmin = user.roles?.includes('admin') ?? false
 	const allowed = await getCompaniesForSwitcher(user.id, isAdmin)
@@ -180,7 +180,7 @@ export async function updateCompany(
 	}
 
 	const ability = await getAbility()
-	requireAbility(ability, 'update', toCompanySubject(company))
+	requireAbility(ability, 'update', subject('Company', company))
 
 	try {
 		const activeValue = formData.get('active')
@@ -256,7 +256,7 @@ export async function deleteCompany(id: number) {
 	}
 
 	const ability = await getAbility()
-	requireAbility(ability, 'delete', toCompanySubject(company))
+	requireAbility(ability, 'delete', subject('Company', company))
 
 	try {
 		await db

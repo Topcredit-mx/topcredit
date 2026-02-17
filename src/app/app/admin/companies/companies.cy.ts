@@ -147,6 +147,17 @@ describe('Admin Companies List', () => {
 	})
 
 	describe('Company Creation', () => {
+		const creationTestDomains = ['newtest.com', 'norate.com']
+
+		before(() => {
+			// Clean up any stale data from previous interrupted runs
+			cy.task('deleteCompaniesByDomain', creationTestDomains)
+		})
+
+		after(() => {
+			cy.task('deleteCompaniesByDomain', creationTestDomains)
+		})
+
 		beforeEach(() => {
 			cy.login(adminUser.email)
 			cy.visit('/app/admin/companies')

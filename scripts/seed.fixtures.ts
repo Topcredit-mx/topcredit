@@ -11,6 +11,11 @@ export const seedUsers = [
 		email: 'solicitudes@topcredit.mx',
 		roles: ['agent', 'requests'] as Role[],
 	},
+	{
+		name: 'Applicant Demo',
+		email: 'applicant@example.com',
+		roles: ['applicant'] as Role[],
+	},
 ] as const
 
 export const seedCompanies = [
@@ -38,6 +43,24 @@ export const seedCompanies = [
 		employeeSalaryFrequency: 'monthly' as const,
 		active: false,
 	},
+	{
+		name: 'Example Company',
+		domain: 'example.com',
+		rate: '0.0250',
+		borrowingCapacityRate: '0.30',
+		employeeSalaryFrequency: 'monthly' as const,
+		active: true,
+	},
+] as const
+
+/** Terms and offerings for applicant happy path. Company domain → term config. */
+export const seedTermOfferings: ReadonlyArray<{
+	companyDomain: string
+	durationType: 'monthly' | 'bi-monthly'
+	duration: number
+}> = [
+	{ companyDomain: 'example.com', durationType: 'monthly', duration: 12 },
+	{ companyDomain: 'acme.topcredit.mx', durationType: 'monthly', duration: 12 },
 ] as const
 
 /** Requests (and other non-admin agents) need assigned companies. Admin does not. */
