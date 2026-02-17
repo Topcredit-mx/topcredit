@@ -2,7 +2,6 @@
 
 import { CheckCircle2, Shield, User, XCircle } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import type { Role } from '~/lib/auth-utils'
 import { Badge } from '~/components/ui/badge'
 import {
 	Card,
@@ -11,6 +10,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from '~/components/ui/card'
+import type { Role } from '~/lib/auth-utils'
 
 const ROLE_KEYS: Record<Role, string> = {
 	applicant: 'role-applicant',
@@ -66,7 +66,9 @@ export function ProfileView({ user, roles }: ProfileViewProps) {
 						) : (
 							<>
 								<XCircle className="h-4 w-4 text-orange-600" />
-								<span className="text-orange-600">{t('email-not-verified')}</span>
+								<span className="text-orange-600">
+									{t('email-not-verified')}
+								</span>
 							</>
 						)}
 					</div>

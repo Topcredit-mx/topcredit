@@ -37,9 +37,7 @@ export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
 				setError(t('error-login'))
 			}
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : t('error-invalid'),
-			)
+			setError(err instanceof Error ? err.message : t('error-invalid'))
 		} finally {
 			setIsLoading(false)
 		}
@@ -49,9 +47,7 @@ export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
 		<Card className="w-full max-w-md">
 			<CardHeader>
 				<CardTitle>{t('card-title')}</CardTitle>
-				<p className="text-muted-foreground text-sm">
-					{t('card-description')}
-				</p>
+				<p className="text-muted-foreground text-sm">{t('card-description')}</p>
 			</CardHeader>
 			<CardContent>
 				<form onSubmit={handleSubmit} className="space-y-4">

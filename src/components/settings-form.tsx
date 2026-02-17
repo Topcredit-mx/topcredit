@@ -3,7 +3,6 @@
 import { CheckCircle2, Mail, Shield, XCircle } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
-import type { Role } from '~/lib/auth-utils'
 import { EmailChangeModal } from '~/components/email-change-modal'
 import { TotpSettingsCard } from '~/components/totp-settings-card'
 import { Badge } from '~/components/ui/badge'
@@ -15,6 +14,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from '~/components/ui/card'
+import type { Role } from '~/lib/auth-utils'
 
 interface User {
 	id: number
@@ -95,7 +95,9 @@ export function SettingsForm({ user, roles }: SettingsFormProps) {
 						<Mail className="h-5 w-5" />
 						{tSecurity('email-card-title')}
 					</CardTitle>
-					<CardDescription>{tSecurity('email-card-description')}</CardDescription>
+					<CardDescription>
+						{tSecurity('email-card-description')}
+					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<div className="flex items-center justify-between">
@@ -106,13 +108,17 @@ export function SettingsForm({ user, roles }: SettingsFormProps) {
 									<>
 										<CheckCircle2 className="h-4 w-4 text-green-600" />
 										<span className="text-green-600">
-											{tSecurity('verified-at', { date: formatDate(currentUser.emailVerified) })}
+											{tSecurity('verified-at', {
+												date: formatDate(currentUser.emailVerified),
+											})}
 										</span>
 									</>
 								) : (
 									<>
 										<XCircle className="h-4 w-4 text-orange-600" />
-										<span className="text-orange-600">{tSecurity('not-verified')}</span>
+										<span className="text-orange-600">
+											{tSecurity('not-verified')}
+										</span>
 									</>
 								)}
 							</div>

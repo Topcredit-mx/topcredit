@@ -87,7 +87,8 @@ export function CompanyForm({ company }: CompanyFormProps) {
 
 			<Field>
 				<FieldLabel htmlFor={nameId}>
-					{t('company-form-label-name')} <span className="text-destructive">*</span>
+					{t('company-form-label-name')}{' '}
+					<span className="text-destructive">*</span>
 				</FieldLabel>
 				<Input
 					id={nameId}
@@ -102,7 +103,8 @@ export function CompanyForm({ company }: CompanyFormProps) {
 
 			<Field>
 				<FieldLabel htmlFor={domainId}>
-					{t('company-form-label-domain')} <span className="text-destructive">*</span>
+					{t('company-form-label-domain')}{' '}
+					<span className="text-destructive">*</span>
 				</FieldLabel>
 				<Input
 					id={domainId}
@@ -126,7 +128,8 @@ export function CompanyForm({ company }: CompanyFormProps) {
 
 			<Field>
 				<FieldLabel htmlFor={rateId}>
-					{t('company-form-label-rate')} <span className="text-destructive">*</span>
+					{t('company-form-label-rate')}{' '}
+					<span className="text-destructive">*</span>
 				</FieldLabel>
 				<Input
 					id={rateId}
@@ -141,7 +144,9 @@ export function CompanyForm({ company }: CompanyFormProps) {
 				{state.errors?.rate ? (
 					<FieldError>{state.errors.rate}</FieldError>
 				) : (
-					<FieldDescription>{t('company-form-rate-description')}</FieldDescription>
+					<FieldDescription>
+						{t('company-form-rate-description')}
+					</FieldDescription>
 				)}
 			</Field>
 
@@ -161,13 +166,16 @@ export function CompanyForm({ company }: CompanyFormProps) {
 				{state.errors?.borrowingCapacityRate ? (
 					<FieldError>{state.errors.borrowingCapacityRate}</FieldError>
 				) : (
-					<FieldDescription>{t('company-form-borrowing-description')}</FieldDescription>
+					<FieldDescription>
+						{t('company-form-borrowing-description')}
+					</FieldDescription>
 				)}
 			</Field>
 
 			<Field>
 				<FieldLabel htmlFor={employeeSalaryFrequencyId}>
-					{t('company-form-label-frequency')} <span className="text-destructive">*</span>
+					{t('company-form-label-frequency')}{' '}
+					<span className="text-destructive">*</span>
 				</FieldLabel>
 				<Select
 					value={employeeSalaryFrequency}
@@ -179,11 +187,17 @@ export function CompanyForm({ company }: CompanyFormProps) {
 						id={employeeSalaryFrequencyId}
 						name="employeeSalaryFrequency"
 					>
-						<SelectValue placeholder={t('company-form-placeholder-frequency')} />
+						<SelectValue
+							placeholder={t('company-form-placeholder-frequency')}
+						/>
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="monthly">{t('company-form-frequency-monthly')}</SelectItem>
-						<SelectItem value="bi-monthly">{t('company-form-frequency-bi-monthly')}</SelectItem>
+						<SelectItem value="monthly">
+							{t('company-form-frequency-monthly')}
+						</SelectItem>
+						<SelectItem value="bi-monthly">
+							{t('company-form-frequency-bi-monthly')}
+						</SelectItem>
 					</SelectContent>
 				</Select>
 				{state.errors?.employeeSalaryFrequency && (

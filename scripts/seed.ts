@@ -5,11 +5,13 @@ import { drizzle } from 'drizzle-orm/neon-http'
 import * as schema from '../src/server/db/schema'
 import {
 	seedCompanies,
+	seedTermOfferings,
 	seedUsers,
 	userCompanyAssignments,
 } from './seed.fixtures'
 
-const { users, userRoles, companies, userCompanies } = schema
+const { users, userRoles, companies, userCompanies, terms, termOfferings } =
+	schema
 
 export function getDb() {
 	const databaseUrl = process.env.DATABASE_URL
@@ -54,9 +56,9 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 			(role) => !existingRoles.some((r) => r.role === role),
 		)
 		if (toAdd.length > 0) {
-			await db.insert(userRoles).values(
-				toAdd.map((role) => ({ userId: user.id, role })),
-			)
+			await db
+				.insert(userRoles)
+				.values(toAdd.map((role) => ({ userId: user.id, role })))
 			console.log(`  ✓ Ensured roles for ${u.email}: ${toAdd.join(', ')}`)
 		}
 	}
@@ -84,6 +86,65 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 			if (inserted) {
 				companyIdByDomain.set(co.domain, inserted.id)
 				console.log(`  ✓ Created company: ${co.name} (${co.domain})`)
+			}
+		}
+	}
+
+	// Terms and term offerings (applicant happy path: company with rate + terms)
+	const termByKey = new Map<string, number>()
+	for (const offering of seedTermOfferings) {
+		const key = `${offering.durationType}-${offering.duration}`
+		let termId = termByKey.get(key)
+		if (termId == null) {
+			const existing = await db.query.terms.findFirst({
+				where: and(
+					eq(terms.durationType, offering.durationType),
+					eq(terms.duration, offering.duration),
+				),
+				columns: { id: true },
+			})
+			if (existing) {
+				termId = existing.id
+			} else {
+				const [inserted] = await db
+					.insert(terms)
+					.values({
+						durationType: offering.durationType,
+						duration: offering.duration,
+					})
+					.returning()
+				if (inserted) {
+					termId = inserted.id
+					console.log(
+						`  ✓ Created term: ${offering.durationType} ${offering.duration}`,
+					)
+				}
+			}
+			if (termId != null) termByKey.set(key, termId)
+		}
+		if (termId != null) {
+			const companyId = companyIdByDomain.get(offering.companyDomain)
+			if (companyId != null) {
+				const existing = await db.query.termOfferings.findFirst({
+					where: and(
+						eq(termOfferings.companyId, companyId),
+						eq(termOfferings.termId, termId),
+					),
+					columns: { id: true },
+				})
+				if (!existing) {
+					await db.insert(termOfferings).values({
+						companyId,
+						termId,
+						disabled: false,
+					})
+					const co = seedCompanies.find(
+						(c) => c.domain === offering.companyDomain,
+					)
+					console.log(
+						`  ✓ Created term offering for ${co?.name ?? offering.companyDomain}`,
+					)
+				}
 			}
 		}
 	}

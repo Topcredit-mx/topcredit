@@ -47,10 +47,7 @@ function FieldLabel({
 	)
 }
 
-function FieldDescription({
-	className,
-	...props
-}: React.ComponentProps<'p'>) {
+function FieldDescription({ className, ...props }: React.ComponentProps<'p'>) {
 	return (
 		<p
 			data-slot="field-description"

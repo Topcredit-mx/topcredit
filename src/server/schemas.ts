@@ -49,3 +49,18 @@ export const createCompanySchema = z.object({
 export const updateCompanySchema = createCompanySchema
 	.partial()
 	.omit({ domain: true })
+
+// ---- Credit (applicant) ----
+
+const positiveNumericString = z
+	.string()
+	.min(1, 'El valor es requerido')
+	.refine((val) => !Number.isNaN(Number(val)) && Number(val) > 0, {
+		message: 'Debe ser un número positivo',
+	})
+
+export const createCreditSchema = z.object({
+	termOfferingId: z.coerce.number().int().positive('Selecciona un plazo'),
+	creditAmount: positiveNumericString,
+	salaryAtApplication: positiveNumericString,
+})

@@ -245,7 +245,7 @@ import { getAbility, requireAbility } from '~/server/auth/get-ability'
 
 const ability = await getAbility()
 requireAbility(ability, 'create', 'Company')   // Redirects to /unauthorized if denied
-requireAbility(ability, 'update', toCompanySubject(company))  // Instance check
+requireAbility(ability, 'update', subject('Company', company))  // Instance check
 ```
 
 **Where guards live:** Pages, mutations, and protected queries. Public queries (login, landing) have no guard.

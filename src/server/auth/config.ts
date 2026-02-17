@@ -1,11 +1,13 @@
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import {
-	getUserByEmail,
 	verifyBackupCodeLogin,
 	verifyOtp,
 	verifyTotpLogin,
-} from './users'
+} from './actions-no-ability'
+import { getApplicantEligibilityData } from './eligibility'
+import { getUserByEmail } from './users'
+import { isEligibleForNewCredit } from '~/lib/abilities'
 
 export const authOptions = {
 	providers: [
@@ -19,7 +21,13 @@ export const authOptions = {
 				if (!credentials?.email || !credentials?.otp) return null
 
 				await verifyOtp(credentials.email, credentials.otp)
-				return await getUserByEmail(credentials.email)
+				const user = await getUserByEmail(credentials.email)
+				if (!user) return null
+				if (user.roles?.includes('applicant')) {
+					const eligibility = await getApplicantEligibilityData(credentials.email)
+					if (!isEligibleForNewCredit(eligibility)) return null
+				}
+				return user
 			},
 		}),
 		CredentialsProvider({
@@ -33,7 +41,13 @@ export const authOptions = {
 				if (!credentials?.email || !credentials?.totp) return null
 
 				await verifyTotpLogin(credentials.email, credentials.totp)
-				return await getUserByEmail(credentials.email)
+				const user = await getUserByEmail(credentials.email)
+				if (!user) return null
+				if (user.roles?.includes('applicant')) {
+					const eligibility = await getApplicantEligibilityData(credentials.email)
+					if (!isEligibleForNewCredit(eligibility)) return null
+				}
+				return user
 			},
 		}),
 		CredentialsProvider({
@@ -47,14 +61,25 @@ export const authOptions = {
 				if (!credentials?.email || !credentials?.backupCode) return null
 
 				await verifyBackupCodeLogin(credentials.email, credentials.backupCode)
-				return await getUserByEmail(credentials.email)
+				const user = await getUserByEmail(credentials.email)
+				if (!user) return null
+				if (user.roles?.includes('applicant')) {
+					const eligibility = await getApplicantEligibilityData(credentials.email)
+					if (!isEligibleForNewCredit(eligibility)) return null
+				}
+				return user
 			},
 		}),
 	],
 	callbacks: {
 		async session({ session, token }) {
-			if (session.user && token.sub) {
-				session.user.id = Number(token.sub)
+			if (session.user) {
+				// Normalize id to number once here so session.user.id is always number app-wide
+				const id = Number(token.sub)
+				if (!Number.isInteger(id)) {
+					throw new Error('Invalid session: missing or invalid user id')
+				}
+				session.user.id = id
 				if (token.roles?.length) {
 					session.user.roles = token.roles
 				} else {
@@ -65,6 +90,7 @@ export const authOptions = {
 		},
 		async jwt({ token, user }) {
 			if (user) {
+				token.sub = String(user.id)
 				token.roles = user.roles
 			}
 			return token

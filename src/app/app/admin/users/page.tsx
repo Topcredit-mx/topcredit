@@ -20,12 +20,6 @@ export default async function UsersPage() {
 		getAllCompaniesForAssignment(),
 	])
 
-	// Get current user ID from session (handle both string and number)
-	const currentUserId =
-		typeof session.user.id === 'string'
-			? Number.parseInt(session.user.id, 10)
-			: session.user.id
-
 	const t = await getTranslations('admin')
 	return (
 		<div className="container mx-auto py-6">
@@ -36,7 +30,7 @@ export default async function UsersPage() {
 
 			<UsersTable
 				users={items}
-				currentUserId={currentUserId}
+				currentUserId={session.user.id}
 				allCompanies={allCompanies}
 			/>
 		</div>

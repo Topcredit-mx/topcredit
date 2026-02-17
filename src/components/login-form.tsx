@@ -5,14 +5,10 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useActionState, useId } from 'react'
 import { Button } from '~/components/ui/button'
-import {
-	Field,
-	FieldError,
-	FieldLabel,
-} from '~/components/ui/field'
+import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
 import { cn } from '~/lib/utils'
-import { sendOtpForm } from '~/server/auth/users'
+import { sendOtpForm } from '~/server/auth/actions-no-ability'
 
 export function LoginForm({
 	className,
@@ -66,8 +62,7 @@ export function LoginForm({
 				</div>
 			</form>
 			<div className="text-balance text-center text-muted-foreground text-xs *:[a]:underline *:[a]:underline-offset-4 *:[a]:hover:text-primary">
-				{t('terms-prefix')}{' '}
-				<Link href="/terms">{t('terms')}</Link> y{' '}
+				{t('terms-prefix')} <Link href="/terms">{t('terms')}</Link> y{' '}
 				<Link href="/privacy">{t('privacy')}</Link>.
 			</div>
 		</div>

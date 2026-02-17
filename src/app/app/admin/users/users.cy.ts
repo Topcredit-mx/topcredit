@@ -158,7 +158,12 @@ describe('Admin Users', () => {
 		})
 
 		it('should toggle column visibility via View dropdown', () => {
-			cy.get('input[type="search"]').parent().parent().find('button[aria-haspopup="menu"]').first().click()
+			cy.get('input[type="search"]')
+				.parent()
+				.parent()
+				.find('button[aria-haspopup="menu"]')
+				.first()
+				.click()
 			cy.get('[role="menu"]').contains(/email/i).click()
 			cy.get('table').within(() => {
 				cy.contains('th', /email/i).should('not.exist')

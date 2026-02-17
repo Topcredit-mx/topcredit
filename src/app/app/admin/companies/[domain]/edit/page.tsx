@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { CompanyForm } from '~/components/company-form'
-import { toCompanySubject } from '~/lib/abilities'
+import { subject } from '~/lib/abilities'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import { getCompanyByDomain } from '~/server/queries'
 
@@ -24,7 +24,7 @@ export default async function EditCompanyPage({
 	}
 
 	const ability = await getAbility()
-	requireAbility(ability, 'update', toCompanySubject(company))
+	requireAbility(ability, 'update', subject('Company', company))
 	const t = await getTranslations('admin')
 
 	return (

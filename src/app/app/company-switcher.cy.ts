@@ -63,12 +63,14 @@ describe('Company Switcher (US-2.2.3)', () => {
 		openCompanySwitcher()
 
 		cy.get('[data-slot="dropdown-menu-content"]').within(() => {
-			cy.contains('[data-slot="dropdown-menu-item"]', companyAssignedActive.name).should(
-				'exist',
-			)
-			cy.contains('[data-slot="dropdown-menu-item"]', companyAssignedActive2.name).should(
-				'exist',
-			)
+			cy.contains(
+				'[data-slot="dropdown-menu-item"]',
+				companyAssignedActive.name,
+			).should('exist')
+			cy.contains(
+				'[data-slot="dropdown-menu-item"]',
+				companyAssignedActive2.name,
+			).should('exist')
 			cy.contains(
 				'[data-slot="dropdown-menu-item"]',
 				companyAssignedInactive.name,

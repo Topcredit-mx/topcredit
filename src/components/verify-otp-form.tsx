@@ -11,7 +11,7 @@ import {
 	InputOTPSlot,
 } from '~/components/ui/input-otp'
 import { cn } from '~/lib/utils'
-import { resendOtp } from '~/server/auth/users'
+import { resendOtp } from '~/server/auth/actions-no-ability'
 
 export function VerifyOTPForm({
 	className,

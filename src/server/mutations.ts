@@ -4,20 +4,40 @@ import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { toCompanySubject } from '~/lib/abilities'
-import type { Role } from '~/lib/auth-utils'
+import { subject } from '~/lib/abilities'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
-import { getRequiredAgentUser } from '~/server/auth/lib'
+import type { Role } from '~/lib/auth-utils'
+import {
+	getRequiredAgentUser,
+	getRequiredApplicantUser,
+} from '~/server/auth/lib'
 import { db } from '~/server/db'
-import { companies, userCompanies, userRoles } from '~/server/db/schema'
+import {
+	companies,
+	credits,
+	userCompanies,
+	userRoles,
+} from '~/server/db/schema'
 import { fromErrorToFormState } from '~/server/errors/errors'
-import { createCompanySchema, updateCompanySchema } from '~/server/schemas'
+import {
+	getCompanyByEmailDomain,
+	getTermOfferingsForCompany,
+} from '~/server/queries'
+import {
+	createCompanySchema,
+	createCreditSchema,
+	updateCompanySchema,
+} from '~/server/schemas'
 import { getCompaniesForSwitcher } from '~/server/scopes'
 
 // ---- Selected company (sidebar switcher) ----
 
 export async function setSelectedCompanyId(companyId: number | null) {
 	const user = await getRequiredAgentUser()
+	if (companyId !== null) {
+		const ability = await getAbility()
+		requireAbility(ability, 'read', subject('Company', { id: companyId }))
+	}
 	const isAdmin = user.roles?.includes('admin') ?? false
 	const allowed = await getCompaniesForSwitcher(user.id, isAdmin)
 	const allowedIds = new Set(allowed.map((c) => c.id))
@@ -160,7 +180,7 @@ export async function updateCompany(
 	}
 
 	const ability = await getAbility()
-	requireAbility(ability, 'update', toCompanySubject(company))
+	requireAbility(ability, 'update', subject('Company', company))
 
 	try {
 		const activeValue = formData.get('active')
@@ -236,7 +256,7 @@ export async function deleteCompany(id: number) {
 	}
 
 	const ability = await getAbility()
-	requireAbility(ability, 'delete', toCompanySubject(company))
+	requireAbility(ability, 'delete', subject('Company', company))
 
 	try {
 		await db
@@ -254,3 +274,80 @@ export async function deleteCompany(id: number) {
 		}
 	}
 }
+
+// ---- Credit (applicant) ----
+
+export async function createCredit(
+	_prevState: unknown,
+	formData: FormData,
+): Promise<{ errors?: Record<string, string>; message?: string }> {
+	const user = await getRequiredApplicantUser()
+	const ability = await getAbility()
+	requireAbility(ability, 'create', 'Credit')
+
+	const email = user.email ?? ''
+	const company = await getCompanyByEmailDomain(email)
+	if (!company) {
+		return {
+			message: 'Tu correo no está asociado a ninguna empresa afiliada.',
+		}
+	}
+
+	const borrowingCapacityRate = company.borrowingCapacityRate
+	if (!borrowingCapacityRate || Number(borrowingCapacityRate) <= 0) {
+		return {
+			message: 'Tu empresa no tiene configuración de crédito.',
+		}
+	}
+
+	const offerings = await getTermOfferingsForCompany(company.id)
+	if (offerings.length === 0) {
+		return {
+			message: 'Tu empresa no tiene plazos disponibles.',
+		}
+	}
+
+	try {
+		const data = createCreditSchema.parse({
+			termOfferingId: formData.get('termOfferingId'),
+			creditAmount: formData.get('creditAmount'),
+			salaryAtApplication: formData.get('salaryAtApplication'),
+		})
+
+		const offering = offerings.find((o) => o.id === data.termOfferingId)
+		if (!offering) {
+			return {
+				errors: {
+					termOfferingId: 'El plazo seleccionado no es válido.',
+				},
+			}
+		}
+
+		const salary = Number.parseFloat(String(data.salaryAtApplication))
+		const rate = Number.parseFloat(String(borrowingCapacityRate))
+		const maxLoanAmount = salary * rate
+		const amount = Number.parseFloat(String(data.creditAmount))
+		if (amount > maxLoanAmount) {
+			return {
+				errors: {
+					creditAmount: `El monto no puede superar el máximo permitido (${maxLoanAmount.toLocaleString('es-MX', { maximumFractionDigits: 0 })}).`,
+				},
+			}
+		}
+
+		await db.insert(credits).values({
+			borrowerId: user.id,
+			termOfferingId: data.termOfferingId,
+			creditAmount: String(amount.toFixed(2)),
+			salaryAtApplication: String(salary.toFixed(2)),
+			status: 'new',
+		})
+
+		revalidatePath('/dashboard/credits')
+	} catch (error) {
+		return fromErrorToFormState(error)
+	}
+
+	redirect('/dashboard/credits')
+}
+

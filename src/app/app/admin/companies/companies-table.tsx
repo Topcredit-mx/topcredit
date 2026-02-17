@@ -24,7 +24,10 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'name',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title={t('companies-col-name')} />
+				<DataTableColumnHeader
+					column={column}
+					title={t('companies-col-name')}
+				/>
 			),
 			cell: ({ row }) => {
 				return <div className="font-medium">{row.getValue('name')}</div>
@@ -33,7 +36,10 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'domain',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title={t('companies-col-domain')} />
+				<DataTableColumnHeader
+					column={column}
+					title={t('companies-col-domain')}
+				/>
 			),
 			cell: ({ row }) => {
 				return (
@@ -44,7 +50,10 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'rate',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title={t('companies-col-rate')} />
+				<DataTableColumnHeader
+					column={column}
+					title={t('companies-col-rate')}
+				/>
 			),
 			cell: ({ row }) => {
 				const rate = Number.parseFloat(row.getValue('rate'))
@@ -54,7 +63,10 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'borrowingCapacityRate',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title={t('companies-col-borrowing')} />
+				<DataTableColumnHeader
+					column={column}
+					title={t('companies-col-borrowing')}
+				/>
 			),
 			cell: ({ row }) => {
 				const rate = row.getValue('borrowingCapacityRate') as string | null
@@ -68,17 +80,29 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'employeeSalaryFrequency',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title={t('companies-col-frequency')} />
+				<DataTableColumnHeader
+					column={column}
+					title={t('companies-col-frequency')}
+				/>
 			),
 			cell: ({ row }) => {
 				const frequency = row.getValue('employeeSalaryFrequency') as string
-				return <div>{frequency === 'bi-monthly' ? t('company-form-frequency-bi-monthly') : t('company-form-frequency-monthly')}</div>
+				return (
+					<div>
+						{frequency === 'bi-monthly'
+							? t('company-form-frequency-bi-monthly')
+							: t('company-form-frequency-monthly')}
+					</div>
+				)
 			},
 		},
 		{
 			accessorKey: 'active',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title={t('companies-col-status')} />
+				<DataTableColumnHeader
+					column={column}
+					title={t('companies-col-status')}
+				/>
 			),
 			cell: ({ row }) => {
 				const active = row.getValue('active') as boolean
@@ -92,7 +116,10 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 		{
 			accessorKey: 'createdAt',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title={t('companies-col-created')} />
+				<DataTableColumnHeader
+					column={column}
+					title={t('companies-col-created')}
+				/>
 			),
 			cell: ({ row }) => {
 				const date = row.getValue('createdAt') as Date

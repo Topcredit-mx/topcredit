@@ -3,7 +3,9 @@ import { SettingsNav } from '~/components/settings-nav'
 
 export default async function SettingsLayout({
 	children,
-}: { children: React.ReactNode }) {
+}: {
+	children: React.ReactNode
+}) {
 	const t = await getTranslations('settings')
 	return (
 		<div className="container mx-auto max-w-4xl px-4 py-8">
