@@ -164,6 +164,7 @@ describe('Admin Companies List', () => {
 		})
 
 		it('should navigate to create company page', () => {
+			cy.get('table').should('exist')
 			cy.contains('a', /nueva empresa/i).click()
 			cy.url().should('include', '/app/admin/companies/new')
 			cy.contains(/crear empresa/i).should('be.visible')
