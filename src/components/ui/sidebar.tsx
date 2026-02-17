@@ -601,14 +601,16 @@ function SidebarMenuBadge({
 function SidebarMenuSkeleton({
 	className,
 	showIcon = false,
+	index,
 	...props
 }: React.ComponentProps<'div'> & {
 	showIcon?: boolean
+	/** Optional index for deterministic width variety (50–90%). Same index = same width on server and client. */
+	index?: number
 }) {
-	// Random width between 50 to 90%.
-	const width = React.useMemo(() => {
-		return `${Math.floor(Math.random() * 40) + 50}%`
-	}, [])
+	// Deterministic width: same index always yields same width (avoids hydration errors from Math.random).
+	const width =
+		index !== undefined ? `${50 + (index % 5) * 10}%` : '70%'
 
 	return (
 		<div
