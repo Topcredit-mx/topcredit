@@ -10,6 +10,7 @@
 		"check:write": "biome check --write .",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
+		"db:migrate:if-pending": "tsx scripts/migrate-if-pending.ts",
 		"db:nuke": "tsx scripts/nuke.ts",
 		"db:seed": "tsx scripts/seed.ts",
 		"db:studio": "drizzle-kit studio",

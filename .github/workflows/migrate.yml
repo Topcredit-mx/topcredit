@@ -3,9 +3,6 @@ name: Database Migration
 on:
   push:
     branches: [main]
-    paths:
-      - 'drizzle/**'
-      - 'src/server/db/schema.ts'
 
 jobs:
   migrate:
@@ -44,6 +41,6 @@ jobs:
           fi
 
       - name: Run migrations (push to prod)
-        run: pnpm db:migrate
+        run: pnpm db:migrate:if-pending
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
