@@ -12,8 +12,8 @@ import { db } from '~/server/db'
 import { emailOtps, userRoles, users } from '~/server/db/schema'
 import { sendOtpEmail } from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
-import { checkRateLimit, getRequiredUser, updateRateLimitCounters } from './lib'
 import { getAbility, requireAbility } from './get-ability'
+import { checkRateLimit, getRequiredUser, updateRateLimitCounters } from './lib'
 
 export async function getUserByEmail(email: string) {
 	const user = await db
@@ -29,7 +29,7 @@ export async function getUserByEmail(email: string) {
 		.select({ role: userRoles.role })
 		.from(userRoles)
 		.where(eq(userRoles.userId, user.id))
-		.then((res) => res.map((r) => r.role as Role))
+		.then((res) => res.map((r) => r.role))
 
 	return {
 		...user,

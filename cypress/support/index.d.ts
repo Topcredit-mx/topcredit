@@ -36,10 +36,7 @@ declare namespace Cypress {
 			params: CreateApplicationTaskParams,
 		): Chainable<{ id: number }>
 		task(event: 'deleteUsersByEmail', emails: string[]): Chainable<null>
-		task(
-			event: 'deleteCompaniesByDomain',
-			domains: string[],
-		): Chainable<null>
+		task(event: 'deleteCompaniesByDomain', domains: string[]): Chainable<null>
 	}
 }
 
@@ -76,5 +73,11 @@ type CreateApplicationTaskParams = {
 	termOfferingId: number
 	creditAmount: string
 	salaryAtApplication: string
-	status?: 'new' | 'pending' | 'invalid-documentation' | 'pre-authorized' | 'authorized' | 'denied'
+	status?:
+		| 'new'
+		| 'pending'
+		| 'invalid-documentation'
+		| 'pre-authorized'
+		| 'authorized'
+		| 'denied'
 }

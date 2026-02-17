@@ -1,5 +1,6 @@
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import { isEligibleForNewApplication } from '~/lib/abilities'
 import {
 	verifyBackupCodeLogin,
 	verifyOtp,
@@ -7,7 +8,6 @@ import {
 } from './actions-no-ability'
 import { getApplicantEligibilityData } from './eligibility'
 import { getUserByEmail } from './users'
-import { isEligibleForNewApplication } from '~/lib/abilities'
 
 export const authOptions = {
 	providers: [
@@ -24,7 +24,9 @@ export const authOptions = {
 				const user = await getUserByEmail(credentials.email)
 				if (!user) return null
 				if (user.roles?.includes('applicant')) {
-					const eligibility = await getApplicantEligibilityData(credentials.email)
+					const eligibility = await getApplicantEligibilityData(
+						credentials.email,
+					)
 					if (!isEligibleForNewApplication(eligibility)) return null
 				}
 				return user
@@ -44,7 +46,9 @@ export const authOptions = {
 				const user = await getUserByEmail(credentials.email)
 				if (!user) return null
 				if (user.roles?.includes('applicant')) {
-					const eligibility = await getApplicantEligibilityData(credentials.email)
+					const eligibility = await getApplicantEligibilityData(
+						credentials.email,
+					)
 					if (!isEligibleForNewApplication(eligibility)) return null
 				}
 				return user
@@ -64,7 +68,9 @@ export const authOptions = {
 				const user = await getUserByEmail(credentials.email)
 				if (!user) return null
 				if (user.roles?.includes('applicant')) {
-					const eligibility = await getApplicantEligibilityData(credentials.email)
+					const eligibility = await getApplicantEligibilityData(
+						credentials.email,
+					)
 					if (!isEligibleForNewApplication(eligibility)) return null
 				}
 				return user

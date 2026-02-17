@@ -13,10 +13,7 @@ import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { getRequiredApplicantUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
-import {
-	isActiveApplicationStatus,
-	users,
-} from '~/server/db/schema'
+import { isActiveApplicationStatus, users } from '~/server/db/schema'
 import { getApplicationsByApplicantId } from '~/server/queries'
 
 export default async function DashboardPage() {
@@ -117,7 +114,9 @@ export default async function DashboardPage() {
 							</div>
 						</div>
 						<Button asChild variant="outline" className="mt-4 w-full">
-							<Link href="/dashboard/applications">{tDashboard('view-status')}</Link>
+							<Link href="/dashboard/applications">
+								{tDashboard('view-status')}
+							</Link>
 						</Button>
 					</Card>
 
@@ -148,7 +147,9 @@ export default async function DashboardPage() {
 						</h2>
 						<div className="grid gap-4 md:grid-cols-3">
 							<div className="text-center">
-								<div className="font-bold text-2xl text-muted-foreground">—</div>
+								<div className="font-bold text-2xl text-muted-foreground">
+									—
+								</div>
 								<div className="text-gray-500 text-sm">
 									{tDashboard('available-balance')}
 								</div>

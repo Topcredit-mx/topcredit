@@ -69,9 +69,7 @@ export default async function ApplicationsListPage() {
 											<th className="px-4 py-3 font-medium">
 												{t('th-amount')}
 											</th>
-											<th className="px-4 py-3 font-medium">
-												{t('th-date')}
-											</th>
+											<th className="px-4 py-3 font-medium">{t('th-date')}</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -90,9 +88,7 @@ export default async function ApplicationsListPage() {
 													})}
 												</td>
 												<td className="px-4 py-3 text-gray-600">
-													{new Date(app.createdAt).toLocaleDateString(
-														'es-MX',
-													)}
+													{new Date(app.createdAt).toLocaleDateString('es-MX')}
 												</td>
 											</tr>
 										))}

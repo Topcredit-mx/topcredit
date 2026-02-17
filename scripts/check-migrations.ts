@@ -20,7 +20,9 @@ async function checkMigrations() {
 		SELECT 1 FROM information_schema.schemata WHERE schema_name = 'drizzle'
 	`
 	if (schemaExists.length === 0) {
-		console.log('Schema "drizzle" does not exist → no migrations have been applied.')
+		console.log(
+			'Schema "drizzle" does not exist → no migrations have been applied.',
+		)
 		process.exit(0)
 	}
 
@@ -29,7 +31,9 @@ async function checkMigrations() {
 		WHERE table_schema = 'drizzle' AND table_name = '__drizzle_migrations'
 	`
 	if (tableExists.length === 0) {
-		console.log('Table "drizzle.__drizzle_migrations" does not exist → no migrations recorded.')
+		console.log(
+			'Table "drizzle.__drizzle_migrations" does not exist → no migrations recorded.',
+		)
 		process.exit(0)
 	}
 
@@ -44,7 +48,9 @@ async function checkMigrations() {
 		console.log('(empty — no migrations recorded)')
 	} else {
 		for (const row of rows) {
-			console.log(`  ${row.id}  ${(row as { hash?: string }).hash ?? '?'}  ${(row as { created_at?: string }).created_at ?? '?'}`)
+			console.log(
+				`  ${row.id}  ${(row as { hash?: string }).hash ?? '?'}  ${(row as { created_at?: string }).created_at ?? '?'}`,
+			)
 		}
 	}
 	console.log('---')

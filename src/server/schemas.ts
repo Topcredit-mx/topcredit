@@ -66,8 +66,11 @@ export const createApplicationSchema = z.object({
 })
 
 export const updateApplicationStatusSchema = z.object({
-	status: z.enum(['pre-authorized', 'authorized', 'denied', 'invalid-documentation'], {
-		message: 'Estado no válido',
-	}),
+	status: z.enum(
+		['pre-authorized', 'authorized', 'denied', 'invalid-documentation'],
+		{
+			message: 'Estado no válido',
+		},
+	),
 	reason: z.string().max(1000).optional(),
 })

@@ -451,10 +451,18 @@ export type CreateApplicationTaskParams = {
 	termOfferingId: number
 	creditAmount: string
 	salaryAtApplication: string
-	status?: 'new' | 'pending' | 'invalid-documentation' | 'pre-authorized' | 'authorized' | 'denied'
+	status?:
+		| 'new'
+		| 'pending'
+		| 'invalid-documentation'
+		| 'pre-authorized'
+		| 'authorized'
+		| 'denied'
 }
 
-export const createApplication = async (params: CreateApplicationTaskParams) => {
+export const createApplication = async (
+	params: CreateApplicationTaskParams,
+) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 
 	const [app] = await db

@@ -27,9 +27,7 @@ function termOfferingLabel(offering: TermOfferingForCompany): string {
 	return `${offering.durationType === 'monthly' ? 'Mensual' : 'Quincenal'} - ${duration}`
 }
 
-export function ApplicationForm({
-	termOfferings,
-}: ApplicationFormProps) {
+export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 	const t = useTranslations('dashboard.applications')
 	const tCommon = useTranslations('common')
 
@@ -123,10 +121,7 @@ export function ApplicationForm({
 			</Field>
 
 			<div className="flex gap-2">
-				<Button
-					type="submit"
-					disabled={pending || !termOfferingId}
-				>
+				<Button type="submit" disabled={pending || !termOfferingId}>
 					{pending ? tCommon('save') : t('submit')}
 				</Button>
 				<Button type="button" variant="outline" asChild>

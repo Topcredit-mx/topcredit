@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { isEligibleForNewApplication } from '~/lib/abilities'
+import { getClientIP } from '~/lib/ip-location'
 import {
 	generateBackupCodes,
 	generateTotpSetup,
@@ -11,14 +12,13 @@ import {
 	verifyBackupCode,
 	verifyTotpToken,
 } from '~/lib/totp'
-import { getClientIP } from '~/lib/ip-location'
 import { db } from '~/server/db'
 import { emailOtps, users } from '~/server/db/schema'
 import { sendGenericEmail } from '~/server/email'
 import { getApplicantEligibilityData } from './eligibility'
-import { getUserByEmail, sendOtp } from './users'
 import { checkRateLimit, updateRateLimitCounters } from './lib'
 import { initializeUserRoles } from './role-management'
+import { getUserByEmail, sendOtp } from './users'
 
 /**
  * Auth mutations that run without a session (no CASL context).
@@ -248,7 +248,10 @@ export async function verifyTotpSetup(
 	return { backupCodes }
 }
 
-export async function verifyTotpLogin(email: string, token: string): Promise<void> {
+export async function verifyTotpLogin(
+	email: string,
+	token: string,
+): Promise<void> {
 	const user = await db.query.users.findFirst({
 		where: eq(users.email, email),
 	})

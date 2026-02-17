@@ -1,4 +1,4 @@
-name: Type Check
+name: Type Check & Lint
 
 on: [push]
 
@@ -11,16 +11,20 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.2.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4.2.0
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --prefer-frozen-lockfile --ignore-scripts
 
       - name: Type check
         run: pnpm exec tsc --noEmit
+
+      - name: Lint
+        run: pnpm check

@@ -58,9 +58,7 @@ const ACTIVE_APPLICATION_STATUS_SET = new Set<ApplicationStatus>(
 	ACTIVE_APPLICATION_STATUSES,
 )
 
-export function isActiveApplicationStatus(
-	status: ApplicationStatus,
-): boolean {
+export function isActiveApplicationStatus(status: ApplicationStatus): boolean {
 	return ACTIVE_APPLICATION_STATUS_SET.has(status)
 }
 
