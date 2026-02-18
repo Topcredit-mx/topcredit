@@ -30,7 +30,7 @@ export const durationTypeEnum = pgEnum('duration_type', [
 	'monthly',
 ])
 
-const APPLICATION_STATUS_VALUES = [
+export const APPLICATION_STATUS_VALUES = [
 	'new',
 	'pending',
 	'invalid-documentation',
@@ -40,6 +40,42 @@ const APPLICATION_STATUS_VALUES = [
 ] as const
 
 export type ApplicationStatus = (typeof APPLICATION_STATUS_VALUES)[number]
+
+/** Target statuses for application status updates (pre-authorized | authorized | denied | invalid-documentation). */
+export const APPLICATION_UPDATE_TARGET_STATUSES = [
+	'pre-authorized',
+	'authorized',
+	'denied',
+	'invalid-documentation',
+] as const
+
+export type ApplicationUpdateTargetStatus =
+	(typeof APPLICATION_UPDATE_TARGET_STATUSES)[number]
+
+/** Target statuses that require a reason when updating. Single source of truth for client and server. */
+export const APPLICATION_STATUS_REQUIRING_REASON = [
+	'denied',
+	'invalid-documentation',
+] as const satisfies readonly ApplicationUpdateTargetStatus[]
+
+export type ApplicationStatusRequiringReason =
+	(typeof APPLICATION_STATUS_REQUIRING_REASON)[number]
+
+const APPLICATION_STATUS_REQUIRING_REASON_SET = new Set<
+	ApplicationUpdateTargetStatus
+>(APPLICATION_STATUS_REQUIRING_REASON)
+
+export function statusRequiresReason(
+	s: ApplicationUpdateTargetStatus,
+): s is ApplicationStatusRequiringReason {
+	return APPLICATION_STATUS_REQUIRING_REASON_SET.has(s)
+}
+
+const APPLICATION_STATUS_SET = new Set<string>(APPLICATION_STATUS_VALUES)
+
+export function isApplicationStatus(s: string): s is ApplicationStatus {
+	return APPLICATION_STATUS_SET.has(s)
+}
 
 export const applicationStatusEnum = pgEnum(
 	'application_status',
@@ -62,7 +98,11 @@ export function isActiveApplicationStatus(status: ApplicationStatus): boolean {
 	return ACTIVE_APPLICATION_STATUS_SET.has(status)
 }
 
-/** Statuses from which an application can transition (update). */
+/**
+ * Statuses from which an application can transition (update).
+ * Allowed targets: pre-authorized | authorized | denied | invalid-documentation.
+ * Any of these targets is valid from any of the statuses below.
+ */
 export const ALLOWED_UPDATE_FROM_STATUSES: readonly ApplicationStatus[] = [
 	'new',
 	'pending',

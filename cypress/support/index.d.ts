@@ -35,15 +35,33 @@ declare namespace Cypress {
 			event: 'createApplication',
 			params: CreateApplicationTaskParams,
 		): Chainable<{ id: number }>
+		task(
+			event: 'assignCompanyToUser',
+			params: AssignCompanyToUserTaskParams,
+		): Chainable<null>
+		task(
+			event: 'deleteTermOfferingsByCompanyId',
+			companyId: number,
+		): Chainable<null>
+		task(event: 'deleteTermById', termId: number): Chainable<null>
+		task(
+			event: 'deleteUserCompanyAssignmentsByEmail',
+			emails: string[],
+		): Chainable<null>
 		task(event: 'deleteUsersByEmail', emails: string[]): Chainable<null>
 		task(event: 'deleteCompaniesByDomain', domains: string[]): Chainable<null>
 	}
 }
 
+type AssignCompanyToUserTaskParams = {
+	userEmail: string
+	companyDomain: string
+}
+
 type CreateUserTaskParams = {
 	name: string
 	email: string
-	roles?: Array<'applicant' | 'agent' | 'requests' | 'admin'>
+	roles?: ReadonlyArray<'applicant' | 'agent' | 'requests' | 'admin'>
 	/** Default true. Set false for verification-specific E2E tests. */
 	verified?: boolean
 }

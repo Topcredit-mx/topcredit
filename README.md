@@ -44,7 +44,7 @@
 
 ### Phase 3: Applications and credits
 - [x] Applicants: application creation, status overview (applications table; status: new → pending → invalid-documentation → pre-authorized → authorized/denied)
-- [-] Agents: review / authorize / reject applications
+- [x] Agents: review / authorize / reject applications
 - [ ] Applicants: resubmit rejected, pre-authorized flow (contract, docs)
 - [ ] Agents: pre-authorized review, HR review
 - [ ] Disbursement: when an application is disbursed, create the credit; then active credit dashboard, payment schedule and tracking

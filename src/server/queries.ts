@@ -468,10 +468,19 @@ export async function getApplicationsForReview(params: {
 	}))
 }
 
+/**
+ * Returns an application for review only if it belongs to the given company.
+ * Call with selected company from session; when companyId is null returns null
+ * without querying (no info leak). Use same pattern as getApplicationsForReview.
+ */
 export async function getApplicationForReview(
 	applicationId: number,
+	companyId: number | null,
 ): Promise<ApplicationForReview | null> {
+	if (companyId === null) return null
+
 	const ability = await getAbility()
+	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
 	const rows = await db
 		.select({
@@ -496,20 +505,15 @@ export async function getApplicationForReview(
 		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
 		.innerJoin(terms, eq(termOfferings.termId, terms.id))
 		.innerJoin(users, eq(applications.applicantId, users.id))
-		.where(eq(applications.id, applicationId))
+		.where(
+			and(
+				eq(applications.id, applicationId),
+				eq(termOfferings.companyId, companyId),
+			),
+		)
 
 	const row = rows[0]
 	if (!row) return null
-
-	requireAbility(
-		ability,
-		'read',
-		subject('Application', {
-			id: row.id,
-			applicantId: row.applicantId,
-			companyId: row.companyId,
-		}),
-	)
 
 	return {
 		id: row.id,

@@ -1,5 +1,10 @@
 import { z } from 'zod'
 
+import {
+	APPLICATION_UPDATE_TARGET_STATUSES,
+	statusRequiresReason,
+} from '~/server/db/schema'
+
 const domainRegex =
 	/^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/
 
@@ -65,12 +70,27 @@ export const createApplicationSchema = z.object({
 	salaryAtApplication: positiveNumericString,
 })
 
-export const updateApplicationStatusSchema = z.object({
-	status: z.enum(
-		['pre-authorized', 'authorized', 'denied', 'invalid-documentation'],
-		{
+export const updateApplicationStatusSchema = z
+	.object({
+		status: z.enum(APPLICATION_UPDATE_TARGET_STATUSES, {
 			message: 'Estado no válido',
+		}),
+		reason: z.string().max(1000).optional(),
+	})
+	.refine(
+		(data) => {
+			if (statusRequiresReason(data.status)) {
+				return (data.reason?.trim().length ?? 0) > 0
+			}
+			return true
 		},
-	),
-	reason: z.string().max(1000).optional(),
-})
+		{
+			message:
+				'El motivo es obligatorio al rechazar o marcar documentación inválida',
+			path: ['reason'],
+		},
+	)
+
+export type UpdateApplicationStatusInput = z.infer<
+	typeof updateApplicationStatusSchema
+>

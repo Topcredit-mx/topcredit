@@ -16,6 +16,7 @@ import {
 	applications,
 	canTransitionApplicationFrom,
 	companies,
+	type ApplicationUpdateTargetStatus,
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
@@ -373,7 +374,7 @@ export async function createApplication(
 
 export async function updateApplicationStatus(
 	applicationId: number,
-	status: 'pre-authorized' | 'authorized' | 'denied' | 'invalid-documentation',
+	status: ApplicationUpdateTargetStatus,
 	reason?: string,
 ): Promise<{ error?: string }> {
 	const ability = await getAbility()
@@ -393,7 +394,7 @@ export async function updateApplicationStatus(
 		},
 	})
 
-	if (!app?.termOffering) return { error: 'Solicitud no encontrada' }
+	if (!app?.termOffering) return { error: 'applications-not-found' }
 
 	const companyId = app.termOffering.companyId
 	requireAbility(
@@ -406,14 +407,19 @@ export async function updateApplicationStatus(
 		}),
 	)
 
+	// Allowed transitions: from (new | pending | pre-authorized) to (pre-authorized | authorized | denied | invalid-documentation).
 	if (!canTransitionApplicationFrom(app.status)) {
-		return { error: 'La solicitud no puede cambiar de estado' }
+		return { error: 'applications-error-transition' }
 	}
 
 	const parsed = updateApplicationStatusSchema.safeParse({ status, reason })
 	if (!parsed.success) {
 		const first = parsed.error.issues[0]
-		return { error: first?.message ?? 'Datos inválidos' }
+		const isReasonRequired =
+			first?.path?.length === 1 && first.path[0] === 'reason'
+		return {
+			error: isReasonRequired ? 'applications-reason-required' : 'applications-error-generic',
+		}
 	}
 
 	await db
@@ -431,6 +437,6 @@ export async function updateApplicationStatus(
 		.where(eq(applications.id, applicationId))
 
 	revalidatePath('/app/applications')
-	revalidatePath('/app/applications/[id]')
+	revalidatePath(`/app/applications/${applicationId}`)
 	return {}
 }
