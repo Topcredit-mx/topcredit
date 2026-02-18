@@ -101,7 +101,9 @@ const UPDATE_STATUS_ERROR_KEYS = [
 ] as const
 
 /** Parse and validate update-status payload. Single place for validation and error-key mapping. */
-export function parseUpdateApplicationStatusPayload(payload: unknown):
+export function parseUpdateApplicationStatusPayload(
+	payload: unknown,
+):
 	| { data: UpdateApplicationStatusInput }
 	| { error: (typeof UPDATE_STATUS_ERROR_KEYS)[number] } {
 	const parsed = updateApplicationStatusSchema.safeParse(payload)
@@ -110,6 +112,8 @@ export function parseUpdateApplicationStatusPayload(payload: unknown):
 	const isReasonRequired =
 		first?.path?.length === 1 && first.path[0] === 'reason'
 	return {
-		error: isReasonRequired ? 'applications-reason-required' : 'applications-error-generic',
+		error: isReasonRequired
+			? 'applications-reason-required'
+			: 'applications-error-generic',
 	}
 }
