@@ -165,11 +165,13 @@ describe('App Applications Review (Phase 3)', () => {
 
 		it('shows applications list with table', () => {
 			cy.url().should('include', '/app/applications')
-			cy.get('table').should('exist')
-			cy.get('table').within(() => {
-				cy.contains('th', /solicitante|monto|plazo|estado|fecha/i).should(
-					'exist',
-				)
+			cy.contains('table', 'Solicitante').within(() => {
+				cy.contains('th', /solicitante/i).should('exist')
+				cy.contains('th', /monto/i).should('exist')
+				cy.contains('th', /plazo/i).should('exist')
+				cy.contains('th', /estado/i).should('exist')
+				cy.contains('th', /fecha/i).should('exist')
+				cy.contains('th', /acciones/i).should('exist')
 			})
 			cy.contains(applicantForReview.name).should('exist')
 		})
