@@ -13,25 +13,25 @@ import {
 } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import {
+	type ApplicationUpdateTargetStatus,
 	applications,
 	canTransitionApplicationFrom,
 	companies,
-	type ApplicationUpdateTargetStatus,
 	statusRequiresReason,
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import {
+	getCompanyByEmailDomain,
+	getTermOfferingsForCompany,
+} from '~/server/queries'
+import {
 	createApplicationSchema,
 	createCompanySchema,
 	parseUpdateApplicationStatusPayload,
 	updateCompanySchema,
 } from '~/server/schemas'
-import {
-	getCompanyByEmailDomain,
-	getTermOfferingsForCompany,
-} from '~/server/queries'
 import { getCompaniesForSwitcher } from '~/server/scopes'
 
 // ---- Selected company (sidebar switcher) ----
