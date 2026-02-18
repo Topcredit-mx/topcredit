@@ -17,20 +17,21 @@ import {
 	canTransitionApplicationFrom,
 	companies,
 	type ApplicationUpdateTargetStatus,
+	statusRequiresReason,
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import {
+	createApplicationSchema,
+	createCompanySchema,
+	parseUpdateApplicationStatusPayload,
+	updateCompanySchema,
+} from '~/server/schemas'
+import {
 	getCompanyByEmailDomain,
 	getTermOfferingsForCompany,
 } from '~/server/queries'
-import {
-	createApplicationSchema,
-	createCompanySchema,
-	updateApplicationStatusSchema,
-	updateCompanySchema,
-} from '~/server/schemas'
 import { getCompaniesForSwitcher } from '~/server/scopes'
 
 // ---- Selected company (sidebar switcher) ----
@@ -374,8 +375,7 @@ export async function createApplication(
 
 export async function updateApplicationStatus(
 	applicationId: number,
-	status: ApplicationUpdateTargetStatus,
-	reason?: string,
+	payload: { status: ApplicationUpdateTargetStatus; reason?: string },
 ): Promise<{ error?: string }> {
 	const ability = await getAbility()
 
@@ -412,26 +412,17 @@ export async function updateApplicationStatus(
 		return { error: 'applications-error-transition' }
 	}
 
-	const parsed = updateApplicationStatusSchema.safeParse({ status, reason })
-	if (!parsed.success) {
-		const first = parsed.error.issues[0]
-		const isReasonRequired =
-			first?.path?.length === 1 && first.path[0] === 'reason'
-		return {
-			error: isReasonRequired ? 'applications-reason-required' : 'applications-error-generic',
-		}
-	}
+	const parsed = parseUpdateApplicationStatusPayload(payload)
+	if ('error' in parsed) return { error: parsed.error }
 
+	const { data } = parsed
 	await db
 		.update(applications)
 		.set({
-			status: parsed.data.status,
-			denialReason:
-				parsed.data.reason?.trim() &&
-				(parsed.data.status === 'denied' ||
-					parsed.data.status === 'invalid-documentation')
-					? parsed.data.reason.trim()
-					: null,
+			status: data.status,
+			denialReason: statusRequiresReason(data.status)
+				? (data.reason?.trim() ?? null)
+				: null,
 			updatedAt: new Date(),
 		})
 		.where(eq(applications.id, applicationId))
@@ -448,7 +439,7 @@ export async function updateApplicationStatusFormAction(
 ): Promise<{ error?: string }> {
 	const applicationId = Number(formData.get('applicationId'))
 	const status = formData.get('status') as ApplicationUpdateTargetStatus
-	const result = await updateApplicationStatus(applicationId, status)
+	const result = await updateApplicationStatus(applicationId, { status })
 	if (result.error) {
 		return { error: result.error }
 	}

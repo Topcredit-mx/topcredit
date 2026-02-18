@@ -35,7 +35,7 @@ export function ApplicationReasonActions({
 		action: ApplicationStatusRequiringReason,
 		reason: string,
 	) {
-		return updateApplicationStatus(applicationId, action, reason)
+		return updateApplicationStatus(applicationId, { status: action, reason })
 	}
 
 	return (
