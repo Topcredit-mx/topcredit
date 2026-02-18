@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { FormattedDate } from '~/components/formatted-date'
 import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { canTransitionApplicationFrom } from '~/server/db/schema'
 import { getApplicationForReview } from '~/server/queries'
@@ -85,9 +86,9 @@ export default async function AppApplicationDetailPage({
 						) : null}
 						<div className="text-muted-foreground text-xs">
 							{t('applications-detail-created')}:{' '}
-							{new Date(application.createdAt).toLocaleString('es-MX')} ·{' '}
+							<FormattedDate value={application.createdAt} format="datetime" /> ·{' '}
 							{t('applications-detail-updated')}:{' '}
-							{new Date(application.updatedAt).toLocaleString('es-MX')}
+							<FormattedDate value={application.updatedAt} format="datetime" />
 						</div>
 					</div>
 				</CardHeader>

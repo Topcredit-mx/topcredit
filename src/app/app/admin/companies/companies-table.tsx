@@ -3,6 +3,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
@@ -125,11 +126,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				const date = row.getValue('createdAt') as Date
 				return (
 					<div className="text-muted-foreground">
-						{new Date(date).toLocaleDateString('es-MX', {
-							year: 'numeric',
-							month: 'short',
-							day: 'numeric',
-						})}
+						<FormattedDate value={date} />
 					</div>
 				)
 			},

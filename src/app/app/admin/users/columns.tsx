@@ -15,6 +15,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
+import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -352,11 +353,7 @@ export function createColumns(
 				const date = row.getValue('createdAt') as Date
 				return (
 					<div className="text-muted-foreground">
-						{new Date(date).toLocaleDateString('es-MX', {
-							year: 'numeric',
-							month: 'short',
-							day: 'numeric',
-						})}
+						<FormattedDate value={date} />
 					</div>
 				)
 			},

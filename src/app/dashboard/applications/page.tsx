@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
+import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { subject } from '~/lib/abilities'
@@ -88,7 +89,7 @@ export default async function ApplicationsListPage() {
 													})}
 												</td>
 												<td className="px-4 py-3 text-gray-600">
-													{new Date(app.createdAt).toLocaleDateString('es-MX')}
+													<FormattedDate value={app.createdAt} />
 												</td>
 											</tr>
 										))}

@@ -104,6 +104,7 @@ export function ApplicationReasonDialog({
 							placeholder={t('applications-reason-placeholder')}
 							aria-required="true"
 							aria-invalid={!!showError}
+							aria-label={t('applications-reason-label')}
 							rows={4}
 							className="resize-none"
 							maxLength={1000}

@@ -107,7 +107,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.url().should('include', '/app/applications')
 			cy.get('table').should('exist')
 			cy.get('table').within(() => {
-				cy.contains('th', /solicitante|nombre|monto|estado|fecha/i).should(
+				cy.contains('th', /solicitante|monto|plazo|estado|fecha/i).should(
 					'exist',
 				)
 			})
@@ -115,8 +115,8 @@ describe('App Applications Review (Phase 3)', () => {
 		})
 
 		it('opens application detail and shows data', () => {
-			cy.contains('a', /revisar|ver/i)
-				.first()
+			cy.findTableRow('25,000')
+				.find('a[aria-label="Revisar solicitud"]')
 				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
 			cy.contains(applicantForReview.name).should('be.visible')
@@ -125,8 +125,8 @@ describe('App Applications Review (Phase 3)', () => {
 		})
 
 		it('can authorize application', () => {
-			cy.contains('a', /revisar|ver/i)
-				.first()
+			cy.findTableRow('25,000')
+				.find('a[aria-label="Revisar solicitud"]')
 				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
 			cy.contains('button', /autorizar/i).click()
@@ -135,23 +135,29 @@ describe('App Applications Review (Phase 3)', () => {
 
 		it('reject requires reason', () => {
 			cy.visit('/app/applications')
-			cy.get('table').find('a[href*="/app/applications/"]').eq(1).click()
+			cy.findTableRow('30,000')
+				.find('a[aria-label="Revisar solicitud"]')
+				.click()
 			cy.contains('button', /rechazar/i).click()
-			cy.get('textarea[name="reason"], textarea[placeholder*="motivo"]').type(
-				' ',
-			)
-			cy.contains('button', /confirmar|enviar|guardar/i).click()
-			cy.contains(/motivo es obligatorio|reason required/i).should('exist')
+			cy.get('[role="dialog"]').within(() => {
+				cy.get('textarea[name="reason"]').type(' ')
+				cy.contains('button', /confirmar/i).click()
+				cy.contains(/motivo es obligatorio/i).should('be.visible')
+			})
 		})
 
 		it('can reject with reason', () => {
 			cy.visit('/app/applications')
-			cy.get('table').find('a[href*="/app/applications/"]').eq(1).click()
+			cy.findTableRow('30,000')
+				.find('a[aria-label="Revisar solicitud"]')
+				.click()
 			cy.contains('button', /rechazar/i).click()
-			cy.get('textarea[name="reason"], textarea[placeholder*="motivo"]')
-				.clear()
-				.type('Documentación incompleta en E2E.')
-			cy.contains('button', /confirmar|rechazar|enviar|guardar/i).click()
+			cy.get('[role="dialog"]').within(() => {
+				cy.get('textarea[name="reason"]')
+					.clear()
+					.type('Documentación incompleta en E2E.')
+				cy.contains('button', /confirmar/i).click()
+			})
 			cy.contains(/denegado|denied|rechazad/i, { timeout: 5000 }).should(
 				'exist',
 			)
@@ -198,8 +204,8 @@ describe('App Applications Review (Phase 3)', () => {
 		it('sees applications list and can open detail', () => {
 			cy.get('table').should('exist')
 			cy.contains(applicantForReview.name).should('exist')
-			cy.contains('a', /revisar|ver/i)
-				.first()
+			cy.findTableRow('25,000')
+				.find('a[aria-label="Revisar solicitud"]')
 				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
 		})

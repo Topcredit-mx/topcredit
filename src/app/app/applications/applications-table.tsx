@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
+import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import type { ApplicationForReview } from '~/server/queries'
 import {
@@ -61,15 +62,14 @@ export async function ApplicationsTable({
 							</td>
 							<td className="px-4 py-3">{t(APPLICATION_STATUS_KEYS[app.status])}</td>
 							<td className="px-4 py-3 text-muted-foreground text-sm">
-								{new Date(app.createdAt).toLocaleDateString('es-MX', {
-									year: 'numeric',
-									month: 'short',
-									day: 'numeric',
-								})}
+								<FormattedDate value={app.createdAt} />
 							</td>
 							<td className="px-4 py-3">
 								<Button variant="ghost" size="sm" asChild>
-									<Link href={`/app/applications/${app.id}`}>
+									<Link
+										href={`/app/applications/${app.id}`}
+										aria-label={`${t('applications-review')} solicitud`}
+									>
 										{t('applications-review')}
 									</Link>
 								</Button>
