@@ -5,6 +5,7 @@ import { Building2, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
+import { FormattedDate } from '~/components/formatted-date'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -15,7 +16,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'

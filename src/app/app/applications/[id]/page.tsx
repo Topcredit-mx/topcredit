@@ -6,10 +6,7 @@ import { canTransitionApplicationFrom } from '~/server/db/schema'
 import { getApplicationForReview } from '~/server/queries'
 import { getSelectedCompanyId } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
-import {
-	APPLICATION_STATUS_KEYS,
-	formatApplicationTerm,
-} from '../constants'
+import { APPLICATION_STATUS_KEYS, formatApplicationTerm } from '../constants'
 
 export default async function AppApplicationDetailPage({
 	params,
@@ -86,8 +83,8 @@ export default async function AppApplicationDetailPage({
 						) : null}
 						<div className="text-muted-foreground text-xs">
 							{t('applications-detail-created')}:{' '}
-							<FormattedDate value={application.createdAt} format="datetime" /> ·{' '}
-							{t('applications-detail-updated')}:{' '}
+							<FormattedDate value={application.createdAt} format="datetime" />{' '}
+							· {t('applications-detail-updated')}:{' '}
 							<FormattedDate value={application.updatedAt} format="datetime" />
 						</div>
 					</div>

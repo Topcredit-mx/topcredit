@@ -2,10 +2,7 @@ import { Building2 } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { getRequiredAgentUser } from '~/server/auth/lib'
-import {
-	type ApplicationStatus,
-	isApplicationStatus,
-} from '~/server/db/schema'
+import { type ApplicationStatus, isApplicationStatus } from '~/server/db/schema'
 import { getApplicationsForReview } from '~/server/queries'
 import { getSelectedCompanyId } from '~/server/scopes'
 import { ApplicationsStatusFilter } from './applications-status-filter'
@@ -15,7 +12,11 @@ function parseStatusParam(
 	value: string | string[] | undefined,
 ): ApplicationStatus | undefined {
 	const raw =
-		typeof value === 'string' ? value : Array.isArray(value) ? value[0] : undefined
+		typeof value === 'string'
+			? value
+			: Array.isArray(value)
+				? value[0]
+				: undefined
 	if (!raw) return undefined
 	const status = raw.trim()
 	return isApplicationStatus(status) ? status : undefined

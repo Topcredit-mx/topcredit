@@ -61,9 +61,8 @@ export const APPLICATION_STATUS_REQUIRING_REASON = [
 export type ApplicationStatusRequiringReason =
 	(typeof APPLICATION_STATUS_REQUIRING_REASON)[number]
 
-const APPLICATION_STATUS_REQUIRING_REASON_SET = new Set<
-	ApplicationUpdateTargetStatus
->(APPLICATION_STATUS_REQUIRING_REASON)
+const APPLICATION_STATUS_REQUIRING_REASON_SET =
+	new Set<ApplicationUpdateTargetStatus>(APPLICATION_STATUS_REQUIRING_REASON)
 
 export function statusRequiresReason(
 	s: ApplicationUpdateTargetStatus,

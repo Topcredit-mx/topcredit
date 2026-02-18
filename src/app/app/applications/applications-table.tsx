@@ -3,10 +3,7 @@ import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import type { ApplicationForReview } from '~/server/queries'
-import {
-	APPLICATION_STATUS_KEYS,
-	formatApplicationTerm,
-} from './constants'
+import { APPLICATION_STATUS_KEYS, formatApplicationTerm } from './constants'
 
 export async function ApplicationsTable({
 	applications,
@@ -60,7 +57,9 @@ export async function ApplicationsTable({
 							<td className="px-4 py-3 text-muted-foreground">
 								{formatApplicationTerm(app.termOffering, t)}
 							</td>
-							<td className="px-4 py-3">{t(APPLICATION_STATUS_KEYS[app.status])}</td>
+							<td className="px-4 py-3">
+								{t(APPLICATION_STATUS_KEYS[app.status])}
+							</td>
 							<td className="px-4 py-3 text-muted-foreground text-sm">
 								<FormattedDate value={app.createdAt} />
 							</td>
