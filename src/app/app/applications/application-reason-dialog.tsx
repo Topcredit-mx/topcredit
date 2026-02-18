@@ -14,7 +14,7 @@ import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Textarea } from '~/components/ui/textarea'
 import type { ApplicationStatusRequiringReason } from '~/server/db/schema'
 
-export interface ApplicationReasonDialogProps {
+interface ApplicationReasonDialogProps {
 	open: boolean
 	action: ApplicationStatusRequiringReason | null
 	onClose: () => void

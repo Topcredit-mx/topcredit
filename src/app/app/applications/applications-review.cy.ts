@@ -18,16 +18,20 @@ type TaskEntityId = { id: number }
 const agentEmail = agentForReview.email
 const applicantEmail = applicantForReview.email
 const companyDomain = companyForReview.domain
+/** Second company for cross-company 404 test; agent is not assigned to it. */
+const companyBDomain = 'othercompany.com'
 
 describe('App Applications Review (Phase 3)', () => {
 	let applicantId: number
 	let companyId: number
 	let termId: number
 	let _applicationId: number
+	let companyBId: number
+	let companyBApplicationId: number
 
 	before(() => {
 		cy.task('deleteUsersByEmail', [agentEmail, applicantEmail])
-		cy.task('deleteCompaniesByDomain', [companyDomain])
+		cy.task('deleteCompaniesByDomain', [companyDomain, companyBDomain])
 
 		cy.task<TaskEntityId>('createUser', applicantForReview)
 			.then((user) => {
@@ -83,15 +87,71 @@ describe('App Applications Review (Phase 3)', () => {
 							status: 'pending',
 						})
 					})
+					.then(() =>
+						cy.task<TaskEntityId>('createApplication', {
+							applicantId,
+							termOfferingId: offering.id,
+							creditAmount: '35000',
+							salaryAtApplication: '40000',
+							status: 'pending',
+						}),
+					)
+					.then(() =>
+						cy.task<TaskEntityId>('createApplication', {
+							applicantId,
+							termOfferingId: offering.id,
+							creditAmount: '40000',
+							salaryAtApplication: '40000',
+							status: 'pending',
+						}),
+					)
+					.then(() =>
+						cy.task<TaskEntityId>('createApplication', {
+							applicantId,
+							termOfferingId: offering.id,
+							creditAmount: '45000',
+							salaryAtApplication: '40000',
+							status: 'pending',
+						}),
+					)
 			})
-			.then(() => {})
+			.then(() =>
+				cy.task<TaskEntityId>('createCompany', {
+					name: 'Other Company',
+					domain: companyBDomain,
+					rate: '0.02',
+					employeeSalaryFrequency: 'monthly',
+					active: true,
+				}),
+			)
+			.then((companyB) => {
+				companyBId = companyB.id
+				return cy.task<TaskEntityId>('createTermOffering', {
+					companyId: companyB.id,
+					termId,
+					disabled: false,
+				})
+			})
+			.then((offeringB) =>
+				cy.task<TaskEntityId>('createApplication', {
+					applicantId,
+					termOfferingId: offeringB.id,
+					creditAmount: '15000',
+					salaryAtApplication: '40000',
+					status: 'pending',
+				}),
+			)
+			.then((appB) => {
+				companyBApplicationId = appB.id
+			})
 	})
 
 	after(() => {
 		cy.task('deleteApplicationsByApplicantId', applicantId)
 		cy.task('deleteTermOfferingsByCompanyId', companyId)
+		cy.task('deleteTermOfferingsByCompanyId', companyBId)
 		cy.task('deleteTermById', termId)
-		cy.task('deleteCompaniesByDomain', [companyDomain])
+		cy.task('deleteCompaniesByDomain', [companyDomain, companyBDomain])
 		cy.task('deleteUserCompanyAssignmentsByEmail', [agentEmail])
 		cy.task('deleteUsersByEmail', [agentEmail, applicantEmail])
 	})
@@ -124,13 +184,19 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.contains('25,000').should('exist')
 		})
 
+		it('filter by status with no results shows empty state', () => {
+			cy.visit('/app/applications?status=authorized')
+			cy.url().should('include', 'status=authorized')
+			cy.contains(/no hay solicitudes|sin resultados/i).should('be.visible')
+		})
+
 		it('can authorize application', () => {
 			cy.findTableRow('25,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
-			cy.contains('button', /autorizar/i).click()
-			cy.contains(/autorizado|estado/i, { timeout: 5000 }).should('exist')
+			cy.contains('button', 'Autorizar').click()
+			cy.contains('Autorizado', { timeout: 10000 }).should('be.visible')
 		})
 
 		it('reject requires reason', () => {
@@ -158,9 +224,66 @@ describe('App Applications Review (Phase 3)', () => {
 					.type('Documentación incompleta en E2E.')
 				cy.contains('button', /confirmar/i).click()
 			})
-			cy.contains(/denegado|denied|rechazad/i, { timeout: 5000 }).should(
-				'exist',
+			cy.contains('Denegado', { timeout: 10000 }).should('be.visible')
+		})
+
+		it('can pre-authorize application', () => {
+			cy.visit('/app/applications')
+			cy.findTableRow('35,000')
+				.find('a[aria-label="Revisar solicitud"]')
+				.click()
+			cy.contains('button', /pre-autorizar/i).click()
+			cy.contains('Preautorizado', { timeout: 10000 }).should('be.visible')
+		})
+
+		it('can mark as invalid documentation with reason', () => {
+			cy.visit('/app/applications')
+			cy.findTableRow('40,000')
+				.find('a[aria-label="Revisar solicitud"]')
+				.click()
+			cy.contains('button', /documentación inválida/i).click()
+			cy.get('[role="dialog"]').within(() => {
+				cy.get('textarea[name="reason"]')
+					.clear()
+					.type('Falta documentación en E2E.')
+				cy.contains('button', /confirmar/i).click()
+			})
+			cy.contains('Documentación inválida', { timeout: 10000 }).should(
+				'be.visible',
 			)
+		})
+
+		it('filter by status shows matching applications', () => {
+			cy.visit('/app/applications')
+			cy.contains('a', /pendiente/i).click()
+			cy.url().should('include', 'status=pending')
+			cy.get('table tbody tr').should('have.length.at.least', 1)
+			cy.contains(applicantForReview.name).should('exist')
+		})
+
+		it('invalid application id shows not found', () => {
+			cy.visit('/app/applications/999999')
+			cy.contains(applicantForReview.name).should('not.exist')
+			cy.contains(/detalle de solicitud/i).should('not.exist')
+		})
+
+		it('application from another company returns 404', () => {
+			cy.visit(`/app/applications/${companyBApplicationId}`)
+			cy.contains(applicantForReview.name).should('not.exist')
+			cy.contains(/detalle de solicitud/i).should('not.exist')
+		})
+
+		it('list reflects status after authorizing', () => {
+			cy.visit('/app/applications')
+			cy.findTableRow('45,000')
+				.find('a[aria-label="Revisar solicitud"]')
+				.click()
+			cy.contains('button', 'Autorizar').click()
+			cy.contains('Autorizado', { timeout: 10000 }).should('be.visible')
+			cy.visit('/app/applications')
+			cy.findTableRow('45,000').within(() => {
+				cy.contains('Autorizado').should('be.visible')
+			})
 		})
 	})
 
