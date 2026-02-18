@@ -440,3 +440,19 @@ export async function updateApplicationStatus(
 	revalidatePath(`/app/applications/${applicationId}`)
 	return {}
 }
+
+/** Form action for useActionState: immediate status updates (no reason). Returns { error } on failure; redirects on success. */
+export async function updateApplicationStatusFormAction(
+	_prevState: { error?: string },
+	formData: FormData,
+): Promise<{ error?: string }> {
+	const applicationId = Number(formData.get('applicationId'))
+	const status = formData.get('status') as ApplicationUpdateTargetStatus
+	const result = await updateApplicationStatus(applicationId, status)
+	if (result.error) {
+		return { error: result.error }
+	}
+	revalidatePath('/app/applications')
+	revalidatePath(`/app/applications/${applicationId}`)
+	redirect(`/app/applications/${applicationId}`)
+}
