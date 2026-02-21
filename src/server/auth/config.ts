@@ -86,11 +86,7 @@ export const authOptions = {
 					throw new Error('Invalid session: missing or invalid user id')
 				}
 				session.user.id = id
-				if (token.roles?.length) {
-					session.user.roles = token.roles
-				} else {
-					session.user.roles = ['applicant']
-				}
+				session.user.roles = token.roles ?? []
 			}
 			return session
 		},

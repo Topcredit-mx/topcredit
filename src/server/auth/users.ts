@@ -5,7 +5,6 @@ import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { subject } from '~/lib/abilities'
-import type { Role } from '~/lib/auth-utils'
 import { getClientIP } from '~/lib/ip-location'
 import { generateBackupCodes, hashBackupCodes } from '~/lib/totp'
 import { db } from '~/server/db'
@@ -33,7 +32,7 @@ export async function getUserByEmail(email: string) {
 
 	return {
 		...user,
-		roles: roles.length > 0 ? roles : (['applicant'] as Role[]), // Default to applicant if no roles assigned
+		roles,
 	}
 }
 

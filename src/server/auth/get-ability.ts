@@ -25,7 +25,7 @@ export const getRolesFromDb = cache(
 			.select({ role: userRoles.role })
 			.from(userRoles)
 			.where(eq(userRoles.userId, userId))
-		return rows.length > 0 ? rows.map((r) => r.role) : ['applicant']
+		return rows.length > 0 ? rows.map((r) => r.role) : []
 	},
 )
 
@@ -33,6 +33,7 @@ export const getAbility = cache(async (): Promise<AbilityResult> => {
 	const session = await requireAuth()
 	const userId = session.user.id
 	const roles = await getRolesFromDb(userId)
+	if (roles.length === 0) redirect('/unauthorized')
 
 	const assignedCompanyIds: number[] | 'all' = roles.includes('admin')
 		? 'all'
