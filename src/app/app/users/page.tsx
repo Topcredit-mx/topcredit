@@ -5,7 +5,7 @@ import { getAllCompaniesForAssignment, getUsers } from '~/server/queries'
 import { UsersTable } from './users-table'
 
 export default async function UsersPage() {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
 	const session = await requireAuth()

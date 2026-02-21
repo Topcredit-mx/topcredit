@@ -81,7 +81,11 @@ export const applicationStatusEnum = pgEnum(
 	APPLICATION_STATUS_VALUES,
 )
 
-/** Statuses that count as "active" (in progress) for dashboard metrics. */
+/**
+ * Statuses that count as "active" (in progress).
+ * An applicant can have at most one active application.
+ * TODO: Refine when "assigned to a credit" is added – active = not denied AND not assigned.
+ */
 export const ACTIVE_APPLICATION_STATUSES: readonly ApplicationStatus[] = [
 	'new',
 	'pending',

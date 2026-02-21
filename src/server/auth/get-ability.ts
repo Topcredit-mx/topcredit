@@ -10,7 +10,12 @@ import { requireAuth } from '~/lib/auth-utils'
 import { getUserCompanyAssignments } from '~/server/scopes'
 import { getApplicantEligibilityData } from './eligibility'
 
-export const getAbility = cache(async (): Promise<AppAbility> => {
+export type AbilityResult = {
+	ability: AppAbility
+	assignedCompanyIds: number[] | 'all'
+}
+
+export const getAbility = cache(async (): Promise<AbilityResult> => {
 	const session = await requireAuth()
 	const userId = session.user.id
 	const roles = session.user.roles ?? []
@@ -33,7 +38,10 @@ export const getAbility = cache(async (): Promise<AppAbility> => {
 		userId: session.user.id,
 		applicantEligibilityData,
 	}
-	return defineAbilityFor(ctx)
+	return {
+		ability: defineAbilityFor(ctx),
+		assignedCompanyIds,
+	}
 })
 
 export function requireAbility(

@@ -64,7 +64,7 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 	const createButtonHref = createLink
 		? createLink
 		: schema
-			? `/admin/${schema}/new`
+			? `/app/${schema}/new`
 			: undefined
 
 	const table = useReactTable({

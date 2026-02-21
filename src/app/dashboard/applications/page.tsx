@@ -18,7 +18,7 @@ const STATUS_KEYS: Record<string, string> = {
 }
 
 export default async function ApplicationsListPage() {
-	const [ability, user] = await Promise.all([
+	const [{ ability }, user] = await Promise.all([
 		getAbility(),
 		getRequiredApplicantUser(),
 	])

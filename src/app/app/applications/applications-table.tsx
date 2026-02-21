@@ -45,7 +45,7 @@ export async function ApplicationsTable({
 							<td className="px-4 py-3">
 								<div className="font-medium">{app.applicant.name}</div>
 								<div className="text-muted-foreground text-sm">
-									{app.applicant.email}
+									{app.companyDomain}
 								</div>
 							</td>
 							<td className="px-4 py-3">

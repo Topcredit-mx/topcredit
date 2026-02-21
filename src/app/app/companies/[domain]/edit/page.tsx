@@ -23,7 +23,7 @@ export default async function EditCompanyPage({
 		notFound()
 	}
 
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'update', subject('Company', company))
 	const t = await getTranslations('admin')
 

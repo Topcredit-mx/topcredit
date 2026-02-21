@@ -10,7 +10,7 @@ import { getAbility, requireAbility } from './get-ability'
  * Assign a role to a user
  */
 export async function assignRoleToUser(userId: number, role: Role) {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
 	// Check if role already exists
@@ -32,7 +32,7 @@ export async function assignRoleToUser(userId: number, role: Role) {
  * Remove a role from a user
  */
 export async function removeRoleFromUser(userId: number, role: Role) {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
 	await db
@@ -46,7 +46,7 @@ export async function removeRoleFromUser(userId: number, role: Role) {
  * Get all roles for a user
  */
 export async function getUserRoles(userId: number): Promise<Role[]> {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
 	const roles = await db
@@ -61,7 +61,7 @@ export async function getUserRoles(userId: number): Promise<Role[]> {
  * Set user roles (replaces all existing roles)
  */
 export async function setUserRoles(userId: number, roles: Role[]) {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
 	// Remove all existing roles
@@ -82,7 +82,7 @@ export async function userHasRole(
 	userId: number,
 	role: Role,
 ): Promise<boolean> {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
 	const result = await db
@@ -98,7 +98,7 @@ export async function userHasRole(
  * Get all users with a specific role
  */
 export async function getUsersByRole(role: Role) {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
 	const usersWithRole = await db

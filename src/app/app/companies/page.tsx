@@ -1,7 +1,8 @@
 import { getTranslations } from 'next-intl/server'
 import { requireAuth } from '~/lib/auth-utils'
+import { getAbility } from '~/server/auth/get-ability'
 import { getCompanies } from '~/server/queries'
-import { getAssignedCompanyIds, getSelectedCompanyId } from '~/server/scopes'
+import { getEffectiveSelectedCompanyId } from '~/server/scopes'
 import { CompaniesTable } from './companies-table'
 
 interface CompaniesPageProps {
@@ -15,11 +16,11 @@ interface CompaniesPageProps {
 export default async function CompaniesPage({
 	searchParams,
 }: CompaniesPageProps) {
-	const session = await requireAuth()
+	await requireAuth()
 
-	const [assignedCompanyIds, selectedCompanyId] = await Promise.all([
-		getAssignedCompanyIds(session.user.id),
-		getSelectedCompanyId(),
+	const [{ assignedCompanyIds }, selectedCompanyId] = await Promise.all([
+		getAbility(),
+		getEffectiveSelectedCompanyId(),
 	])
 
 	let companyIds: number[] | undefined =

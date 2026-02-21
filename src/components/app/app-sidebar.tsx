@@ -43,8 +43,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
 	const t = useTranslations('app')
 	const isAdmin = user.roles?.includes('admin')
-	const disableNav =
-		!isAdmin && companies.length > 0 && selectedCompanyId === null
+	const disableNav = !isAdmin && companies.length === 0
 
 	const navigationItems: NavItem[] = [
 		{
@@ -82,11 +81,11 @@ export function AppSidebar({
 	if (isAdmin) {
 		navigationItems.push({
 			title: t('nav-admin'),
-			url: '/app/admin',
+			url: '/app/users',
 			icon: Shield,
 			items: [
-				{ title: t('nav-admin-users'), url: '/app/admin/users' },
-				{ title: t('nav-admin-companies'), url: '/app/admin/companies' },
+				{ title: t('nav-admin-users'), url: '/app/users' },
+				{ title: t('nav-admin-companies'), url: '/app/companies' },
 			],
 		})
 	}

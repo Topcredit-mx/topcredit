@@ -139,7 +139,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				return (
 					<Button variant="ghost" size="sm" asChild>
 						<Link
-							href={`/app/admin/companies/${encodeURIComponent(company.domain)}/edit`}
+							href={`/app/companies/${encodeURIComponent(company.domain)}/edit`}
 						>
 							{t('companies-edit')}
 						</Link>
@@ -156,7 +156,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				data={companies}
 				schema="companies"
 				label={t('companies-title')}
-				createLink="/app/admin/companies/new"
+				createLink="/app/companies/new"
 				createButtonText={t('companies-new')}
 				filterPlaceholder={t('table-filter-companies')}
 			>

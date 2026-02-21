@@ -47,25 +47,25 @@ describe('Admin Users', () => {
 	describe('Access Control', () => {
 		it('should redirect non-admin users to unauthorized page', () => {
 			cy.login(applicantOnlyUser.email)
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 			cy.url().should('include', '/unauthorized')
 		})
 
 		it('should allow admin users to access users page', () => {
 			cy.login(adminUser.email)
-			cy.visit('/app/admin/users')
-			cy.url().should('include', '/app/admin/users')
+			cy.visit('/app/users')
+			cy.url().should('include', '/app/users')
 		})
 
 		it('should not allow requests-only users to access admin users page', () => {
 			cy.login(users.jane.email)
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 			cy.url().should('include', '/unauthorized')
 		})
 
 		it('should not allow applicant users to access admin users page', () => {
 			cy.login(applicantOnlyUser.email)
-			cy.visit('/app/admin/users', { failOnStatusCode: false })
+			cy.visit('/app/users', { failOnStatusCode: false })
 			cy.url().should('include', '/unauthorized')
 		})
 	})
@@ -73,7 +73,7 @@ describe('Admin Users', () => {
 	describe('Users List Display', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 		})
 
 		it('should display users table with correct columns', () => {
@@ -102,7 +102,7 @@ describe('Admin Users', () => {
 	describe('Search Functionality', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 		})
 
 		it('should filter users by name', () => {
@@ -126,7 +126,7 @@ describe('Admin Users', () => {
 	describe('Role Management', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 		})
 
 		it('should toggle role on checkbox click', () => {
@@ -154,7 +154,7 @@ describe('Admin Users', () => {
 	describe('Column Visibility', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 		})
 
 		it('should toggle column visibility via View dropdown', () => {
@@ -174,7 +174,7 @@ describe('Admin Users', () => {
 	describe('Self Admin Removal Confirmation', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 		})
 
 		it('should show confirmation dialog when admin tries to remove their own admin role', () => {
@@ -241,7 +241,7 @@ describe('Admin Users', () => {
 		})
 
 		it('should show "No companies assigned" for agent without assignments', () => {
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(/sin empresas|no companies|0 empresas/i).should('exist')
@@ -254,7 +254,7 @@ describe('Admin Users', () => {
 				companyDomain: companies.acme.domain,
 			})
 
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(companies.acme.name).should('exist')
@@ -264,7 +264,7 @@ describe('Admin Users', () => {
 		})
 
 		it('should open company assignment dialog when clicking assign button', () => {
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
@@ -275,7 +275,7 @@ describe('Admin Users', () => {
 		})
 
 		it('should list all available companies in assignment dialog', () => {
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
@@ -289,7 +289,7 @@ describe('Admin Users', () => {
 		})
 
 		it('should assign single company to agent', () => {
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
@@ -308,7 +308,7 @@ describe('Admin Users', () => {
 		})
 
 		it('should assign multiple companies to agent', () => {
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
@@ -333,7 +333,7 @@ describe('Admin Users', () => {
 				companyDomain: companies.acme.domain,
 			})
 
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
@@ -355,7 +355,7 @@ describe('Admin Users', () => {
 				companyDomain: companies.acme.domain,
 			})
 
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
@@ -379,7 +379,7 @@ describe('Admin Users', () => {
 				companyDomain: companies.globex.domain,
 			})
 
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
@@ -406,7 +406,7 @@ describe('Admin Users', () => {
 				companyDomain: companies.acme.domain,
 			})
 
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
@@ -432,7 +432,7 @@ describe('Admin Users', () => {
 				companyDomain: companies.acme.domain,
 			})
 
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(companies.acme.name).should('exist')
@@ -461,11 +461,11 @@ describe('Admin Users', () => {
 				companyDomain: companies.acme.domain,
 			})
 
-			cy.intercept('POST', '**/app/admin/users**', {
+			cy.intercept('POST', '**/app/users**', {
 				forceNetworkError: true,
 			}).as('saveCompanies')
 
-			cy.visit('/app/admin/users')
+			cy.visit('/app/users')
 
 			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(companies.acme.name).should('exist')

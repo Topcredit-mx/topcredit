@@ -35,7 +35,10 @@ const withAuthMiddleware = withAuth(
 		const roles: Role[] = token?.roles ?? []
 		const isAgent = roles.includes('agent')
 
-		if (path.startsWith('/app/admin') && !roles.includes('admin')) {
+		if (
+			(path.startsWith('/app/users') || path.startsWith('/app/companies')) &&
+			!roles.includes('admin')
+		) {
 			return NextResponse.redirect(new URL('/unauthorized', req.url))
 		}
 		if (path.startsWith('/app') && !isAgent) {

@@ -1,9 +1,49 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
+import { subject } from '~/lib/abilities'
 import { cookies } from 'next/headers'
+import { getAbility } from '~/server/auth/get-ability'
 import { db } from '~/server/db'
-import { companies, userCompanies, userRoles } from '~/server/db/schema'
+import { companies, userCompanies } from '~/server/db/schema'
 
 const SELECTED_COMPANY_COOKIE = 'selected_company_id'
+
+export type CompanyScope =
+	| { type: 'single'; companyId: number }
+	| { type: 'multi'; companyIds: number[] }
+	| { type: 'all' }
+
+/**
+ * Returns the effective selected company ID for display and scope.
+ * Null if cookie empty, or selected company is inactive (cookie cannot be modified in RSC).
+ */
+export async function getEffectiveSelectedCompanyId(): Promise<number | null> {
+	const selectedCompanyId = await getSelectedCompanyId()
+	if (selectedCompanyId === null) return null
+
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.id, selectedCompanyId),
+		columns: { active: true },
+	})
+	return company?.active ? selectedCompanyId : null
+}
+
+/** Company scope for agent operational screens. Validates cookie via CASL. Treats inactive company as no selection. */
+export async function getEffectiveCompanyScope(): Promise<CompanyScope> {
+	const { ability, assignedCompanyIds } = await getAbility()
+	const selectedCompanyId = await getEffectiveSelectedCompanyId()
+
+	if (selectedCompanyId !== null) {
+		const canRead = ability.can('read', subject('Company', { id: selectedCompanyId }))
+		if (canRead) {
+			return { type: 'single', companyId: selectedCompanyId }
+		}
+	}
+
+	if (assignedCompanyIds === 'all') {
+		return { type: 'all' }
+	}
+	return { type: 'multi', companyIds: assignedCompanyIds }
+}
 
 /** Read selected company id from cookie (for layout and data filtering). */
 export async function getSelectedCompanyId(): Promise<number | null> {
@@ -30,18 +70,18 @@ export type CompanyForSwitcher = {
 export async function getUserCompanyAssignments(
 	userId: number,
 ): Promise<CompanyBasic[]> {
-	const assignments = await db.query.userCompanies.findMany({
-		where: eq(userCompanies.userId, userId),
-		with: {
-			company: true,
-		},
-	})
-
-	return assignments.map((a) => ({
-		id: a.company.id,
-		name: a.company.name,
-		domain: a.company.domain,
-	}))
+	const rows = await db
+		.select({
+			id: companies.id,
+			name: companies.name,
+			domain: companies.domain,
+		})
+		.from(userCompanies)
+		.innerJoin(companies, eq(userCompanies.companyId, companies.id))
+		.where(
+			and(eq(userCompanies.userId, userId), eq(companies.active, true)),
+		)
+	return rows
 }
 
 export async function getCompaniesForSwitcher(
@@ -56,31 +96,20 @@ export async function getCompaniesForSwitcher(
 		})
 	}
 
-	const assignments = await db.query.userCompanies.findMany({
-		where: eq(userCompanies.userId, userId),
-		with: { company: true },
-	})
-	const list = assignments.map((a) => ({
-		id: a.company.id,
-		name: a.company.name,
-		domain: a.company.domain,
-		active: a.company.active,
-	}))
-	list.sort((a, b) => a.name.localeCompare(b.name))
+	const rows = await db
+		.select({
+			id: companies.id,
+			name: companies.name,
+			domain: companies.domain,
+			active: companies.active,
+		})
+		.from(userCompanies)
+		.innerJoin(companies, eq(userCompanies.companyId, companies.id))
+		.where(
+			and(eq(userCompanies.userId, userId), eq(companies.active, true)),
+		)
+		.orderBy(companies.name)
+	const list = rows.map((r) => ({ ...r, active: true as const }))
 	return list
 }
 
-export async function getAssignedCompanyIds(
-	userId: number,
-): Promise<number[] | 'all'> {
-	const roles = await db.query.userRoles.findMany({
-		where: eq(userRoles.userId, userId),
-	})
-
-	const roleNames = roles.map((r) => r.role)
-	if (roleNames.includes('admin')) return 'all'
-	if (!roleNames.includes('agent')) return []
-
-	const assignments = await getUserCompanyAssignments(userId)
-	return assignments.map((c) => c.id)
-}

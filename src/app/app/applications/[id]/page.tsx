@@ -4,7 +4,7 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { canTransitionApplicationFrom } from '~/server/db/schema'
 import { getApplicationForReview } from '~/server/queries'
-import { getSelectedCompanyId } from '~/server/scopes'
+import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
 import { APPLICATION_STATUS_KEYS, formatApplicationTerm } from '../constants'
 
@@ -18,11 +18,8 @@ export default async function AppApplicationDetailPage({
 	if (!Number.isInteger(applicationId) || applicationId < 1) {
 		notFound()
 	}
-	const selectedCompanyId = await getSelectedCompanyId()
-	const application = await getApplicationForReview(
-		applicationId,
-		selectedCompanyId,
-	)
+	const scope = await getEffectiveCompanyScope()
+	const application = await getApplicationForReview(applicationId, scope)
 	if (!application) {
 		notFound()
 	}

@@ -9,7 +9,7 @@ import {
 import { ApplicationForm } from './application-form'
 
 export default async function NewApplicationPage() {
-	const [ability, user] = await Promise.all([
+	const [{ ability }, user] = await Promise.all([
 		getAbility(),
 		getRequiredApplicantUser(),
 	])

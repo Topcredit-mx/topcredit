@@ -1,10 +1,9 @@
-import { Building2 } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { getRequiredAgentUser } from '~/server/auth/lib'
 import { type ApplicationStatus, isApplicationStatus } from '~/server/db/schema'
 import { getApplicationsForReview } from '~/server/queries'
-import { getSelectedCompanyId } from '~/server/scopes'
+import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationsStatusFilter } from './applications-status-filter'
 import { ApplicationsTable } from './applications-table'
 
@@ -28,26 +27,12 @@ export default async function AppApplicationsPage({
 	searchParams: Promise<{ status?: string | string[] }>
 }) {
 	getRequiredAgentUser()
-	const selectedCompanyId = await getSelectedCompanyId()
+	const scope = await getEffectiveCompanyScope()
 	const params = await searchParams
 	const currentStatus = parseStatusParam(params.status)
 
-	if (selectedCompanyId === null) {
-		const t = await getTranslations('app')
-		return (
-			<div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-muted/30 p-12 text-center">
-				<div className="flex size-16 items-center justify-center rounded-full bg-muted">
-					<Building2 className="size-8 text-muted-foreground" />
-				</div>
-				<p className="max-w-sm text-muted-foreground text-sm">
-					{t('applications-empty-no-company')}
-				</p>
-			</div>
-		)
-	}
-
 	const applications = await getApplicationsForReview({
-		companyId: selectedCompanyId,
+		scope,
 		statusFilter: currentStatus !== undefined ? [currentStatus] : undefined,
 	})
 	const t = await getTranslations('app')
