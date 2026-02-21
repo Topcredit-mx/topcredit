@@ -5,7 +5,6 @@ import {
 	CreditCard,
 	FileText,
 	Home,
-	Shield,
 	Users,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -45,50 +44,26 @@ export function AppSidebar({
 	const isAdmin = user.roles?.includes('admin')
 	const disableNav = !isAdmin && companies.length === 0
 
-	const navigationItems: NavItem[] = [
-		{
-			title: t('nav-dashboard'),
-			url: '/app',
-			icon: Home,
-		},
-		{
-			title: t('nav-users'),
-			url: '/app/users',
-			icon: Users,
-		},
-		{
-			title: t('nav-companies'),
-			url: '/app/companies',
-			icon: Building2,
-		},
-		{
-			title: t('nav-data'),
-			url: '/app/data',
-			icon: FileText,
-			items: [
-				{ title: t('nav-requests'), url: '/app/applications' },
-				{ title: t('nav-credits'), url: '/app/credits' },
-			],
-		},
-		{
-			title: t('nav-payments'),
-			url: '/app/payments',
-			icon: CreditCard,
-		},
-	]
-
-	// Add admin section if user is admin
-	if (isAdmin) {
-		navigationItems.push({
-			title: t('nav-admin'),
-			url: '/app/users',
-			icon: Shield,
-			items: [
-				{ title: t('nav-admin-users'), url: '/app/users' },
-				{ title: t('nav-admin-companies'), url: '/app/companies' },
-			],
-		})
-	}
+	const navigationItems: NavItem[] = isAdmin
+		? [
+				{ title: t('nav-dashboard'), url: '/app', icon: Home },
+				{ title: t('nav-users'), url: '/app/users', icon: Users },
+				{ title: t('nav-companies'), url: '/app/companies', icon: Building2 },
+				{
+					title: t('nav-data'),
+					url: '/app/data',
+					icon: FileText,
+					items: [
+						{ title: t('nav-requests'), url: '/app/applications' },
+						{ title: t('nav-credits'), url: '/app/credits' },
+					],
+				},
+				{ title: t('nav-payments'), url: '/app/payments', icon: CreditCard },
+			]
+		: [
+				{ title: t('nav-dashboard'), url: '/app', icon: Home },
+				{ title: t('nav-requests'), url: '/app/applications', icon: FileText },
+			]
 
 	return (
 		<Sidebar collapsible="icon">

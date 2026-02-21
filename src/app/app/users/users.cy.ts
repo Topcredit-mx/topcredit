@@ -251,6 +251,20 @@ describe('Admin Users', () => {
 			// Revert: restore admin role
 			cy.task('assignRole', { email: adminUser.email, role: 'admin' })
 		})
+
+		it('should redirect to unauthorized when reloading users screen after admin was removed in another screen', () => {
+			cy.visit('/app/users')
+
+			// Simulate: another admin removed this user's admin role
+			cy.task('removeRole', { email: adminUser.email, role: 'admin' })
+
+			cy.reload()
+			cy.url().should('include', '/unauthorized')
+			cy.contains(/no autorizado|unauthorized/i).should('be.visible')
+
+			// Revert: restore admin role
+			cy.task('assignRole', { email: adminUser.email, role: 'admin' })
+		})
 	})
 
 	describe('Company Assignments', () => {

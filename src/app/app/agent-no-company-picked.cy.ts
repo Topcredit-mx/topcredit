@@ -1,6 +1,7 @@
 /**
- * Sidebar nav is disabled when agent has companies but none selected.
- * - All sidebar navigation buttons are disabled when no company is picked
+ * Agent with companies assigned but no company selected sees multi-scope view.
+ * - Shows "Todas mis empresas" in switcher and app content (no empty state)
+ * - Sidebar navigation stays enabled so agent can navigate
  * - Company switcher remains enabled so the user can pick a company
  */
 
@@ -50,17 +51,16 @@ describe('Agent with no company picked', () => {
 		cy.visit('/app')
 	})
 
-	it('shows empty state prompting to select a company', () => {
-		cy.contains('Selecciona una empresa').should('be.visible')
+	it('shows multi-scope view with Todas mis empresas when no company is selected', () => {
+		cy.contains('Todas mis empresas').should('be.visible')
+		cy.contains('Panel de Empleados').should('be.visible')
 	})
 
-	it('disables all sidebar navigation buttons when no company is picked', () => {
+	it('keeps sidebar navigation enabled so agent can navigate', () => {
 		cy.get('[data-slot="sidebar-content"]')
-			.find('button[data-slot="sidebar-menu-button"]')
-			.should('have.length.greaterThan', 0)
-			.each(($btn) => {
-				cy.wrap($btn).should('be.disabled')
-			})
+			.contains('a', 'Solicitudes')
+			.click()
+		cy.url().should('include', '/app/applications')
 	})
 
 	it('keeps company switcher enabled so user can pick a company', () => {
@@ -69,10 +69,8 @@ describe('Agent with no company picked', () => {
 			.first()
 			.should('be.visible')
 			.and('not.be.disabled')
-		cy.get('[data-slot="sidebar"]')
-			.find('[data-slot="dropdown-menu-trigger"]')
-			.first()
 			.click()
 		cy.get('[data-slot="dropdown-menu-content"]').should('be.visible')
+		cy.contains(companyAssignedActive.name).should('be.visible')
 	})
 })
