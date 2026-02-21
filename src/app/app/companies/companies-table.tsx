@@ -15,13 +15,19 @@ import {
 import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
 import type { Company } from '~/server/queries'
 
+/** Company with Date fields serialized as ISO strings (for Client Component). */
+type CompanyForTable = Omit<Company, 'createdAt' | 'updatedAt'> & {
+	createdAt: string
+	updatedAt: string
+}
+
 interface CompaniesTableProps {
-	companies: Company[]
+	companies: CompanyForTable[]
 }
 
 export function CompaniesTable({ companies }: CompaniesTableProps) {
 	const t = useTranslations('admin')
-	const columns: ColumnDef<Company>[] = [
+	const columns: ColumnDef<CompanyForTable>[] = [
 		{
 			accessorKey: 'name',
 			header: ({ column }) => (
@@ -123,7 +129,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				/>
 			),
 			cell: ({ row }) => {
-				const date = row.getValue('createdAt') as Date
+				const date = row.getValue('createdAt') as string
 				return (
 					<div className="text-muted-foreground">
 						<FormattedDate value={date} />

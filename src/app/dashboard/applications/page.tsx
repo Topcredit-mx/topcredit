@@ -89,7 +89,7 @@ export default async function ApplicationsListPage() {
 													})}
 												</td>
 												<td className="px-4 py-3 text-gray-600">
-													<FormattedDate value={app.createdAt} />
+													<FormattedDate value={app.createdAt.toISOString()} />
 												</td>
 											</tr>
 										))}

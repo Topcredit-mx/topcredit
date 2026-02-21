@@ -16,7 +16,7 @@ export default async function SettingsProfilePage() {
 				user={{
 					name: user.name,
 					email: user.email,
-					emailVerified: user.emailVerified,
+					emailVerified: user.emailVerified?.toISOString() ?? null,
 				}}
 				roles={sessionUser.roles}
 			/>

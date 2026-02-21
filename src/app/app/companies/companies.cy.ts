@@ -377,6 +377,8 @@ describe('Admin Companies List', () => {
 
 			// Should redirect and show updated data
 			cy.url().should('include', '/app/companies')
+			// Filter to find the row (table is paginated; "Updated..." may be on page 2)
+			cy.get('input[aria-label="Filtrar empresas..."]').type('Updated')
 			cy.contains('Updated Company Name').should('exist')
 
 			// Revert changes

@@ -233,6 +233,24 @@ describe('Admin Users', () => {
 
 			cy.task('assignRole', { email: adminUser.email, role: 'admin' })
 		})
+
+		it('should redirect to unauthorized when adding role after admin was removed in another screen', () => {
+			cy.visit('/app/users')
+
+			// Simulate: another screen/tab removed this user's admin role
+			cy.task('removeRole', { email: adminUser.email, role: 'admin' })
+
+			// Try to add a role (e.g. Admin to another user) – should redirect to unauthorized
+			cy.findTableRow(agentOnlyUser.name).then(($row) => {
+				findRoleCheckbox(cy.wrap($row), 'Admin').click()
+			})
+
+			cy.url().should('include', '/unauthorized')
+			cy.contains(/no autorizado|unauthorized/i).should('be.visible')
+
+			// Revert: restore admin role
+			cy.task('assignRole', { email: adminUser.email, role: 'admin' })
+		})
 	})
 
 	describe('Company Assignments', () => {

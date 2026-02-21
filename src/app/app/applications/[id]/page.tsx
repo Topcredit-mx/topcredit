@@ -80,9 +80,15 @@ export default async function AppApplicationDetailPage({
 						) : null}
 						<div className="text-muted-foreground text-xs">
 							{t('applications-detail-created')}:{' '}
-							<FormattedDate value={application.createdAt} format="datetime" />{' '}
+							<FormattedDate
+								value={application.createdAt.toISOString()}
+								format="datetime"
+							/>{' '}
 							· {t('applications-detail-updated')}:{' '}
-							<FormattedDate value={application.updatedAt} format="datetime" />
+							<FormattedDate
+								value={application.updatedAt.toISOString()}
+								format="datetime"
+							/>
 						</div>
 					</div>
 				</CardHeader>

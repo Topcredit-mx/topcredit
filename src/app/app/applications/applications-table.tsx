@@ -61,7 +61,7 @@ export async function ApplicationsTable({
 								{t(APPLICATION_STATUS_KEYS[app.status])}
 							</td>
 							<td className="px-4 py-3 text-muted-foreground text-sm">
-								<FormattedDate value={app.createdAt} />
+								<FormattedDate value={app.createdAt.toISOString()} />
 							</td>
 							<td className="px-4 py-3">
 								<Button variant="ghost" size="sm" asChild>

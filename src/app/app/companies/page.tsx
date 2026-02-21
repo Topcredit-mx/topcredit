@@ -47,6 +47,13 @@ export default async function CompaniesPage({
 		companyIds,
 	})
 
+	// Serialize Date fields for Client Component (Next.js can't pass Date to client)
+	const companiesForTable = items.map((c) => ({
+		...c,
+		createdAt: c.createdAt.toISOString(),
+		updatedAt: c.updatedAt.toISOString(),
+	}))
+
 	const t = await getTranslations('admin')
 	return (
 		<div className="container mx-auto py-6">
@@ -55,7 +62,7 @@ export default async function CompaniesPage({
 				<p className="text-muted-foreground">{t('companies-subtitle')}</p>
 			</div>
 
-			<CompaniesTable companies={items} />
+			<CompaniesTable companies={companiesForTable} />
 		</div>
 	)
 }

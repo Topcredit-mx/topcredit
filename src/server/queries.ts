@@ -32,6 +32,16 @@ export type UserWithRoles = {
 	companies: CompanyBasic[]
 }
 
+/** UserWithRoles with Date fields as ISO strings (for Client Components). */
+export type UserForTable = Omit<
+	UserWithRoles,
+	'emailVerified' | 'createdAt' | 'updatedAt'
+> & {
+	emailVerified: string | null
+	createdAt: string
+	updatedAt: string
+}
+
 export type GetUsersParams = {
 	page?: number
 	limit?: number
@@ -568,6 +578,11 @@ export type TermOfferingForCompany = {
 	durationType: 'bi-monthly' | 'monthly'
 	duration: number
 	createdAt: Date
+}
+
+/** TermOfferingForCompany with createdAt as string (for Client Components). */
+export type TermOfferingForForm = Omit<TermOfferingForCompany, 'createdAt'> & {
+	createdAt: string
 }
 
 export async function getTermOfferingsForCompany(

@@ -31,7 +31,7 @@ import {
 import { Label } from '~/components/ui/label'
 import type { Role } from '~/lib/auth-utils'
 import { toggleUserRole, updateUserCompanies } from '~/server/mutations'
-import type { CompanyBasic, UserWithRoles } from '~/server/queries'
+import type { CompanyBasic, UserForTable } from '~/server/queries'
 
 function RoleCheckbox({
 	userId,
@@ -122,7 +122,7 @@ function CompanyAssignmentCell({
 	allCompanies,
 	onUserCompaniesChange,
 }: {
-	user: UserWithRoles
+	user: UserForTable
 	allCompanies: CompanyBasic[]
 	onUserCompaniesChange: (userId: number, companyIds: number[]) => void
 }) {
@@ -271,7 +271,7 @@ export function createColumns(
 	allCompanies: CompanyBasic[],
 	onUserCompaniesChange: (userId: number, companyIds: number[]) => void,
 	t: ReturnType<typeof useTranslations<'admin'>>,
-): ColumnDef<UserWithRoles>[] {
+): ColumnDef<UserForTable, unknown>[] {
 	// Only show assignable roles (not applicant, not base agent - removing agent would drop user from this page with no way to restore)
 	const rolesToShow: Role[] = ['requests', 'admin']
 	const roleLabels: Record<Role, string> = {
@@ -304,7 +304,7 @@ export function createColumns(
 		},
 		// Create a column for each role
 		...rolesToShow.map(
-			(role): ColumnDef<UserWithRoles> => ({
+			(role): ColumnDef<UserForTable> => ({
 				id: `role_${role}`,
 				header: ({ column }) => (
 					<DataTableColumnHeader column={column} title={roleLabels[role]} />
@@ -350,7 +350,7 @@ export function createColumns(
 				<DataTableColumnHeader column={column} title={t('users-col-created')} />
 			),
 			cell: ({ row }) => {
-				const date = row.getValue('createdAt') as Date
+				const date: string = row.getValue('createdAt')
 				return (
 					<div className="text-muted-foreground">
 						<FormattedDate value={date} />
