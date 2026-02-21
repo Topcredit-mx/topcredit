@@ -1,6 +1,6 @@
+import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
-import { eq } from 'drizzle-orm'
 import type {
 	AbilityContext,
 	AppAbility,
@@ -19,13 +19,15 @@ export type AbilityResult = {
 }
 
 /** Fetch current user's roles from DB (not JWT) so role changes take effect immediately. Cached per request per userId. */
-export const getRolesFromDb = cache(async (userId: number): Promise<string[]> => {
-	const rows = await db
-		.select({ role: userRoles.role })
-		.from(userRoles)
-		.where(eq(userRoles.userId, userId))
-	return rows.length > 0 ? rows.map((r) => r.role) : ['applicant']
-})
+export const getRolesFromDb = cache(
+	async (userId: number): Promise<string[]> => {
+		const rows = await db
+			.select({ role: userRoles.role })
+			.from(userRoles)
+			.where(eq(userRoles.userId, userId))
+		return rows.length > 0 ? rows.map((r) => r.role) : ['applicant']
+	},
+)
 
 export const getAbility = cache(async (): Promise<AbilityResult> => {
 	const session = await requireAuth()

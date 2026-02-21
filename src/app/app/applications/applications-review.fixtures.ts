@@ -15,10 +15,26 @@ export const applicantForReview = {
 }
 
 /** One applicant per application – no applicant has multiple active applications. */
-export const applicantA2 = { name: 'Applicant A2', email: 'applicant.a2@reviewcompany.com', roles: ['applicant'] as const }
-export const applicantA3 = { name: 'Applicant A3', email: 'applicant.a3@reviewcompany.com', roles: ['applicant'] as const }
-export const applicantA4 = { name: 'Applicant A4', email: 'applicant.a4@reviewcompany.com', roles: ['applicant'] as const }
-export const applicantA5 = { name: 'Applicant A5', email: 'applicant.a5@reviewcompany.com', roles: ['applicant'] as const }
+export const applicantA2 = {
+	name: 'Applicant A2',
+	email: 'applicant.a2@reviewcompany.com',
+	roles: ['applicant'] as const,
+}
+export const applicantA3 = {
+	name: 'Applicant A3',
+	email: 'applicant.a3@reviewcompany.com',
+	roles: ['applicant'] as const,
+}
+export const applicantA4 = {
+	name: 'Applicant A4',
+	email: 'applicant.a4@reviewcompany.com',
+	roles: ['applicant'] as const,
+}
+export const applicantA5 = {
+	name: 'Applicant A5',
+	email: 'applicant.a5@reviewcompany.com',
+	roles: ['applicant'] as const,
+}
 
 export const applicantForReviewB = {
 	name: 'Applicant Other Company',

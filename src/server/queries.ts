@@ -537,7 +537,11 @@ export async function getApplicationForReview(
 		.innerJoin(terms, eq(termOfferings.termId, terms.id))
 		.innerJoin(users, eq(applications.applicantId, users.id))
 		.where(
-			and(eq(applications.id, applicationId), companyCondition, eq(companies.active, true)),
+			and(
+				eq(applications.id, applicationId),
+				companyCondition,
+				eq(companies.active, true),
+			),
 		)
 
 	const row = rows[0]

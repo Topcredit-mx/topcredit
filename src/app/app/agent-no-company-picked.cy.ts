@@ -57,9 +57,7 @@ describe('Agent with no company picked', () => {
 	})
 
 	it('keeps sidebar navigation enabled so agent can navigate', () => {
-		cy.get('[data-slot="sidebar-content"]')
-			.contains('a', 'Solicitudes')
-			.click()
+		cy.get('[data-slot="sidebar-content"]').contains('a', 'Solicitudes').click()
 		cy.url().should('include', '/app/applications')
 	})
 

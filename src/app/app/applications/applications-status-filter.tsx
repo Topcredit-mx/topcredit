@@ -39,7 +39,9 @@ export function ApplicationsStatusFilter({
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					<SelectItem value={ALL_VALUE}>{t('applications-filter-all')}</SelectItem>
+					<SelectItem value={ALL_VALUE}>
+						{t('applications-filter-all')}
+					</SelectItem>
 					{APPLICATION_STATUS_VALUES.map((status) => (
 						<SelectItem key={status} value={status}>
 							{t(APPLICATION_STATUS_KEYS[status])}

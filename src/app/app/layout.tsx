@@ -5,7 +5,10 @@ import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { getRequiredAgentUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
-import { getCompaniesForSwitcher, getEffectiveSelectedCompanyId } from '~/server/scopes'
+import {
+	getCompaniesForSwitcher,
+	getEffectiveSelectedCompanyId,
+} from '~/server/scopes'
 
 export default async function AppLayout({
 	children,
@@ -40,11 +43,7 @@ export default async function AppLayout({
 					</div>
 				</header>
 				<div className="flex-1 overflow-y-auto bg-gray-50 p-8">
-					{showNoAssignmentsEmpty ? (
-						<AgentNoAssignmentsEmpty />
-					) : (
-						children
-					)}
+					{showNoAssignmentsEmpty ? <AgentNoAssignmentsEmpty /> : children}
 				</div>
 			</main>
 		</SidebarProvider>

@@ -25,7 +25,13 @@ import type { Company } from '~/server/queries'
 /** Subset of Company used by the form – no Date fields (can't serialize to Client Components). */
 export type CompanyFormInput = Pick<
 	Company,
-	'id' | 'name' | 'domain' | 'rate' | 'borrowingCapacityRate' | 'employeeSalaryFrequency' | 'active'
+	| 'id'
+	| 'name'
+	| 'domain'
+	| 'rate'
+	| 'borrowingCapacityRate'
+	| 'employeeSalaryFrequency'
+	| 'active'
 >
 
 interface CompanyFormProps {

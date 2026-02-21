@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
-import { subject } from '~/lib/abilities'
 import { cookies } from 'next/headers'
+import { subject } from '~/lib/abilities'
 import { getAbility } from '~/server/auth/get-ability'
 import { db } from '~/server/db'
 import { companies, userCompanies } from '~/server/db/schema'
@@ -33,7 +33,10 @@ export async function getEffectiveCompanyScope(): Promise<CompanyScope> {
 	const selectedCompanyId = await getEffectiveSelectedCompanyId()
 
 	if (selectedCompanyId !== null) {
-		const canRead = ability.can('read', subject('Company', { id: selectedCompanyId }))
+		const canRead = ability.can(
+			'read',
+			subject('Company', { id: selectedCompanyId }),
+		)
 		if (canRead) {
 			return { type: 'single', companyId: selectedCompanyId }
 		}
@@ -78,9 +81,7 @@ export async function getUserCompanyAssignments(
 		})
 		.from(userCompanies)
 		.innerJoin(companies, eq(userCompanies.companyId, companies.id))
-		.where(
-			and(eq(userCompanies.userId, userId), eq(companies.active, true)),
-		)
+		.where(and(eq(userCompanies.userId, userId), eq(companies.active, true)))
 	return rows
 }
 
@@ -105,11 +106,8 @@ export async function getCompaniesForSwitcher(
 		})
 		.from(userCompanies)
 		.innerJoin(companies, eq(userCompanies.companyId, companies.id))
-		.where(
-			and(eq(userCompanies.userId, userId), eq(companies.active, true)),
-		)
+		.where(and(eq(userCompanies.userId, userId), eq(companies.active, true)))
 		.orderBy(companies.name)
 	const list = rows.map((r) => ({ ...r, active: true as const }))
 	return list
 }
-

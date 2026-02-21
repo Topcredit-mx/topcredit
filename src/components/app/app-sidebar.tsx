@@ -1,12 +1,6 @@
 'use client'
 
-import {
-	Building2,
-	CreditCard,
-	FileText,
-	Home,
-	Users,
-} from 'lucide-react'
+import { Building2, CreditCard, FileText, Home, Users } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { CompanySwitcher } from '~/components/app/company-switcher'
