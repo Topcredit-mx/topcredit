@@ -62,7 +62,7 @@ jobs:
           branch_type: schema-only
 
       - name: Start app
-        run: pnpm dev &
+        run: pnpm dev:webpack &
         env:
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: http://localhost:3000
