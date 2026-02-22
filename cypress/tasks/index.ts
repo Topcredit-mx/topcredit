@@ -1,5 +1,15 @@
 import { and, eq } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
+import {
+	agentCompanyDomains,
+	agentForReview,
+	allReviewApplicants,
+	allReviewCompanies,
+	applicantForReviewB,
+	companyForReview,
+	companyForReviewD,
+	reviewApplicationConfigs,
+} from '~/app/app/applications/applications-review.fixtures'
 import type { Role } from '~/lib/auth-utils'
 import {
 	applications,
@@ -531,4 +541,164 @@ export const getUserIdByEmail = async (
 	})
 
 	return user?.id ?? null
+}
+
+export type SeedApplicationsReviewResult = {
+	companyId: number
+	companyDId: number
+	termId: number
+	companyBApplicationId: number
+}
+
+export const seedApplicationsReview =
+	async (): Promise<SeedApplicationsReviewResult> => {
+		const db = getDb(process.env.DATABASE_URL || '')
+
+		const allUserFixtures = [agentForReview, ...allReviewApplicants]
+
+		await Promise.all(
+			allUserFixtures.map((u) =>
+				db.delete(users).where(eq(users.email, u.email)),
+			),
+		)
+		await Promise.all(
+			allReviewCompanies.map((c) =>
+				db.delete(companies).where(eq(companies.domain, c.domain)),
+			),
+		)
+
+		const now = new Date()
+		const [createdUsers, createdCompanies, createdTerms] = await Promise.all([
+			db
+				.insert(users)
+				.values(
+					allUserFixtures.map((u) => ({
+						email: u.email,
+						name: u.name,
+						emailVerified: now,
+					})),
+				)
+				.returning(),
+			db
+				.insert(companies)
+				.values(
+					allReviewCompanies.map((c) => ({
+						name: c.name,
+						domain: c.domain,
+						rate: c.rate,
+						borrowingCapacityRate: c.borrowingCapacityRate,
+						employeeSalaryFrequency: c.employeeSalaryFrequency,
+						active: c.active,
+					})),
+				)
+				.returning(),
+			db
+				.insert(terms)
+				.values({ durationType: 'monthly' as const, duration: 12 })
+				.returning(),
+		])
+
+		const term = createdTerms[0]
+		if (!term) throw new Error('Seed: term not created')
+
+		function findUser(email: string) {
+			const row = createdUsers.find((u) => u.email === email)
+			if (!row) throw new Error(`Seed: user ${email} not found`)
+			return row
+		}
+
+		function findCompany(domain: string) {
+			const row = createdCompanies.find((c) => c.domain === domain)
+			if (!row) throw new Error(`Seed: company ${domain} not found`)
+			return row
+		}
+
+		const agent = findUser(agentForReview.email)
+
+		const [, offerings] = await Promise.all([
+			db.insert(userRoles).values(
+				allUserFixtures.flatMap((f) =>
+					f.roles.map((role) => ({
+						userId: findUser(f.email).id,
+						role,
+					})),
+				),
+			),
+			db
+				.insert(termOfferings)
+				.values(
+					createdCompanies.map((c) => ({
+						companyId: c.id,
+						termId: term.id,
+						disabled: false,
+					})),
+				)
+				.returning(),
+			db.insert(userCompanies).values(
+				agentCompanyDomains.map((domain) => ({
+					userId: agent.id,
+					companyId: findCompany(domain).id,
+				})),
+			),
+		])
+
+		function findOffering(domain: string) {
+			const company = findCompany(domain)
+			const row = offerings.find((o) => o.companyId === company.id)
+			if (!row) throw new Error(`Seed: offering for ${domain} not found`)
+			return row
+		}
+
+		const apps = await db
+			.insert(applications)
+			.values(
+				reviewApplicationConfigs.map((cfg) => ({
+					applicantId: findUser(cfg.applicantEmail).id,
+					termOfferingId: findOffering(cfg.companyDomain).id,
+					creditAmount: cfg.creditAmount,
+					salaryAtApplication: cfg.salaryAtApplication,
+					status: 'pending' as const,
+				})),
+			)
+			.returning()
+
+		const companyBAppIdx = reviewApplicationConfigs.findIndex(
+			(cfg) => cfg.applicantEmail === applicantForReviewB.email,
+		)
+		const companyBApp = apps[companyBAppIdx]
+		if (companyBAppIdx < 0 || !companyBApp)
+			throw new Error('Seed: company B app not found')
+
+		return {
+			companyId: findCompany(companyForReview.domain).id,
+			companyDId: findCompany(companyForReviewD.domain).id,
+			termId: term.id,
+			companyBApplicationId: companyBApp.id,
+		}
+	}
+
+export type CleanupApplicationsReviewParams = {
+	termId: number
+}
+
+export const cleanupApplicationsReview = async (
+	params: CleanupApplicationsReviewParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const allUserFixtures = [agentForReview, ...allReviewApplicants]
+
+	await Promise.all(
+		allUserFixtures.map((u) =>
+			db.delete(users).where(eq(users.email, u.email)),
+		),
+	)
+	await Promise.all(
+		allReviewCompanies.map((c) =>
+			db.delete(companies).where(eq(companies.domain, c.domain)),
+		),
+	)
+	await db.delete(terms).where(eq(terms.id, params.termId))
+
+	return null
 }

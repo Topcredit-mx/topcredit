@@ -50,6 +50,13 @@ declare namespace Cypress {
 		): Chainable<null>
 		task(event: 'deleteUsersByEmail', emails: string[]): Chainable<null>
 		task(event: 'deleteCompaniesByDomain', domains: string[]): Chainable<null>
+		task(
+			event: 'seedApplicationsReview',
+		): Chainable<import('../tasks').SeedApplicationsReviewResult>
+		task(
+			event: 'cleanupApplicationsReview',
+			params: import('../tasks').CleanupApplicationsReviewParams,
+		): Chainable<null>
 	}
 }
 

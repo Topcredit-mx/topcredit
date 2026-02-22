@@ -1,6 +1,10 @@
 /**
  * Fixtures for app applications review E2E tests (Phase 3: agents review/authorize/reject).
+ *
+ * Single source of truth — the batch seed task in cypress/tasks imports from here.
  */
+
+// ── Users ───────────────────────────────────────────────────────────────
 
 export const agentForReview = {
 	name: 'Agent Review',
@@ -56,11 +60,122 @@ export const applicantForReviewD = {
 	roles: ['applicant'] as const,
 }
 
+// ── Companies ───────────────────────────────────────────────────────────
+
 export const companyForReview = {
 	name: 'E2E Review Company',
 	domain: 'reviewcompany.com',
 	rate: '0.0250',
-	borrowingCapacityRate: '0.30',
+	borrowingCapacityRate: '0.30' as string | null,
 	employeeSalaryFrequency: 'monthly' as const,
 	active: true,
 }
+
+/** Second company for cross-company 404 test; agent is assigned to it. */
+export const companyForReviewB = {
+	name: 'Other Company',
+	domain: 'othercompany.com',
+	rate: '0.02',
+	borrowingCapacityRate: null as string | null,
+	employeeSalaryFrequency: 'monthly' as const,
+	active: true,
+}
+
+/** Company with no agent assignments – only admin (all scope) can see. */
+export const companyForReviewC = {
+	name: 'Admin-Only Company',
+	domain: 'adminonly.com',
+	rate: '0.02',
+	borrowingCapacityRate: null as string | null,
+	employeeSalaryFrequency: 'monthly' as const,
+	active: true,
+}
+
+/** Inactive company – not in picker; cookie cleared if selected. */
+export const companyForReviewD = {
+	name: 'Inactive Company',
+	domain: 'inactivecompany.com',
+	rate: '0.02',
+	borrowingCapacityRate: null as string | null,
+	employeeSalaryFrequency: 'monthly' as const,
+	active: false,
+}
+
+// ── Seed configuration (imported by cypress/tasks seed) ─────────────────
+
+export const allReviewApplicants = [
+	applicantForReview,
+	applicantA2,
+	applicantA3,
+	applicantA4,
+	applicantA5,
+	applicantForReviewB,
+	applicantForReviewC,
+	applicantForReviewD,
+]
+
+export const allReviewCompanies = [
+	companyForReview,
+	companyForReviewB,
+	companyForReviewC,
+	companyForReviewD,
+]
+
+/** Domains of companies the agent is assigned to. */
+export const agentCompanyDomains = [
+	companyForReview.domain,
+	companyForReviewB.domain,
+	companyForReviewD.domain,
+]
+
+/** One entry per application to seed. */
+export const reviewApplicationConfigs = [
+	{
+		applicantEmail: applicantForReview.email,
+		companyDomain: companyForReview.domain,
+		creditAmount: '25000',
+		salaryAtApplication: '40000',
+	},
+	{
+		applicantEmail: applicantA2.email,
+		companyDomain: companyForReview.domain,
+		creditAmount: '30000',
+		salaryAtApplication: '40000',
+	},
+	{
+		applicantEmail: applicantA3.email,
+		companyDomain: companyForReview.domain,
+		creditAmount: '35000',
+		salaryAtApplication: '40000',
+	},
+	{
+		applicantEmail: applicantA4.email,
+		companyDomain: companyForReview.domain,
+		creditAmount: '40000',
+		salaryAtApplication: '40000',
+	},
+	{
+		applicantEmail: applicantA5.email,
+		companyDomain: companyForReview.domain,
+		creditAmount: '45000',
+		salaryAtApplication: '40000',
+	},
+	{
+		applicantEmail: applicantForReviewB.email,
+		companyDomain: companyForReviewB.domain,
+		creditAmount: '15000',
+		salaryAtApplication: '40000',
+	},
+	{
+		applicantEmail: applicantForReviewC.email,
+		companyDomain: companyForReviewC.domain,
+		creditAmount: '8000',
+		salaryAtApplication: '40000',
+	},
+	{
+		applicantEmail: applicantForReviewD.email,
+		companyDomain: companyForReviewD.domain,
+		creditAmount: '5000',
+		salaryAtApplication: '40000',
+	},
+]
