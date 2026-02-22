@@ -1,0 +1,16 @@
+---
+description: Enforce strict TypeScript typing — no type assertions, no non-null assertions, no any
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# TypeScript Strict Typing
+
+Always read and follow the skill at `.cursor/skills/typescript-strict-typing/SKILL.md` when writing or editing TypeScript files.
+
+Key rules:
+- **Never** use `as SomeType` (except `as const`)
+- **Never** use `!` non-null assertion
+- **Never** use `any`
+- Use type narrowing, guards, and `Set<string>` for `.includes()` on readonly tuples
+- Use `unknown` + runtime checks for `JSON.parse()` results

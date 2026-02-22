@@ -1,6 +1,6 @@
 'use server'
 
-import { and, eq, gte, inArray } from 'drizzle-orm'
+import { and, eq, gte, notInArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -13,13 +13,14 @@ import {
 } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import {
-	ACTIVE_APPLICATION_STATUSES,
-	type ApplicationUpdateTargetStatus,
-	applications,
 	canTransitionApplicationFrom,
-	companies,
-	isApplicationUpdateTargetStatus,
+	isApplicationStatus,
 	statusRequiresReason,
+} from '~/lib/application-rules'
+import type { ApplicationStatus } from '~/server/db/schema'
+import {
+	applications,
+	companies,
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
@@ -362,7 +363,7 @@ export async function createApplication(
 		const existingActive = await db.query.applications.findFirst({
 			where: and(
 				eq(applications.applicantId, user.id),
-				inArray(applications.status, [...ACTIVE_APPLICATION_STATUSES]),
+				notInArray(applications.status, ['authorized', 'denied']),
 			),
 			columns: { id: true },
 		})
@@ -391,7 +392,7 @@ export async function createApplication(
 
 export async function updateApplicationStatus(
 	applicationId: number,
-	payload: { status: ApplicationUpdateTargetStatus; reason?: string },
+	payload: { status: ApplicationStatus; reason?: string },
 ): Promise<{ error?: string }> {
 	const { ability } = await getAbility()
 
@@ -457,7 +458,7 @@ export async function updateApplicationStatusFormAction(
 	const statusRaw = formData.get('status')
 	if (
 		typeof statusRaw !== 'string' ||
-		!isApplicationUpdateTargetStatus(statusRaw)
+		!isApplicationStatus(statusRaw)
 	) {
 		return { error: 'applications-error-generic' }
 	}

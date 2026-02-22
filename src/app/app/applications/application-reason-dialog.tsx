@@ -12,7 +12,7 @@ import {
 } from '~/components/ui/dialog'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Textarea } from '~/components/ui/textarea'
-import type { ApplicationStatusRequiringReason } from '~/server/db/schema'
+import type { ApplicationStatusRequiringReason } from '~/lib/application-rules'
 
 interface ApplicationReasonDialogProps {
 	open: boolean

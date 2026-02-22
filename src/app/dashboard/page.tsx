@@ -13,7 +13,8 @@ import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { getRequiredApplicantUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
-import { isActiveApplicationStatus, users } from '~/server/db/schema'
+import { isActiveApplicationStatus } from '~/lib/application-rules'
+import { users } from '~/server/db/schema'
 import { getApplicationsByApplicantId } from '~/server/queries'
 
 export default async function DashboardPage() {

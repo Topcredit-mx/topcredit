@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { TotpSettingsCard } from '~/components/totp-settings-card'
+import { countValidBackupCodes } from '~/lib/user-rules'
 import { getRequiredUser } from '~/server/auth/lib'
 import { getUserByEmail } from '~/server/auth/users'
 
@@ -13,18 +14,7 @@ export default async function TotpSettingsPage() {
 
 	if (!user.totpEnabled) redirect('/settings/security')
 
-	// Backup codes count for TOTP page
-	let backupCodesCount = 0
-	if (user.totpBackupCodes) {
-		try {
-			const codes = JSON.parse(user.totpBackupCodes) as string[]
-			backupCodesCount = codes.filter(
-				(code) => code && code.trim() !== '',
-			).length
-		} catch {
-			backupCodesCount = 0
-		}
-	}
+	const backupCodesCount = countValidBackupCodes(user.totpBackupCodes)
 
 	const totpUser = {
 		email: user.email,

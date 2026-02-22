@@ -1,9 +1,7 @@
 import { z } from 'zod'
 
-import {
-	APPLICATION_UPDATE_TARGET_STATUSES,
-	statusRequiresReason,
-} from '~/server/db/schema'
+import { statusRequiresReason } from '~/lib/application-rules'
+import { APPLICATION_STATUS_VALUES } from '~/server/db/schema'
 
 const domainRegex =
 	/^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/
@@ -72,7 +70,7 @@ export const createApplicationSchema = z.object({
 
 export const updateApplicationStatusSchema = z
 	.object({
-		status: z.enum(APPLICATION_UPDATE_TARGET_STATUSES, {
+		status: z.enum(APPLICATION_STATUS_VALUES, {
 			message: 'Estado no válido',
 		}),
 		reason: z.string().max(1000).optional(),
