@@ -1,7 +1,7 @@
 /**
  * US-2.2.3: Agent sees only assigned companies
- * - Sidebar company switcher shows only assigned companies (active + inactive)
- * - Inactive assigned companies shown as disabled
+ * - Sidebar company switcher shows only assigned active companies
+ * - Inactive assigned companies are filtered out (not shown)
  * - Agent can switch between assigned companies
  * - Unassigned companies are not visible
  */
@@ -59,7 +59,7 @@ describe('Company Switcher (US-2.2.3)', () => {
 			.click()
 	}
 
-	it('sidebar shows company switcher with only assigned companies', () => {
+	it('sidebar shows company switcher with only assigned active companies', () => {
 		openCompanySwitcher()
 
 		cy.get('[data-slot="dropdown-menu-content"]').within(() => {
@@ -71,25 +71,18 @@ describe('Company Switcher (US-2.2.3)', () => {
 				'[data-slot="dropdown-menu-item"]',
 				companyAssignedActive2.name,
 			).should('exist')
-			cy.contains(
-				'[data-slot="dropdown-menu-item"]',
-				companyAssignedInactive.name,
-			).should('exist')
+			cy.contains(companyAssignedInactive.name).should('not.exist')
 			cy.contains(companyUnassigned.name).should('not.exist')
 		})
 	})
 
-	it('assigned inactive company is shown as disabled option', () => {
+	it('assigned inactive company is not shown in switcher', () => {
 		openCompanySwitcher()
 
-		cy.get('[data-slot="dropdown-menu-content"]').within(() => {
-			cy.contains(
-				'[data-slot="dropdown-menu-item"]',
-				companyAssignedInactive.name,
-			)
-				.closest('[data-slot="dropdown-menu-item"]')
-				.should('have.attr', 'data-disabled')
-		})
+		cy.get('[data-slot="dropdown-menu-content"]').should(
+			'not.contain',
+			companyAssignedInactive.name,
+		)
 	})
 
 	it('agent can switch between assigned companies', () => {

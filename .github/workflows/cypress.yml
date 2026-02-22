@@ -42,7 +42,7 @@ jobs:
         uses: actions/cache@v5.0.3
         with:
           path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
+          key: cypress-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
           restore-keys: cypress-${{ runner.os }}-
 
       - name: Install Cypress binary
@@ -61,8 +61,17 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
           branch_type: schema-only
 
+      - name: Build app
+        run: pnpm build
+        env:
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_URL: http://localhost:3000
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+
       - name: Start app
-        run: pnpm dev:webpack &
+        run: pnpm start &
         env:
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: http://localhost:3000
@@ -76,9 +85,10 @@ jobs:
       - name: Cypress run
         uses: cypress-io/github-action@v7.1.2
         with:
+          browser: chrome
           record: true
           parallel: true
-          group: 'Electron'
+          group: 'Chrome'
         env:
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: http://localhost:3000

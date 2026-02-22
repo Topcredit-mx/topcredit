@@ -360,7 +360,7 @@ describe('App Applications Review (Phase 3)', () => {
 				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
 			cy.contains('button', 'Autorizar').click()
-			cy.contains('Autorizado', { timeout: 10000 }).should('be.visible')
+			cy.contains('Autorizado').should('be.visible')
 		})
 
 		it('reject requires reason', () => {
@@ -388,7 +388,7 @@ describe('App Applications Review (Phase 3)', () => {
 					.type('Documentación incompleta en E2E.')
 				cy.contains('button', /confirmar/i).click()
 			})
-			cy.contains('Denegado', { timeout: 10000 }).should('be.visible')
+			cy.contains('Denegado').should('be.visible')
 		})
 
 		it('can pre-authorize application', () => {
@@ -397,7 +397,7 @@ describe('App Applications Review (Phase 3)', () => {
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
 			cy.contains('button', /pre-autorizar/i).click()
-			cy.contains('Preautorizado', { timeout: 10000 }).should('be.visible')
+			cy.contains('Preautorizado').should('be.visible')
 		})
 
 		it('can mark as invalid documentation with reason', () => {
@@ -405,6 +405,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('40,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
+			cy.url().should('match', /\/app\/applications\/\d+/)
 			cy.contains('button', /documentación inválida/i).click()
 			cy.get('[role="dialog"]').within(() => {
 				cy.get('textarea[name="reason"]')
@@ -412,9 +413,7 @@ describe('App Applications Review (Phase 3)', () => {
 					.type('Falta documentación en E2E.')
 				cy.contains('button', /confirmar/i).click()
 			})
-			cy.contains('Documentación inválida', { timeout: 10000 }).should(
-				'be.visible',
-			)
+			cy.contains('Documentación inválida').should('be.visible')
 		})
 
 		it('filter by status shows matching applications', () => {
@@ -444,7 +443,7 @@ describe('App Applications Review (Phase 3)', () => {
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
 			cy.contains('button', 'Autorizar').click()
-			cy.contains('Autorizado', { timeout: 10000 }).should('be.visible')
+			cy.contains('Autorizado').should('be.visible')
 			cy.visit('/app/applications')
 			cy.findTableRow('45,000').within(() => {
 				cy.contains('Autorizado').should('be.visible')
@@ -457,7 +456,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.login(agentEmail)
 			cy.visit('/app')
 			cy.clearCookie('selected_company_id')
-			cy.visit('/app/applications', { timeout: 30000 })
+			cy.visit('/app/applications')
 		})
 
 		it('shows applications from all assigned companies (multi scope)', () => {
@@ -509,6 +508,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.contains(applicantForReview.name).should('exist')
 			cy.findTableRow('25,000')
 				.find('a[aria-label="Revisar solicitud"]')
+				.should('be.visible')
 				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
 		})
@@ -536,7 +536,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.login(adminEmail)
 			cy.visit('/app')
 			cy.clearCookie('selected_company_id')
-			cy.visit('/app/applications', { timeout: 30000 })
+			cy.visit('/app/applications')
 		})
 
 		it('shows applications from all companies (all scope)', () => {
@@ -590,7 +590,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.login(agentEmail)
 			cy.visit('/app')
 			cy.setCookie('selected_company_id', String(companyDId))
-			cy.visit('/app/applications', { timeout: 30000 })
+			cy.visit('/app/applications')
 			cy.get('table tbody tr').should('have.length', 6)
 			cy.contains('inactivecompany.com').should('not.exist')
 			cy.get('[data-slot="sidebar"]')
@@ -623,7 +623,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.login(adminEmail)
 			cy.visit('/app')
 			cy.setCookie('selected_company_id', String(companyDId))
-			cy.visit('/app/applications', { timeout: 30000 })
+			cy.visit('/app/applications')
 			cy.get('table tbody tr').should('have.length', 7)
 			cy.contains('inactivecompany.com').should('not.exist')
 			cy.get('[data-slot="sidebar"]')

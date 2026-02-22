@@ -15,7 +15,7 @@
 		"db:seed": "tsx scripts/seed.ts",
 		"db:studio": "drizzle-kit studio",
 		"cy:open": "cypress open",
-		"cy:run": "cypress run",
+		"cy:run": "cypress run --browser chrome",
 		"dev": "next dev",
 		"dev:webpack": "next dev --webpack",
 		"preview": "next build && next start",
