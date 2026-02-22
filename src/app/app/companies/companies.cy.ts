@@ -346,7 +346,7 @@ describe('Admin Companies List', () => {
 				cy.get('a[href*="/edit"]').click()
 			})
 			const editPath = `/app/companies/${editCompany.domain}/edit`
-			cy.url({ timeout: 10000 }).should('include', editPath)
+			cy.url().should('include', editPath)
 			cy.contains(/editar|edit/i).should('be.visible')
 		})
 
