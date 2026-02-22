@@ -26,7 +26,7 @@ export const companyAssignedActive2 = {
 	active: true,
 }
 
-/** Assigned to agent: inactive (shown but disabled in switcher) */
+/** Assigned to agent: inactive (filtered out, not shown in switcher) */
 export const companyAssignedInactive = {
 	name: 'Assigned Inactive Co',
 	domain: 'assigned-inactive-switcher.com',
