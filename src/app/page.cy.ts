@@ -1,51 +1,17 @@
+import type { SeedLoginFlowResult } from '../../cypress/tasks'
 import { agentUser, applicantUser } from './login/login.fixtures'
 
-const LOGIN_APPLICANT_DOMAIN = 'example.com'
-
 describe('Home / Landing', () => {
+	let seed: SeedLoginFlowResult
+
 	before(() => {
-		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
-		cy.task('deleteCompaniesByDomain', [LOGIN_APPLICANT_DOMAIN])
-
-		cy.task('createUser', applicantUser)
-		cy.task('createUser', agentUser)
-
-		// Give applicant one application so /dashboard shows "Mi Cuenta" instead of redirecting to /dashboard/applications/new
-		cy.task('createCompany', {
-			name: 'Home E2E Company',
-			domain: LOGIN_APPLICANT_DOMAIN,
-			rate: '0.0250',
-			borrowingCapacityRate: '0.30',
-			employeeSalaryFrequency: 'monthly',
-			active: true,
-		}).then((company) => {
-			cy.task('createTerm', { durationType: 'monthly', duration: 12 }).then(
-				(term) => {
-					cy.task('createTermOffering', {
-						companyId: company.id,
-						termId: term.id,
-						disabled: false,
-					}).then((offering) => {
-						cy.task('getUserIdByEmail', applicantUser.email).then(
-							(applicantId) => {
-								if (applicantId != null)
-									cy.task('createApplication', {
-										applicantId,
-										termOfferingId: offering.id,
-										creditAmount: '10000',
-										salaryAtApplication: '100000',
-									})
-							},
-						)
-					})
-				},
-			)
+		cy.task<SeedLoginFlowResult>('seedLoginFlow').then((result) => {
+			seed = result
 		})
 	})
 
 	after(() => {
-		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
-		cy.task('deleteCompaniesByDomain', [LOGIN_APPLICANT_DOMAIN])
+		cy.task('cleanupLoginFlow', { termId: seed.termId })
 	})
 
 	it('shows landing page to unauthenticated users', () => {

@@ -8,13 +8,11 @@ const totpUser = {
 
 describe('Settings Security', () => {
 	before(() => {
-		cy.task('deleteUsersByEmail', [applicantUser.email, totpUser.email])
-		cy.task('createUser', applicantUser)
-		cy.task('createUser', totpUser)
+		cy.task('seedSecurity')
 	})
 
 	after(() => {
-		cy.task('deleteUsersByEmail', [applicantUser.email, totpUser.email])
+		cy.task('cleanupSecurity')
 	})
 
 	it('should redirect to login when accessing /settings/security unauthenticated', () => {
@@ -57,7 +55,7 @@ describe('Settings Security', () => {
 	})
 
 	it('should show unverified state and warning for unverified user', () => {
-		cy.task('createUser', { ...applicantUser, verified: false })
+		cy.task('resetUser', { ...applicantUser, verified: false })
 		cy.login(applicantUser.email)
 		cy.visit('/settings/security')
 		cy.contains('No verificado').should('be.visible')
@@ -65,7 +63,7 @@ describe('Settings Security', () => {
 	})
 
 	it('should show verified state for verified user', () => {
-		cy.task('createUser', { ...applicantUser, verified: true })
+		cy.task('resetUser', { ...applicantUser, verified: true })
 		cy.login(applicantUser.email)
 		cy.visit('/settings/security')
 		cy.contains('Verificado el').should('be.visible')

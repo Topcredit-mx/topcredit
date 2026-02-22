@@ -5,26 +5,17 @@
  * - Shows when no company is selected on the company switcher in the sidebar
  */
 
-import {
-	adminOverviewAdmin,
-	overviewCompanyList,
-} from './admin-overview-dashboard.fixtures'
+import { adminOverviewAdmin } from './admin-overview-dashboard.fixtures'
 
 describe('Admin overview dashboard (US-2.2.5)', () => {
 	const adminEmail = adminOverviewAdmin.email
-	const companyDomains = overviewCompanyList.map((c) => c.domain)
 
 	before(() => {
-		cy.task('deleteUsersByEmail', [adminEmail])
-		cy.task('deleteCompaniesByDomain', companyDomains)
-
-		cy.task('createUser', adminOverviewAdmin)
-		cy.task('createMultipleCompanies', overviewCompanyList)
+		cy.task('seedAdminOverview')
 	})
 
 	after(() => {
-		cy.task('deleteUsersByEmail', [adminEmail])
-		cy.task('deleteCompaniesByDomain', companyDomains)
+		cy.task('cleanupAdminOverview')
 	})
 
 	beforeEach(() => {
@@ -40,7 +31,6 @@ describe('Admin overview dashboard (US-2.2.5)', () => {
 	it('shows aggregated data across all companies', () => {
 		cy.contains('Empresas').should('be.visible')
 		cy.contains('Usuarios').should('be.visible')
-		// Counts should reflect test data (at least 2 companies, at least 1 user)
 		cy.get('main').within(() => {
 			cy.contains(/[0-9]+/).should('be.visible')
 		})

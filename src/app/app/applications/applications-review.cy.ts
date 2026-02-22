@@ -202,8 +202,7 @@ describe('App Applications Review (Phase 3)', () => {
 	describe('Admin with company selected', () => {
 		const adminEmail = 'admin.review@example.com'
 		before(() => {
-			cy.task('deleteUsersByEmail', [adminEmail])
-			cy.task('createUser', {
+			cy.task('resetUser', {
 				name: 'Admin Review',
 				email: adminEmail,
 				roles: ['agent', 'admin'] as const,
@@ -238,8 +237,7 @@ describe('App Applications Review (Phase 3)', () => {
 	describe('Admin with no company selected', () => {
 		const adminEmail = 'admin.review@example.com'
 		before(() => {
-			cy.task('deleteUsersByEmail', [adminEmail])
-			cy.task('createUser', {
+			cy.task('resetUser', {
 				name: 'Admin Review',
 				email: adminEmail,
 				roles: ['agent', 'admin'] as const,
@@ -284,8 +282,7 @@ describe('App Applications Review (Phase 3)', () => {
 	describe('Inactive company (admin and agent)', () => {
 		const adminEmail = 'admin.review@example.com'
 		before(() => {
-			cy.task('deleteUsersByEmail', [adminEmail])
-			cy.task('createUser', {
+			cy.task('resetUser', {
 				name: 'Admin Review',
 				email: adminEmail,
 				roles: ['agent', 'admin'] as const,

@@ -1,65 +1,17 @@
+import type { SeedLoginFlowResult } from '../../../cypress/tasks'
 import { agentUser, applicantUser, noRoleUser } from './login.fixtures'
 
-const LOGIN_APPLICANT_DOMAIN = 'example.com'
-
 describe('Login Flow', () => {
-	/** Set in before(); used so applicant has 1 application and stays on dashboard (not redirected to /dashboard/applications/new). Also used by unverified-user test. */
-	let termOfferingId: number | undefined
+	let seed: SeedLoginFlowResult
 
 	before(() => {
-		// Clean up any stale data from previous interrupted runs
-		cy.task('deleteUsersByEmail', [
-			applicantUser.email,
-			agentUser.email,
-			noRoleUser.email,
-		])
-		cy.task('deleteCompaniesByDomain', [LOGIN_APPLICANT_DOMAIN])
-
-		cy.task('createUser', applicantUser)
-		cy.task('createUser', agentUser)
-		cy.task('createUser', noRoleUser)
-
-		// Give applicant a company and one application so /dashboard shows "Mi Cuenta" instead of redirecting to /dashboard/applications/new
-		cy.task('createCompany', {
-			name: 'Login E2E Company',
-			domain: LOGIN_APPLICANT_DOMAIN,
-			rate: '0.0250',
-			borrowingCapacityRate: '0.30',
-			employeeSalaryFrequency: 'monthly',
-			active: true,
-		}).then((company) => {
-			cy.task('createTerm', { durationType: 'monthly', duration: 12 }).then(
-				(term) => {
-					cy.task('createTermOffering', {
-						companyId: company.id,
-						termId: term.id,
-						disabled: false,
-					}).then((offering) => {
-						termOfferingId = offering.id
-						cy.task('getUserIdByEmail', applicantUser.email).then(
-							(applicantId) => {
-								if (applicantId != null)
-									cy.task('createApplication', {
-										applicantId,
-										termOfferingId: offering.id,
-										creditAmount: '10000',
-										salaryAtApplication: '100000',
-									})
-							},
-						)
-					})
-				},
-			)
+		cy.task<SeedLoginFlowResult>('seedLoginFlow').then((result) => {
+			seed = result
 		})
 	})
 
 	after(() => {
-		cy.task('deleteUsersByEmail', [
-			applicantUser.email,
-			agentUser.email,
-			noRoleUser.email,
-		])
-		cy.task('deleteCompaniesByDomain', [LOGIN_APPLICANT_DOMAIN])
+		cy.task('cleanupLoginFlow', { termId: seed.termId })
 	})
 
 	it('should access applicant dashboard after login', () => {
@@ -135,18 +87,12 @@ describe('Login Flow', () => {
 
 	describe('Email verification (dashboard / app)', () => {
 		it('applicant dashboard: unverified user sees verification warning', () => {
-			if (termOfferingId == null) {
-				throw new Error('termOfferingId not set in before()')
-			}
-			cy.task('createUser', { ...applicantUser, verified: false })
-			cy.task('getUserIdByEmail', applicantUser.email).then((applicantId) => {
-				if (applicantId == null) throw new Error('applicant not found')
-				cy.task('createApplication', {
-					applicantId,
-					termOfferingId,
-					creditAmount: '10000',
-					salaryAtApplication: '100000',
-				})
+			cy.task('resetUser', { ...applicantUser, verified: false })
+			cy.task('resetApplicantApplication', {
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '10000',
+				salaryAtApplication: '100000',
 			})
 			cy.login(applicantUser.email)
 			cy.visit('/dashboard')
@@ -154,21 +100,21 @@ describe('Login Flow', () => {
 		})
 
 		it('applicant dashboard: verified user does not see verification warning', () => {
-			cy.task('createUser', { ...applicantUser, verified: true })
+			cy.task('resetUser', { ...applicantUser, verified: true })
 			cy.login(applicantUser.email)
 			cy.visit('/dashboard')
 			cy.get('[role="alert"]').should('not.exist')
 		})
 
 		it('agent app: unverified user sees verification warning in sidebar', () => {
-			cy.task('createUser', { ...agentUser, verified: false })
+			cy.task('resetUser', { ...agentUser, verified: false })
 			cy.login(agentUser.email)
 			cy.visit('/app')
 			cy.get('[role="alert"]').should('be.visible')
 		})
 
 		it('agent app: verified user does not see verification warning', () => {
-			cy.task('createUser', { ...agentUser, verified: true })
+			cy.task('resetUser', { ...agentUser, verified: true })
 			cy.login(agentUser.email)
 			cy.visit('/app')
 			cy.get('[role="alert"]').should('not.exist')
