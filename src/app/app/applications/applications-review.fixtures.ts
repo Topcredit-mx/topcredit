@@ -62,42 +62,51 @@ export const applicantForReviewD = {
 
 // ── Companies ───────────────────────────────────────────────────────────
 
-export const companyForReview = {
+type CompanyFixture = {
+	name: string
+	domain: string
+	rate: string
+	borrowingCapacityRate: string | null
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	active: boolean
+}
+
+export const companyForReview: CompanyFixture = {
 	name: 'E2E Review Company',
 	domain: 'reviewcompany.com',
 	rate: '0.0250',
-	borrowingCapacityRate: '0.30' as string | null,
-	employeeSalaryFrequency: 'monthly' as const,
+	borrowingCapacityRate: '0.30',
+	employeeSalaryFrequency: 'monthly',
 	active: true,
 }
 
 /** Second company for cross-company 404 test; agent is assigned to it. */
-export const companyForReviewB = {
+export const companyForReviewB: CompanyFixture = {
 	name: 'Other Company',
 	domain: 'othercompany.com',
 	rate: '0.02',
-	borrowingCapacityRate: null as string | null,
-	employeeSalaryFrequency: 'monthly' as const,
+	borrowingCapacityRate: null,
+	employeeSalaryFrequency: 'monthly',
 	active: true,
 }
 
 /** Company with no agent assignments – only admin (all scope) can see. */
-export const companyForReviewC = {
+export const companyForReviewC: CompanyFixture = {
 	name: 'Admin-Only Company',
 	domain: 'adminonly.com',
 	rate: '0.02',
-	borrowingCapacityRate: null as string | null,
-	employeeSalaryFrequency: 'monthly' as const,
+	borrowingCapacityRate: null,
+	employeeSalaryFrequency: 'monthly',
 	active: true,
 }
 
 /** Inactive company – not in picker; cookie cleared if selected. */
-export const companyForReviewD = {
+export const companyForReviewD: CompanyFixture = {
 	name: 'Inactive Company',
 	domain: 'inactivecompany.com',
 	rate: '0.02',
-	borrowingCapacityRate: null as string | null,
-	employeeSalaryFrequency: 'monthly' as const,
+	borrowingCapacityRate: null,
+	employeeSalaryFrequency: 'monthly',
 	active: false,
 }
 

@@ -4,17 +4,17 @@ export const seedUsers = [
 	{
 		name: 'Admin',
 		email: 'admin@topcredit.mx',
-		roles: ['agent', 'admin'] as Role[],
+		roles: ['agent', 'admin'] satisfies readonly Role[],
 	},
 	{
 		name: 'Solicitudes',
 		email: 'solicitudes@topcredit.mx',
-		roles: ['agent', 'requests'] as Role[],
+		roles: ['agent', 'requests'] satisfies readonly Role[],
 	},
 	{
 		name: 'Applicant Demo',
 		email: 'applicant@example.com',
-		roles: ['applicant'] as Role[],
+		roles: ['applicant'] satisfies readonly Role[],
 	},
 ] as const
 

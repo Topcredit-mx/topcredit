@@ -18,6 +18,7 @@ import {
 	applications,
 	canTransitionApplicationFrom,
 	companies,
+	isApplicationUpdateTargetStatus,
 	statusRequiresReason,
 	userCompanies,
 	userRoles,
@@ -453,8 +454,16 @@ export async function updateApplicationStatusFormAction(
 	formData: FormData,
 ): Promise<{ error?: string }> {
 	const applicationId = Number(formData.get('applicationId'))
-	const status = formData.get('status') as ApplicationUpdateTargetStatus
-	const result = await updateApplicationStatus(applicationId, { status })
+	const statusRaw = formData.get('status')
+	if (
+		typeof statusRaw !== 'string' ||
+		!isApplicationUpdateTargetStatus(statusRaw)
+	) {
+		return { error: 'applications-error-generic' }
+	}
+	const result = await updateApplicationStatus(applicationId, {
+		status: statusRaw,
+	})
 	if (result.error) {
 		return { error: result.error }
 	}

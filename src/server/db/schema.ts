@@ -76,6 +76,16 @@ export function isApplicationStatus(s: string): s is ApplicationStatus {
 	return APPLICATION_STATUS_SET.has(s)
 }
 
+const APPLICATION_UPDATE_TARGET_STATUS_SET = new Set<string>(
+	APPLICATION_UPDATE_TARGET_STATUSES,
+)
+
+export function isApplicationUpdateTargetStatus(
+	s: string,
+): s is ApplicationUpdateTargetStatus {
+	return APPLICATION_UPDATE_TARGET_STATUS_SET.has(s)
+}
+
 export const applicationStatusEnum = pgEnum(
 	'application_status',
 	APPLICATION_STATUS_VALUES,
