@@ -76,9 +76,10 @@ jobs:
       - name: Cypress run
         uses: cypress-io/github-action@v7.1.2
         with:
+          browser: chrome
           record: true
           parallel: true
-          group: 'Electron'
+          group: 'Chrome'
         env:
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: http://localhost:3000
