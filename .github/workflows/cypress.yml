@@ -61,8 +61,17 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
           branch_type: schema-only
 
+      - name: Build app
+        run: pnpm build
+        env:
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_URL: http://localhost:3000
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+
       - name: Start app
-        run: pnpm dev &
+        run: pnpm start &
         env:
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: http://localhost:3000
