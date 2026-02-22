@@ -20,7 +20,8 @@ async function redirectLoggedInFromAuthRoutes(
 	if (!authPaths.includes(path)) return null
 
 	const token = await getToken({ req })
-	const roles: Role[] = token?.roles ?? []
+	if (!token) return null
+	const roles: Role[] = token.roles ?? []
 	if (roles.includes('agent'))
 		return NextResponse.redirect(new URL('/app', req.url))
 	if (roles.includes('applicant'))
