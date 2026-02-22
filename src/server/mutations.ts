@@ -5,6 +5,11 @@ import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { subject } from '~/lib/abilities'
+import {
+	canTransitionApplicationFrom,
+	isApplicationStatus,
+	statusRequiresReason,
+} from '~/lib/application-rules'
 import type { Role } from '~/lib/auth-utils'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 import {
@@ -12,11 +17,6 @@ import {
 	getRequiredApplicantUser,
 } from '~/server/auth/lib'
 import { db } from '~/server/db'
-import {
-	canTransitionApplicationFrom,
-	isApplicationStatus,
-	statusRequiresReason,
-} from '~/lib/application-rules'
 import type { ApplicationStatus } from '~/server/db/schema'
 import {
 	applications,
@@ -456,10 +456,7 @@ export async function updateApplicationStatusFormAction(
 ): Promise<{ error?: string }> {
 	const applicationId = Number(formData.get('applicationId'))
 	const statusRaw = formData.get('status')
-	if (
-		typeof statusRaw !== 'string' ||
-		!isApplicationStatus(statusRaw)
-	) {
+	if (typeof statusRaw !== 'string' || !isApplicationStatus(statusRaw)) {
 		return { error: 'applications-error-generic' }
 	}
 	const result = await updateApplicationStatus(applicationId, {

@@ -25,18 +25,14 @@ export function statusRequiresReason(
 	return s === 'denied' || s === 'invalid-documentation'
 }
 
-export function isActiveApplicationStatus(
-	status: ApplicationStatus,
-): boolean {
+export function isActiveApplicationStatus(status: ApplicationStatus): boolean {
 	return status !== 'authorized' && status !== 'denied'
 }
 
 export function canTransitionApplicationFrom(
 	status: ApplicationStatus,
 ): boolean {
-	return (
-		status === 'new' || status === 'pending' || status === 'pre-authorized'
-	)
+	return status === 'new' || status === 'pending' || status === 'pre-authorized'
 }
 
 export function isEligibleForNewApplication(

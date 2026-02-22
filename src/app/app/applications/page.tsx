@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
-import { getRequiredAgentUser } from '~/server/auth/lib'
 import { isApplicationStatus } from '~/lib/application-rules'
+import { getRequiredAgentUser } from '~/server/auth/lib'
 import type { ApplicationStatus } from '~/server/db/schema'
 import { getApplicationsForReview } from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
