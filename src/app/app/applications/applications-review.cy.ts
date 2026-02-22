@@ -405,7 +405,9 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('40,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.contains('button', /documentación inválida/i, { timeout: 10000 }).click()
+			cy.contains('button', /documentación inválida/i, {
+				timeout: 10000,
+			}).click()
 			cy.get('[role="dialog"]').within(() => {
 				cy.get('textarea[name="reason"]')
 					.clear()
