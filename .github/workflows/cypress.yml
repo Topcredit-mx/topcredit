@@ -42,7 +42,7 @@ jobs:
         uses: actions/cache@v5.0.3
         with:
           path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-${{ hashFiles('package.json') }}
+          key: cypress-${{ runner.os }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
           restore-keys: cypress-${{ runner.os }}-
 
       - name: Install Cypress binary
