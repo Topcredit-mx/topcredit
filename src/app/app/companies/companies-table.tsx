@@ -3,6 +3,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
@@ -14,13 +15,19 @@ import {
 import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
 import type { Company } from '~/server/queries'
 
+/** Company with Date fields serialized as ISO strings (for Client Component). */
+type CompanyForTable = Omit<Company, 'createdAt' | 'updatedAt'> & {
+	createdAt: string
+	updatedAt: string
+}
+
 interface CompaniesTableProps {
-	companies: Company[]
+	companies: CompanyForTable[]
 }
 
 export function CompaniesTable({ companies }: CompaniesTableProps) {
 	const t = useTranslations('admin')
-	const columns: ColumnDef<Company>[] = [
+	const columns: ColumnDef<CompanyForTable>[] = [
 		{
 			accessorKey: 'name',
 			header: ({ column }) => (
@@ -122,14 +129,10 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				/>
 			),
 			cell: ({ row }) => {
-				const date = row.getValue('createdAt') as Date
+				const date = row.getValue('createdAt') as string
 				return (
 					<div className="text-muted-foreground">
-						{new Date(date).toLocaleDateString('es-MX', {
-							year: 'numeric',
-							month: 'short',
-							day: 'numeric',
-						})}
+						<FormattedDate value={date} />
 					</div>
 				)
 			},
@@ -142,7 +145,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				return (
 					<Button variant="ghost" size="sm" asChild>
 						<Link
-							href={`/app/admin/companies/${encodeURIComponent(company.domain)}/edit`}
+							href={`/app/companies/${encodeURIComponent(company.domain)}/edit`}
 						>
 							{t('companies-edit')}
 						</Link>
@@ -159,7 +162,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				data={companies}
 				schema="companies"
 				label={t('companies-title')}
-				createLink="/app/admin/companies/new"
+				createLink="/app/companies/new"
 				createButtonText={t('companies-new')}
 				filterPlaceholder={t('table-filter-companies')}
 			>

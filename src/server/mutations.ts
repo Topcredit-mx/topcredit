@@ -1,6 +1,6 @@
 'use server'
 
-import { and, eq, gte } from 'drizzle-orm'
+import { and, eq, gte, inArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -13,9 +13,12 @@ import {
 } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import {
+	ACTIVE_APPLICATION_STATUSES,
+	type ApplicationUpdateTargetStatus,
 	applications,
 	canTransitionApplicationFrom,
 	companies,
+	statusRequiresReason,
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
@@ -27,7 +30,7 @@ import {
 import {
 	createApplicationSchema,
 	createCompanySchema,
-	updateApplicationStatusSchema,
+	parseUpdateApplicationStatusPayload,
 	updateCompanySchema,
 } from '~/server/schemas'
 import { getCompaniesForSwitcher } from '~/server/scopes'
@@ -37,7 +40,7 @@ import { getCompaniesForSwitcher } from '~/server/scopes'
 export async function setSelectedCompanyId(companyId: number | null) {
 	const user = await getRequiredAgentUser()
 	if (companyId !== null) {
-		const ability = await getAbility()
+		const { ability } = await getAbility()
 		requireAbility(ability, 'read', subject('Company', { id: companyId }))
 	}
 	const isAdmin = user.roles?.includes('admin') ?? false
@@ -67,7 +70,7 @@ export async function setSelectedCompanyId(companyId: number | null) {
 // ---- User ----
 
 export async function toggleUserRole(userId: number, role: Role) {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
 	const existingRole = await db.query.userRoles.findFirst({
@@ -85,7 +88,7 @@ export async function toggleUserRole(userId: number, role: Role) {
 		})
 	}
 
-	revalidatePath('/app/admin/users')
+	revalidatePath('/app/users')
 	return { success: true }
 }
 
@@ -93,7 +96,7 @@ export async function updateUserCompanies(
 	userId: number,
 	companyIds: number[],
 ) {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
 	await db.delete(userCompanies).where(eq(userCompanies.userId, userId))
@@ -107,7 +110,7 @@ export async function updateUserCompanies(
 		)
 	}
 
-	revalidatePath('/app/admin/users')
+	revalidatePath('/app/users')
 	return { success: true }
 }
 
@@ -117,7 +120,7 @@ export async function createCompany(
 	_prevState: unknown,
 	formData: FormData,
 ): Promise<{ errors?: Record<string, string>; message?: string }> {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'create', 'Company')
 
 	try {
@@ -156,12 +159,12 @@ export async function createCompany(
 			active: data.active ?? true,
 		})
 
-		revalidatePath('/app/admin/companies')
+		revalidatePath('/app/companies')
 	} catch (error) {
 		return fromErrorToFormState(error)
 	}
 
-	redirect('/app/admin/companies')
+	redirect('/app/companies')
 }
 
 export async function updateCompany(
@@ -181,7 +184,7 @@ export async function updateCompany(
 		return { message: 'Empresa no encontrada' }
 	}
 
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'update', subject('Company', company))
 
 	try {
@@ -236,13 +239,13 @@ export async function updateCompany(
 
 		await db.update(companies).set(updateData).where(eq(companies.id, id))
 
-		revalidatePath('/app/admin/companies')
-		revalidatePath(`/app/admin/companies/${company.domain}/edit`)
+		revalidatePath('/app/companies')
+		revalidatePath(`/app/companies/${company.domain}/edit`)
 	} catch (error) {
 		return fromErrorToFormState(error)
 	}
 
-	redirect('/app/admin/companies')
+	redirect('/app/companies')
 }
 
 export async function deleteCompany(id: number) {
@@ -257,7 +260,7 @@ export async function deleteCompany(id: number) {
 		}
 	}
 
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'delete', subject('Company', company))
 
 	try {
@@ -266,7 +269,7 @@ export async function deleteCompany(id: number) {
 			.set({ active: false, updatedAt: new Date() })
 			.where(eq(companies.id, id))
 
-		revalidatePath('/app/admin/companies')
+		revalidatePath('/app/companies')
 		return { success: true }
 	} catch (error) {
 		console.error('Error deleting company:', error)
@@ -284,7 +287,7 @@ export async function createApplication(
 	formData: FormData,
 ): Promise<{ errors?: Record<string, string>; message?: string }> {
 	const user = await getRequiredApplicantUser()
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'create', 'Application')
 
 	const email = user.email ?? ''
@@ -355,6 +358,20 @@ export async function createApplication(
 			}
 		}
 
+		const existingActive = await db.query.applications.findFirst({
+			where: and(
+				eq(applications.applicantId, user.id),
+				inArray(applications.status, [...ACTIVE_APPLICATION_STATUSES]),
+			),
+			columns: { id: true },
+		})
+		if (existingActive) {
+			return {
+				message:
+					'Tienes una solicitud en proceso. Solo puedes tener una solicitud activa a la vez.',
+			}
+		}
+
 		await db.insert(applications).values({
 			applicantId: user.id,
 			termOfferingId: data.termOfferingId,
@@ -373,10 +390,9 @@ export async function createApplication(
 
 export async function updateApplicationStatus(
 	applicationId: number,
-	status: 'pre-authorized' | 'authorized' | 'denied' | 'invalid-documentation',
-	reason?: string,
+	payload: { status: ApplicationUpdateTargetStatus; reason?: string },
 ): Promise<{ error?: string }> {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 
 	const app = await db.query.applications.findFirst({
 		where: (a, { eq }) => eq(a.id, applicationId),
@@ -393,7 +409,7 @@ export async function updateApplicationStatus(
 		},
 	})
 
-	if (!app?.termOffering) return { error: 'Solicitud no encontrada' }
+	if (!app?.termOffering) return { error: 'applications-not-found' }
 
 	const companyId = app.termOffering.companyId
 	requireAbility(
@@ -406,31 +422,43 @@ export async function updateApplicationStatus(
 		}),
 	)
 
+	// Allowed transitions: from (new | pending | pre-authorized) to (pre-authorized | authorized | denied | invalid-documentation).
 	if (!canTransitionApplicationFrom(app.status)) {
-		return { error: 'La solicitud no puede cambiar de estado' }
+		return { error: 'applications-error-transition' }
 	}
 
-	const parsed = updateApplicationStatusSchema.safeParse({ status, reason })
-	if (!parsed.success) {
-		const first = parsed.error.issues[0]
-		return { error: first?.message ?? 'Datos inválidos' }
-	}
+	const parsed = parseUpdateApplicationStatusPayload(payload)
+	if ('error' in parsed) return { error: parsed.error }
 
+	const { data } = parsed
 	await db
 		.update(applications)
 		.set({
-			status: parsed.data.status,
-			denialReason:
-				parsed.data.reason?.trim() &&
-				(parsed.data.status === 'denied' ||
-					parsed.data.status === 'invalid-documentation')
-					? parsed.data.reason.trim()
-					: null,
+			status: data.status,
+			denialReason: statusRequiresReason(data.status)
+				? (data.reason?.trim() ?? null)
+				: null,
 			updatedAt: new Date(),
 		})
 		.where(eq(applications.id, applicationId))
 
 	revalidatePath('/app/applications')
-	revalidatePath('/app/applications/[id]')
+	revalidatePath(`/app/applications/${applicationId}`)
 	return {}
+}
+
+/** Form action for useActionState: immediate status updates (no reason). Returns { error } on failure; redirects on success. */
+export async function updateApplicationStatusFormAction(
+	_prevState: { error?: string },
+	formData: FormData,
+): Promise<{ error?: string }> {
+	const applicationId = Number(formData.get('applicationId'))
+	const status = formData.get('status') as ApplicationUpdateTargetStatus
+	const result = await updateApplicationStatus(applicationId, { status })
+	if (result.error) {
+		return { error: result.error }
+	}
+	revalidatePath('/app/applications')
+	revalidatePath(`/app/applications/${applicationId}`)
+	redirect(`/app/applications/${applicationId}`)
 }

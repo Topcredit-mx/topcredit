@@ -23,19 +23,20 @@ interface ProfileViewProps {
 	user: {
 		name: string
 		email: string
-		emailVerified: Date | null
+		/** ISO string or null (serialized from server for Client Component). */
+		emailVerified: string | null
 	}
 	roles: Role[]
 }
 
 export function ProfileView({ user, roles }: ProfileViewProps) {
 	const t = useTranslations('profile')
-	const formatDate = (date: Date | null) => {
-		if (!date) return t('never')
+	const formatDate = (dateIso: string | null) => {
+		if (!dateIso) return t('never')
 		return new Intl.DateTimeFormat('es-ES', {
 			dateStyle: 'medium',
 			timeStyle: 'short',
-		}).format(new Date(date))
+		}).format(new Date(dateIso))
 	}
 
 	return (

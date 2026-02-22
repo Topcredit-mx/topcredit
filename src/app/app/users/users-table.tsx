@@ -8,11 +8,11 @@ import {
 	DataTableHeader,
 	DataTablePagination,
 } from '~/components/ui/data-table'
-import type { CompanyBasic, UserWithRoles } from '~/server/queries'
+import type { CompanyBasic, UserForTable } from '~/server/queries'
 import { createColumns } from './columns'
 
 interface UsersTableProps {
-	users: UserWithRoles[]
+	users: UserForTable[]
 	currentUserId: number
 	allCompanies: CompanyBasic[]
 }
@@ -47,7 +47,7 @@ export function UsersTable({
 
 	return (
 		<div className="space-y-4">
-			<DataTable
+			<DataTable<UserForTable, unknown>
 				columns={columns}
 				data={users}
 				schema="users"

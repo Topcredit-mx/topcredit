@@ -75,7 +75,7 @@ export const userRoles = pgTable('user_roles', {
 ### 1. Protecting Server Components (Pages)
 
 ```typescript
-// app/app/admin/users/page.tsx
+// app/app/users/page.tsx
 import { requireAnyRole } from '~/lib/auth-utils'
 
 export default async function AdminUsersPage() {
@@ -132,7 +132,7 @@ export function Navigation() {
 
       {/* Admin only */}
       {roles.includes('admin') && (
-        <Link href="/app/admin/users">Manage Users</Link>
+        <Link href="/app/users">Manage Users</Link>
       )}
     </nav>
   )
@@ -196,7 +196,7 @@ const roles = await getUserRoles(userId) // ['agent', 'requests']
 The middleware (`src/proxy.ts`) automatically protects routes:
 
 - `/app/*` - Requires `agent` role
-- `/app/admin/*` - Requires `admin` role
+- `/app/users`, `/app/companies` - Requires `admin` role
 - `/dashboard/*` - Requires `applicant` role
 
 ## Best Practices

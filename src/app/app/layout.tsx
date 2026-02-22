@@ -1,12 +1,14 @@
 import { eq } from 'drizzle-orm'
 import { AgentNoAssignmentsEmpty } from '~/components/app/agent-no-assignments-empty'
-import { AgentNoCompanyPickedEmpty } from '~/components/app/agent-no-company-picked-empty'
 import { AppSidebar } from '~/components/app/app-sidebar'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { getRequiredAgentUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
-import { getCompaniesForSwitcher, getSelectedCompanyId } from '~/server/scopes'
+import {
+	getCompaniesForSwitcher,
+	getEffectiveSelectedCompanyId,
+} from '~/server/scopes'
 
 export default async function AppLayout({
 	children,
@@ -22,12 +24,10 @@ export default async function AppLayout({
 	const isAdmin = user.roles?.includes('admin') ?? false
 	const [companies, selectedCompanyId] = await Promise.all([
 		getCompaniesForSwitcher(user.id, isAdmin),
-		getSelectedCompanyId(),
+		getEffectiveSelectedCompanyId(),
 	])
 
 	const showNoAssignmentsEmpty = !isAdmin && companies.length === 0
-	const showNoCompanyPickedEmpty =
-		!isAdmin && companies.length > 0 && selectedCompanyId === null
 
 	return (
 		<SidebarProvider>
@@ -43,13 +43,7 @@ export default async function AppLayout({
 					</div>
 				</header>
 				<div className="flex-1 overflow-y-auto bg-gray-50 p-8">
-					{showNoAssignmentsEmpty ? (
-						<AgentNoAssignmentsEmpty />
-					) : showNoCompanyPickedEmpty ? (
-						<AgentNoCompanyPickedEmpty />
-					) : (
-						children
-					)}
+					{showNoAssignmentsEmpty ? <AgentNoAssignmentsEmpty /> : children}
 				</div>
 			</main>
 		</SidebarProvider>

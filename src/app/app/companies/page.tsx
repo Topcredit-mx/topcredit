@@ -1,7 +1,8 @@
 import { getTranslations } from 'next-intl/server'
 import { requireAuth } from '~/lib/auth-utils'
+import { getAbility } from '~/server/auth/get-ability'
 import { getCompanies } from '~/server/queries'
-import { getAssignedCompanyIds, getSelectedCompanyId } from '~/server/scopes'
+import { getEffectiveSelectedCompanyId } from '~/server/scopes'
 import { CompaniesTable } from './companies-table'
 
 interface CompaniesPageProps {
@@ -15,11 +16,11 @@ interface CompaniesPageProps {
 export default async function CompaniesPage({
 	searchParams,
 }: CompaniesPageProps) {
-	const session = await requireAuth()
+	await requireAuth()
 
-	const [assignedCompanyIds, selectedCompanyId] = await Promise.all([
-		getAssignedCompanyIds(session.user.id),
-		getSelectedCompanyId(),
+	const [{ assignedCompanyIds }, selectedCompanyId] = await Promise.all([
+		getAbility(),
+		getEffectiveSelectedCompanyId(),
 	])
 
 	let companyIds: number[] | undefined =
@@ -46,6 +47,13 @@ export default async function CompaniesPage({
 		companyIds,
 	})
 
+	// Serialize Date fields for Client Component (Next.js can't pass Date to client)
+	const companiesForTable = items.map((c) => ({
+		...c,
+		createdAt: c.createdAt.toISOString(),
+		updatedAt: c.updatedAt.toISOString(),
+	}))
+
 	const t = await getTranslations('admin')
 	return (
 		<div className="container mx-auto py-6">
@@ -54,7 +62,7 @@ export default async function CompaniesPage({
 				<p className="text-muted-foreground">{t('companies-subtitle')}</p>
 			</div>
 
-			<CompaniesTable companies={items} />
+			<CompaniesTable companies={companiesForTable} />
 		</div>
 	)
 }

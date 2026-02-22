@@ -30,7 +30,7 @@ describe('Admin Companies List', () => {
 			}
 			cy.task('createUser', agentUser)
 			cy.login(agentUser.email)
-			cy.visit('/app/admin/companies')
+			cy.visit('/app/companies')
 			cy.url().should('include', '/unauthorized')
 
 			// Cleanup
@@ -39,15 +39,15 @@ describe('Admin Companies List', () => {
 
 		it('should allow admin users to access companies page', () => {
 			cy.login(adminUser.email)
-			cy.visit('/app/admin/companies')
-			cy.url().should('include', '/app/admin/companies')
+			cy.visit('/app/companies')
+			cy.url().should('include', '/app/companies')
 		})
 	})
 
 	describe('Companies List Display', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
-			cy.visit('/app/admin/companies')
+			cy.visit('/app/companies')
 		})
 
 		it('should display companies table with correct columns', () => {
@@ -103,7 +103,7 @@ describe('Admin Companies List', () => {
 	describe('Search Functionality', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
-			cy.visit('/app/admin/companies')
+			cy.visit('/app/companies')
 		})
 
 		it('should filter companies by name', () => {
@@ -129,7 +129,7 @@ describe('Admin Companies List', () => {
 	describe('Active Filter', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
-			cy.visit('/app/admin/companies')
+			cy.visit('/app/companies')
 		})
 
 		it('should show all companies by default', () => {
@@ -139,7 +139,7 @@ describe('Admin Companies List', () => {
 		})
 
 		it('should filter to active companies only when activeOnly=true', () => {
-			cy.visit('/app/admin/companies?activeOnly=true')
+			cy.visit('/app/companies?activeOnly=true')
 			cy.contains(companies.acme.name).should('exist')
 			cy.contains(companies.techstart.name).should('exist')
 			cy.contains(companies.inactive.name).should('not.exist')
@@ -160,13 +160,13 @@ describe('Admin Companies List', () => {
 
 		beforeEach(() => {
 			cy.login(adminUser.email)
-			cy.visit('/app/admin/companies')
+			cy.visit('/app/companies')
 		})
 
 		it('should navigate to create company page', () => {
 			cy.get('table').should('exist')
 			cy.contains('a', /nueva empresa/i).click()
-			cy.url().should('include', '/app/admin/companies/new')
+			cy.url().should('include', '/app/companies/new')
 			cy.contains(/crear empresa/i).should('be.visible')
 		})
 
@@ -179,7 +179,7 @@ describe('Admin Companies List', () => {
 				employeeSalaryFrequency: 'monthly' as const,
 			}
 
-			cy.visit('/app/admin/companies/new')
+			cy.visit('/app/companies/new')
 
 			// Fill form
 			cy.get('input[name="name"]').type(newCompany.name)
@@ -197,7 +197,7 @@ describe('Admin Companies List', () => {
 			cy.contains('button', /crear|guardar|submit/i).click()
 
 			// Should redirect to list and show new company
-			cy.url().should('include', '/app/admin/companies')
+			cy.url().should('include', '/app/companies')
 			cy.contains(newCompany.name).should('exist')
 			cy.contains(newCompany.domain).should('exist')
 
@@ -213,7 +213,7 @@ describe('Admin Companies List', () => {
 				employeeSalaryFrequency: 'bi-monthly' as const,
 			}
 
-			cy.visit('/app/admin/companies/new')
+			cy.visit('/app/companies/new')
 
 			cy.get('input[name="name"]').type(newCompany.name)
 			cy.get('input[name="domain"]').type(newCompany.domain)
@@ -223,7 +223,7 @@ describe('Admin Companies List', () => {
 
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			cy.url().should('include', '/app/admin/companies')
+			cy.url().should('include', '/app/companies')
 			cy.contains(newCompany.name).should('exist')
 
 			// Cleanup
@@ -231,7 +231,7 @@ describe('Admin Companies List', () => {
 		})
 
 		it('should validate required fields', () => {
-			cy.visit('/app/admin/companies/new')
+			cy.visit('/app/companies/new')
 
 			// Try to submit empty form
 			cy.contains('button', /crear|guardar|submit/i).click()
@@ -250,7 +250,7 @@ describe('Admin Companies List', () => {
 		})
 
 		it('should validate domain uniqueness', () => {
-			cy.visit('/app/admin/companies/new')
+			cy.visit('/app/companies/new')
 
 			// Use existing domain
 			cy.get('input[name="name"]').type('Duplicate Domain Company')
@@ -265,7 +265,7 @@ describe('Admin Companies List', () => {
 		})
 
 		it('should validate domain format', () => {
-			cy.visit('/app/admin/companies/new')
+			cy.visit('/app/companies/new')
 
 			cy.get('input[name="name"]').type('Invalid Domain')
 			cy.get('input[name="domain"]').type('not-a-valid-domain')
@@ -279,7 +279,7 @@ describe('Admin Companies List', () => {
 		})
 
 		it('should validate rate is positive', () => {
-			cy.visit('/app/admin/companies/new')
+			cy.visit('/app/companies/new')
 
 			cy.get('input[name="name"]').type('Invalid Rate')
 			cy.get('input[name="domain"]').type('invalidrate.com')
@@ -293,7 +293,7 @@ describe('Admin Companies List', () => {
 		})
 
 		it('should validate borrowingCapacityRate is between 0 and 100', () => {
-			cy.visit('/app/admin/companies/new')
+			cy.visit('/app/companies/new')
 
 			cy.get('input[name="name"]').type('Invalid Capacity')
 			cy.get('input[name="domain"]').type('invalidcap.com')
@@ -341,17 +341,17 @@ describe('Admin Companies List', () => {
 		})
 
 		it('should navigate to edit company page', () => {
-			cy.visit('/app/admin/companies')
+			cy.visit('/app/companies')
 			cy.findTableRow(editCompany.name).within(() => {
 				cy.get('a[href*="/edit"]').click()
 			})
-			const editPath = `/app/admin/companies/${editCompany.domain}/edit`
+			const editPath = `/app/companies/${editCompany.domain}/edit`
 			cy.url({ timeout: 10000 }).should('include', editPath)
 			cy.contains(/editar|edit/i).should('be.visible')
 		})
 
 		it('should load existing company data in form', () => {
-			cy.visit(`/app/admin/companies/${editCompany.domain}/edit`)
+			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 
 			cy.get('input[name="name"]').should('have.value', editCompany.name)
 			cy.get('input[name="domain"]').should('have.value', editCompany.domain)
@@ -366,7 +366,7 @@ describe('Admin Companies List', () => {
 		})
 
 		it('should update company details', () => {
-			cy.visit(`/app/admin/companies/${editCompany.domain}/edit`)
+			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 
 			// Update fields
 			cy.get('input[name="name"]').clear().type('Updated Company Name')
@@ -376,11 +376,13 @@ describe('Admin Companies List', () => {
 			cy.contains('button', /guardar|save|actualizar/i).click()
 
 			// Should redirect and show updated data
-			cy.url().should('include', '/app/admin/companies')
+			cy.url().should('include', '/app/companies')
+			// Filter to find the row (table is paginated; "Updated..." may be on page 2)
+			cy.get('input[aria-label="Filtrar empresas..."]').type('Updated')
 			cy.contains('Updated Company Name').should('exist')
 
 			// Revert changes
-			cy.visit(`/app/admin/companies/${editCompany.domain}/edit`)
+			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 			cy.get('input[name="name"]').clear().type(editCompany.name)
 			cy.get('input[name="rate"]').clear().type('2.5')
 			cy.get('input[name="borrowingCapacityRate"]').clear().type('30')
@@ -388,7 +390,7 @@ describe('Admin Companies List', () => {
 		})
 
 		it('should toggle active status', () => {
-			cy.visit(`/app/admin/companies/${editCompany.domain}/edit`)
+			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 
 			// Toggle active checkbox - click the label which is set up to toggle the checkbox
 			cy.contains('label', /activa/i).click()
@@ -396,19 +398,19 @@ describe('Admin Companies List', () => {
 			cy.contains('button', /guardar|save/i).click()
 
 			// Should show inactive badge
-			cy.url().should('include', '/app/admin/companies')
+			cy.url().should('include', '/app/companies')
 			cy.findTableRow(editCompany.name).within(() => {
 				cy.contains('Inactiva').should('exist')
 			})
 
 			// Revert
-			cy.visit(`/app/admin/companies/${editCompany.domain}/edit`)
+			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 			cy.contains('label', /activa/i).click()
 			cy.contains('button', /guardar|save/i).click()
 		})
 
 		it('should prevent editing domain to duplicate value', () => {
-			cy.visit(`/app/admin/companies/${editCompany.domain}/edit`)
+			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 
 			// Domain field should be disabled when editing (domains cannot be changed after creation)
 			cy.get('input[name="domain"]').should('be.disabled')

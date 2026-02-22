@@ -13,9 +13,9 @@ import {
 	userRoles,
 	users,
 } from '~/server/db/schema'
-import type { CompanyBasic } from '~/server/scopes'
+import type { CompanyBasic, CompanyScope } from '~/server/scopes'
 
-export type { CompanyBasic } from '~/server/scopes'
+export type { CompanyBasic, CompanyScope } from '~/server/scopes'
 
 // ---- User ----
 
@@ -30,6 +30,16 @@ export type UserWithRoles = {
 	firstLogin: boolean | null
 	roles: Role[]
 	companies: CompanyBasic[]
+}
+
+/** UserWithRoles with Date fields as ISO strings (for Client Components). */
+export type UserForTable = Omit<
+	UserWithRoles,
+	'emailVerified' | 'createdAt' | 'updatedAt'
+> & {
+	emailVerified: string | null
+	createdAt: string
+	updatedAt: string
 }
 
 export type GetUsersParams = {
@@ -51,7 +61,7 @@ export type GetUsersResult = {
 export async function getUsers(
 	params: GetUsersParams = {},
 ): Promise<GetUsersResult> {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
 	const {
@@ -146,7 +156,7 @@ export async function getUsers(
 }
 
 export async function getAllCompaniesForAssignment(): Promise<CompanyBasic[]> {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
 	const allCompanies = await db
@@ -197,7 +207,7 @@ export type GetCompaniesResult = {
 export async function getCompanies(
 	params: GetCompaniesParams = {},
 ): Promise<GetCompaniesResult> {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	const {
 		page = 1,
 		limit = 50,
@@ -280,7 +290,7 @@ export async function getCompanies(
 }
 
 export async function getCompanyById(id: number): Promise<Company | null> {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id }))
 
 	const company = await db.query.companies.findFirst({
@@ -305,7 +315,7 @@ export async function getCompanyByDomain(
 
 	if (!company) return null
 
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: company.id }))
 
 	return {
@@ -352,7 +362,7 @@ export type ApplicationListItem = {
 export async function getApplicationsByApplicantId(
 	userId: number,
 ): Promise<ApplicationListItem[]> {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(
 		ability,
 		'read',
@@ -387,6 +397,7 @@ export type ApplicationForReview = {
 	applicantId: number
 	termOfferingId: number
 	companyId: number
+	companyDomain: string
 	creditAmount: string
 	salaryAtApplication: string
 	status: ApplicationStatus
@@ -404,20 +415,29 @@ export type ApplicationForReview = {
 }
 
 export async function getApplicationsForReview(params: {
-	companyId: number
+	scope: CompanyScope
 	statusFilter?: ApplicationStatus[]
 }): Promise<ApplicationForReview[]> {
-	const { companyId, statusFilter } = params
-	const ability = await getAbility()
-	requireAbility(ability, 'read', subject('Company', { id: companyId }))
+	const { scope, statusFilter } = params
 
-	const condition = eq(termOfferings.companyId, companyId)
+	let companyCondition: SQL
+	if (scope.type === 'single') {
+		companyCondition = eq(termOfferings.companyId, scope.companyId)
+	} else if (scope.type === 'multi') {
+		if (scope.companyIds.length === 0) {
+			return []
+		}
+		companyCondition = inArray(termOfferings.companyId, scope.companyIds)
+	} else {
+		companyCondition = sql`1=1`
+	}
 	const list = await db
 		.select({
 			id: applications.id,
 			applicantId: applications.applicantId,
 			termOfferingId: applications.termOfferingId,
 			companyId: termOfferings.companyId,
+			companyDomain: companies.domain,
 			creditAmount: applications.creditAmount,
 			salaryAtApplication: applications.salaryAtApplication,
 			status: applications.status,
@@ -433,12 +453,17 @@ export async function getApplicationsForReview(params: {
 		})
 		.from(applications)
 		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.innerJoin(companies, eq(termOfferings.companyId, companies.id))
 		.innerJoin(terms, eq(termOfferings.termId, terms.id))
 		.innerJoin(users, eq(applications.applicantId, users.id))
 		.where(
-			statusFilter && statusFilter.length > 0
-				? and(condition, inArray(applications.status, statusFilter))
-				: condition,
+			and(
+				companyCondition,
+				eq(companies.active, true),
+				statusFilter && statusFilter.length > 0
+					? inArray(applications.status, statusFilter)
+					: sql`1=1`,
+			),
 		)
 		.orderBy(desc(applications.createdAt), applications.id)
 
@@ -447,6 +472,7 @@ export async function getApplicationsForReview(params: {
 		applicantId: row.applicantId,
 		termOfferingId: row.termOfferingId,
 		companyId: row.companyId,
+		companyDomain: row.companyDomain,
 		creditAmount: row.creditAmount,
 		salaryAtApplication: row.salaryAtApplication,
 		status: row.status,
@@ -468,10 +494,22 @@ export async function getApplicationsForReview(params: {
 	}))
 }
 
+/**
+ * Returns an application for review only if it belongs to the scope.
+ */
 export async function getApplicationForReview(
 	applicationId: number,
+	scope: CompanyScope,
 ): Promise<ApplicationForReview | null> {
-	const ability = await getAbility()
+	let companyCondition: SQL
+	if (scope.type === 'single') {
+		companyCondition = eq(termOfferings.companyId, scope.companyId)
+	} else if (scope.type === 'multi') {
+		if (scope.companyIds.length === 0) return null
+		companyCondition = inArray(termOfferings.companyId, scope.companyIds)
+	} else {
+		companyCondition = sql`1=1`
+	}
 
 	const rows = await db
 		.select({
@@ -479,6 +517,7 @@ export async function getApplicationForReview(
 			applicantId: applications.applicantId,
 			termOfferingId: applications.termOfferingId,
 			companyId: termOfferings.companyId,
+			companyDomain: companies.domain,
 			creditAmount: applications.creditAmount,
 			salaryAtApplication: applications.salaryAtApplication,
 			status: applications.status,
@@ -494,28 +533,26 @@ export async function getApplicationForReview(
 		})
 		.from(applications)
 		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.innerJoin(companies, eq(termOfferings.companyId, companies.id))
 		.innerJoin(terms, eq(termOfferings.termId, terms.id))
 		.innerJoin(users, eq(applications.applicantId, users.id))
-		.where(eq(applications.id, applicationId))
+		.where(
+			and(
+				eq(applications.id, applicationId),
+				companyCondition,
+				eq(companies.active, true),
+			),
+		)
 
 	const row = rows[0]
 	if (!row) return null
-
-	requireAbility(
-		ability,
-		'read',
-		subject('Application', {
-			id: row.id,
-			applicantId: row.applicantId,
-			companyId: row.companyId,
-		}),
-	)
 
 	return {
 		id: row.id,
 		applicantId: row.applicantId,
 		termOfferingId: row.termOfferingId,
 		companyId: row.companyId,
+		companyDomain: row.companyDomain,
 		creditAmount: row.creditAmount,
 		salaryAtApplication: row.salaryAtApplication,
 		status: row.status,
@@ -545,6 +582,11 @@ export type TermOfferingForCompany = {
 	durationType: 'bi-monthly' | 'monthly'
 	duration: number
 	createdAt: Date
+}
+
+/** TermOfferingForCompany with createdAt as string (for Client Components). */
+export type TermOfferingForForm = Omit<TermOfferingForCompany, 'createdAt'> & {
+	createdAt: string
 }
 
 export async function getTermOfferingsForCompany(
@@ -581,7 +623,7 @@ export type AdminOverviewStats = {
 }
 
 export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'read', 'Admin')
 
 	const [

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import type { Role } from '~/lib/auth-utils'
 import {
@@ -196,6 +196,26 @@ export const assignRole = async (params: AssignRoleTaskParams) => {
 		userId: user.id,
 		role: params.role,
 	})
+
+	return null
+}
+
+export type RemoveRoleTaskParams = { email: string; role: Role }
+
+export const removeRole = async (params: RemoveRoleTaskParams) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const user = await db.query.users.findFirst({
+		where: eq(users.email, params.email),
+	})
+
+	if (!user) {
+		throw new Error(`User with email ${params.email} not found`)
+	}
+
+	await db
+		.delete(userRoles)
+		.where(and(eq(userRoles.userId, user.id), eq(userRoles.role, params.role)))
 
 	return null
 }

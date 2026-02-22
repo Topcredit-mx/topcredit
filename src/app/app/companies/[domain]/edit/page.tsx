@@ -23,9 +23,20 @@ export default async function EditCompanyPage({
 		notFound()
 	}
 
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'update', subject('Company', company))
 	const t = await getTranslations('admin')
+
+	// Pass only plain fields – Date objects (createdAt, updatedAt) can't be serialized to Client Components
+	const companyForForm = {
+		id: company.id,
+		name: company.name,
+		domain: company.domain,
+		rate: company.rate,
+		borrowingCapacityRate: company.borrowingCapacityRate,
+		employeeSalaryFrequency: company.employeeSalaryFrequency,
+		active: company.active,
+	}
 
 	return (
 		<div className="container mx-auto py-6">
@@ -35,7 +46,7 @@ export default async function EditCompanyPage({
 			</div>
 
 			<div className="max-w-2xl">
-				<CompanyForm company={company} />
+				<CompanyForm company={companyForForm} />
 			</div>
 		</div>
 	)

@@ -2,11 +2,11 @@ import { getTranslations } from 'next-intl/server'
 import { AdminOverviewDashboard } from '~/components/app/admin-overview-dashboard'
 import { getRequiredAgentUser } from '~/server/auth/lib'
 import { getAdminOverviewStats } from '~/server/queries'
-import { getSelectedCompanyId } from '~/server/scopes'
+import { getEffectiveSelectedCompanyId } from '~/server/scopes'
 
 export default async function AppPage() {
 	const user = await getRequiredAgentUser()
-	const selectedCompanyId = await getSelectedCompanyId()
+	const selectedCompanyId = await getEffectiveSelectedCompanyId()
 	const isAdmin = user.roles?.includes('admin') ?? false
 
 	if (isAdmin && selectedCompanyId === null) {

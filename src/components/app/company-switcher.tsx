@@ -41,7 +41,9 @@ export function CompanySwitcher({
 	const t = useTranslations('admin')
 	const router = useRouter()
 	const selectedCompany = companies.find((c) => c.id === selectedCompanyId)
-	const isOverview = selectedCompanyId === null && isAdmin
+	const noSelectionLabel = isAdmin
+		? t('switcher-overview')
+		: t('switcher-all-my-companies')
 
 	async function onSelectCompany(companyId: number) {
 		await setSelectedCompanyId(companyId)
@@ -64,8 +66,8 @@ export function CompanySwitcher({
 					</div>
 					<div className="min-w-0 flex-1 text-left text-sm">
 						<span className="truncate font-semibold">
-							{isOverview
-								? t('switcher-overview')
+							{selectedCompanyId === null
+								? noSelectionLabel
 								: (selectedCompany?.name ?? 'TopCredit')}
 						</span>
 					</div>
@@ -78,20 +80,16 @@ export function CompanySwitcher({
 				side="right"
 				sideOffset={8}
 			>
-				{isAdmin && (
-					<>
-						<DropdownMenuItem onSelect={onSelectOverview} className="gap-2">
-							<div
-								className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted font-medium text-muted-foreground text-xs"
-								aria-hidden
-							>
-								<LayoutDashboard className="size-4" />
-							</div>
-							<span className="truncate">{t('switcher-overview')}</span>
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-					</>
-				)}
+				<DropdownMenuItem onSelect={onSelectOverview} className="gap-2">
+					<div
+						className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted font-medium text-muted-foreground text-xs"
+						aria-hidden
+					>
+						<LayoutDashboard className="size-4" />
+					</div>
+					<span className="truncate">{noSelectionLabel}</span>
+				</DropdownMenuItem>
+				<DropdownMenuSeparator />
 				<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
 					{t('switcher-companies')}
 				</DropdownMenuLabel>

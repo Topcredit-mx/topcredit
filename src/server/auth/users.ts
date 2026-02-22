@@ -5,7 +5,6 @@ import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { subject } from '~/lib/abilities'
-import type { Role } from '~/lib/auth-utils'
 import { getClientIP } from '~/lib/ip-location'
 import { generateBackupCodes, hashBackupCodes } from '~/lib/totp'
 import { db } from '~/server/db'
@@ -33,7 +32,7 @@ export async function getUserByEmail(email: string) {
 
 	return {
 		...user,
-		roles: roles.length > 0 ? roles : (['applicant'] as Role[]), // Default to applicant if no roles assigned
+		roles,
 	}
 }
 
@@ -59,7 +58,7 @@ export async function sendOtp(email: string, ipAddress: string) {
  */
 export async function disableTotpSetup(email: string) {
 	const sessionUser = await getRequiredUser()
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'update', subject('User', { id: sessionUser.id }))
 
 	if (sessionUser.email?.toLowerCase() !== email.toLowerCase()) {
@@ -91,7 +90,7 @@ export async function disableTotpSetup(email: string) {
  */
 export async function generateNewBackupCodes(email: string) {
 	const sessionUser = await getRequiredUser()
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'update', subject('User', { id: sessionUser.id }))
 
 	if (sessionUser.email?.toLowerCase() !== email.toLowerCase()) {
@@ -147,7 +146,7 @@ export async function sendEmailChangeOtp(
 }> {
 	try {
 		const sessionUser = await getRequiredUser()
-		const ability = await getAbility()
+		const { ability } = await getAbility()
 		requireAbility(ability, 'update', subject('User', { id: sessionUser.id }))
 
 		if (!sessionUser.email) {
@@ -235,7 +234,7 @@ export async function verifyEmailChangeOtp(
 }> {
 	try {
 		const sessionUser = await getRequiredUser()
-		const ability = await getAbility()
+		const { ability } = await getAbility()
 		requireAbility(ability, 'update', subject('User', { id: sessionUser.id }))
 
 		if (!sessionUser.email) {

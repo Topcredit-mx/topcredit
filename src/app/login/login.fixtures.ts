@@ -13,3 +13,10 @@ export const agentUser = {
 	email: 'agent@example.com',
 	roles: ['agent', 'requests'] as const,
 }
+
+/** User with no roles - used to test redirect to /unauthorized */
+export const noRoleUser = {
+	name: 'No Role User',
+	email: 'norole@example.com',
+	roles: [] as const,
+}

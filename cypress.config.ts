@@ -7,6 +7,7 @@ export default defineConfig({
 	projectId: 'qv8a5k',
 	e2e: {
 		baseUrl: 'http://localhost:3000',
+		retries: process.env.CI ? 2 : 0,
 		specPattern: ['src/**/*.cy.{js,ts}'],
 		setupNodeEvents(on, cypressConfig) {
 			// Tasks read DATABASE_URL, AUTH_SECRET, AUTH_URL from process.env.

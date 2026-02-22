@@ -9,7 +9,7 @@ import {
 import { ApplicationForm } from './application-form'
 
 export default async function NewApplicationPage() {
-	const [ability, user] = await Promise.all([
+	const [{ ability }, user] = await Promise.all([
 		getAbility(),
 		getRequiredApplicantUser(),
 	])
@@ -17,9 +17,15 @@ export default async function NewApplicationPage() {
 
 	const email = user.email ?? ''
 	const company = await getCompanyByEmailDomain(email)
-	const termOfferings = company
+	const rawOfferings = company
 		? await getTermOfferingsForCompany(company.id)
 		: []
+
+	// Serialize Date for Client Component
+	const termOfferings = rawOfferings.map((o) => ({
+		...o,
+		createdAt: o.createdAt.toISOString(),
+	}))
 
 	const t = await getTranslations('dashboard.applications')
 

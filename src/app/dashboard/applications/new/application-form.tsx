@@ -13,13 +13,13 @@ import {
 	SelectValue,
 } from '~/components/ui/select'
 import { createApplication } from '~/server/mutations'
-import type { TermOfferingForCompany } from '~/server/queries'
+import type { TermOfferingForForm } from '~/server/queries'
 
 interface ApplicationFormProps {
-	termOfferings: TermOfferingForCompany[]
+	termOfferings: TermOfferingForForm[]
 }
 
-function termOfferingLabel(offering: TermOfferingForCompany): string {
+function termOfferingLabel(offering: TermOfferingForForm): string {
 	const duration =
 		offering.durationType === 'monthly'
 			? `${offering.duration} meses`

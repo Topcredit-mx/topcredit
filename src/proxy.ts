@@ -20,11 +20,14 @@ async function redirectLoggedInFromAuthRoutes(
 	if (!authPaths.includes(path)) return null
 
 	const token = await getToken({ req })
-	const roles: Role[] = token?.roles ?? []
+	if (!token) return null
+	const roles: Role[] = token.roles ?? []
 	if (roles.includes('agent'))
 		return NextResponse.redirect(new URL('/app', req.url))
 	if (roles.includes('applicant'))
 		return NextResponse.redirect(new URL('/dashboard', req.url))
+	if (roles.length === 0)
+		return NextResponse.redirect(new URL('/settings', req.url))
 	return null
 }
 
@@ -35,7 +38,17 @@ const withAuthMiddleware = withAuth(
 		const roles: Role[] = token?.roles ?? []
 		const isAgent = roles.includes('agent')
 
-		if (path.startsWith('/app/admin') && !roles.includes('admin')) {
+		// No roles: allow /settings so user can see their state; block /app and /dashboard
+		if (roles.length === 0) {
+			if (path.startsWith('/app') || path.startsWith('/dashboard')) {
+				return NextResponse.redirect(new URL('/unauthorized', req.url))
+			}
+			// /settings allowed - user can see they have no roles
+		}
+		if (
+			(path.startsWith('/app/users') || path.startsWith('/app/companies')) &&
+			!roles.includes('admin')
+		) {
 			return NextResponse.redirect(new URL('/unauthorized', req.url))
 		}
 		if (path.startsWith('/app') && !isAgent) {

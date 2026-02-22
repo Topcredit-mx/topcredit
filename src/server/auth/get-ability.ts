@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import type {
@@ -7,13 +8,32 @@ import type {
 } from '~/lib/abilities'
 import { defineAbilityFor } from '~/lib/abilities'
 import { requireAuth } from '~/lib/auth-utils'
+import { db } from '~/server/db'
+import { userRoles } from '~/server/db/schema'
 import { getUserCompanyAssignments } from '~/server/scopes'
 import { getApplicantEligibilityData } from './eligibility'
 
-export const getAbility = cache(async (): Promise<AppAbility> => {
+export type AbilityResult = {
+	ability: AppAbility
+	assignedCompanyIds: number[] | 'all'
+}
+
+/** Fetch current user's roles from DB (not JWT) so role changes take effect immediately. Cached per request per userId. */
+export const getRolesFromDb = cache(
+	async (userId: number): Promise<string[]> => {
+		const rows = await db
+			.select({ role: userRoles.role })
+			.from(userRoles)
+			.where(eq(userRoles.userId, userId))
+		return rows.length > 0 ? rows.map((r) => r.role) : []
+	},
+)
+
+export const getAbility = cache(async (): Promise<AbilityResult> => {
 	const session = await requireAuth()
 	const userId = session.user.id
-	const roles = session.user.roles ?? []
+	const roles = await getRolesFromDb(userId)
+	if (roles.length === 0) redirect('/unauthorized')
 
 	const assignedCompanyIds: number[] | 'all' = roles.includes('admin')
 		? 'all'
@@ -33,7 +53,10 @@ export const getAbility = cache(async (): Promise<AppAbility> => {
 		userId: session.user.id,
 		applicantEligibilityData,
 	}
-	return defineAbilityFor(ctx)
+	return {
+		ability: defineAbilityFor(ctx),
+		assignedCompanyIds,
+	}
 })
 
 export function requireAbility(

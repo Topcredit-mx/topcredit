@@ -1,4 +1,4 @@
-import { agentUser, applicantUser } from './login.fixtures'
+import { agentUser, applicantUser, noRoleUser } from './login.fixtures'
 
 const LOGIN_APPLICANT_DOMAIN = 'example.com'
 
@@ -8,11 +8,16 @@ describe('Login Flow', () => {
 
 	before(() => {
 		// Clean up any stale data from previous interrupted runs
-		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
+		cy.task('deleteUsersByEmail', [
+			applicantUser.email,
+			agentUser.email,
+			noRoleUser.email,
+		])
 		cy.task('deleteCompaniesByDomain', [LOGIN_APPLICANT_DOMAIN])
 
 		cy.task('createUser', applicantUser)
 		cy.task('createUser', agentUser)
+		cy.task('createUser', noRoleUser)
 
 		// Give applicant a company and one application so /dashboard shows "Mi Cuenta" instead of redirecting to /dashboard/applications/new
 		cy.task('createCompany', {
@@ -49,7 +54,11 @@ describe('Login Flow', () => {
 	})
 
 	after(() => {
-		cy.task('deleteUsersByEmail', [applicantUser.email, agentUser.email])
+		cy.task('deleteUsersByEmail', [
+			applicantUser.email,
+			agentUser.email,
+			noRoleUser.email,
+		])
 		cy.task('deleteCompaniesByDomain', [LOGIN_APPLICANT_DOMAIN])
 	})
 
@@ -93,6 +102,30 @@ describe('Login Flow', () => {
 		cy.visit('/dashboard')
 		cy.url().should('include', '/unauthorized')
 		cy.contains('h1', '403 - No Autorizado').should('be.visible')
+	})
+
+	it('should redirect user with no roles to settings from / and /login, block /app and /dashboard', () => {
+		cy.login(noRoleUser.email)
+		cy.visit('/')
+		cy.url().should('include', '/settings')
+
+		cy.login(noRoleUser.email)
+		cy.visit('/login')
+		cy.url().should('include', '/settings')
+
+		cy.login(noRoleUser.email)
+		cy.visit('/app')
+		cy.url().should('include', '/unauthorized')
+		cy.contains(/403|no autorizado|unauthorized/i).should('be.visible')
+
+		cy.login(noRoleUser.email)
+		cy.visit('/dashboard')
+		cy.url().should('include', '/unauthorized')
+
+		cy.login(noRoleUser.email)
+		cy.visit('/settings')
+		cy.url().should('include', '/settings')
+		cy.contains(/ningún rol asignado|no roles/i).should('be.visible')
 	})
 
 	it('should not allow access to /settings when unauthenticated', () => {

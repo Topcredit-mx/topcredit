@@ -3,7 +3,7 @@ import { CompanyForm } from '~/components/company-form'
 import { getAbility, requireAbility } from '~/server/auth/get-ability'
 
 export default async function NewCompanyPage() {
-	const ability = await getAbility()
+	const { ability } = await getAbility()
 	requireAbility(ability, 'create', 'Company')
 	const t = await getTranslations('admin')
 
