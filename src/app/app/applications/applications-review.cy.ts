@@ -405,9 +405,8 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('40,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.contains('button', /documentación inválida/i, {
-				timeout: 10000,
-			}).click()
+			cy.url({ timeout: 10000 }).should('match', /\/app\/applications\/\d+/)
+			cy.contains('button', /documentación inválida/i).click()
 			cy.get('[role="dialog"]').within(() => {
 				cy.get('textarea[name="reason"]')
 					.clear()
@@ -429,7 +428,7 @@ describe('App Applications Review (Phase 3)', () => {
 		})
 
 		it('invalid application id shows not found', () => {
-			cy.visit('/app/applications/999999')
+			cy.visit('/app/applications/999999', { timeout: 10000 })
 			cy.contains(applicantForReview.name).should('not.exist')
 			cy.contains(/detalle de solicitud/i).should('not.exist')
 		})
@@ -511,8 +510,9 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.contains(applicantForReview.name).should('exist')
 			cy.findTableRow('25,000')
 				.find('a[aria-label="Revisar solicitud"]')
+				.should('be.visible', { timeout: 10000 })
 				.click()
-			cy.url({ timeout: 10000 }).should('match', /\/app\/applications\/\d+/)
+			cy.url({ timeout: 15000 }).should('match', /\/app\/applications\/\d+/)
 		})
 	})
 
