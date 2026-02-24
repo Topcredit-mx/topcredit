@@ -18,10 +18,7 @@ import {
 	InputOTPSlot,
 } from '~/components/ui/input-otp'
 import { cn } from '~/lib/utils'
-import {
-	initiateTotpSetup,
-	verifyTotpSetup,
-} from '~/server/auth/actions-no-ability'
+import { initiateTotpSetup, verifyTotpSetup } from '~/server/auth/actions'
 
 type SetupStep = 'generate' | 'scan' | 'verify' | 'backup-codes'
 

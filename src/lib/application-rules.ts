@@ -3,6 +3,24 @@ import {
 	type ApplicationStatus,
 } from '~/server/db/schema'
 
+/** Statuses for which we send an application status email (excludes new and pending). */
+export const NOTIFY_STATUSES = [
+	'pre-authorized',
+	'authorized',
+	'denied',
+	'invalid-documentation',
+] as const satisfies readonly ApplicationStatus[]
+
+export type NotifyStatus = (typeof NOTIFY_STATUSES)[number]
+
+const NOTIFY_STATUS_SET = new Set<string>(NOTIFY_STATUSES)
+
+export function isNotifyStatus(
+	status: ApplicationStatus,
+): status is NotifyStatus {
+	return NOTIFY_STATUS_SET.has(status)
+}
+
 export type ApplicationStatusRequiringReason =
 	| 'denied'
 	| 'invalid-documentation'

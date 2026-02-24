@@ -48,7 +48,7 @@ import {
 	applicantUser as loginApplicantUser,
 	noRoleUser as loginNoRoleUser,
 } from '~/app/login/login.fixtures'
-import type { Role } from '~/lib/auth-utils'
+import type { Role } from '~/server/auth/session'
 import {
 	applications,
 	companies,

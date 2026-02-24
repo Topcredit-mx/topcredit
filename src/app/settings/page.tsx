@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getRequiredUser } from '~/server/auth/lib'
+import { getRequiredUser } from '~/server/auth/session'
 import { getUserByEmail } from '~/server/auth/users'
 
 export default async function SettingsPage() {

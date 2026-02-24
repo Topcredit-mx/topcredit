@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server'
 import { AdminOverviewDashboard } from '~/components/app/admin-overview-dashboard'
-import { getRequiredAgentUser } from '~/server/auth/lib'
+import { getRequiredAgentUser } from '~/server/auth/session'
 import { getAdminOverviewStats } from '~/server/queries'
 import { getEffectiveSelectedCompanyId } from '~/server/scopes'
 

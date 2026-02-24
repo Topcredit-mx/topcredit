@@ -1,4 +1,4 @@
-import type { Role } from '../src/lib/auth-utils'
+import type { Role } from '../src/server/auth/session'
 
 export const seedUsers = [
 	{

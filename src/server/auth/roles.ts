@@ -1,19 +1,15 @@
 'use server'
 
 import { and, eq } from 'drizzle-orm'
-import type { Role } from '~/lib/auth-utils'
+import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
 import { userRoles, users } from '~/server/db/schema'
-import { getAbility, requireAbility } from './get-ability'
+import { getAbility, requireAbility } from './ability'
 
-/**
- * Assign a role to a user
- */
 export async function assignRoleToUser(userId: number, role: Role) {
 	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
-	// Check if role already exists
 	const existingRole = await db
 		.select()
 		.from(userRoles)
@@ -28,9 +24,6 @@ export async function assignRoleToUser(userId: number, role: Role) {
 	return { success: true, message: 'Role assigned successfully' }
 }
 
-/**
- * Remove a role from a user
- */
 export async function removeRoleFromUser(userId: number, role: Role) {
 	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
@@ -42,9 +35,6 @@ export async function removeRoleFromUser(userId: number, role: Role) {
 	return { success: true, message: 'Role removed successfully' }
 }
 
-/**
- * Get all roles for a user
- */
 export async function getUserRoles(userId: number): Promise<Role[]> {
 	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
@@ -57,17 +47,12 @@ export async function getUserRoles(userId: number): Promise<Role[]> {
 	return roles.map((r) => r.role)
 }
 
-/**
- * Set user roles (replaces all existing roles)
- */
 export async function setUserRoles(userId: number, roles: Role[]) {
 	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
 
-	// Remove all existing roles
 	await db.delete(userRoles).where(eq(userRoles.userId, userId))
 
-	// Add new roles
 	if (roles.length > 0) {
 		await db.insert(userRoles).values(roles.map((role) => ({ userId, role })))
 	}
@@ -75,9 +60,6 @@ export async function setUserRoles(userId: number, roles: Role[]) {
 	return { success: true, message: 'Roles updated successfully' }
 }
 
-/**
- * Check if a user has a specific role
- */
 export async function userHasRole(
 	userId: number,
 	role: Role,
@@ -94,9 +76,6 @@ export async function userHasRole(
 	return !!result
 }
 
-/**
- * Get all users with a specific role
- */
 export async function getUsersByRole(role: Role) {
 	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
@@ -113,11 +92,4 @@ export async function getUsersByRole(role: Role) {
 		.where(eq(userRoles.role, role))
 
 	return usersWithRole
-}
-
-/**
- * Initialize default role for a new user (applicant)
- */
-export async function initializeUserRoles(userId: number) {
-	await assignRoleToUser(userId, 'applicant')
 }

@@ -1,4 +1,4 @@
-import type { Role } from '~/lib/auth-utils'
+import type { Role } from '~/server/auth/session'
 
 export const ASSIGNABLE_ROLES: Role[] = ['requests', 'admin']
 

@@ -13,18 +13,13 @@ import {
 	verifyTotpToken,
 } from '~/lib/totp'
 import { db } from '~/server/db'
-import { emailOtps, users } from '~/server/db/schema'
+import { emailOtps, userRoles, users } from '~/server/db/schema'
 import { sendGenericEmail } from '~/server/email'
 import { getApplicantEligibilityData } from './eligibility'
-import { checkRateLimit, updateRateLimitCounters } from './lib'
-import { initializeUserRoles } from './role-management'
+import { checkRateLimit, updateRateLimitCounters } from './rate-limit'
 import { getUserByEmail, sendOtp } from './users'
 
-/**
- * Auth mutations that run without a session (no CASL context).
- * Kept in one file so it's clear these use custom checks, not getAbility().
- */
-
+/** No session/CASL — custom checks only. */
 export async function registerUser(
 	_prevState: unknown,
 	formData: FormData,
@@ -47,7 +42,7 @@ export async function registerUser(
 	const [newUser] = await db.insert(users).values({ email, name }).returning()
 
 	if (newUser) {
-		await initializeUserRoles(newUser.id)
+		await db.insert(userRoles).values({ userId: newUser.id, role: 'applicant' })
 	}
 
 	const ip = await getClientIP()

@@ -1,8 +1,11 @@
+import type { EmailT } from '~/lib/email-i18n'
+
 interface EmailTemplateProps {
 	fullName: string
 	otpCode: string
 	location?: string
 	ipAddress?: string
+	t: EmailT
 }
 
 export function OTPTemplate({
@@ -10,6 +13,7 @@ export function OTPTemplate({
 	otpCode,
 	location = 'Unknown location',
 	ipAddress,
+	t,
 }: EmailTemplateProps) {
 	return (
 		<div
@@ -26,18 +30,15 @@ export function OTPTemplate({
 			<div style={{ textAlign: 'center', marginBottom: '24px' }}>
 				<div style={{ fontSize: '48px', marginBottom: '8px' }}>▲</div>
 				<h2 style={{ fontWeight: 600 }}>
-					Verifica tu correo para iniciar sesión en{' '}
-					<span style={{ color: '#0070f3' }}>Topcredit</span>
+					{t('otp.headingPrefix')}
+					<span style={{ color: '#0070f3' }}>{t('otp.headingBrand')}</span>
 				</h2>
 			</div>
 			<div style={{ marginBottom: '16px', fontSize: '16px' }}>
-				Hola <b>{fullName}</b>,
+				{t('otp.greeting')} <b>{fullName}</b>,
 				<br />
 				<br />
-				Hemos recibido un intento de inicio de sesión desde <b>{location}</b>.
-				<br />
-				Para completar el proceso, ingresa el siguiente código de 6 dígitos en
-				la ventana original:
+				{t('otp.intro', { location })}
 			</div>
 			<div style={{ textAlign: 'center', margin: '32px 0' }}>
 				<span
@@ -55,14 +56,9 @@ export function OTPTemplate({
 				</span>
 			</div>
 			<div style={{ fontSize: '12px', color: '#666', marginTop: '24px' }}>
-				Si no intentaste iniciar sesión desde {location} o si la ubicación no
-				coincide, ignora este correo. No compartas el código con nadie. Nuestro
-				equipo de soporte nunca lo solicitará. Ten cuidado con intentos de
-				phishing y verifica siempre el remitente y el dominio (topcredit.com)
-				antes de actuar. Si tienes dudas sobre la seguridad de tu cuenta, visita
-				nuestra{' '}
+				{t('otp.footer', { location })}{' '}
 				<a href="https://topcredit.com/ayuda" style={{ color: '#0070f3' }}>
-					página de ayuda
+					{t('otp.helpLink')}
 				</a>
 				.
 				{ipAddress && (

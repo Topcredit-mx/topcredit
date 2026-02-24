@@ -14,7 +14,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from '~/components/ui/card'
-import type { Role } from '~/lib/auth-utils'
+import type { Role } from '~/server/auth/session'
 
 interface User {
 	id: number

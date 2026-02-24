@@ -1,5 +1,5 @@
 import { SetupTotpForm } from '~/components/setup-totp-form'
-import { getRequiredUser } from '~/server/auth/lib'
+import { getRequiredUser } from '~/server/auth/session'
 
 export default async function SetupTotpPage() {
 	const user = await getRequiredUser()

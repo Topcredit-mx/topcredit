@@ -1,7 +1,6 @@
 import { and, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm'
-import { subject } from '~/lib/abilities'
-import type { Role } from '~/lib/auth-utils'
-import { getAbility, requireAbility } from '~/server/auth/get-ability'
+import { getAbility, requireAbility, subject } from '~/server/auth/ability'
+import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
 import type { ApplicationStatus } from '~/server/db/schema'
 import {
