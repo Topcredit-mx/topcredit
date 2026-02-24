@@ -17,7 +17,7 @@ type PathsToLeaves<T, P extends string = ''> = T extends string
 				? R
 				: never
 			: never
-	: never
+		: never
 
 export type EmailMessageKey = PathsToLeaves<typeof esEmail>
 
