@@ -3,10 +3,18 @@ import { ApplicationStatusTemplate } from '~/components/email/application-status
 import { ApplicationSubmittedTemplate } from '~/components/email/application-submitted-template'
 import { OTPTemplate } from '~/components/email/otp-template'
 import { env } from '~/env'
+import { getEmailTranslations } from '~/lib/email-i18n'
+import { isNotifyStatus } from '~/lib/application-rules'
 import { getLocationFromIP } from '~/lib/ip-location'
 import type { ApplicationStatus } from '~/server/db/schema'
 
 const resend = new Resend(env.RESEND_API_KEY)
+
+const DEFAULT_LOCALE = 'es'
+
+async function getEmailT() {
+	return getEmailTranslations(DEFAULT_LOCALE)
+}
 
 const isDev = env.NODE_ENV === 'development'
 const DEV_EMAIL = 'david.cantum@proton.me'
@@ -16,26 +24,26 @@ export async function sendOtpEmail(
 	code: string,
 	ipAddress: string,
 ) {
+	const { t } = await getEmailT()
 	const location = await getLocationFromIP(ipAddress)
 
-	// In dev mode, send all emails to dev email with target info in subject
 	const targetEmail = isDev ? DEV_EMAIL : email
-	const subject = isDev
-		? `[DEV] OTP for ${email}: ${code}`
-		: 'Your One-Time Password'
+	const subject = isDev ? `[DEV] OTP for ${email}: ${code}` : t('otp.subject')
+	const text = isDev
+		? `[DEV MODE]\nTarget email: ${email}\nVerification code: ${code}`
+		: t('otp.textBody', { code })
 
 	await resend.emails.send({
 		from: env.EMAIL_FROM,
 		to: targetEmail,
 		subject,
-		text: isDev
-			? `[DEV MODE]\nTarget email: ${email}\nVerification code: ${code}`
-			: `Your verification code is: ${code}`,
+		text,
 		react: OTPTemplate({
 			fullName: isDev ? `[DEV] ${email}` : 'User',
 			otpCode: code,
 			location,
 			ipAddress,
+			t,
 		}),
 	})
 }
@@ -68,13 +76,16 @@ export async function sendApplicationSubmittedEmail(
 	email: string,
 	params: { creditAmountFormatted: string; termLabel: string },
 ) {
+	const { t } = await getEmailT()
 	const { creditAmountFormatted, termLabel } = params
 	const targetEmail = isDev ? DEV_EMAIL : email
 	const subject = isDev
 		? `[DEV] Solicitud recibida (for ${email})`
-		: 'Tu solicitud de crédito fue recibida - Topcredit'
-
-	const text = `Recibimos tu solicitud de crédito.\n\nResumen: Monto ${creditAmountFormatted}, Plazo ${termLabel}.\n\nPróximos pasos: Te notificaremos cuando haya un cambio de estado (pre-autorización, autorización o si necesitamos más datos). Puedes consultar el estado en tu panel en Topcredit.`
+		: t('applicationSubmitted.subject')
+	const text = t('applicationSubmitted.textBody', {
+		creditAmountFormatted,
+		termLabel,
+	})
 
 	await resend.emails.send({
 		from: env.EMAIL_FROM,
@@ -84,16 +95,10 @@ export async function sendApplicationSubmittedEmail(
 		react: ApplicationSubmittedTemplate({
 			creditAmountFormatted,
 			termLabel,
+			t,
 		}),
 	})
 }
-
-const NOTIFY_STATUSES: ApplicationStatus[] = [
-	'pre-authorized',
-	'authorized',
-	'denied',
-	'invalid-documentation',
-]
 
 export async function sendApplicationStatusEmail(
 	email: string,
@@ -104,31 +109,37 @@ export async function sendApplicationStatusEmail(
 		reason?: string | null
 	},
 ) {
-	if (!NOTIFY_STATUSES.includes(params.status)) return
+	if (!isNotifyStatus(params.status)) return
+
+	const { t } = await getEmailT()
+	const statusLabelText =
+		t(`applicationStatus.statusLabel.${params.status}`) || params.status
+
+	const subjectKey = `applicationStatus.subject.${params.status}` as const
+	const subject = t(subjectKey)
 
 	const targetEmail = isDev ? DEV_EMAIL : email
-	const subjectByStatus: Record<(typeof NOTIFY_STATUSES)[number], string> = {
-		'pre-authorized': 'Tu crédito fue pre-autorizado - Topcredit',
-		authorized: 'Tu crédito fue autorizado - Topcredit',
-		denied: 'Actualización de tu solicitud de crédito - Topcredit',
-		'invalid-documentation': 'Tu solicitud requiere documentación - Topcredit',
-		new: '',
-		pending: '',
-	}
-	const subject = isDev
-		? `[DEV] ${subjectByStatus[params.status]} (for ${email})`
-		: subjectByStatus[params.status]
+	const subjectLine = isDev ? `[DEV] ${subject} (for ${email})` : subject
+	const textBody = t('applicationStatus.textBody', {
+		creditAmountFormatted: params.creditAmountFormatted,
+		termLabel: params.termLabel,
+		statusLabel: statusLabelText,
+	})
+	const text = params.reason
+		? `${textBody}\n\n${t('applicationStatus.reasonPrefix')} ${params.reason}`
+		: textBody
 
 	await resend.emails.send({
 		from: env.EMAIL_FROM,
 		to: targetEmail,
-		subject,
-		text: `Tu solicitud de crédito (${params.creditAmountFormatted}, ${params.termLabel}) ha sido actualizada a: ${params.status}.${params.reason ? `\n\nMotivo: ${params.reason}` : ''}`,
+		subject: subjectLine,
+		text,
 		react: ApplicationStatusTemplate({
 			status: params.status,
 			creditAmountFormatted: params.creditAmountFormatted,
 			termLabel: params.termLabel,
 			reason: params.reason,
+			t,
 		}),
 	})
 }

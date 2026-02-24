@@ -1,12 +1,18 @@
+import type { EmailT } from '~/lib/email-i18n'
+
 interface ApplicationSubmittedTemplateProps {
 	creditAmountFormatted: string
 	termLabel: string
+	t: EmailT
 }
 
 export function ApplicationSubmittedTemplate({
 	creditAmountFormatted,
 	termLabel,
+	t,
 }: ApplicationSubmittedTemplateProps) {
+	const heading = t('applicationSubmitted.heading')
+	const headingPrefix = heading.replace(' Topcredit', '')
 	return (
 		<div
 			style={{
@@ -22,22 +28,23 @@ export function ApplicationSubmittedTemplate({
 			<div style={{ textAlign: 'center', marginBottom: '24px' }}>
 				<div style={{ fontSize: '48px', marginBottom: '8px' }}>▲</div>
 				<h2 style={{ fontWeight: 600 }}>
-					Solicitud recibida en{' '}
+					{headingPrefix}
+					{' '}
 					<span style={{ color: '#0070f3' }}>Topcredit</span>
 				</h2>
 			</div>
 			<div style={{ marginBottom: '16px', fontSize: '16px' }}>
-				Hola,
+				{t('applicationSubmitted.greeting')},
 				<br />
 				<br />
-				Recibimos tu solicitud de crédito correctamente.
+				{t('applicationSubmitted.body')}
 				<br />
 				<br />
-				<strong>Resumen:</strong>
+				<strong>{t('applicationSubmitted.labelSummary')}</strong>
 				<br />
-				Monto: {creditAmountFormatted}
+				{t('applicationSubmitted.labelAmount')}: {creditAmountFormatted}
 				<br />
-				Plazo: {termLabel}
+				{t('applicationSubmitted.labelTerm')}: {termLabel}
 			</div>
 			<div
 				style={{
@@ -48,18 +55,12 @@ export function ApplicationSubmittedTemplate({
 					fontSize: '15px',
 				}}
 			>
-				<strong>Próximos pasos:</strong>
+				<strong>{t('applicationSubmitted.nextStepsTitle')}</strong>
 				<br />
-				Tu solicitud será revisada. Te notificaremos por correo cuando haya un
-				cambio de estado (pre-autorización, autorización o si necesitamos más
-				datos o documentación).
-				<br />
-				<br />
-				Puedes consultar el estado en cualquier momento desde tu panel en
-				Topcredit.
+				{t('applicationSubmitted.nextStepsBody')}
 			</div>
 			<div style={{ fontSize: '12px', color: '#666', marginTop: '24px' }}>
-				Si no realizaste esta solicitud, contacta a soporte de inmediato.
+				{t('applicationSubmitted.footer')}
 			</div>
 		</div>
 	)

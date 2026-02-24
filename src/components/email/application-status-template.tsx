@@ -1,38 +1,22 @@
+import type { NotifyStatus } from '~/lib/application-rules'
+import type { EmailT } from '~/lib/email-i18n'
 import type { ApplicationStatus } from '~/server/db/schema'
 
+const STATUS_HIGHLIGHT_COLOR: Record<ApplicationStatus, string> = {
+	new: '#666',
+	pending: '#666',
+	'invalid-documentation': '#b45309',
+	'pre-authorized': '#0070f3',
+	authorized: '#15803d',
+	denied: '#b91c1c',
+}
+
 interface ApplicationStatusTemplateProps {
-	status: ApplicationStatus
+	status: NotifyStatus
 	creditAmountFormatted: string
 	termLabel: string
 	reason?: string | null
-}
-
-const STATUS_HEADINGS: Record<
-	ApplicationStatus,
-	{ title: string; subtitle: string; highlightColor: string }
-> = {
-	new: { title: 'Solicitud nueva', subtitle: '', highlightColor: '#666' },
-	pending: { title: 'Solicitud en revisión', subtitle: '', highlightColor: '#666' },
-	'invalid-documentation': {
-		title: 'Documentación requerida',
-		subtitle: 'Tu solicitud requiere atención',
-		highlightColor: '#b45309',
-	},
-	'pre-authorized': {
-		title: '¡Pre-autorizado!',
-		subtitle: 'Tu crédito ha sido pre-autorizado',
-		highlightColor: '#0070f3',
-	},
-	authorized: {
-		title: '¡Autorizado!',
-		subtitle: 'Tu crédito ha sido autorizado',
-		highlightColor: '#15803d',
-	},
-	denied: {
-		title: 'Solicitud denegada',
-		subtitle: 'Tu solicitud de crédito no fue aprobada',
-		highlightColor: '#b91c1c',
-	},
+	t: EmailT
 }
 
 export function ApplicationStatusTemplate({
@@ -40,8 +24,11 @@ export function ApplicationStatusTemplate({
 	creditAmountFormatted,
 	termLabel,
 	reason,
+	t,
 }: ApplicationStatusTemplateProps) {
-	const config = STATUS_HEADINGS[status]
+	const highlightColor = STATUS_HIGHLIGHT_COLOR[status]
+	const statusTitle = t(`applicationStatus.statusLabel.${status}`)
+	const statusSubtitle = t(`applicationStatus.subtitle.${status}`)
 	return (
 		<div
 			style={{
@@ -56,29 +43,29 @@ export function ApplicationStatusTemplate({
 		>
 			<div style={{ textAlign: 'center', marginBottom: '24px' }}>
 				<div style={{ fontSize: '48px', marginBottom: '8px' }}>▲</div>
-				<h2 style={{ fontWeight: 600, color: config.highlightColor }}>
-					{config.title}
+				<h2 style={{ fontWeight: 600, color: highlightColor }}>
+					{statusTitle}
 				</h2>
-				{config.subtitle ? (
+				{statusSubtitle ? (
 					<p style={{ marginTop: '8px', color: '#555', fontSize: '15px' }}>
-						{config.subtitle}
+						{statusSubtitle}
 					</p>
 				) : null}
 			</div>
 			<div style={{ marginBottom: '16px', fontSize: '16px' }}>
-				Hola,
+				{t('applicationStatus.greeting')},
 				<br />
 				<br />
-				Te informamos que el estado de tu solicitud de crédito ha sido actualizado.
+				{t('applicationStatus.bodyIntro')}
 				<br />
 				<br />
-				<strong>Resumen:</strong>
+				<strong>{t('applicationStatus.labelSummary')}</strong>
 				<br />
-				Monto: {creditAmountFormatted}
+				{t('applicationStatus.labelAmount')}: {creditAmountFormatted}
 				<br />
-				Plazo: {termLabel}
+				{t('applicationStatus.labelTerm')}: {termLabel}
 				<br />
-				Estado: <strong>{config.title}</strong>
+				{t('applicationStatus.labelStatus')}: <strong>{statusTitle}</strong>
 			</div>
 			{reason ? (
 				<div
@@ -91,13 +78,13 @@ export function ApplicationStatusTemplate({
 						color: '#374151',
 					}}
 				>
-					<strong>Motivo / detalle:</strong>
+					<strong>{t('applicationStatus.reasonLabel')}</strong>
 					<br />
 					{reason}
 				</div>
 			) : null}
 			<div style={{ fontSize: '12px', color: '#666', marginTop: '24px' }}>
-				Puedes ver el detalle de tu solicitud en tu panel de Topcredit.
+				{t('applicationStatus.footer')}
 			</div>
 		</div>
 	)

@@ -1,0 +1,55 @@
+{
+	"otp": {
+		"subject": "Código de verificación - Topcredit",
+		"textBody": "Tu código de verificación es: {code}",
+		"headingPrefix": "Verifica tu correo para iniciar sesión en ",
+		"headingBrand": "Topcredit",
+		"greeting": "Hola",
+		"intro": "Hemos recibido un intento de inicio de sesión desde {location}. Para completar el proceso, ingresa el siguiente código de 6 dígitos en la ventana original:",
+		"footer": "Si no intentaste iniciar sesión desde {location} o si la ubicación no coincide, ignora este correo. No compartas el código con nadie. Nuestro equipo de soporte nunca lo solicitará. Ten cuidado con intentos de phishing y verifica siempre el remitente y el dominio (topcredit.com) antes de actuar. Si tienes dudas sobre la seguridad de tu cuenta, visita nuestra página de ayuda.",
+		"helpLink": "página de ayuda"
+	},
+	"applicationSubmitted": {
+		"subject": "Tu solicitud de crédito fue recibida - Topcredit",
+		"textBody": "Recibimos tu solicitud de crédito.\n\nResumen: Monto {creditAmountFormatted}, Plazo {termLabel}.\n\nPróximos pasos: Te notificaremos cuando haya un cambio de estado (pre-autorización, autorización o si necesitamos más datos). Puedes consultar el estado en tu panel en Topcredit.",
+		"heading": "Solicitud recibida en Topcredit",
+		"greeting": "Hola",
+		"body": "Recibimos tu solicitud de crédito correctamente.",
+		"labelSummary": "Resumen:",
+		"labelAmount": "Monto",
+		"labelTerm": "Plazo",
+		"nextStepsTitle": "Próximos pasos:",
+		"nextStepsBody": "Tu solicitud será revisada. Te notificaremos por correo cuando haya un cambio de estado (pre-autorización, autorización o si necesitamos más datos o documentación). Puedes consultar el estado en cualquier momento desde tu panel en Topcredit.",
+		"footer": "Si no realizaste esta solicitud, contacta a soporte de inmediato."
+	},
+	"applicationStatus": {
+		"subject": {
+			"pre-authorized": "Tu crédito fue pre-autorizado - Topcredit",
+			"authorized": "Tu crédito fue autorizado - Topcredit",
+			"denied": "Actualización de tu solicitud de crédito - Topcredit",
+			"invalid-documentation": "Tu solicitud requiere documentación - Topcredit"
+		},
+		"textBody": "Tu solicitud de crédito ({creditAmountFormatted}, {termLabel}) ha sido actualizada a: {statusLabel}.",
+		"reasonPrefix": "Motivo:",
+		"statusLabel": {
+			"pre-authorized": "¡Pre-autorizado!",
+			"authorized": "¡Autorizado!",
+			"denied": "Solicitud denegada",
+			"invalid-documentation": "Documentación requerida"
+		},
+		"subtitle": {
+			"pre-authorized": "Tu crédito ha sido pre-autorizado",
+			"authorized": "Tu crédito ha sido autorizado",
+			"denied": "Tu solicitud de crédito no fue aprobada",
+			"invalid-documentation": "Tu solicitud requiere atención"
+		},
+		"greeting": "Hola",
+		"bodyIntro": "Te informamos que el estado de tu solicitud de crédito ha sido actualizado.",
+		"labelSummary": "Resumen:",
+		"labelAmount": "Monto",
+		"labelTerm": "Plazo",
+		"labelStatus": "Estado",
+		"reasonLabel": "Motivo / detalle:",
+		"footer": "Puedes ver el detalle de tu solicitud en tu panel de Topcredit."
+	}
+}
