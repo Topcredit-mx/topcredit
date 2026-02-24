@@ -93,8 +93,3 @@ export async function getUsersByRole(role: Role) {
 
 	return usersWithRole
 }
-
-/** Used during registration (no session), so we don't call getAbility. */
-export async function initializeUserRoles(userId: number) {
-	await db.insert(userRoles).values({ userId, role: 'applicant' })
-}

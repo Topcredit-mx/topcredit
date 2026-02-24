@@ -12,9 +12,8 @@ import {
 	verifyBackupCode,
 	verifyTotpToken,
 } from '~/lib/totp'
-import { initializeUserRoles } from '~/server/auth/roles'
 import { db } from '~/server/db'
-import { emailOtps, users } from '~/server/db/schema'
+import { emailOtps, userRoles, users } from '~/server/db/schema'
 import { sendGenericEmail } from '~/server/email'
 import { getApplicantEligibilityData } from './eligibility'
 import { checkRateLimit, updateRateLimitCounters } from './rate-limit'
@@ -43,7 +42,7 @@ export async function registerUser(
 	const [newUser] = await db.insert(users).values({ email, name }).returning()
 
 	if (newUser) {
-		await initializeUserRoles(newUser.id)
+		await db.insert(userRoles).values({ userId: newUser.id, role: 'applicant' })
 	}
 
 	const ip = await getClientIP()
