@@ -30,8 +30,14 @@ type Events = {
 }
 
 export type EmailEventPayload =
-	| { name: 'email/application.submitted'; data: Events['email/application.submitted']['data'] }
-	| { name: 'email/application.status'; data: Events['email/application.status']['data'] }
+	| {
+			name: 'email/application.submitted'
+			data: Events['email/application.submitted']['data']
+	  }
+	| {
+			name: 'email/application.status'
+			data: Events['email/application.status']['data']
+	  }
 	| { name: 'email/otp'; data: Events['email/otp']['data'] }
 
 export const inngest = new Inngest({
