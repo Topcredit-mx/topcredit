@@ -15,19 +15,19 @@ const INNGEST_EVENT_KEY = env.INNGEST_EVENT_KEY
 /** Event data we send to Inngest and pass to the function handler. */
 export type EmailEventData =
 	| {
-		type: 'application-submitted'
-		email: string
-		creditAmountFormatted: string
-		termLabel: string
-	}
+			type: 'application-submitted'
+			email: string
+			creditAmountFormatted: string
+			termLabel: string
+	  }
 	| {
-		type: 'application-status'
-		email: string
-		status: ApplicationStatus
-		creditAmountFormatted: string
-		termLabel: string
-		reason?: string | null
-	}
+			type: 'application-status'
+			email: string
+			status: ApplicationStatus
+			creditAmountFormatted: string
+			termLabel: string
+			reason?: string | null
+	  }
 
 /** Sends the email for the given event data. Used by Inngest functions and by inline fallback. */
 export async function sendEmailFromEventData(

@@ -3,8 +3,8 @@ import { ApplicationStatusTemplate } from '~/components/email/application-status
 import { ApplicationSubmittedTemplate } from '~/components/email/application-submitted-template'
 import { OTPTemplate } from '~/components/email/otp-template'
 import { env } from '~/env'
-import { getEmailTranslations } from '~/lib/email-i18n'
 import { isNotifyStatus } from '~/lib/application-rules'
+import { getEmailTranslations } from '~/lib/email-i18n'
 import { getLocationFromIP } from '~/lib/ip-location'
 import type { ApplicationStatus } from '~/server/db/schema'
 

@@ -28,9 +28,7 @@ export function ApplicationSubmittedTemplate({
 			<div style={{ textAlign: 'center', marginBottom: '24px' }}>
 				<div style={{ fontSize: '48px', marginBottom: '8px' }}>▲</div>
 				<h2 style={{ fontWeight: 600 }}>
-					{headingPrefix}
-					{' '}
-					<span style={{ color: '#0070f3' }}>Topcredit</span>
+					{headingPrefix} <span style={{ color: '#0070f3' }}>Topcredit</span>
 				</h2>
 			</div>
 			<div style={{ marginBottom: '16px', fontSize: '16px' }}>

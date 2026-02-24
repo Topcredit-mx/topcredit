@@ -14,14 +14,14 @@ type PathsToLeaves<T, P extends string = ''> = T extends string
 		? {
 				[K in keyof T]: PathsToLeaves<
 					T[K],
-					P extends '' ? (K & string) : `${P}.${K & string}`
+					P extends '' ? K & string : `${P}.${K & string}`
 				>
 			}[keyof T] extends infer R
 			? R extends string
 				? R
 				: never
 			: never
-	: never
+		: never
 
 /** Type-safe key: only valid paths from messages/email/es.json. */
 export type EmailMessageKey = PathsToLeaves<typeof esEmail>
@@ -50,9 +50,8 @@ let cached: { locale: string; messages: Messages } | null = null
 
 async function loadEmailMessages(locale: string): Promise<Messages> {
 	if (cached?.locale === locale) return cached.messages
-	const messages = (await import(
-		`../messages/email/${locale}.json`
-	)).default as Messages
+	const messages = (await import(`../messages/email/${locale}.json`))
+		.default as Messages
 	cached = { locale, messages }
 	return messages
 }
@@ -65,9 +64,7 @@ export type EmailT = (
 
 export type EmailTranslations = {
 	t: EmailT
-	get: (
-		key: string,
-	) => Record<string, string> | string | undefined
+	get: (key: string) => Record<string, string> | string | undefined
 }
 
 /**
@@ -81,7 +78,10 @@ export async function getEmailTranslations(
 	const messages = await loadEmailMessages(locale)
 
 	return {
-		t(key: string, params?: Record<string, string | number | undefined>): string {
+		t(
+			key: string,
+			params?: Record<string, string | number | undefined>,
+		): string {
 			const value = getNested(messages, key)
 			if (typeof value !== 'string') return key
 			return interpolate(value, params)

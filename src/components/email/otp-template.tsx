@@ -56,8 +56,7 @@ export function OTPTemplate({
 				</span>
 			</div>
 			<div style={{ fontSize: '12px', color: '#666', marginTop: '24px' }}>
-				{t('otp.footer', { location })}
-				{' '}
+				{t('otp.footer', { location })}{' '}
 				<a href="https://topcredit.com/ayuda" style={{ color: '#0070f3' }}>
 					{t('otp.helpLink')}
 				</a>
