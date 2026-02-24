@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useActionState, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '~/components/ui/button'
-import type { ApplicationStatusRequiringReason } from '~/server/db/schema'
+import type { ApplicationStatusRequiringReason } from '~/lib/application-rules'
 import {
 	updateApplicationStatus,
 	updateApplicationStatusFormAction,

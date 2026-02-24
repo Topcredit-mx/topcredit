@@ -3,7 +3,7 @@
 import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
-import { isEligibleForNewApplication } from '~/lib/abilities'
+import { isEligibleForNewApplication } from '~/lib/application-rules'
 import { getClientIP } from '~/lib/ip-location'
 import {
 	generateBackupCodes,

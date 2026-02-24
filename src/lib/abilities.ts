@@ -6,6 +6,8 @@ import {
 	type MongoQuery,
 	subject,
 } from '@casl/ability'
+import type { ApplicantEligibilityData } from '~/lib/application-rules'
+import { isEligibleForNewApplication } from '~/lib/application-rules'
 
 export { subject }
 
@@ -24,30 +26,10 @@ export type AppAbility = MongoAbility<
 	[AppAction, AppSubject | CompanySubject | UserSubject | ApplicationSubject]
 >
 
-/** Data used to decide if an applicant can create an Application (solicitud). Fetched in server; logic lives here. */
-export type ApplicantEligibilityData = {
-	hasCompany: boolean
-	borrowingCapacityRate: number | null
-	termOfferingsCount: number
-}
-
-export function isEligibleForNewApplication(
-	data: ApplicantEligibilityData | null | undefined,
-): boolean {
-	if (!data) return false
-	return (
-		data.hasCompany &&
-		data.borrowingCapacityRate != null &&
-		data.borrowingCapacityRate > 0 &&
-		data.termOfferingsCount > 0
-	)
-}
-
 export type AbilityContext = {
 	roles: string[]
 	assignedCompanyIds: number[] | 'all'
 	userId?: number
-	/** For applicants: company/rate/term data so we can gate create Application and reuse elsewhere. */
 	applicantEligibilityData?: ApplicantEligibilityData | null
 }
 

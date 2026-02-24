@@ -15,23 +15,32 @@ export const applicantB = {
 	roles: ['applicant'] as const,
 }
 
+type CompanyFixture = {
+	name: string
+	domain: string
+	rate: string
+	borrowingCapacityRate: string | null
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	active: boolean
+}
+
 /** Company with domain matching applicant@example.com and applicantb@example.com (example.com) */
-export const companyWithTerms = {
+export const companyWithTerms: CompanyFixture = {
 	name: 'E2E Credits Company',
 	domain: 'example.com',
 	rate: '0.0250',
 	borrowingCapacityRate: '0.30',
-	employeeSalaryFrequency: 'monthly' as const,
+	employeeSalaryFrequency: 'monthly',
 	active: true,
 }
 
 /** Company with no borrowingCapacityRate - applicant should see "company not ready" error */
-export const companyNoRate = {
+export const companyNoRate: CompanyFixture = {
 	name: 'E2E No Rate Company',
 	domain: 'norate.com',
 	rate: '0.0250',
-	borrowingCapacityRate: null as string | null,
-	employeeSalaryFrequency: 'monthly' as const,
+	borrowingCapacityRate: null,
+	employeeSalaryFrequency: 'monthly',
 	active: true,
 }
 
@@ -50,12 +59,12 @@ export const applicantNoRate = {
 }
 
 /** Company with rate and borrowingCapacityRate but no term offerings */
-export const companyNoTerms = {
+export const companyNoTerms: CompanyFixture = {
 	name: 'E2E No Terms Company',
 	domain: 'noterms.com',
 	rate: '0.0250',
 	borrowingCapacityRate: '0.30',
-	employeeSalaryFrequency: 'monthly' as const,
+	employeeSalaryFrequency: 'monthly',
 	active: true,
 }
 

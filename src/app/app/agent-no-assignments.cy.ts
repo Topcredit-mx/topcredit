@@ -10,14 +10,11 @@ describe('Agent without assignments (US-2.2.4)', () => {
 	const email = agentNoAssignments.email
 
 	before(() => {
-		cy.task('deleteUserCompanyAssignmentsByEmail', [email])
-		cy.task('deleteUsersByEmail', [email])
-		cy.task('createUser', agentNoAssignments)
+		cy.task('seedAgentNoAssignments')
 	})
 
 	after(() => {
-		cy.task('deleteUserCompanyAssignmentsByEmail', [email])
-		cy.task('deleteUsersByEmail', [email])
+		cy.task('cleanupAgentNoAssignments')
 	})
 
 	beforeEach(() => {

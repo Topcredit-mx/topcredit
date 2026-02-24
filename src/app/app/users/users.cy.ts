@@ -5,43 +5,16 @@ import {
 	companies,
 	companyList,
 	findRoleCheckbox,
-	userList,
 	users,
 } from './users.fixtures'
 
 describe('Admin Users', () => {
 	before(() => {
-		const allUserEmails = [
-			adminUser.email,
-			applicantOnlyUser.email,
-			agentOnlyUser.email,
-			...userList.map((u) => u.email),
-		]
-		const companyDomains = companyList.map((c) => c.domain)
-
-		cy.task('deleteUserCompanyAssignmentsByEmail', allUserEmails)
-		cy.task('deleteUsersByEmail', allUserEmails)
-		cy.task('deleteCompaniesByDomain', companyDomains)
-
-		cy.task('createUser', adminUser)
-		cy.task('createUser', applicantOnlyUser)
-		cy.task('createUser', agentOnlyUser)
-		cy.task('createMultipleUsers', userList)
-		cy.task('createMultipleCompanies', companyList)
+		cy.task('seedAdminUsers')
 	})
 
 	after(() => {
-		const allUserEmails = [
-			adminUser.email,
-			applicantOnlyUser.email,
-			agentOnlyUser.email,
-			...userList.map((u) => u.email),
-		]
-		const companyDomains = companyList.map((c) => c.domain)
-
-		cy.task('deleteUserCompanyAssignmentsByEmail', allUserEmails)
-		cy.task('deleteUsersByEmail', allUserEmails)
-		cy.task('deleteCompaniesByDomain', companyDomains)
+		cy.task('cleanupAdminUsers')
 	})
 
 	describe('Access Control', () => {
@@ -237,10 +210,8 @@ describe('Admin Users', () => {
 		it('should redirect to unauthorized when adding role after admin was removed in another screen', () => {
 			cy.visit('/app/users')
 
-			// Simulate: another screen/tab removed this user's admin role
 			cy.task('removeRole', { email: adminUser.email, role: 'admin' })
 
-			// Try to add a role (e.g. Admin to another user) – should redirect to unauthorized
 			cy.findTableRow(agentOnlyUser.name).then(($row) => {
 				findRoleCheckbox(cy.wrap($row), 'Admin').click()
 			})
@@ -248,21 +219,18 @@ describe('Admin Users', () => {
 			cy.url().should('include', '/unauthorized')
 			cy.contains(/no autorizado|unauthorized/i).should('be.visible')
 
-			// Revert: restore admin role
 			cy.task('assignRole', { email: adminUser.email, role: 'admin' })
 		})
 
 		it('should redirect to unauthorized when reloading users screen after admin was removed in another screen', () => {
 			cy.visit('/app/users')
 
-			// Simulate: another admin removed this user's admin role
 			cy.task('removeRole', { email: adminUser.email, role: 'admin' })
 
 			cy.reload()
 			cy.url().should('include', '/unauthorized')
 			cy.contains(/no autorizado|unauthorized/i).should('be.visible')
 
-			// Revert: restore admin role
 			cy.task('assignRole', { email: adminUser.email, role: 'admin' })
 		})
 	})

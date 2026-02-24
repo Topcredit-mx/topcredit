@@ -11,317 +11,38 @@
  * - Reject/invalid-documentation require reason.
  */
 
+import type { SeedApplicationsReviewResult } from '../../../../cypress/tasks'
 import {
 	agentForReview,
-	applicantA2,
-	applicantA3,
-	applicantA4,
 	applicantA5,
 	applicantForReview,
-	applicantForReviewB,
-	applicantForReviewC,
 	applicantForReviewD,
 	companyForReview,
 } from './applications-review.fixtures'
 
-/** Use as cy.task<TaskEntityId>('createUser', ...) so the chain infers the subject. */
-type TaskEntityId = { id: number }
-
 const agentEmail = agentForReview.email
 const applicantEmail = applicantForReview.email
 const companyDomain = companyForReview.domain
-/** Second company for cross-company 404 test; agent is not assigned to it. */
-const companyBDomain = 'othercompany.com'
-/** Company with no agent assignments – only admin (all scope) can see. */
-const companyCDomain = 'adminonly.com'
-/** Inactive company – not in picker; cookie cleared if selected. */
-const companyDDomain = 'inactivecompany.com'
-
-const applicantBEmail = applicantForReviewB.email
-const applicantCEmail = applicantForReviewC.email
-const applicantDEmail = applicantForReviewD.email
-const applicantA2Email = applicantA2.email
-const applicantA3Email = applicantA3.email
-const applicantA4Email = applicantA4.email
-const applicantA5Email = applicantA5.email
 
 describe('App Applications Review (Phase 3)', () => {
-	let applicantId: number
-	let applicant2Id: number
-	let applicant3Id: number
-	let applicant4Id: number
-	let applicant5Id: number
-	let applicantBId: number
-	let companyId: number
-	let termId: number
-	let _applicationId: number
-	let companyBId: number
-	let companyBApplicationId: number
-	let applicantCId: number
-	let companyCId: number
-	let applicantDId: number
-	let companyDId: number
+	let seed: SeedApplicationsReviewResult
 
 	before(() => {
-		cy.task('deleteUsersByEmail', [
-			agentEmail,
-			applicantEmail,
-			applicantA2Email,
-			applicantA3Email,
-			applicantA4Email,
-			applicantA5Email,
-			applicantBEmail,
-			applicantCEmail,
-			applicantDEmail,
-		])
-		cy.task('deleteCompaniesByDomain', [
-			companyDomain,
-			companyBDomain,
-			companyCDomain,
-			companyDDomain,
-		])
-
-		cy.task<TaskEntityId>('createUser', applicantForReview)
-			.then((user) => {
-				applicantId = user.id
-				return cy.task('createUser', agentForReview)
-			})
-			.then(() => cy.task<TaskEntityId>('createUser', applicantA2))
-			.then((u2) => {
-				applicant2Id = u2.id
-				return cy.task<TaskEntityId>('createUser', applicantA3)
-			})
-			.then((u3) => {
-				applicant3Id = u3.id
-				return cy.task<TaskEntityId>('createUser', applicantA4)
-			})
-			.then((u4) => {
-				applicant4Id = u4.id
-				return cy.task<TaskEntityId>('createUser', applicantA5)
-			})
-			.then((u5) => {
-				applicant5Id = u5.id
-				return cy.task<TaskEntityId>('createCompany', {
-					...companyForReview,
-					borrowingCapacityRate:
-						companyForReview.borrowingCapacityRate ?? undefined,
-				})
-			})
-			.then((company) => {
-				companyId = company.id
-				return cy.task<TaskEntityId>('createTerm', {
-					durationType: 'monthly',
-					duration: 12,
-				})
-			})
-			.then((term) => {
-				termId = term.id
-				return cy.task<TaskEntityId>('createTermOffering', {
-					companyId,
-					termId,
-					disabled: false,
-				})
-			})
-			.then((offering) => {
-				return cy
-					.task('assignCompanyToUser', {
-						userEmail: agentEmail,
-						companyDomain,
-					})
-					.then(() => offering)
-			})
-			.then((offering) =>
-				cy
-					.task<TaskEntityId>('createApplication', {
-						applicantId,
-						termOfferingId: offering.id,
-						creditAmount: '25000',
-						salaryAtApplication: '40000',
-						status: 'pending',
-					})
-					.then((app) => {
-						_applicationId = app.id
-						return cy.task<TaskEntityId>('createApplication', {
-							applicantId: applicant2Id,
-							termOfferingId: offering.id,
-							creditAmount: '30000',
-							salaryAtApplication: '40000',
-							status: 'pending',
-						})
-					})
-					.then(() =>
-						cy.task<TaskEntityId>('createApplication', {
-							applicantId: applicant3Id,
-							termOfferingId: offering.id,
-							creditAmount: '35000',
-							salaryAtApplication: '40000',
-							status: 'pending',
-						}),
-					)
-					.then(() =>
-						cy.task<TaskEntityId>('createApplication', {
-							applicantId: applicant4Id,
-							termOfferingId: offering.id,
-							creditAmount: '40000',
-							salaryAtApplication: '40000',
-							status: 'pending',
-						}),
-					)
-					.then(() =>
-						cy.task<TaskEntityId>('createApplication', {
-							applicantId: applicant5Id,
-							termOfferingId: offering.id,
-							creditAmount: '45000',
-							salaryAtApplication: '40000',
-							status: 'pending',
-						}),
-					),
-			)
-			.then(() =>
-				cy.task<TaskEntityId>('createCompany', {
-					name: 'Other Company',
-					domain: companyBDomain,
-					rate: '0.02',
-					employeeSalaryFrequency: 'monthly',
-					active: true,
-				}),
-			)
-			.then((companyB) => {
-				companyBId = companyB.id
-				return cy.task<TaskEntityId>('createUser', applicantForReviewB)
-			})
-			.then((user) => {
-				applicantBId = user.id
-				return cy.task('assignCompanyToUser', {
-					userEmail: agentEmail,
-					companyDomain: companyBDomain,
-				})
-			})
-			.then(() =>
-				cy.task<TaskEntityId>('createTermOffering', {
-					companyId: companyBId,
-					termId,
-					disabled: false,
-				}),
-			)
-			.then((offeringB) =>
-				cy.task<TaskEntityId>('createApplication', {
-					applicantId: applicantBId,
-					termOfferingId: offeringB.id,
-					creditAmount: '15000',
-					salaryAtApplication: '40000',
-					status: 'pending',
-				}),
-			)
-			.then((appB) => {
-				companyBApplicationId = appB.id
-			})
-			.then(() =>
-				cy.task<TaskEntityId>('createCompany', {
-					name: 'Admin-Only Company',
-					domain: companyCDomain,
-					rate: '0.02',
-					employeeSalaryFrequency: 'monthly',
-					active: true,
-				}),
-			)
-			.then((companyC) => {
-				companyCId = companyC.id
-				return cy.task<TaskEntityId>('createUser', applicantForReviewC)
-			})
-			.then((user) => {
-				applicantCId = user.id
-				return cy.task<TaskEntityId>('createTermOffering', {
-					companyId: companyCId,
-					termId,
-					disabled: false,
-				})
-			})
-			.then((offeringC) =>
-				cy.task<TaskEntityId>('createApplication', {
-					applicantId: applicantCId,
-					termOfferingId: offeringC.id,
-					creditAmount: '8000',
-					salaryAtApplication: '40000',
-					status: 'pending',
-				}),
-			)
-			.then(() =>
-				cy.task<TaskEntityId>('createCompany', {
-					name: 'Inactive Company',
-					domain: companyDDomain,
-					rate: '0.02',
-					employeeSalaryFrequency: 'monthly',
-					active: false,
-				}),
-			)
-			.then((companyD) => {
-				companyDId = companyD.id
-				return cy.task<TaskEntityId>('createUser', applicantForReviewD)
-			})
-			.then((user) => {
-				applicantDId = user.id
-				return cy.task('assignCompanyToUser', {
-					userEmail: agentEmail,
-					companyDomain: companyDDomain,
-				})
-			})
-			.then(() =>
-				cy.task<TaskEntityId>('createTermOffering', {
-					companyId: companyDId,
-					termId,
-					disabled: false,
-				}),
-			)
-			.then((offeringD) =>
-				cy.task<TaskEntityId>('createApplication', {
-					applicantId: applicantDId,
-					termOfferingId: offeringD.id,
-					creditAmount: '5000',
-					salaryAtApplication: '40000',
-					status: 'pending',
-				}),
-			)
+		cy.task<SeedApplicationsReviewResult>('seedApplicationsReview').then(
+			(result) => {
+				seed = result
+			},
+		)
 	})
 
 	after(() => {
-		cy.task('deleteApplicationsByApplicantId', applicantId)
-		cy.task('deleteApplicationsByApplicantId', applicant2Id)
-		cy.task('deleteApplicationsByApplicantId', applicant3Id)
-		cy.task('deleteApplicationsByApplicantId', applicant4Id)
-		cy.task('deleteApplicationsByApplicantId', applicant5Id)
-		cy.task('deleteApplicationsByApplicantId', applicantBId)
-		cy.task('deleteApplicationsByApplicantId', applicantCId)
-		cy.task('deleteApplicationsByApplicantId', applicantDId)
-		cy.task('deleteTermOfferingsByCompanyId', companyId)
-		cy.task('deleteTermOfferingsByCompanyId', companyBId)
-		cy.task('deleteTermOfferingsByCompanyId', companyCId)
-		cy.task('deleteTermOfferingsByCompanyId', companyDId)
-		cy.task('deleteTermById', termId)
-		cy.task('deleteCompaniesByDomain', [
-			companyDomain,
-			companyBDomain,
-			companyCDomain,
-			companyDDomain,
-		])
-		cy.task('deleteUserCompanyAssignmentsByEmail', [agentEmail])
-		cy.task('deleteUsersByEmail', [
-			agentEmail,
-			applicantEmail,
-			applicantA2Email,
-			applicantA3Email,
-			applicantA4Email,
-			applicantA5Email,
-			applicantBEmail,
-			applicantCEmail,
-			applicantDEmail,
-		])
+		cy.task('cleanupApplicationsReview', { termId: seed.termId })
 	})
 
 	describe('Agent with company selected', () => {
 		beforeEach(() => {
 			cy.login(agentEmail)
-			cy.setCookie('selected_company_id', String(companyId))
+			cy.setCookie('selected_company_id', String(seed.companyId))
 			cy.visit('/app/applications')
 		})
 
@@ -432,7 +153,7 @@ describe('App Applications Review (Phase 3)', () => {
 		})
 
 		it('application from another company returns 404', () => {
-			cy.visit(`/app/applications/${companyBApplicationId}`)
+			cy.visit(`/app/applications/${seed.companyBApplicationId}`)
 			cy.contains(applicantForReview.name).should('not.exist')
 			cy.contains(/detalle de solicitud/i).should('not.exist')
 		})
@@ -481,8 +202,7 @@ describe('App Applications Review (Phase 3)', () => {
 	describe('Admin with company selected', () => {
 		const adminEmail = 'admin.review@example.com'
 		before(() => {
-			cy.task('deleteUsersByEmail', [adminEmail])
-			cy.task('createUser', {
+			cy.task('resetUser', {
 				name: 'Admin Review',
 				email: adminEmail,
 				roles: ['agent', 'admin'] as const,
@@ -499,7 +219,7 @@ describe('App Applications Review (Phase 3)', () => {
 
 		beforeEach(() => {
 			cy.login(adminEmail)
-			cy.setCookie('selected_company_id', String(companyId))
+			cy.setCookie('selected_company_id', String(seed.companyId))
 			cy.visit('/app/applications')
 		})
 
@@ -517,8 +237,7 @@ describe('App Applications Review (Phase 3)', () => {
 	describe('Admin with no company selected', () => {
 		const adminEmail = 'admin.review@example.com'
 		before(() => {
-			cy.task('deleteUsersByEmail', [adminEmail])
-			cy.task('createUser', {
+			cy.task('resetUser', {
 				name: 'Admin Review',
 				email: adminEmail,
 				roles: ['agent', 'admin'] as const,
@@ -563,8 +282,7 @@ describe('App Applications Review (Phase 3)', () => {
 	describe('Inactive company (admin and agent)', () => {
 		const adminEmail = 'admin.review@example.com'
 		before(() => {
-			cy.task('deleteUsersByEmail', [adminEmail])
-			cy.task('createUser', {
+			cy.task('resetUser', {
 				name: 'Admin Review',
 				email: adminEmail,
 				roles: ['agent', 'admin'] as const,
@@ -589,7 +307,7 @@ describe('App Applications Review (Phase 3)', () => {
 		it('agent: cookie with inactive company falls back to all-assigned view', () => {
 			cy.login(agentEmail)
 			cy.visit('/app')
-			cy.setCookie('selected_company_id', String(companyDId))
+			cy.setCookie('selected_company_id', String(seed.companyDId))
 			cy.visit('/app/applications')
 			cy.get('table tbody tr').should('have.length', 6)
 			cy.contains('inactivecompany.com').should('not.exist')
@@ -622,7 +340,7 @@ describe('App Applications Review (Phase 3)', () => {
 		it('admin: cookie with inactive company falls back to all-companies view', () => {
 			cy.login(adminEmail)
 			cy.visit('/app')
-			cy.setCookie('selected_company_id', String(companyDId))
+			cy.setCookie('selected_company_id', String(seed.companyDId))
 			cy.visit('/app/applications')
 			cy.get('table tbody tr').should('have.length', 7)
 			cy.contains('inactivecompany.com').should('not.exist')

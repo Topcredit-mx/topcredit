@@ -8,41 +8,17 @@
 import {
 	agentWithAssignments,
 	companyAssignedActive,
-	companyAssignedActive2,
-	companyAssignedInactive,
-	switcherCompanyList,
 } from './company-switcher.fixtures'
 
 describe('Agent with no company picked', () => {
 	const agentEmail = agentWithAssignments.email
-	const companyDomains = switcherCompanyList.map((c) => c.domain)
 
 	before(() => {
-		cy.task('deleteUserCompanyAssignmentsByEmail', [agentEmail])
-		cy.task('deleteUsersByEmail', [agentEmail])
-		cy.task('deleteCompaniesByDomain', companyDomains)
-
-		cy.task('createUser', agentWithAssignments)
-		cy.task('createMultipleCompanies', switcherCompanyList)
-
-		cy.task('assignCompanyToUser', {
-			userEmail: agentEmail,
-			companyDomain: companyAssignedActive.domain,
-		})
-		cy.task('assignCompanyToUser', {
-			userEmail: agentEmail,
-			companyDomain: companyAssignedActive2.domain,
-		})
-		cy.task('assignCompanyToUser', {
-			userEmail: agentEmail,
-			companyDomain: companyAssignedInactive.domain,
-		})
+		cy.task('seedCompanySwitcher')
 	})
 
 	after(() => {
-		cy.task('deleteUserCompanyAssignmentsByEmail', [agentEmail])
-		cy.task('deleteUsersByEmail', [agentEmail])
-		cy.task('deleteCompaniesByDomain', companyDomains)
+		cy.task('cleanupCompanySwitcher')
 	})
 
 	beforeEach(() => {

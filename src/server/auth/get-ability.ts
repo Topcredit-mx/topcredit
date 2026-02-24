@@ -1,12 +1,9 @@
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
-import type {
-	AbilityContext,
-	AppAbility,
-	ApplicantEligibilityData,
-} from '~/lib/abilities'
+import type { AbilityContext, AppAbility } from '~/lib/abilities'
 import { defineAbilityFor } from '~/lib/abilities'
+import type { ApplicantEligibilityData } from '~/lib/application-rules'
 import { requireAuth } from '~/lib/auth-utils'
 import { db } from '~/server/db'
 import { userRoles } from '~/server/db/schema'

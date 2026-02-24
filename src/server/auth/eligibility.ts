@@ -1,10 +1,10 @@
-import type { ApplicantEligibilityData } from '~/lib/abilities'
+import type { ApplicantEligibilityData } from '~/lib/application-rules'
 import {
 	getCompanyByEmailDomain,
 	getTermOfferingsForCompany,
 } from '~/server/queries'
 
-/** Fetches eligibility data for an applicant. Eligibility logic lives in ~/lib/abilities (isEligibleForNewApplication). */
+/** Fetches eligibility data for an applicant. Eligibility logic lives in ~/lib/application-rules. */
 export async function getApplicantEligibilityData(
 	email: string,
 ): Promise<ApplicantEligibilityData> {

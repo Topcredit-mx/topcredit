@@ -1,6 +1,6 @@
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { isEligibleForNewApplication } from '~/lib/abilities'
+import { isEligibleForNewApplication } from '~/lib/application-rules'
 import {
 	verifyBackupCodeLogin,
 	verifyOtp,

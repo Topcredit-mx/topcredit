@@ -30,6 +30,7 @@ import {
 } from '~/components/ui/dialog'
 import { Label } from '~/components/ui/label'
 import type { Role } from '~/lib/auth-utils'
+import { ASSIGNABLE_ROLES } from '~/lib/user-rules'
 import { toggleUserRole, updateUserCompanies } from '~/server/mutations'
 import type { CompanyBasic, UserForTable } from '~/server/queries'
 
@@ -272,8 +273,7 @@ export function createColumns(
 	onUserCompaniesChange: (userId: number, companyIds: number[]) => void,
 	t: ReturnType<typeof useTranslations<'admin'>>,
 ): ColumnDef<UserForTable, unknown>[] {
-	// Only show assignable roles (not applicant, not base agent - removing agent would drop user from this page with no way to restore)
-	const rolesToShow: Role[] = ['requests', 'admin']
+	const rolesToShow = ASSIGNABLE_ROLES
 	const roleLabels: Record<Role, string> = {
 		applicant: t('users-role-applicant'),
 		agent: t('users-role-agent'),

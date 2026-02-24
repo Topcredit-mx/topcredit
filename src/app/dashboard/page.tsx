@@ -11,9 +11,10 @@ import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
+import { isActiveApplicationStatus } from '~/lib/application-rules'
 import { getRequiredApplicantUser } from '~/server/auth/lib'
 import { db } from '~/server/db'
-import { isActiveApplicationStatus, users } from '~/server/db/schema'
+import { users } from '~/server/db/schema'
 import { getApplicationsByApplicantId } from '~/server/queries'
 
 export default async function DashboardPage() {

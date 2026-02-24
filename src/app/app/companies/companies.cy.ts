@@ -1,39 +1,26 @@
-import { adminUser, companies, companyList } from './companies.fixtures'
+import { adminUser, companies } from './companies.fixtures'
 
 describe('Admin Companies List', () => {
 	before(() => {
-		// Clean up any stale data from previous interrupted runs
-		const allDomains = companyList.map((c) => c.domain)
-		cy.task('deleteCompaniesByDomain', allDomains)
-		cy.task('deleteUsersByEmail', [adminUser.email])
-		// Create admin user
-		cy.task('createUser', adminUser)
-		// Create test companies
-		cy.task('createMultipleCompanies', companyList)
+		cy.task('seedAdminCompanies')
 	})
 
 	after(() => {
-		// Cleanup all test companies
-		const allDomains = companyList.map((c) => c.domain)
-		cy.task('deleteCompaniesByDomain', allDomains)
-		// Cleanup admin user
-		cy.task('deleteUsersByEmail', [adminUser.email])
+		cy.task('cleanupAdminCompanies')
 	})
 
 	describe('Access Control', () => {
 		it('should redirect non-admin users to unauthorized page', () => {
-			// Create a non-admin agent
 			const agentUser = {
 				name: 'Agent User',
 				email: 'agent.companies@example.com',
 				roles: ['agent', 'requests'] as const,
 			}
-			cy.task('createUser', agentUser)
+			cy.task('resetUser', agentUser)
 			cy.login(agentUser.email)
 			cy.visit('/app/companies')
 			cy.url().should('include', '/unauthorized')
 
-			// Cleanup
 			cy.task('deleteUsersByEmail', [agentUser.email])
 		})
 
@@ -51,7 +38,6 @@ describe('Admin Companies List', () => {
 		})
 
 		it('should display companies table with correct columns', () => {
-			// Table and headers may be clipped by overflow; assert presence only
 			cy.get('table').should('exist')
 			cy.get('table').within(() => {
 				cy.contains('th', /nombre/i).should('exist')
@@ -74,10 +60,10 @@ describe('Admin Companies List', () => {
 			cy.get('table').should('contain', companies.acme.domain)
 			cy.findTableRow(companies.acme.name).within(() => {
 				cy.contains(companies.acme.domain).should('exist')
-				cy.contains('2.50%').should('exist') // rate formatted as percentage
-				cy.contains('30%').should('exist') // borrowing capacity rate as percentage
-				cy.contains('Mensual').should('exist') // monthly translated
-				cy.contains('Activa').should('exist') // active badge
+				cy.contains('2.50%').should('exist')
+				cy.contains('30%').should('exist')
+				cy.contains('Mensual').should('exist')
+				cy.contains('Activa').should('exist')
 			})
 		})
 
@@ -89,7 +75,7 @@ describe('Admin Companies List', () => {
 
 		it('should display companies without borrowing capacity rate', () => {
 			cy.findTableRow(companies.techstart.name).within(() => {
-				cy.contains('-').should('exist') // null borrowing capacity rate shows as dash
+				cy.contains('-').should('exist')
 			})
 		})
 
@@ -150,7 +136,6 @@ describe('Admin Companies List', () => {
 		const creationTestDomains = ['newtest.com', 'norate.com']
 
 		before(() => {
-			// Clean up any stale data from previous interrupted runs
 			cy.task('deleteCompaniesByDomain', creationTestDomains)
 		})
 
@@ -181,11 +166,10 @@ describe('Admin Companies List', () => {
 
 			cy.visit('/app/companies/new')
 
-			// Fill form
 			cy.get('input[name="name"]').type(newCompany.name)
 			cy.get('input[name="domain"]').type(newCompany.domain)
-			cy.get('input[name="rate"]').type('2.75') // User enters as percentage
-			cy.get('input[name="borrowingCapacityRate"]').type('35') // User enters as percentage
+			cy.get('input[name="rate"]').type('2.75')
+			cy.get('input[name="borrowingCapacityRate"]').type('35')
 			cy.selectRadix(
 				'employeeSalaryFrequency',
 				newCompany.employeeSalaryFrequency === 'monthly'
@@ -193,15 +177,12 @@ describe('Admin Companies List', () => {
 					: 'Quincenal',
 			)
 
-			// Submit form
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			// Should redirect to list and show new company
 			cy.url().should('include', '/app/companies')
 			cy.contains(newCompany.name).should('exist')
 			cy.contains(newCompany.domain).should('exist')
 
-			// Cleanup
 			cy.task('deleteCompaniesByDomain', [newCompany.domain])
 		})
 
@@ -218,26 +199,21 @@ describe('Admin Companies List', () => {
 			cy.get('input[name="name"]').type(newCompany.name)
 			cy.get('input[name="domain"]').type(newCompany.domain)
 			cy.get('input[name="rate"]').type('2.5')
-			cy.selectRadix('employeeSalaryFrequency', 'Quincenal') // bi-monthly = Quincenal
-			// Leave borrowingCapacityRate empty
+			cy.selectRadix('employeeSalaryFrequency', 'Quincenal')
 
 			cy.contains('button', /crear|guardar|submit/i).click()
 
 			cy.url().should('include', '/app/companies')
 			cy.contains(newCompany.name).should('exist')
 
-			// Cleanup
 			cy.task('deleteCompaniesByDomain', [newCompany.domain])
 		})
 
 		it('should validate required fields', () => {
 			cy.visit('/app/companies/new')
 
-			// Try to submit empty form
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			// Should show validation errors for required fields
-			// Check for error messages (they appear after blur/submit)
 			cy.contains(/el nombre es requerido|nombre es requerido/i).should(
 				'be.visible',
 			)
@@ -252,15 +228,13 @@ describe('Admin Companies List', () => {
 		it('should validate domain uniqueness', () => {
 			cy.visit('/app/companies/new')
 
-			// Use existing domain
 			cy.get('input[name="name"]').type('Duplicate Domain Company')
-			cy.get('input[name="domain"]').type('acme.com') // Already exists
+			cy.get('input[name="domain"]').type('acme.com')
 			cy.get('input[name="rate"]').type('2.5')
 			cy.selectRadix('employeeSalaryFrequency', 'Mensual')
 
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			// Should show error about duplicate domain
 			cy.contains(/ya existe|duplicate|único/i).should('be.visible')
 		})
 
@@ -274,7 +248,6 @@ describe('Admin Companies List', () => {
 
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			// Should show domain format error
 			cy.contains(/formato|format|válido/i).should('be.visible')
 		})
 
@@ -283,12 +256,11 @@ describe('Admin Companies List', () => {
 
 			cy.get('input[name="name"]').type('Invalid Rate')
 			cy.get('input[name="domain"]').type('invalidrate.com')
-			cy.get('input[name="rate"]').type('-5') // Negative rate
+			cy.get('input[name="rate"]').type('-5')
 			cy.selectRadix('employeeSalaryFrequency', 'Mensual')
 
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			// Should show validation error
 			cy.contains(/positivo|positive|mayor/i).should('be.visible')
 		})
 
@@ -298,12 +270,11 @@ describe('Admin Companies List', () => {
 			cy.get('input[name="name"]').type('Invalid Capacity')
 			cy.get('input[name="domain"]').type('invalidcap.com')
 			cy.get('input[name="rate"]').type('2.5')
-			cy.get('input[name="borrowingCapacityRate"]').type('150') // Over 100%
+			cy.get('input[name="borrowingCapacityRate"]').type('150')
 			cy.selectRadix('employeeSalaryFrequency', 'Mensual')
 
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			// Should show validation error (matches actual Zod schema message)
 			cy.contains(
 				/menor o igual a 100|less than or equal to 100|entre 0 y 100|between 0 and 100/i,
 			).should('be.visible')
@@ -329,7 +300,7 @@ describe('Admin Companies List', () => {
 				employeeSalaryFrequency: 'monthly' as const,
 				active: true,
 			}
-			cy.task('createCompany', editCompany)
+			cy.task('resetCompany', editCompany)
 		})
 
 		after(() => {
@@ -355,33 +326,27 @@ describe('Admin Companies List', () => {
 
 			cy.get('input[name="name"]').should('have.value', editCompany.name)
 			cy.get('input[name="domain"]').should('have.value', editCompany.domain)
-			cy.get('input[name="rate"]').should('have.value', '2.5') // Displayed as percentage
-			cy.get('input[name="borrowingCapacityRate"]').should('have.value', '30') // Displayed as percentage
-			// Check select value by checking the trigger button text
-			// Find the Field containing the label, then find the select trigger within it
+			cy.get('input[name="rate"]').should('have.value', '2.5')
+			cy.get('input[name="borrowingCapacityRate"]').should('have.value', '30')
 			cy.contains('label', /frecuencia de pago/i)
 				.closest('[data-slot="field"]')
 				.find('[data-slot="select-trigger"]')
-				.should('contain', 'Mensual') // monthly = Mensual
+				.should('contain', 'Mensual')
 		})
 
 		it('should update company details', () => {
 			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 
-			// Update fields
 			cy.get('input[name="name"]').clear().type('Updated Company Name')
 			cy.get('input[name="rate"]').clear().type('3.0')
 			cy.get('input[name="borrowingCapacityRate"]').clear().type('40')
 
 			cy.contains('button', /guardar|save|actualizar/i).click()
 
-			// Should redirect and show updated data
 			cy.url().should('include', '/app/companies')
-			// Filter to find the row (table is paginated; "Updated..." may be on page 2)
 			cy.get('input[aria-label="Filtrar empresas..."]').type('Updated')
 			cy.contains('Updated Company Name').should('exist')
 
-			// Revert changes
 			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 			cy.get('input[name="name"]').clear().type(editCompany.name)
 			cy.get('input[name="rate"]').clear().type('2.5')
@@ -392,18 +357,15 @@ describe('Admin Companies List', () => {
 		it('should toggle active status', () => {
 			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 
-			// Toggle active checkbox - click the label which is set up to toggle the checkbox
 			cy.contains('label', /activa/i).click()
 
 			cy.contains('button', /guardar|save/i).click()
 
-			// Should show inactive badge
 			cy.url().should('include', '/app/companies')
 			cy.findTableRow(editCompany.name).within(() => {
 				cy.contains('Inactiva').should('exist')
 			})
 
-			// Revert
 			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 			cy.contains('label', /activa/i).click()
 			cy.contains('button', /guardar|save/i).click()
@@ -412,7 +374,6 @@ describe('Admin Companies List', () => {
 		it('should prevent editing domain to duplicate value', () => {
 			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 
-			// Domain field should be disabled when editing (domains cannot be changed after creation)
 			cy.get('input[name="domain"]').should('be.disabled')
 			cy.contains(/el dominio no puede ser modificado/i).should('be.visible')
 		})

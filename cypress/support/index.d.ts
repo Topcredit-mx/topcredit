@@ -11,20 +11,12 @@ declare namespace Cypress {
 		findTableRow(name: string): Chainable<JQuery<HTMLTableRowElement>>
 		task(event: 'login', params: string): Chainable<string>
 		task(
-			event: 'createUser',
-			params: CreateUserTaskParams,
+			event: 'resetUser',
+			params: ResetUserTaskParams,
 		): Chainable<{ id: number }>
 		task(
-			event: 'createCompany',
-			params: CreateCompanyTaskParams,
-		): Chainable<{ id: number }>
-		task(
-			event: 'createTerm',
-			params: CreateTermTaskParams,
-		): Chainable<{ id: number }>
-		task(
-			event: 'createTermOffering',
-			params: CreateTermOfferingTaskParams,
+			event: 'resetCompany',
+			params: ResetCompanyTaskParams,
 		): Chainable<{ id: number }>
 		task(event: 'getUserIdByEmail', email: string): Chainable<number | null>
 		task(
@@ -32,24 +24,63 @@ declare namespace Cypress {
 			applicantId: number,
 		): Chainable<null>
 		task(
-			event: 'createApplication',
-			params: CreateApplicationTaskParams,
-		): Chainable<{ id: number }>
-		task(
 			event: 'assignCompanyToUser',
 			params: AssignCompanyToUserTaskParams,
 		): Chainable<null>
-		task(
-			event: 'deleteTermOfferingsByCompanyId',
-			companyId: number,
-		): Chainable<null>
-		task(event: 'deleteTermById', termId: number): Chainable<null>
 		task(
 			event: 'deleteUserCompanyAssignmentsByEmail',
 			emails: string[],
 		): Chainable<null>
 		task(event: 'deleteUsersByEmail', emails: string[]): Chainable<null>
 		task(event: 'deleteCompaniesByDomain', domains: string[]): Chainable<null>
+		task(event: 'assignRole', params: AssignRoleTaskParams): Chainable<null>
+		task(event: 'removeRole', params: RemoveRoleTaskParams): Chainable<null>
+		task(event: 'enableTotpForUser', email: string): Chainable<null>
+		task(
+			event: 'resetApplicantApplication',
+			params: ResetApplicantApplicationTaskParams,
+		): Chainable<{ id: number }>
+		task(
+			event: 'seedLoginFlow',
+		): Chainable<import('../tasks').SeedLoginFlowResult>
+		task(
+			event: 'cleanupLoginFlow',
+			params: import('../tasks').CleanupLoginFlowParams,
+		): Chainable<null>
+		task(
+			event: 'seedDashboardApplications',
+		): Chainable<import('../tasks').SeedDashboardApplicationsResult>
+		task(
+			event: 'cleanupDashboardApplications',
+			params: import('../tasks').CleanupDashboardApplicationsParams,
+		): Chainable<null>
+		task(
+			event: 'seedCompanySwitcher',
+		): Chainable<import('../tasks').SeedCompanySwitcherResult>
+		task(event: 'cleanupCompanySwitcher'): Chainable<null>
+		task(
+			event: 'seedAdminUsers',
+		): Chainable<import('../tasks').SeedAdminUsersResult>
+		task(event: 'cleanupAdminUsers'): Chainable<null>
+		task(
+			event: 'seedAdminCompanies',
+		): Chainable<import('../tasks').SeedAdminCompaniesResult>
+		task(event: 'cleanupAdminCompanies'): Chainable<null>
+		task(event: 'seedAdminOverview'): Chainable<null>
+		task(event: 'cleanupAdminOverview'): Chainable<null>
+		task(event: 'seedAgentNoAssignments'): Chainable<null>
+		task(event: 'cleanupAgentNoAssignments'): Chainable<null>
+		task(event: 'seedSecurity'): Chainable<null>
+		task(event: 'cleanupSecurity'): Chainable<null>
+		task(event: 'seedProfile'): Chainable<null>
+		task(event: 'cleanupProfile'): Chainable<null>
+		task(
+			event: 'seedApplicationsReview',
+		): Chainable<import('../tasks').SeedApplicationsReviewResult>
+		task(
+			event: 'cleanupApplicationsReview',
+			params: import('../tasks').CleanupApplicationsReviewParams,
+		): Chainable<null>
 	}
 }
 
@@ -58,15 +89,14 @@ type AssignCompanyToUserTaskParams = {
 	companyDomain: string
 }
 
-type CreateUserTaskParams = {
+type ResetUserTaskParams = {
 	name: string
 	email: string
 	roles?: ReadonlyArray<'applicant' | 'agent' | 'requests' | 'admin'>
-	/** Default true. Set false for verification-specific E2E tests. */
 	verified?: boolean
 }
 
-type CreateCompanyTaskParams = {
+type ResetCompanyTaskParams = {
 	name: string
 	domain: string
 	rate: string
@@ -75,18 +105,17 @@ type CreateCompanyTaskParams = {
 	active?: boolean
 }
 
-type CreateTermTaskParams = {
-	durationType: 'bi-monthly' | 'monthly'
-	duration: number
+type AssignRoleTaskParams = {
+	email: string
+	role: 'applicant' | 'agent' | 'requests' | 'admin'
 }
 
-type CreateTermOfferingTaskParams = {
-	companyId: number
-	termId: number
-	disabled?: boolean
+type RemoveRoleTaskParams = {
+	email: string
+	role: 'applicant' | 'agent' | 'requests' | 'admin'
 }
 
-type CreateApplicationTaskParams = {
+type ResetApplicantApplicationTaskParams = {
 	applicantId: number
 	termOfferingId: number
 	creditAmount: string
