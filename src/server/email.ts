@@ -9,6 +9,7 @@ import { getLocationFromIP } from '~/lib/ip-location'
 import type { ApplicationStatus } from '~/server/db/schema'
 
 const resend = new Resend(env.RESEND_API_KEY)
+const INNGEST_EVENT_KEY = env.INNGEST_EVENT_KEY
 
 const DEFAULT_LOCALE = 'es'
 
@@ -141,5 +142,112 @@ export async function sendApplicationStatusEmail(
 			reason: params.reason,
 			t,
 		}),
+	})
+}
+
+// ---- Event layer: Inngest or inline ----
+
+/** Event payload for application emails. Inngest sends this; we also use it when sending inline (no Inngest). */
+export type EmailEventData =
+	| {
+			type: 'application-submitted'
+			email: string
+			creditAmountFormatted: string
+			termLabel: string
+	  }
+	| {
+			type: 'application-status'
+			email: string
+			status: ApplicationStatus
+			creditAmountFormatted: string
+			termLabel: string
+			reason?: string | null
+	  }
+
+/** Sends the email for the given event. Used by Inngest handlers and by inline fallback. */
+export async function sendEmailFromEventData(
+	data: EmailEventData,
+): Promise<void> {
+	switch (data.type) {
+		case 'application-submitted':
+			await sendApplicationSubmittedEmail(data.email, {
+				creditAmountFormatted: data.creditAmountFormatted,
+				termLabel: data.termLabel,
+			})
+			break
+		case 'application-status':
+			await sendApplicationStatusEmail(data.email, {
+				status: data.status,
+				creditAmountFormatted: data.creditAmountFormatted,
+				termLabel: data.termLabel,
+				reason: data.reason ?? undefined,
+			})
+			break
+		default: {
+			const _: never = data
+			throw new Error(`Unknown email event type: ${JSON.stringify(data)}`)
+		}
+	}
+}
+
+async function sendEmailEvent(data: EmailEventData): Promise<void> {
+	if (!INNGEST_EVENT_KEY) {
+		await sendEmailFromEventData(data)
+		return
+	}
+	const { inngest } = await import('~/inngest/client')
+	if (data.type === 'application-submitted') {
+		await inngest.send({
+			name: 'email/application.submitted',
+			data: {
+				email: data.email,
+				creditAmountFormatted: data.creditAmountFormatted,
+				termLabel: data.termLabel,
+			},
+		})
+	} else {
+		await inngest.send({
+			name: 'email/application.status',
+			data: {
+				email: data.email,
+				status: data.status,
+				creditAmountFormatted: data.creditAmountFormatted,
+				termLabel: data.termLabel,
+				reason: data.reason ?? null,
+			},
+		})
+	}
+}
+
+/** Trigger application-submitted email (Inngest if configured, else inline). */
+export async function sendApplicationSubmittedEvent(
+	email: string,
+	params: { creditAmountFormatted: string; termLabel: string },
+): Promise<void> {
+	await sendEmailEvent({
+		type: 'application-submitted',
+		email,
+		creditAmountFormatted: params.creditAmountFormatted,
+		termLabel: params.termLabel,
+	})
+}
+
+/** Trigger application-status email (Inngest if configured, else inline). */
+export async function sendApplicationStatusEvent(
+	email: string,
+	params: {
+		status: ApplicationStatus
+		creditAmountFormatted: string
+		termLabel: string
+		reason?: string | null
+	},
+): Promise<void> {
+	await sendEmailEvent({
+		type: 'application-status',
+		email,
+		status: params.status,
+		creditAmountFormatted: params.creditAmountFormatted,
+		termLabel: params.termLabel,
+		reason: params.reason ?? null,
 	})
 }

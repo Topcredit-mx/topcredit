@@ -27,7 +27,7 @@ import {
 import {
 	sendApplicationStatusEvent,
 	sendApplicationSubmittedEvent,
-} from '~/server/email-events'
+} from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import {
 	getCompanyByEmailDomain,

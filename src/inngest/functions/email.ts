@@ -1,5 +1,5 @@
 import { inngest } from '~/inngest/client'
-import { sendEmailFromEventData } from '~/server/email-events'
+import { sendEmailFromEventData } from '~/server/email'
 
 export const sendApplicationSubmittedEmail = inngest.createFunction(
 	{ id: 'email-application-submitted', retries: 2 },
