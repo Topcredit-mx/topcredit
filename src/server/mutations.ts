@@ -24,11 +24,11 @@ import {
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
-import { fromErrorToFormState } from '~/server/errors/errors'
 import {
-	sendApplicationStatusEmail,
-	sendApplicationSubmittedEmail,
-} from '~/server/email'
+	sendApplicationStatusEvent,
+	sendApplicationSubmittedEvent,
+} from '~/server/email-events'
+import { fromErrorToFormState } from '~/server/errors/errors'
 import {
 	getCompanyByEmailDomain,
 	getTermOfferingsForCompany,
@@ -394,7 +394,7 @@ export async function createApplication(
 			style: 'currency',
 			currency: 'MXN',
 		})
-		await sendApplicationSubmittedEmail(email, {
+		await sendApplicationSubmittedEvent(email, {
 			creditAmountFormatted,
 			termLabel,
 		})
@@ -482,7 +482,7 @@ export async function updateApplicationStatus(
 			'es-MX',
 			{ style: 'currency', currency: 'MXN' },
 		)
-		await sendApplicationStatusEmail(applicantEmail, {
+		await sendApplicationStatusEvent(applicantEmail, {
 			status: data.status,
 			creditAmountFormatted,
 			termLabel,

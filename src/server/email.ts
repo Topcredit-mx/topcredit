@@ -8,7 +8,7 @@ import type { ApplicationStatus } from '~/server/db/schema'
 
 const resend = new Resend(env.RESEND_API_KEY)
 
-const isDev = process.env.NODE_ENV === 'development'
+const isDev = env.NODE_ENV === 'development'
 const DEV_EMAIL = 'david.cantum@proton.me'
 
 export async function sendOtpEmail(
@@ -113,7 +113,7 @@ export async function sendApplicationStatusEmail(
 		denied: 'Actualización de tu solicitud de crédito - Topcredit',
 		'invalid-documentation': 'Tu solicitud requiere documentación - Topcredit',
 		new: '',
-		pending: ''
+		pending: '',
 	}
 	const subject = isDev
 		? `[DEV] ${subjectByStatus[params.status]} (for ${email})`

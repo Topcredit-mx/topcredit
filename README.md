@@ -344,6 +344,10 @@ Copy `.env.example` to `.env` and set:
 | `AUTH_URL` | App URL (`http://localhost:3000` in dev) |
 | `EMAIL_FROM` | Sender address for Resend |
 | `RESEND_API_KEY` | Resend API key |
+| `INNGEST_EVENT_KEY` | (Optional) [Inngest](https://www.inngest.com) event key for sending email events (production) |
+| `INNGEST_SIGNING_KEY` | (Optional) Inngest signing key; set automatically when using [Vercel integration](https://vercel.com/integrations/inngest) |
+
+**Email events:** Application-submitted and application-status emails are triggered by sending [Inngest events](https://www.inngest.com/docs/events) when `INNGEST_EVENT_KEY` is set. Inngest runs the functions served at `/api/inngest`, which send the email. Without Inngest (e.g. local dev), we send the email inline so you don't need a public URL. Install the [Inngest Vercel integration](https://vercel.com/integrations/inngest) to auto-set keys on deploy.
 
 ## Scripts
 
