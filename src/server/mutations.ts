@@ -26,6 +26,10 @@ import {
 } from '~/server/db/schema'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import {
+	sendApplicationStatusEmail,
+	sendApplicationSubmittedEmail,
+} from '~/server/email'
+import {
 	getCompanyByEmailDomain,
 	getTermOfferingsForCompany,
 } from '~/server/queries'
@@ -382,6 +386,19 @@ export async function createApplication(
 			status: 'new',
 		})
 
+		const termLabel =
+			offering.durationType === 'monthly'
+				? `${offering.duration} meses`
+				: `${offering.duration} quincenas`
+		const creditAmountFormatted = amount.toLocaleString('es-MX', {
+			style: 'currency',
+			currency: 'MXN',
+		})
+		await sendApplicationSubmittedEmail(email, {
+			creditAmountFormatted,
+			termLabel,
+		})
+
 		revalidatePath('/dashboard/applications')
 	} catch (error) {
 		return fromErrorToFormState(error)
@@ -443,6 +460,35 @@ export async function updateApplicationStatus(
 			updatedAt: new Date(),
 		})
 		.where(eq(applications.id, applicationId))
+
+	const updated = await db.query.applications.findFirst({
+		where: (a, { eq }) => eq(a.id, applicationId),
+		columns: { creditAmount: true, denialReason: true },
+		with: {
+			applicant: { columns: { email: true } },
+			termOffering: {
+				with: { term: { columns: { duration: true, durationType: true } } },
+			},
+		},
+	})
+	const applicantEmail = updated?.applicant?.email
+	if (applicantEmail && updated?.termOffering?.term) {
+		const term = updated.termOffering.term
+		const termLabel =
+			term.durationType === 'monthly'
+				? `${term.duration} meses`
+				: `${term.duration} quincenas`
+		const creditAmountFormatted = Number(updated.creditAmount).toLocaleString(
+			'es-MX',
+			{ style: 'currency', currency: 'MXN' },
+		)
+		await sendApplicationStatusEmail(applicantEmail, {
+			status: data.status,
+			creditAmountFormatted,
+			termLabel,
+			reason: updated.denialReason ?? undefined,
+		})
+	}
 
 	revalidatePath('/app/applications')
 	revalidatePath(`/app/applications/${applicationId}`)
