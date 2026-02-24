@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { AgentNoAssignmentsEmpty } from '~/components/app/agent-no-assignments-empty'
 import { AppSidebar } from '~/components/app/app-sidebar'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
-import { getRequiredAgentUser } from '~/server/auth/lib'
+import { getRequiredAgentUser } from '~/server/auth/session'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
 import {

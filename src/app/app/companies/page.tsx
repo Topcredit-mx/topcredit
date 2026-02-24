@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server'
-import { requireAuth } from '~/lib/auth-utils'
-import { getAbility } from '~/server/auth/get-ability'
+import { getAbility } from '~/server/auth/ability'
+import { requireAuth } from '~/server/auth/session'
 import { getCompanies } from '~/server/queries'
 import { getEffectiveSelectedCompanyId } from '~/server/scopes'
 import { CompaniesTable } from './companies-table'

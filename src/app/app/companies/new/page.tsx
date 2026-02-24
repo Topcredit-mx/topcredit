@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server'
 import { CompanyForm } from '~/components/company-form'
-import { getAbility, requireAbility } from '~/server/auth/get-ability'
+import { getAbility, requireAbility } from '~/server/auth/ability'
 
 export default async function NewCompanyPage() {
 	const { ability } = await getAbility()

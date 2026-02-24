@@ -4,18 +4,17 @@ import { and, eq, gte, notInArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { subject } from '~/lib/abilities'
 import {
 	canTransitionApplicationFrom,
 	isApplicationStatus,
 	statusRequiresReason,
 } from '~/lib/application-rules'
-import type { Role } from '~/lib/auth-utils'
-import { getAbility, requireAbility } from '~/server/auth/get-ability'
+import { getAbility, requireAbility, subject } from '~/server/auth/ability'
+import type { Role } from '~/server/auth/session'
 import {
 	getRequiredAgentUser,
 	getRequiredApplicantUser,
-} from '~/server/auth/lib'
+} from '~/server/auth/session'
 import { db } from '~/server/db'
 import type { ApplicationStatus } from '~/server/db/schema'
 import {

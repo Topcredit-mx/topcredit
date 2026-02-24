@@ -29,8 +29,8 @@ import {
 	DialogTitle,
 } from '~/components/ui/dialog'
 import { Label } from '~/components/ui/label'
-import type { Role } from '~/lib/auth-utils'
 import { ASSIGNABLE_ROLES } from '~/lib/user-rules'
+import type { Role } from '~/server/auth/session'
 import { toggleUserRole, updateUserCompanies } from '~/server/mutations'
 import type { CompanyBasic, UserForTable } from '~/server/queries'
 

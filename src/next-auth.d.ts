@@ -1,6 +1,6 @@
 // biome-ignore lint/correctness/noUnusedImports: this should be here
 import NextAuth from 'next-auth'
-import type { Role } from '~/lib/auth-utils'
+import type { Role } from '~/server/auth/session'
 
 declare module 'next-auth' {
 	interface Session {

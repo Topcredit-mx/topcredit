@@ -1,13 +1,9 @@
-/**
- * Email translations. Loads from src/messages/email/{locale}.json so emails
- * work without Next.js request context (e.g. Inngest).
- */
+/** Loads messages/email/{locale}.json so emails work without request context (e.g. Inngest). */
 
 import type esEmail from '../messages/email/es.json'
 
 type Messages = Record<string, unknown>
 
-/** All dot-separated paths to string leaves in the email messages schema. */
 type PathsToLeaves<T, P extends string = ''> = T extends string
 	? P
 	: T extends object
@@ -21,9 +17,8 @@ type PathsToLeaves<T, P extends string = ''> = T extends string
 				? R
 				: never
 			: never
-		: never
+	: never
 
-/** Type-safe key: only valid paths from messages/email/es.json. */
 export type EmailMessageKey = PathsToLeaves<typeof esEmail>
 
 function getNested(obj: Messages, path: string): unknown {
@@ -56,7 +51,6 @@ async function loadEmailMessages(locale: string): Promise<Messages> {
 	return messages
 }
 
-/** Translation function for use in email templates. Pass as `t` prop from getEmailTranslations. */
 export type EmailT = (
 	key: EmailMessageKey,
 	params?: Record<string, string | number | undefined>,
@@ -67,11 +61,6 @@ export type EmailTranslations = {
 	get: (key: string) => Record<string, string> | string | undefined
 }
 
-/**
- * Returns email translations for the given locale. Keys are dot-separated paths
- * e.g. "applicationStatus.statusLabel.pre-authorized".
- * Use t(key, { param: value }) for interpolation of {param} in the string.
- */
 export async function getEmailTranslations(
 	locale: string = 'es',
 ): Promise<EmailTranslations> {

@@ -3,9 +3,8 @@ import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
-import { subject } from '~/lib/abilities'
-import { getAbility, requireAbility } from '~/server/auth/get-ability'
-import { getRequiredApplicantUser } from '~/server/auth/lib'
+import { getAbility, requireAbility, subject } from '~/server/auth/ability'
+import { getRequiredApplicantUser } from '~/server/auth/session'
 import { getApplicationsByApplicantId } from '~/server/queries'
 
 const STATUS_KEYS: Record<string, string> = {

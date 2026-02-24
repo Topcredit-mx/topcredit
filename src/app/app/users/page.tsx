@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server'
-import { requireAuth } from '~/lib/auth-utils'
-import { getAbility, requireAbility } from '~/server/auth/get-ability'
+import { getAbility, requireAbility } from '~/server/auth/ability'
+import { requireAuth } from '~/server/auth/session'
 import { getAllCompaniesForAssignment, getUsers } from '~/server/queries'
 import { UsersTable } from './users-table'
 

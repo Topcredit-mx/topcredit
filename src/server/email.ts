@@ -60,7 +60,6 @@ export async function sendGenericEmail({
 	email,
 	subject,
 }: SendGenericEmailParams) {
-	// In dev mode, send all emails to dev email with target info
 	const targetEmail = isDev ? DEV_EMAIL : email
 	const devSubject = isDev ? `[DEV] ${subject} (for ${email})` : subject
 	const devBody = isDev ? `[DEV MODE]\nTarget email: ${email}\n\n${body}` : body
@@ -145,9 +144,7 @@ export async function sendApplicationStatusEmail(
 	})
 }
 
-// ---- Event layer: Inngest or inline ----
-
-/** Event payload for application emails. Inngest sends this; we also use it when sending inline (no Inngest). */
+/** Inngest event payload; also used when sending inline (no Inngest). */
 export type EmailEventData =
 	| {
 			type: 'application-submitted'
@@ -164,7 +161,6 @@ export type EmailEventData =
 			reason?: string | null
 	  }
 
-/** Sends the email for the given event. Used by Inngest handlers and by inline fallback. */
 export async function sendEmailFromEventData(
 	data: EmailEventData,
 ): Promise<void> {
@@ -219,7 +215,6 @@ async function sendEmailEvent(data: EmailEventData): Promise<void> {
 	}
 }
 
-/** Trigger application-submitted email (Inngest if configured, else inline). */
 export async function sendApplicationSubmittedEvent(
 	email: string,
 	params: { creditAmountFormatted: string; termLabel: string },
@@ -232,7 +227,6 @@ export async function sendApplicationSubmittedEvent(
 	})
 }
 
-/** Trigger application-status email (Inngest if configured, else inline). */
 export async function sendApplicationStatusEvent(
 	email: string,
 	params: {

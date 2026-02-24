@@ -4,15 +4,15 @@ import { randomInt } from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { subject } from '~/lib/abilities'
 import { getClientIP } from '~/lib/ip-location'
 import { generateBackupCodes, hashBackupCodes } from '~/lib/totp'
 import { db } from '~/server/db'
 import { emailOtps, userRoles, users } from '~/server/db/schema'
 import { sendOtpEmail } from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
-import { getAbility, requireAbility } from './get-ability'
-import { checkRateLimit, getRequiredUser, updateRateLimitCounters } from './lib'
+import { getAbility, requireAbility, subject } from './ability'
+import { checkRateLimit, updateRateLimitCounters } from './rate-limit'
+import { getRequiredUser } from './session'
 
 export async function getUserByEmail(email: string) {
 	const user = await db
@@ -23,7 +23,6 @@ export async function getUserByEmail(email: string) {
 
 	if (!user) return null
 
-	// Fetch user roles from junction table
 	const roles = await db
 		.select({ role: userRoles.role })
 		.from(userRoles)
@@ -44,18 +43,14 @@ export async function sendOtp(email: string, ipAddress: string) {
 
 	await db.insert(emailOtps).values({
 		email,
-		code: hashedOtp, // Store hashed OTP
+		code: hashedOtp,
 		ipAddress,
 		expiresAt: new Date(Date.now() + 5 * 60 * 1000),
 	})
 
-	// Send the plain OTP in email
 	await sendOtpEmail(email, otp, ipAddress)
 }
 
-/**
- * Disable TOTP for a user
- */
 export async function disableTotpSetup(email: string) {
 	const sessionUser = await getRequiredUser()
 	const { ability } = await getAbility()
@@ -73,21 +68,17 @@ export async function disableTotpSetup(email: string) {
 		throw new Error('User not found')
 	}
 
-	// Disable TOTP and clear all TOTP data
 	await db
 		.update(users)
 		.set({
 			totpSecret: null,
 			totpEnabled: false,
 			totpBackupCodes: null,
-			mfaMethod: 'email', // Back to email OTP
+			mfaMethod: 'email',
 		})
 		.where(eq(users.id, user.id))
 }
 
-/**
- * Generate new backup codes (invalidates old ones)
- */
 export async function generateNewBackupCodes(email: string) {
 	const sessionUser = await getRequiredUser()
 	const { ability } = await getAbility()
@@ -105,11 +96,9 @@ export async function generateNewBackupCodes(email: string) {
 		throw new Error('TOTP not enabled for this user')
 	}
 
-	// Generate new backup codes
 	const backupCodes = await generateBackupCodes()
 	const hashedBackupCodes = await hashBackupCodes(backupCodes)
 
-	// Update database with new backup codes
 	await db
 		.update(users)
 		.set({
@@ -117,14 +106,9 @@ export async function generateNewBackupCodes(email: string) {
 		})
 		.where(eq(users.id, user.id))
 
-	return { backupCodes } // Return plain text codes for user to save
+	return { backupCodes }
 }
 
-// ==============================================================================
-// Email Verification and Change Actions
-// ==============================================================================
-
-// Zod schema for email change validation
 const emailChangeSchema = z.object({
 	newEmail: z
 		.string()
@@ -132,10 +116,6 @@ const emailChangeSchema = z.object({
 		.email('El correo electrónico debe tener un formato válido'),
 })
 
-/**
- * Send OTP for email change verification
- * Form action for useActionState - accepts FormData from native form submission.
- */
 export async function sendEmailChangeOtp(
 	_prevState: unknown,
 	formData: FormData,
@@ -158,7 +138,6 @@ export async function sendEmailChangeOtp(
 			newEmail: formData.get('newEmail'),
 		})
 
-		// Check if new email is different from current
 		if (data.newEmail.toLowerCase() === currentEmail.toLowerCase()) {
 			return {
 				errors: {
@@ -167,7 +146,6 @@ export async function sendEmailChangeOtp(
 			}
 		}
 
-		// Check if email is already in use
 		const existingUser = await db.query.users.findFirst({
 			where: eq(users.email, data.newEmail),
 		})
@@ -180,7 +158,6 @@ export async function sendEmailChangeOtp(
 			}
 		}
 
-		// Get user from database
 		const user = await db.query.users.findFirst({
 			where: eq(users.email, currentEmail),
 		})
@@ -189,7 +166,6 @@ export async function sendEmailChangeOtp(
 			return { message: 'Usuario actual no encontrado' }
 		}
 
-		// Check rate limiting
 		const rateLimitAction = checkRateLimit(
 			user.lastOtpSentAt,
 			user.loginFailedAttempts,
@@ -201,18 +177,14 @@ export async function sendEmailChangeOtp(
 			user.loginFailedAttempts,
 		)
 
-		// Send OTP
 		const ip = await getClientIP()
 		await sendOtp(data.newEmail, ip)
-
-		// Return success with step indicator
 		return { step: 'otp' }
 	} catch (error) {
 		return fromErrorToFormState(error)
 	}
 }
 
-// Zod schema for OTP verification
 const otpVerificationSchema = z.object({
 	newEmail: z
 		.string()
@@ -220,10 +192,6 @@ const otpVerificationSchema = z.object({
 	otp: z.string().length(6, 'El código OTP debe tener 6 dígitos'),
 })
 
-/**
- * Verify OTP and change user email
- * Form action for useActionState - accepts FormData from native form submission.
- */
 export async function verifyEmailChangeOtp(
 	_prevState: unknown,
 	formData: FormData,
@@ -247,7 +215,6 @@ export async function verifyEmailChangeOtp(
 			otp: formData.get('otp'),
 		})
 
-		// Verify the OTP for the new email
 		const otpRecord = await db.query.emailOtps.findFirst({
 			where: eq(emailOtps.email, data.newEmail),
 		})
@@ -260,7 +227,6 @@ export async function verifyEmailChangeOtp(
 			}
 		}
 
-		// Check if OTP has expired
 		if (otpRecord.expiresAt < new Date()) {
 			await db.delete(emailOtps).where(eq(emailOtps.id, otpRecord.id))
 			return {
@@ -270,7 +236,6 @@ export async function verifyEmailChangeOtp(
 			}
 		}
 
-		// Compare the provided OTP with the hashed one
 		const isValid = await bcrypt.compare(data.otp, otpRecord.code)
 
 		if (!isValid) {
@@ -281,7 +246,6 @@ export async function verifyEmailChangeOtp(
 			}
 		}
 
-		// Check if new email is still available (double-check)
 		const existingUser = await db.query.users.findFirst({
 			where: eq(users.email, data.newEmail),
 		})
@@ -294,7 +258,6 @@ export async function verifyEmailChangeOtp(
 			}
 		}
 
-		// Update user email and mark as verified
 		await db
 			.update(users)
 			.set({
@@ -304,10 +267,7 @@ export async function verifyEmailChangeOtp(
 			})
 			.where(eq(users.email, currentEmail))
 
-		// Clean up OTP record
 		await db.delete(emailOtps).where(eq(emailOtps.id, otpRecord.id))
-
-		// Return success
 		return { success: true }
 	} catch (error) {
 		return fromErrorToFormState(error)

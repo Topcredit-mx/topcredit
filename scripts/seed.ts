@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { neon } from '@neondatabase/serverless'
 import { and, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
+import type { Role } from '../src/server/auth/session'
 import * as schema from '../src/server/db/schema'
 import {
 	seedApplications,
@@ -10,6 +11,10 @@ import {
 	seedUsers,
 	userCompanyAssignments,
 } from './seed.fixtures'
+
+function isRole(s: string): s is Role {
+	return s === 'applicant' || s === 'agent' || s === 'requests' || s === 'admin'
+}
 
 const {
 	users,
@@ -61,7 +66,8 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 			where: eq(userRoles.userId, user.id),
 		})
 		const toAdd = u.roles.filter(
-			(role) => !existingRoles.some((r) => r.role === role),
+			(role): role is Role =>
+				isRole(role) && !existingRoles.some((r) => r.role === role),
 		)
 		if (toAdd.length > 0) {
 			await db

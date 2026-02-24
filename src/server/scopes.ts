@@ -1,7 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
-import { subject } from '~/lib/abilities'
-import { getAbility } from '~/server/auth/get-ability'
+import { getAbility, subject } from '~/server/auth/ability'
 import { db } from '~/server/db'
 import { companies, userCompanies } from '~/server/db/schema'
 

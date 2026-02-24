@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
-import { getAbility, requireAbility } from '~/server/auth/get-ability'
-import { getRequiredApplicantUser } from '~/server/auth/lib'
+import { getAbility, requireAbility } from '~/server/auth/ability'
+import { getRequiredApplicantUser } from '~/server/auth/session'
 import {
 	getCompanyByEmailDomain,
 	getTermOfferingsForCompany,

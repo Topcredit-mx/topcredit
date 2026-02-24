@@ -10,7 +10,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from '~/components/ui/card'
-import type { Role } from '~/lib/auth-utils'
+import type { Role } from '~/server/auth/session'
 
 const ROLE_KEYS: Record<Role, string> = {
 	applicant: 'role-applicant',

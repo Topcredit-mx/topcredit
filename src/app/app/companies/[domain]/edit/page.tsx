@@ -1,8 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { CompanyForm } from '~/components/company-form'
-import { subject } from '~/lib/abilities'
-import { getAbility, requireAbility } from '~/server/auth/get-ability'
+import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { getCompanyByDomain } from '~/server/queries'
 
 interface EditCompanyPageProps {
