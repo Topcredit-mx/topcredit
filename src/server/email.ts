@@ -3,6 +3,7 @@ import { ApplicationStatusTemplate } from '~/components/email/application-status
 import { ApplicationSubmittedTemplate } from '~/components/email/application-submitted-template'
 import { OTPTemplate } from '~/components/email/otp-template'
 import { env } from '~/env'
+import type { EmailEventPayload } from '~/inngest/client'
 import { isNotifyStatus } from '~/lib/application-rules'
 import { getEmailTranslations } from '~/lib/email-i18n'
 import { getLocationFromIP } from '~/lib/ip-location'
@@ -20,6 +21,16 @@ async function getEmailT() {
 const isDev = env.NODE_ENV === 'development'
 const DEV_EMAIL = 'david.cantum@proton.me'
 
+function resolveRecipient(email: string): string {
+	return isDev ? DEV_EMAIL : email
+}
+function resolveSubject(subject: string, intendedRecipient: string): string {
+	return isDev ? `[DEV] ${subject} (for ${intendedRecipient})` : subject
+}
+function resolveBody(body: string, intendedRecipient: string): string {
+	return isDev ? `[DEV MODE]\nTarget: ${intendedRecipient}\n\n${body}` : body
+}
+
 export async function sendOtpEmail(
 	email: string,
 	code: string,
@@ -28,19 +39,13 @@ export async function sendOtpEmail(
 	const { t } = await getEmailT()
 	const location = await getLocationFromIP(ipAddress)
 
-	const targetEmail = isDev ? DEV_EMAIL : email
-	const subject = isDev ? `[DEV] OTP for ${email}: ${code}` : t('otp.subject')
-	const text = isDev
-		? `[DEV MODE]\nTarget email: ${email}\nVerification code: ${code}`
-		: t('otp.textBody', { code })
-
 	await resend.emails.send({
 		from: env.EMAIL_FROM,
-		to: targetEmail,
-		subject,
-		text,
+		to: resolveRecipient(email),
+		subject: resolveSubject(t('otp.subject'), email),
+		text: resolveBody(t('otp.textBody', { code }), email),
 		react: OTPTemplate({
-			fullName: isDev ? `[DEV] ${email}` : 'User',
+			fullName: email,
 			otpCode: code,
 			location,
 			ipAddress,
@@ -60,15 +65,11 @@ export async function sendGenericEmail({
 	email,
 	subject,
 }: SendGenericEmailParams) {
-	const targetEmail = isDev ? DEV_EMAIL : email
-	const devSubject = isDev ? `[DEV] ${subject} (for ${email})` : subject
-	const devBody = isDev ? `[DEV MODE]\nTarget email: ${email}\n\n${body}` : body
-
 	await resend.emails.send({
 		from: env.EMAIL_FROM,
-		to: targetEmail,
-		subject: devSubject,
-		text: devBody,
+		to: resolveRecipient(email),
+		subject: resolveSubject(subject, email),
+		text: resolveBody(body, email),
 	})
 }
 
@@ -78,10 +79,7 @@ export async function sendApplicationSubmittedEmail(
 ) {
 	const { t } = await getEmailT()
 	const { creditAmountFormatted, termLabel } = params
-	const targetEmail = isDev ? DEV_EMAIL : email
-	const subject = isDev
-		? `[DEV] Solicitud recibida (for ${email})`
-		: t('applicationSubmitted.subject')
+	const subject = t('applicationSubmitted.subject')
 	const text = t('applicationSubmitted.textBody', {
 		creditAmountFormatted,
 		termLabel,
@@ -89,9 +87,9 @@ export async function sendApplicationSubmittedEmail(
 
 	await resend.emails.send({
 		from: env.EMAIL_FROM,
-		to: targetEmail,
-		subject,
-		text: isDev ? `[DEV MODE]\nTarget: ${email}\n\n${text}` : text,
+		to: resolveRecipient(email),
+		subject: resolveSubject(subject, email),
+		text: resolveBody(text, email),
 		react: ApplicationSubmittedTemplate({
 			creditAmountFormatted,
 			termLabel,
@@ -117,9 +115,6 @@ export async function sendApplicationStatusEmail(
 
 	const subjectKey = `applicationStatus.subject.${params.status}` as const
 	const subject = t(subjectKey)
-
-	const targetEmail = isDev ? DEV_EMAIL : email
-	const subjectLine = isDev ? `[DEV] ${subject} (for ${email})` : subject
 	const textBody = t('applicationStatus.textBody', {
 		creditAmountFormatted: params.creditAmountFormatted,
 		termLabel: params.termLabel,
@@ -131,9 +126,9 @@ export async function sendApplicationStatusEmail(
 
 	await resend.emails.send({
 		from: env.EMAIL_FROM,
-		to: targetEmail,
-		subject: subjectLine,
-		text,
+		to: resolveRecipient(email),
+		subject: resolveSubject(subject, email),
+		text: resolveBody(text, email),
 		react: ApplicationStatusTemplate({
 			status: params.status,
 			creditAmountFormatted: params.creditAmountFormatted,
@@ -160,6 +155,7 @@ export type EmailEventData =
 			termLabel: string
 			reason?: string | null
 	  }
+	| { type: 'otp'; email: string; code: string; ipAddress: string }
 
 export async function sendEmailFromEventData(
 	data: EmailEventData,
@@ -179,6 +175,9 @@ export async function sendEmailFromEventData(
 				reason: data.reason ?? undefined,
 			})
 			break
+		case 'otp':
+			await sendOtpEmail(data.email, data.code, data.ipAddress)
+			break
 		default: {
 			const _: never = data
 			throw new Error(`Unknown email event type: ${JSON.stringify(data)}`)
@@ -192,27 +191,46 @@ async function sendEmailEvent(data: EmailEventData): Promise<void> {
 		return
 	}
 	const { inngest } = await import('~/inngest/client')
-	if (data.type === 'application-submitted') {
-		await inngest.send({
-			name: 'email/application.submitted',
-			data: {
-				email: data.email,
-				creditAmountFormatted: data.creditAmountFormatted,
-				termLabel: data.termLabel,
-			},
-		})
-	} else {
-		await inngest.send({
-			name: 'email/application.status',
-			data: {
-				email: data.email,
-				status: data.status,
-				creditAmountFormatted: data.creditAmountFormatted,
-				termLabel: data.termLabel,
-				reason: data.reason ?? null,
-			},
-		})
+	let event: EmailEventPayload
+	switch (data.type) {
+		case 'application-submitted':
+			event = {
+				name: 'email/application.submitted',
+				data: {
+					email: data.email,
+					creditAmountFormatted: data.creditAmountFormatted,
+					termLabel: data.termLabel,
+				},
+			}
+			break
+		case 'application-status':
+			event = {
+				name: 'email/application.status',
+				data: {
+					email: data.email,
+					status: data.status,
+					creditAmountFormatted: data.creditAmountFormatted,
+					termLabel: data.termLabel,
+					reason: data.reason ?? null,
+				},
+			}
+			break
+		case 'otp':
+			event = {
+				name: 'email/otp',
+				data: {
+					email: data.email,
+					code: data.code,
+					ipAddress: data.ipAddress,
+				},
+			}
+			break
+		default: {
+			const _: never = data
+			throw new Error(`Unknown email event type: ${JSON.stringify(data)}`)
+		}
 	}
+	await inngest.send(event)
 }
 
 export async function sendApplicationSubmittedEvent(
@@ -244,4 +262,12 @@ export async function sendApplicationStatusEvent(
 		termLabel: params.termLabel,
 		reason: params.reason ?? null,
 	})
+}
+
+export async function sendOtpEvent(
+	email: string,
+	code: string,
+	ipAddress: string,
+): Promise<void> {
+	await sendEmailEvent({ type: 'otp', email, code, ipAddress })
 }

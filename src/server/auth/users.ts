@@ -8,7 +8,7 @@ import { getClientIP } from '~/lib/ip-location'
 import { generateBackupCodes, hashBackupCodes } from '~/lib/totp'
 import { db } from '~/server/db'
 import { emailOtps, userRoles, users } from '~/server/db/schema'
-import { sendOtpEmail } from '~/server/email'
+import { sendOtpEvent } from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import { getAbility, requireAbility, subject } from './ability'
 import { checkRateLimit, updateRateLimitCounters } from './rate-limit'
@@ -48,7 +48,7 @@ export async function sendOtp(email: string, ipAddress: string) {
 		expiresAt: new Date(Date.now() + 5 * 60 * 1000),
 	})
 
-	await sendOtpEmail(email, otp, ipAddress)
+	await sendOtpEvent(email, otp, ipAddress)
 }
 
 export async function disableTotpSetup(email: string) {

@@ -28,3 +28,16 @@ export const sendApplicationStatusEmail = inngest.createFunction(
 		})
 	},
 )
+
+export const sendOtpEmail = inngest.createFunction(
+	{ id: 'email-otp', retries: 2 },
+	{ event: 'email/otp' },
+	async ({ event }) => {
+		await sendEmailFromEventData({
+			type: 'otp',
+			email: event.data.email,
+			code: event.data.code,
+			ipAddress: event.data.ipAddress,
+		})
+	},
+)
