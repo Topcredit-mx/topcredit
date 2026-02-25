@@ -24,7 +24,7 @@ function translateActionError(t: (k: string) => string, error: string): string {
 	return ACTION_ERROR_KEYS_SET.has(error) ? t(error) : error
 }
 
-const initialState = { error: '' as string | undefined }
+const initialState = { error: '' }
 
 function FormSubmitButton({
 	labelKey,

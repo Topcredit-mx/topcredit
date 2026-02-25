@@ -85,6 +85,40 @@ describe('Login Flow', () => {
 		cy.url().should('not.include', '/settings')
 	})
 
+	// Requires app in E2E test mode (E2E_TEST_MODE=true) and E2E_OTP_CODE set. CI sets both; locally: E2E_TEST_MODE=true E2E_OTP_CODE=123456 pnpm dev:test and same for cy:run
+	describe('Full UI login', () => {
+		it('should log in via login → verify-otp with OTP code', () => {
+			cy.visit('/login')
+			cy.get('input[name="email"]').type(applicantUser.email)
+			cy.get('form').submit()
+			cy.url().should('include', '/verify-otp')
+			cy.url().should(
+				'include',
+				`email=${encodeURIComponent(applicantUser.email)}`,
+			)
+			cy.env(['E2E_OTP_CODE']).then(({ E2E_OTP_CODE }) => {
+				const code = E2E_OTP_CODE
+				if (!code || typeof code !== 'string' || code.length !== 6)
+					throw new Error(
+						'E2E_OTP_CODE must be set for full UI login tests (e.g. in CI or E2E_OTP_CODE=123456 when running Cypress)',
+					)
+				cy.get('input[data-input-otp]').type(code)
+			})
+			cy.url().should('not.include', '/verify-otp')
+			cy.contains('h1', 'Mi Cuenta').should('be.visible')
+		})
+
+		it('should show invalid code when wrong OTP entered', () => {
+			cy.visit('/login')
+			cy.get('input[name="email"]').type(applicantUser.email)
+			cy.get('form').submit()
+			cy.url().should('include', '/verify-otp')
+			cy.get('input[data-input-otp]').type('111111')
+			cy.contains(/invalid|inválido|inválida/i).should('be.visible')
+			cy.url().should('include', '/verify-otp')
+		})
+	})
+
 	describe('Email verification (dashboard / app)', () => {
 		it('applicant dashboard: unverified user sees verification warning', () => {
 			cy.task('resetUser', { ...applicantUser, verified: false })

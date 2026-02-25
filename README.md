@@ -367,6 +367,8 @@ Copy `.env.example` to `.env` and set:
 | `pnpm cy:open` | Open Cypress UI |
 | `pnpm cy:run` | Run Cypress E2E headless |
 
+**E2E (local):** For full login flow tests (login → verify OTP in the UI), start the app with `E2E_TEST_MODE=true E2E_OTP_CODE=<6 digits> pnpm dev:test` and run Cypress with the same env (e.g. `E2E_TEST_MODE=true E2E_OTP_CODE=123456 pnpm cy:run`). Next.js forces `NODE_ENV=development` for `next dev`, so we use `E2E_TEST_MODE=true` instead. In CI, a random 6-digit code is generated per run and passed to both the app and Cypress.
+
 ## Database
 
 - **Local dev:** `pnpm db:push` to sync schema, or `pnpm db:migrate` if you use migrations.
