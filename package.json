@@ -17,7 +17,6 @@
 		"cy:open": "cypress open",
 		"cy:run": "cypress run --browser chrome",
 		"dev": "next dev",
-		"dev:test": "NODE_ENV=test next dev",
 		"dev:webpack": "next dev --webpack",
 		"preview": "next build && next start",
 		"start": "next start",

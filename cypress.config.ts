@@ -6,7 +6,7 @@ export default defineConfig({
 	allowCypressEnv: false,
 	projectId: 'qv8a5k',
 	env: {
-		/** E2E login OTP code when app runs with NODE_ENV=test. Set in CI; */
+		/** E2E login OTP code when app runs in E2E test mode. Set in CI. */
 		E2E_OTP_CODE: process.env.E2E_OTP_CODE,
 	},
 	e2e: {

@@ -36,20 +36,21 @@ export async function getUserByEmail(email: string) {
 	}
 }
 
+const isE2ETestMode = () => env.E2E_TEST_MODE === 'true'
+
 export async function sendOtp(email: string, ipAddress: string) {
 	await db.delete(emailOtps).where(eq(emailOtps.email, email))
 
-	const otp =
-		env.NODE_ENV === 'test'
-			? (() => {
-					const code = env.E2E_OTP_CODE
-					if (!code)
-						throw new Error(
-							'E2E_OTP_CODE is required when NODE_ENV=test (e.g. set in CI or run E2E_OTP_CODE=123456 pnpm dev:test)',
-						)
-					return code
-				})()
-			: String(randomInt(100000, 999999))
+	const otp = isE2ETestMode()
+		? (() => {
+				const code = env.E2E_OTP_CODE
+				if (!code)
+					throw new Error(
+						'E2E_OTP_CODE is required when E2E test mode (e.g. E2E_TEST_MODE=true E2E_OTP_CODE=123456 pnpm dev:test)',
+					)
+				return code
+			})()
+		: String(randomInt(100000, 999999))
 	const hashedOtp = await bcrypt.hash(otp, 12)
 
 	await db.insert(emailOtps).values({

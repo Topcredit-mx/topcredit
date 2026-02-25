@@ -78,6 +78,7 @@ jobs:
         run: pnpm start &
         env:
           NODE_ENV: test
+          E2E_TEST_MODE: "true"
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: http://localhost:3000
@@ -96,6 +97,7 @@ jobs:
           parallel: true
           group: 'Chrome'
         env:
+          E2E_TEST_MODE: "true"
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: http://localhost:3000
