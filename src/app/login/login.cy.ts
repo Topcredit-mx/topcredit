@@ -96,7 +96,7 @@ describe('Login Flow', () => {
 				'include',
 				`email=${encodeURIComponent(applicantUser.email)}`,
 			)
-			cy.get('[data-slot="input-otp"]').find('input').type('555555')
+			cy.get('input[data-input-otp]').type('555555')
 			cy.url().should('not.include', '/verify-otp')
 			cy.contains('h1', 'Mi Cuenta').should('be.visible')
 		})
@@ -106,7 +106,7 @@ describe('Login Flow', () => {
 			cy.get('input[name="email"]').type(applicantUser.email)
 			cy.get('form').submit()
 			cy.url().should('include', '/verify-otp')
-			cy.get('[data-slot="input-otp"]').find('input').type('111111')
+			cy.get('input[data-input-otp]').type('111111')
 			cy.contains(/invalid|inválido|inválida/i).should('be.visible')
 			cy.url().should('include', '/verify-otp')
 		})
