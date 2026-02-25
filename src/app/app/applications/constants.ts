@@ -10,8 +10,14 @@ export const APPLICATION_STATUS_KEYS: Record<ApplicationStatus, string> = {
 	denied: 'applications-status-denied',
 }
 
+/** Minimal term shape for formatting (durationType + duration). */
+export type TermOfferingForFormat = Pick<
+	ApplicationForReview['termOffering'],
+	'durationType' | 'duration'
+>
+
 export function formatApplicationTerm(
-	term: ApplicationForReview['termOffering'],
+	term: TermOfferingForFormat,
 	t: (key: string) => string,
 ): string {
 	const typeKey =

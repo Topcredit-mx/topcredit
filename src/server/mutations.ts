@@ -449,6 +449,13 @@ export async function updateApplicationStatus(
 	if ('error' in parsed) return { error: parsed.error }
 
 	const { data } = parsed
+
+	if (
+		statusRequiresReason(data.status) &&
+		!(data.reason?.trim() && data.reason.trim().length > 0)
+	) {
+		return { error: 'applications-reason-required' }
+	}
 	await db
 		.update(applications)
 		.set({

@@ -6,15 +6,7 @@ import { Card } from '~/components/ui/card'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { getApplicationsByApplicantId } from '~/server/queries'
-
-const STATUS_KEYS: Record<string, string> = {
-	new: 'status-new',
-	pending: 'status-pending',
-	'invalid-documentation': 'status-invalid-documentation',
-	'pre-authorized': 'status-pre-authorized',
-	authorized: 'status-authorized',
-	denied: 'status-denied',
-}
+import { DASHBOARD_APPLICATION_STATUS_KEYS } from './constants'
 
 export default async function ApplicationsListPage() {
 	const [{ ability }, user] = await Promise.all([
@@ -70,6 +62,9 @@ export default async function ApplicationsListPage() {
 												{t('th-amount')}
 											</th>
 											<th className="px-4 py-3 font-medium">{t('th-date')}</th>
+											<th className="px-4 py-3 font-medium" scope="col">
+												{t('th-view')}
+											</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -79,7 +74,10 @@ export default async function ApplicationsListPage() {
 												className="border-b last:border-0 hover:bg-gray-50"
 											>
 												<td className="px-4 py-3">
-													{t(STATUS_KEYS[app.status] ?? 'status-new')}
+													{t(
+														DASHBOARD_APPLICATION_STATUS_KEYS[app.status] ??
+															'status-new',
+													)}
 												</td>
 												<td className="px-4 py-3">
 													{Number(app.creditAmount).toLocaleString('es-MX', {
@@ -89,6 +87,15 @@ export default async function ApplicationsListPage() {
 												</td>
 												<td className="px-4 py-3 text-gray-600">
 													<FormattedDate value={app.createdAt.toISOString()} />
+												</td>
+												<td className="px-4 py-3">
+													<Link
+														href={`/dashboard/applications/${app.id}`}
+														className="text-primary hover:underline"
+														aria-label={t('view-aria-label')}
+													>
+														{t('view')}
+													</Link>
 												</td>
 											</tr>
 										))}

@@ -245,5 +245,46 @@ describe('Dashboard Applications', () => {
 				'/dashboard/applications',
 			)
 		})
+
+		it('clicking Ver opens application detail and shows amount', () => {
+			cy.visit('/dashboard/applications')
+			cy.contains('a', /^ver$/i).first().click()
+			cy.url().should('match', /\/dashboard\/applications\/\d+$/)
+			cy.contains('10,000').should('be.visible')
+			cy.contains(/detalle de solicitud|estado|monto solicitado/i).should(
+				'be.visible',
+			)
+		})
+	})
+
+	describe('Application detail isolation', () => {
+		it('applicant cannot open another applicant application by id', () => {
+			cy.task('resetApplicantApplication', {
+				applicantId: seed.applicantBId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '99999',
+				salaryAtApplication: '100000',
+			}).then((app) => {
+				cy.login(applicantWithCompany.email)
+				cy.visit(`/dashboard/applications/${app.id}`, {
+					failOnStatusCode: false,
+				})
+				cy.contains(
+					/404|not found|página no encontrada|could not be found/i,
+				).should('be.visible')
+			})
+		})
+
+		it('invalid application id shows 404', () => {
+			cy.login(applicantWithCompany.email)
+			cy.visit('/dashboard/applications/0', { failOnStatusCode: false })
+			cy.contains(
+				/404|not found|página no encontrada|could not be found/i,
+			).should('be.visible')
+			cy.visit('/dashboard/applications/foo', { failOnStatusCode: false })
+			cy.contains(
+				/404|not found|página no encontrada|could not be found/i,
+			).should('be.visible')
+		})
 	})
 })
