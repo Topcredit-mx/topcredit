@@ -61,6 +61,10 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
           branch_type: schema-only
 
+      - name: Generate E2E OTP code
+        id: e2e-otp
+        run: echo "code=$(shuf -i 100000-999999 -n 1)" >> $GITHUB_OUTPUT
+
       - name: Build app
         run: pnpm build
         env:
@@ -74,6 +78,7 @@ jobs:
         run: pnpm start &
         env:
           NODE_ENV: test
+          E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: http://localhost:3000
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
@@ -91,6 +96,7 @@ jobs:
           parallel: true
           group: 'Chrome'
         env:
+          E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           AUTH_URL: http://localhost:3000
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}

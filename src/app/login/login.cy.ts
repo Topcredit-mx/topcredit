@@ -85,9 +85,9 @@ describe('Login Flow', () => {
 		cy.url().should('not.include', '/settings')
 	})
 
-	// Requires app started with NODE_ENV=test (fixed OTP 555555, no emails sent). CI sets this; for local: pnpm dev:test
-	describe('Full UI login (NODE_ENV=test, OTP 555555)', () => {
-		it('should log in via login → verify-otp with code 555555', () => {
+	// Requires app started with NODE_ENV=test and E2E_OTP_CODE set (CI sets it; locally: E2E_OTP_CODE=123456 pnpm dev:test)
+	describe('Full UI login', () => {
+		it('should log in via login → verify-otp with OTP code', () => {
 			cy.visit('/login')
 			cy.get('input[name="email"]').type(applicantUser.email)
 			cy.get('form').submit()
@@ -96,7 +96,14 @@ describe('Login Flow', () => {
 				'include',
 				`email=${encodeURIComponent(applicantUser.email)}`,
 			)
-			cy.get('input[data-input-otp]').type('555555')
+			cy.env(['E2E_OTP_CODE']).then(({ E2E_OTP_CODE }) => {
+				const code = E2E_OTP_CODE
+				if (!code || typeof code !== 'string' || code.length !== 6)
+					throw new Error(
+						'E2E_OTP_CODE must be set for full UI login tests (e.g. in CI or E2E_OTP_CODE=123456 when running Cypress)',
+					)
+				cy.get('input[data-input-otp]').type(code)
+			})
 			cy.url().should('not.include', '/verify-otp')
 			cy.contains('h1', 'Mi Cuenta').should('be.visible')
 		})

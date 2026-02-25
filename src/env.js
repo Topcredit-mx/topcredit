@@ -16,6 +16,12 @@ export const env = createEnv({
 		AUTH_URL: z.string().url(),
 		AUTH_SECRET: z.string(),
 		INNGEST_EVENT_KEY: z.string().optional(),
+		/** When NODE_ENV=test, OTP code for E2E login. Required in test; CI sets a random value per run. */
+		E2E_OTP_CODE: z
+			.string()
+			.length(6)
+			.regex(/^\d+$/)
+			.optional(),
 	},
 
 	/**
@@ -39,6 +45,7 @@ export const env = createEnv({
 		AUTH_URL: process.env.AUTH_URL,
 		AUTH_SECRET: process.env.AUTH_SECRET,
 		INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
+		E2E_OTP_CODE: process.env.E2E_OTP_CODE,
 	},
 	/**
 	 * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

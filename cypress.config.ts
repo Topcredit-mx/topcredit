@@ -5,6 +5,10 @@ import * as tasks from './cypress/tasks'
 export default defineConfig({
 	allowCypressEnv: false,
 	projectId: 'qv8a5k',
+	env: {
+		/** E2E login OTP code when app runs with NODE_ENV=test. Set in CI; */
+		E2E_OTP_CODE: process.env.E2E_OTP_CODE,
+	},
 	e2e: {
 		baseUrl: 'http://localhost:3000',
 		retries: process.env.CI ? 2 : 0,
