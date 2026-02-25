@@ -19,11 +19,7 @@ export const env = createEnv({
 		/** E2E test mode: fixed OTP, no emails. Use this because next dev forces NODE_ENV=development. */
 		E2E_TEST_MODE: z.enum(['true']).optional(),
 		/** When E2E test mode, OTP code for E2E login. Required when E2E_TEST_MODE=true; CI sets a random value per run. */
-		E2E_OTP_CODE: z
-			.string()
-			.length(6)
-			.regex(/^\d+$/)
-			.optional(),
+		E2E_OTP_CODE: z.string().length(6).regex(/^\d+$/).optional(),
 	},
 
 	/**
