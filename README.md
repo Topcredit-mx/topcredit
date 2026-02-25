@@ -354,6 +354,7 @@ Copy `.env.example` to `.env` and set:
 | Command | Purpose |
 |---------|---------|
 | `pnpm dev` | Start dev server |
+| `pnpm dev:test` | Start dev with `NODE_ENV=test` (fixed OTP 555555, no emails; for full login E2E) |
 | `pnpm build` | Production build |
 | `pnpm start` | Run production server |
 | `pnpm db:generate` | Generate migration files from schema |
@@ -366,6 +367,8 @@ Copy `.env.example` to `.env` and set:
 | `pnpm check` | Run Biome lint |
 | `pnpm cy:open` | Open Cypress UI |
 | `pnpm cy:run` | Run Cypress E2E headless |
+
+**E2E (local):** For full login flow tests (login → verify OTP in the UI), start the app with `pnpm dev:test` (runs dev with `NODE_ENV=test`: fixed OTP `555555`, no emails sent). Or use `NODE_ENV=test pnpm start` after build. CI already sets `NODE_ENV=test` when starting the app for Cypress.
 
 ## Database
 

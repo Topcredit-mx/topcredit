@@ -85,6 +85,30 @@ describe('Login Flow', () => {
 		cy.url().should('not.include', '/settings')
 	})
 
+	// Requires app started with NODE_ENV=test (fixed OTP 555555, no emails sent). CI sets this; for local: pnpm dev:test
+	describe('Full UI login (NODE_ENV=test, OTP 555555)', () => {
+		it('should log in via login → verify-otp with code 555555', () => {
+			cy.visit('/login')
+			cy.get('input[name="email"]').type(applicantUser.email)
+			cy.get('form').submit()
+			cy.url().should('include', '/verify-otp')
+			cy.url().should('include', `email=${encodeURIComponent(applicantUser.email)}`)
+			cy.get('[data-slot="input-otp"]').find('input').type('555555')
+			cy.url().should('not.include', '/verify-otp')
+			cy.contains('h1', 'Mi Cuenta').should('be.visible')
+		})
+
+		it('should show invalid code when wrong OTP entered', () => {
+			cy.visit('/login')
+			cy.get('input[name="email"]').type(applicantUser.email)
+			cy.get('form').submit()
+			cy.url().should('include', '/verify-otp')
+			cy.get('[data-slot="input-otp"]').find('input').type('111111')
+			cy.contains(/invalid|inválido|inválida/i).should('be.visible')
+			cy.url().should('include', '/verify-otp')
+		})
+	})
+
 	describe('Email verification (dashboard / app)', () => {
 		it('applicant dashboard: unverified user sees verification warning', () => {
 			cy.task('resetUser', { ...applicantUser, verified: false })

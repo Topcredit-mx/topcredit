@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { getClientIP } from '~/lib/ip-location'
 import { generateBackupCodes, hashBackupCodes } from '~/lib/totp'
+import { env } from '~/env'
 import { db } from '~/server/db'
 import { emailOtps, userRoles, users } from '~/server/db/schema'
 import { sendOtpEvent } from '~/server/email'
@@ -38,7 +39,8 @@ export async function getUserByEmail(email: string) {
 export async function sendOtp(email: string, ipAddress: string) {
 	await db.delete(emailOtps).where(eq(emailOtps.email, email))
 
-	const otp = String(randomInt(100000, 999999))
+	const otp =
+		env.NODE_ENV === 'test' ? '555555' : String(randomInt(100000, 999999))
 	const hashedOtp = await bcrypt.hash(otp, 12)
 
 	await db.insert(emailOtps).values({
