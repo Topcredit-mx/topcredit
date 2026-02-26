@@ -139,9 +139,9 @@ describe('Dashboard Applications', () => {
 			cy.get('input[name="creditAmount"]').type('50000')
 			cy.contains('button', /enviar solicitud/i).click()
 			cy.url().should('include', '/dashboard/applications/new')
-			cy.contains(/no puede superar el máximo permitido \(30,000\)/i).should(
-				'be.visible',
-			)
+			cy.contains(
+				/no puede superar el máximo permitido \(\$30,000\.00\)/i,
+			).should('be.visible')
 		})
 
 		it('submitting with empty required fields shows field errors', () => {
