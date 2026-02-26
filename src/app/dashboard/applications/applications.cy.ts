@@ -247,13 +247,21 @@ describe('Dashboard Applications', () => {
 		})
 
 		it('clicking Ver opens application detail and shows amount', () => {
-			cy.visit('/dashboard/applications')
-			cy.contains('a', /^ver$/i).first().click()
-			cy.url().should('match', /\/dashboard\/applications\/\d+$/)
-			cy.contains('10,000').should('be.visible')
-			cy.contains(/detalle de solicitud|estado|monto solicitado/i).should(
-				'be.visible',
-			)
+			const creditAmount = '10000'
+			cy.task('resetApplicantApplication', {
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount,
+				salaryAtApplication: '100000',
+			}).then((app) => {
+				cy.visit('/dashboard/applications')
+				cy.get(`a[href="/dashboard/applications/${app.id}"]`).click()
+				cy.url().should('include', `/dashboard/applications/${app.id}`)
+				cy.contains('10,000').should('be.visible')
+				cy.contains(/detalle de solicitud|estado|monto solicitado/i).should(
+					'be.visible',
+				)
+			})
 		})
 	})
 

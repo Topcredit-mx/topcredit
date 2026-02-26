@@ -9,6 +9,7 @@ import {
 	isApplicationStatus,
 	statusRequiresReason,
 } from '~/lib/application-rules'
+import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
 import {
@@ -340,7 +341,7 @@ export async function createApplication(
 		if (amount > maxLoanAmount) {
 			return {
 				errors: {
-					creditAmount: `El monto no puede superar el máximo permitido (${maxLoanAmount.toLocaleString('es-MX', { maximumFractionDigits: 0 })}).`,
+					creditAmount: `El monto no puede superar el máximo permitido (${formatCurrencyMxn(maxLoanAmount)}).`,
 				},
 			}
 		}
@@ -389,10 +390,7 @@ export async function createApplication(
 			offering.durationType === 'monthly'
 				? `${offering.duration} meses`
 				: `${offering.duration} quincenas`
-		const creditAmountFormatted = amount.toLocaleString('es-MX', {
-			style: 'currency',
-			currency: 'MXN',
-		})
+		const creditAmountFormatted = formatCurrencyMxn(amount)
 		await sendApplicationSubmittedEvent(email, {
 			creditAmountFormatted,
 			termLabel,
@@ -450,12 +448,6 @@ export async function updateApplicationStatus(
 
 	const { data } = parsed
 
-	if (
-		statusRequiresReason(data.status) &&
-		!(data.reason?.trim() && data.reason.trim().length > 0)
-	) {
-		return { error: 'applications-reason-required' }
-	}
 	await db
 		.update(applications)
 		.set({
@@ -484,10 +476,7 @@ export async function updateApplicationStatus(
 			term.durationType === 'monthly'
 				? `${term.duration} meses`
 				: `${term.duration} quincenas`
-		const creditAmountFormatted = Number(updated.creditAmount).toLocaleString(
-			'es-MX',
-			{ style: 'currency', currency: 'MXN' },
-		)
+		const creditAmountFormatted = formatCurrencyMxn(updated.creditAmount)
 		await sendApplicationStatusEvent(applicantEmail, {
 			status: data.status,
 			creditAmountFormatted,
@@ -498,6 +487,8 @@ export async function updateApplicationStatus(
 
 	revalidatePath('/app/applications')
 	revalidatePath(`/app/applications/${applicationId}`)
+	revalidatePath('/dashboard/applications')
+	revalidatePath(`/dashboard/applications/${applicationId}`)
 	return {}
 }
 
@@ -519,5 +510,7 @@ export async function updateApplicationStatusFormAction(
 	}
 	revalidatePath('/app/applications')
 	revalidatePath(`/app/applications/${applicationId}`)
+	revalidatePath('/dashboard/applications')
+	revalidatePath(`/dashboard/applications/${applicationId}`)
 	redirect(`/app/applications/${applicationId}`)
 }

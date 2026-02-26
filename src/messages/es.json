@@ -209,7 +209,9 @@
 			"detail-term": "Plazo",
 			"detail-denial-reason": "Motivo de rechazo",
 			"detail-created": "Fecha de creación",
-			"detail-updated": "Última actualización"
+			"detail-updated": "Última actualización",
+			"term-months": "meses",
+			"term-fortnights": "quincenas"
 		},
 		"verify": {
 			"title": "Verificación",

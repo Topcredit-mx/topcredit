@@ -1,14 +1,15 @@
-import type { ApplicationStatus } from '~/server/db/schema'
+/** Minimal term shape for formatting (durationType + duration). */
+export type TermOfferingForFormat = {
+	durationType: 'monthly' | 'bi-monthly'
+	duration: number
+}
 
-/** i18n keys for application status under dashboard.applications */
-export const DASHBOARD_APPLICATION_STATUS_KEYS: Record<
-	ApplicationStatus,
-	string
-> = {
-	new: 'status-new',
-	pending: 'status-pending',
-	'invalid-documentation': 'status-invalid-documentation',
-	'pre-authorized': 'status-pre-authorized',
-	authorized: 'status-authorized',
-	denied: 'status-denied',
+/** Format term for display using dashboard.applications keys (term-months, term-fortnights). */
+export function formatApplicationTerm(
+	term: TermOfferingForFormat,
+	t: (key: string) => string,
+): string {
+	const typeKey =
+		term.durationType === 'monthly' ? 'term-months' : 'term-fortnights'
+	return `${term.duration} ${t(typeKey)}`
 }

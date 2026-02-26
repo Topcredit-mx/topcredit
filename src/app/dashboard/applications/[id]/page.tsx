@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
-import { formatApplicationTerm } from '~/app/app/applications/constants'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Card, CardHeader } from '~/components/ui/card'
+import { DASHBOARD_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import { formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { getApplicationByApplicantId } from '~/server/queries'
-import { DASHBOARD_APPLICATION_STATUS_KEYS } from '../constants'
+import { formatApplicationTerm } from '../constants'
 
 export default async function DashboardApplicationDetailPage({
 	params,
@@ -26,10 +27,7 @@ export default async function DashboardApplicationDetailPage({
 		notFound()
 	}
 
-	const [t, tApp] = await Promise.all([
-		getTranslations('dashboard.applications'),
-		getTranslations('app'),
-	])
+	const t = await getTranslations('dashboard.applications')
 
 	return (
 		<div className="min-h-screen bg-gray-50">
@@ -54,27 +52,19 @@ export default async function DashboardApplicationDetailPage({
 								<span className="text-muted-foreground">
 									{t('detail-status')}:
 								</span>{' '}
-								{t(
-									DASHBOARD_APPLICATION_STATUS_KEYS[application.status] ??
-										'status-new',
-								)}
+								{t(DASHBOARD_APPLICATION_STATUS_KEYS[application.status])}
 							</div>
 							<div>
 								<span className="text-muted-foreground">
 									{t('detail-amount')}:
 								</span>{' '}
-								{Number(application.creditAmount).toLocaleString('es-MX', {
-									style: 'currency',
-									currency: 'MXN',
-								})}
+								{formatCurrencyMxn(application.creditAmount)}
 							</div>
 							<div>
 								<span className="text-muted-foreground">
 									{t('detail-term')}:
 								</span>{' '}
-								{formatApplicationTerm(application.termOffering, (key) =>
-									tApp(key),
-								)}
+								{formatApplicationTerm(application.termOffering, t)}
 							</div>
 							{application.denialReason ? (
 								<div>

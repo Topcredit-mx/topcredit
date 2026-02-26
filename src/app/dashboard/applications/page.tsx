@@ -3,10 +3,11 @@ import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
+import { DASHBOARD_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { getApplicationsByApplicantId } from '~/server/queries'
-import { DASHBOARD_APPLICATION_STATUS_KEYS } from './constants'
 
 export default async function ApplicationsListPage() {
 	const [{ ability }, user] = await Promise.all([
@@ -55,13 +56,15 @@ export default async function ApplicationsListPage() {
 								<table className="w-full">
 									<thead>
 										<tr className="border-b bg-gray-50 text-left text-gray-600 text-sm">
-											<th className="px-4 py-3 font-medium">
+											<th className="px-4 py-3 font-medium" scope="col">
 												{t('th-status')}
 											</th>
-											<th className="px-4 py-3 font-medium">
+											<th className="px-4 py-3 font-medium" scope="col">
 												{t('th-amount')}
 											</th>
-											<th className="px-4 py-3 font-medium">{t('th-date')}</th>
+											<th className="px-4 py-3 font-medium" scope="col">
+												{t('th-date')}
+											</th>
 											<th className="px-4 py-3 font-medium" scope="col">
 												{t('th-view')}
 											</th>
@@ -80,10 +83,7 @@ export default async function ApplicationsListPage() {
 													)}
 												</td>
 												<td className="px-4 py-3">
-													{Number(app.creditAmount).toLocaleString('es-MX', {
-														style: 'currency',
-														currency: 'MXN',
-													})}
+													{formatCurrencyMxn(app.creditAmount)}
 												</td>
 												<td className="px-4 py-3 text-gray-600">
 													<FormattedDate value={app.createdAt.toISOString()} />

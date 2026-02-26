@@ -2,8 +2,10 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
+import { APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import { formatCurrencyMxn } from '~/lib/utils'
 import type { ApplicationForReview } from '~/server/queries'
-import { APPLICATION_STATUS_KEYS, formatApplicationTerm } from './constants'
+import { formatApplicationTerm } from './constants'
 
 export async function ApplicationsTable({
 	applications,
@@ -16,22 +18,22 @@ export async function ApplicationsTable({
 			<table className="w-full">
 				<thead>
 					<tr className="border-b bg-muted/50 text-left text-sm">
-						<th className="px-4 py-3 font-medium">
+						<th className="px-4 py-3 font-medium" scope="col">
 							{t('applications-col-applicant')}
 						</th>
-						<th className="px-4 py-3 font-medium">
+						<th className="px-4 py-3 font-medium" scope="col">
 							{t('applications-col-amount')}
 						</th>
-						<th className="px-4 py-3 font-medium">
+						<th className="px-4 py-3 font-medium" scope="col">
 							{t('applications-col-term')}
 						</th>
-						<th className="px-4 py-3 font-medium">
+						<th className="px-4 py-3 font-medium" scope="col">
 							{t('applications-col-status')}
 						</th>
-						<th className="px-4 py-3 font-medium">
+						<th className="px-4 py-3 font-medium" scope="col">
 							{t('applications-col-date')}
 						</th>
-						<th className="px-4 py-3 font-medium">
+						<th className="px-4 py-3 font-medium" scope="col">
 							{t('applications-actions')}
 						</th>
 					</tr>
@@ -49,10 +51,7 @@ export async function ApplicationsTable({
 								</div>
 							</td>
 							<td className="px-4 py-3">
-								{Number(app.creditAmount).toLocaleString('es-MX', {
-									style: 'currency',
-									currency: 'MXN',
-								})}
+								{formatCurrencyMxn(app.creditAmount)}
 							</td>
 							<td className="px-4 py-3 text-muted-foreground">
 								{formatApplicationTerm(app.termOffering, t)}

@@ -9,9 +9,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
+import { APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import type { ApplicationStatus } from '~/server/db/schema'
 import { APPLICATION_STATUS_VALUES } from '~/server/db/schema'
-import { APPLICATION_STATUS_KEYS } from './constants'
 
 const ALL_VALUE = '__all__'
 
