@@ -1,0 +1,19 @@
+name: Delete Vercel Preview Neon Branches on Branch Delete
+
+on:
+  delete:  
+
+jobs:
+  delete-neon-branch:
+    environment: preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Delete Neon Branch
+        uses: neondatabase/delete-branch-action@v3.2.0
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: preview/${{ github.event.ref }}
+          api_key: ${{ secrets.NEON_API_KEY }}
