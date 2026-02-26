@@ -55,7 +55,11 @@ export function DataTableHeader<TData>({
 				{children}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant="outline" size="sm">
+						<Button
+							id="data-table-view-menu-trigger"
+							variant="outline"
+							size="sm"
+						>
 							<Settings2 />
 							{t('table-view')}
 						</Button>

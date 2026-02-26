@@ -35,7 +35,12 @@ export function ApplicationsStatusFilter({
 	return (
 		<div className="mb-4 flex justify-end">
 			<Select value={value} onValueChange={onValueChange}>
-				<SelectTrigger name="status" className="w-[180px]" size="sm">
+				<SelectTrigger
+					id="applications-status-filter"
+					name="status"
+					className="w-[180px]"
+					size="sm"
+				>
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>

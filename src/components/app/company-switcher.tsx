@@ -60,7 +60,11 @@ export function CompanySwitcher({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<SidebarMenuButton size="lg" aria-label={t('switcher-select-company')}>
+				<SidebarMenuButton
+					id="company-switcher-trigger"
+					size="lg"
+					aria-label={t('switcher-select-company')}
+				>
 					<div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
 						<Building2 className="size-4" />
 					</div>
