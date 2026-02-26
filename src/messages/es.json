@@ -181,6 +181,7 @@
 			"th-status": "Estado",
 			"th-amount": "Monto",
 			"th-date": "Fecha",
+			"th-view": "Ver",
 			"status-new": "Nueva",
 			"status-pending": "Pendiente",
 			"status-invalid-documentation": "Documentación inválida",
@@ -198,7 +199,19 @@
 			"error-company-no-rate": "Tu empresa no tiene configuración de crédito.",
 			"error-company-no-terms": "Tu empresa no tiene plazos disponibles.",
 			"back-dashboard": "Volver al inicio",
-			"subtitle": "Completa los datos para solicitar tu crédito"
+			"subtitle": "Completa los datos para solicitar tu crédito",
+			"view": "Ver",
+			"view-aria-label": "Ver detalle de solicitud",
+			"back-to-list": "Volver a mis solicitudes",
+			"detail-title": "Detalle de solicitud",
+			"detail-status": "Estado",
+			"detail-amount": "Monto solicitado",
+			"detail-term": "Plazo",
+			"detail-denial-reason": "Motivo de rechazo",
+			"detail-created": "Fecha de creación",
+			"detail-updated": "Última actualización",
+			"term-months": "meses",
+			"term-fortnights": "quincenas"
 		},
 		"verify": {
 			"title": "Verificación",

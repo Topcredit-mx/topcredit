@@ -391,6 +391,68 @@ export async function getApplicationsByApplicantId(
 	}))
 }
 
+export type ApplicationDetailForApplicant = {
+	id: number
+	status: ApplicationStatus
+	creditAmount: string
+	denialReason: string | null
+	createdAt: Date
+	updatedAt: Date
+	termOffering: {
+		durationType: 'bi-monthly' | 'monthly'
+		duration: number
+	}
+}
+
+export async function getApplicationByApplicantId(
+	applicationId: number,
+	userId: number,
+): Promise<ApplicationDetailForApplicant | null> {
+	const { ability } = await getAbility()
+	requireAbility(
+		ability,
+		'read',
+		subject('Application', { id: applicationId, applicantId: userId }),
+	)
+
+	const rows = await db
+		.select({
+			id: applications.id,
+			status: applications.status,
+			creditAmount: applications.creditAmount,
+			denialReason: applications.denialReason,
+			createdAt: applications.createdAt,
+			updatedAt: applications.updatedAt,
+			durationType: terms.durationType,
+			duration: terms.duration,
+		})
+		.from(applications)
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.where(
+			and(
+				eq(applications.id, applicationId),
+				eq(applications.applicantId, userId),
+			),
+		)
+
+	const row = rows[0]
+	if (!row) return null
+
+	return {
+		id: row.id,
+		status: row.status,
+		creditAmount: row.creditAmount,
+		denialReason: row.denialReason,
+		createdAt: row.createdAt,
+		updatedAt: row.updatedAt,
+		termOffering: {
+			durationType: row.durationType,
+			duration: row.duration,
+		},
+	}
+}
+
 export type ApplicationForReview = {
 	id: number
 	applicantId: number

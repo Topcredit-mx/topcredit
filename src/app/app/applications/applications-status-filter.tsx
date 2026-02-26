@@ -9,9 +9,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
+import { APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import type { ApplicationStatus } from '~/server/db/schema'
 import { APPLICATION_STATUS_VALUES } from '~/server/db/schema'
-import { APPLICATION_STATUS_KEYS } from './constants'
 
 const ALL_VALUE = '__all__'
 
@@ -35,7 +35,12 @@ export function ApplicationsStatusFilter({
 	return (
 		<div className="mb-4 flex justify-end">
 			<Select value={value} onValueChange={onValueChange}>
-				<SelectTrigger name="status" className="w-[180px]" size="sm">
+				<SelectTrigger
+					id="applications-status-filter"
+					name="status"
+					className="w-[180px]"
+					size="sm"
+				>
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>

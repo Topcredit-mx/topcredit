@@ -3,10 +3,12 @@ import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
 import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { canTransitionApplicationFrom } from '~/lib/application-rules'
+import { APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import { formatCurrencyMxn } from '~/lib/utils'
 import { getApplicationForReview } from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
-import { APPLICATION_STATUS_KEYS, formatApplicationTerm } from '../constants'
+import { formatApplicationTerm } from '../constants'
 
 export default async function AppApplicationDetailPage({
 	params,
@@ -44,19 +46,13 @@ export default async function AppApplicationDetailPage({
 							<span className="text-muted-foreground">
 								{t('applications-detail-amount')}:
 							</span>{' '}
-							{Number(application.creditAmount).toLocaleString('es-MX', {
-								style: 'currency',
-								currency: 'MXN',
-							})}
+							{formatCurrencyMxn(application.creditAmount)}
 						</div>
 						<div>
 							<span className="text-muted-foreground">
 								{t('applications-detail-salary')}:
 							</span>{' '}
-							{Number(application.salaryAtApplication).toLocaleString('es-MX', {
-								style: 'currency',
-								currency: 'MXN',
-							})}
+							{formatCurrencyMxn(application.salaryAtApplication)}
 						</div>
 						<div>
 							<span className="text-muted-foreground">

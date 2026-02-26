@@ -3,18 +3,11 @@ import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
+import { DASHBOARD_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { getApplicationsByApplicantId } from '~/server/queries'
-
-const STATUS_KEYS: Record<string, string> = {
-	new: 'status-new',
-	pending: 'status-pending',
-	'invalid-documentation': 'status-invalid-documentation',
-	'pre-authorized': 'status-pre-authorized',
-	authorized: 'status-authorized',
-	denied: 'status-denied',
-}
 
 export default async function ApplicationsListPage() {
 	const [{ ability }, user] = await Promise.all([
@@ -63,13 +56,18 @@ export default async function ApplicationsListPage() {
 								<table className="w-full">
 									<thead>
 										<tr className="border-b bg-gray-50 text-left text-gray-600 text-sm">
-											<th className="px-4 py-3 font-medium">
+											<th className="px-4 py-3 font-medium" scope="col">
 												{t('th-status')}
 											</th>
-											<th className="px-4 py-3 font-medium">
+											<th className="px-4 py-3 font-medium" scope="col">
 												{t('th-amount')}
 											</th>
-											<th className="px-4 py-3 font-medium">{t('th-date')}</th>
+											<th className="px-4 py-3 font-medium" scope="col">
+												{t('th-date')}
+											</th>
+											<th className="px-4 py-3 font-medium" scope="col">
+												{t('th-view')}
+											</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -79,16 +77,25 @@ export default async function ApplicationsListPage() {
 												className="border-b last:border-0 hover:bg-gray-50"
 											>
 												<td className="px-4 py-3">
-													{t(STATUS_KEYS[app.status] ?? 'status-new')}
+													{t(
+														DASHBOARD_APPLICATION_STATUS_KEYS[app.status] ??
+															'status-new',
+													)}
 												</td>
 												<td className="px-4 py-3">
-													{Number(app.creditAmount).toLocaleString('es-MX', {
-														style: 'currency',
-														currency: 'MXN',
-													})}
+													{formatCurrencyMxn(app.creditAmount)}
 												</td>
 												<td className="px-4 py-3 text-gray-600">
 													<FormattedDate value={app.createdAt.toISOString()} />
+												</td>
+												<td className="px-4 py-3">
+													<Link
+														href={`/dashboard/applications/${app.id}`}
+														className="text-primary hover:underline"
+														aria-label={t('view-aria-label')}
+													>
+														{t('view')}
+													</Link>
 												</td>
 											</tr>
 										))}
