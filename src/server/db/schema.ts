@@ -1,6 +1,8 @@
-import { relations } from 'drizzle-orm'
+import { relations, sql } from 'drizzle-orm'
 import {
 	boolean,
+	check,
+	index,
 	integer,
 	numeric,
 	pgEnum,
@@ -44,6 +46,32 @@ export type ApplicationStatus = (typeof APPLICATION_STATUS_VALUES)[number]
 export const applicationStatusEnum = pgEnum(
 	'application_status',
 	APPLICATION_STATUS_VALUES,
+)
+
+export const DOCUMENT_TYPE_VALUES = [
+	'authorization',
+	'contract',
+	'payroll-receipt',
+] as const
+
+export type DocumentType = (typeof DOCUMENT_TYPE_VALUES)[number]
+
+export const documentTypeEnum = pgEnum(
+	'document_type',
+	DOCUMENT_TYPE_VALUES,
+)
+
+export const DOCUMENT_STATUS_VALUES = [
+	'pending',
+	'approved',
+	'rejected',
+] as const
+
+export type DocumentStatus = (typeof DOCUMENT_STATUS_VALUES)[number]
+
+export const documentStatusEnum = pgEnum(
+	'document_status',
+	DOCUMENT_STATUS_VALUES,
 )
 
 export const users = pgTable('users', {
@@ -196,6 +224,37 @@ export const applications = pgTable('applications', {
 		.notNull(),
 })
 
+export const applicationDocuments = pgTable(
+	'application_documents',
+	{
+		id: serial('id').primaryKey(),
+		applicationId: integer('application_id')
+			.notNull()
+			.references(() => applications.id, { onDelete: 'cascade' }),
+		documentType: documentTypeEnum('document_type').notNull(),
+		status: documentStatusEnum('status').notNull(),
+		storageKey: text('storage_key').notNull(),
+		fileName: text('file_name').notNull(),
+		rejectionReason: text('rejection_reason'),
+		createdAt: timestamp('created_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		check(
+			'application_documents_rejection_reason_check',
+			sql`((${table.status} = 'rejected' AND ${table.rejectionReason} IS NOT NULL) OR (${table.status} <> 'rejected' AND ${table.rejectionReason} IS NULL))`,
+		),
+		index('application_documents_application_id_document_type_idx').on(
+			table.applicationId,
+			table.documentType,
+		),
+	],
+)
+
 export const usersRelations = relations(users, ({ many }) => ({
 	roles: many(userRoles),
 	companies: many(userCompanies),
@@ -226,16 +285,30 @@ export const termOfferingsRelations = relations(
 	}),
 )
 
-export const applicationsRelations = relations(applications, ({ one }) => ({
-	applicant: one(users, {
-		fields: [applications.applicantId],
-		references: [users.id],
+export const applicationsRelations = relations(
+	applications,
+	({ one, many }) => ({
+		applicant: one(users, {
+			fields: [applications.applicantId],
+			references: [users.id],
+		}),
+		termOffering: one(termOfferings, {
+			fields: [applications.termOfferingId],
+			references: [termOfferings.id],
+		}),
+		documents: many(applicationDocuments),
 	}),
-	termOffering: one(termOfferings, {
-		fields: [applications.termOfferingId],
-		references: [termOfferings.id],
+)
+
+export const applicationDocumentsRelations = relations(
+	applicationDocuments,
+	({ one }) => ({
+		application: one(applications, {
+			fields: [applicationDocuments.applicationId],
+			references: [applications.id],
+		}),
 	}),
-}))
+)
 
 export const userRolesRelations = relations(userRoles, ({ one }) => ({
 	user: one(users, {
