@@ -20,6 +20,8 @@ export const env = createEnv({
 		E2E_TEST_MODE: z.enum(['true']).optional(),
 		/** When E2E test mode, OTP code for E2E login. Required when E2E_TEST_MODE=true; CI sets a random value per run. */
 		E2E_OTP_CODE: z.string().length(6).regex(/^\d+$/).optional(),
+		/** Vercel Blob: required for application document uploads. Omit in environments that don't use storage. */
+		BLOB_READ_WRITE_TOKEN: z.string().optional(),
 	},
 
 	/**
@@ -45,6 +47,7 @@ export const env = createEnv({
 		INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
 		E2E_TEST_MODE: process.env.E2E_TEST_MODE,
 		E2E_OTP_CODE: process.env.E2E_OTP_CODE,
+		BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
 	},
 	/**
 	 * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
