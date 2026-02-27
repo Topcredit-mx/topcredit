@@ -56,10 +56,7 @@ export const DOCUMENT_TYPE_VALUES = [
 
 export type DocumentType = (typeof DOCUMENT_TYPE_VALUES)[number]
 
-export const documentTypeEnum = pgEnum(
-	'document_type',
-	DOCUMENT_TYPE_VALUES,
-)
+export const documentTypeEnum = pgEnum('document_type', DOCUMENT_TYPE_VALUES)
 
 export const DOCUMENT_STATUS_VALUES = [
 	'pending',
