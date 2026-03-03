@@ -46,7 +46,7 @@ Implementation order: **A1 → A2 → A3 → A4 → B**. Each part is one focuse
 
 ---
 
-## Part A3 — List API and validation schemas (next)
+## Part A3 — List API and validation schemas ✅ Done
 
 **Goal:** List documents for an application with auth. Depends on A1 and A2.
 
@@ -61,7 +61,7 @@ Implementation order: **A1 → A2 → A3 → A4 → B**. Each part is one focuse
 
 ---
 
-## Part A4 — Upload API
+## Part A4 — Upload API (next)
 
 **Goal:** Server action to upload a document. Depends on A1, A2, A3 (schemas).
 
@@ -94,8 +94,8 @@ Implementation order: **A1 → A2 → A3 → A4 → B**. Each part is one focuse
 | ------ | ------- | ---------------------------------------------------------------------- |
 | **A1** | ✅ Done  | Schema + migration                                                     |
 | **A2** | ✅ Done  | Env + generic storage module (`uploadBlob`, `deleteBlob`, `listBlobs`) |
-| **A3** | Next    | Zod enums + `getApplicationDocuments` query                            |
-| **A4** | Pending | `uploadApplicationDocument` action (uses `uploadBlob` + pathname)      |
+| **A3** | ✅ Done  | Zod enums + `getApplicationDocuments` query                            |
+| **A4** | Next    | `uploadApplicationDocument` action (uses `uploadBlob` + pathname)      |
 | **B**  | Pending | UI list + upload form                                                  |
 
 
