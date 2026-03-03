@@ -466,7 +466,7 @@ export type ApplicationDocumentForList = {
 	status: DocumentStatus
 	fileName: string
 	url: string
-	canDownload: boolean
+	hasBlobContent: boolean
 	createdAt: Date
 	rejectionReason: string | null
 }
@@ -517,7 +517,7 @@ export async function getApplicationDocuments(
 		status: row.status,
 		fileName: row.fileName,
 		url: `/api/application-documents/${row.id}/file`,
-		canDownload: isBlobStorageKey(row.storageKey),
+		hasBlobContent: isBlobStorageKey(row.storageKey),
 		createdAt: row.createdAt,
 		rejectionReason: row.rejectionReason,
 	}))

@@ -115,7 +115,7 @@ export default async function DashboardApplicationDetailPage({
 										<span className="truncate text-muted-foreground">
 											{doc.fileName}
 										</span>
-										{doc.canDownload ? (
+										{doc.hasBlobContent ? (
 											<Button variant="link" className="h-auto p-0" asChild>
 												<a
 													href={doc.url}

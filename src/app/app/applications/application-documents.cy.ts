@@ -37,7 +37,7 @@ describe('App Application Documents (Agent)', () => {
 			applicationId: seed.applicationId,
 			documentType: 'contract',
 			fileName: 'contract-e2e.pdf',
-			storageKey: 'https://example.com/e2e/contract.pdf',
+			storageKey: 'application-documents/e2e-contract.pdf',
 		})
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
