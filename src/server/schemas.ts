@@ -1,7 +1,11 @@
 import { z } from 'zod'
 
 import { statusRequiresReason } from '~/lib/application-rules'
-import { APPLICATION_STATUS_VALUES } from '~/server/db/schema'
+import {
+	APPLICATION_STATUS_VALUES,
+	DOCUMENT_STATUS_VALUES,
+	DOCUMENT_TYPE_VALUES,
+} from '~/server/db/schema'
 
 const domainRegex =
 	/^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/
@@ -97,6 +101,13 @@ const UPDATE_STATUS_ERROR_KEYS = [
 	'applications-reason-required',
 	'applications-error-generic',
 ] as const
+
+export const documentTypeSchema = z.enum(DOCUMENT_TYPE_VALUES, {
+	message: 'Tipo de documento no válido',
+})
+export const documentStatusSchema = z.enum(DOCUMENT_STATUS_VALUES, {
+	message: 'Estado de documento no válido',
+})
 
 /** Parse and validate update-status payload. Single place for validation and error-key mapping. */
 export function parseUpdateApplicationStatusPayload(
