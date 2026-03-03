@@ -88,43 +88,7 @@ async function deleteBlobsForTerm(
 		.where(inArray(applicationDocuments.applicationId, ids))
 
 	const toDelete = docs.filter((d) => isBlobStorageKey(d.storageKey))
-	if (toDelete.length > 0) {
-		console.info(
-			`[deleteBlobsForTerm] Deleting ${toDelete.length} blob(s) for termId=${termId}`,
-		)
-		for (const d of toDelete) {
-			console.info(
-				`[deleteBlobsForTerm] application_document id=${d.id} storageKey=${d.storageKey}`,
-			)
-		}
-	}
-	const results = await Promise.allSettled(
-		toDelete.map((d) => deleteBlob(d.storageKey)),
-	)
-	const failed = results.filter(
-		(r): r is PromiseRejectedResult => r.status === 'rejected',
-	)
-	failed.forEach((result) => {
-		const idx = results.indexOf(result)
-		const d = toDelete[idx]
-		console.error(
-			`[deleteBlobsForTerm] Failed application_document id=${d?.id ?? '?'} storageKey="${d?.storageKey ?? '?'}":`,
-			result.reason,
-		)
-	})
-	results.forEach((result, i) => {
-		if (result.status === 'fulfilled' && toDelete[i]) {
-			const d = toDelete[i]
-			console.info(
-				`[deleteBlobsForTerm] del() completed (void) application_document id=${d.id} storageKey=${d.storageKey}`,
-			)
-		}
-	})
-	if (failed.length === 0 && toDelete.length > 0) {
-		console.info(
-			`[deleteBlobsForTerm] Successfully deleted ${toDelete.length} blob(s)`,
-		)
-	}
+	await Promise.allSettled(toDelete.map((d) => deleteBlob(d.storageKey)))
 }
 
 export type LoginTaskParams = string
