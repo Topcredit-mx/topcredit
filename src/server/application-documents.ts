@@ -1,6 +1,6 @@
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { db } from '~/server/db'
-import { getBlob } from '~/server/storage'
+import { getBlob, isBlobStorageKey } from '~/server/storage'
 
 export type ApplicationDocumentStreamResult = {
 	stream: ReadableStream<Uint8Array>
@@ -43,11 +43,16 @@ export async function getApplicationDocumentStream(
 		}),
 	)
 
+	if (!isBlobStorageKey(doc.storageKey)) return null
+
 	const result = await getBlob(doc.storageKey)
 	if (!result || result.statusCode !== 200) return null
 
+	const stream = result.stream
+	if (stream == null) return null
+
 	return {
-		stream: result.stream,
+		stream,
 		contentType: result.blob.contentType ?? 'application/octet-stream',
 		fileName: doc.fileName,
 	}

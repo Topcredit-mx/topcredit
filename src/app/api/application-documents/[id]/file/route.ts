@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getApplicationDocumentStream } from '~/server/application-documents'
+import { buildInlineDisposition } from '~/server/content-disposition'
 
 /**
  * Serves the application document file. Auth and blob fetch live in server/application-documents.
@@ -20,7 +21,7 @@ export async function GET(
 		return NextResponse.json({ error: 'Not found' }, { status: 404 })
 	}
 
-	const disposition = `inline; filename="${result.fileName.replace(/"/g, '%22')}"`
+	const disposition = buildInlineDisposition(result.fileName)
 
 	return new NextResponse(result.stream, {
 		headers: {

@@ -72,11 +72,10 @@ describe('Dashboard Application Documents', () => {
 				cy.contains(/autorización/i).should('be.visible')
 				cy.contains(/pendiente/i).should('be.visible')
 				cy.contains('auth.pdf').should('be.visible')
-				// Scope to document list: link inside the row that contains auth.pdf (avoids matching back link "Volver...")
-				cy.contains('li', 'auth.pdf')
-					.find('a')
-					.invoke('attr', 'href')
-					.should('match', /\/api\/application-documents\/\d+\/file$/)
+				// Seeded doc has non-Vercel storageKey, so "Ver" link is not shown (file unavailable).
+				cy.contains('li', 'auth.pdf').within(() => {
+					cy.get('a').should('not.exist')
+				})
 			})
 		})
 

@@ -121,11 +121,17 @@ export default async function AppApplicationDetailPage({
 									<span className="truncate text-muted-foreground">
 										{doc.fileName}
 									</span>
-									<Button variant="link" className="h-auto p-0" asChild>
-										<a href={doc.url} target="_blank" rel="noopener noreferrer">
-											{t('applications-document-link')}
-										</a>
-									</Button>
+									{doc.canDownload ? (
+										<Button variant="link" className="h-auto p-0" asChild>
+											<a
+												href={doc.url}
+												target="_blank"
+												rel="noopener noreferrer"
+											>
+												{t('applications-document-link')}
+											</a>
+										</Button>
+									) : null}
 								</li>
 							))}
 						</ul>

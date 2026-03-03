@@ -18,6 +18,7 @@ import {
 	users,
 } from '~/server/db/schema'
 import type { CompanyBasic, CompanyScope } from '~/server/scopes'
+import { isBlobStorageKey } from '~/server/storage'
 
 export type { CompanyBasic, CompanyScope } from '~/server/scopes'
 
@@ -465,6 +466,7 @@ export type ApplicationDocumentForList = {
 	status: DocumentStatus
 	fileName: string
 	url: string
+	canDownload: boolean
 	createdAt: Date
 	rejectionReason: string | null
 }
@@ -500,6 +502,7 @@ export async function getApplicationDocuments(
 			documentType: applicationDocuments.documentType,
 			status: applicationDocuments.status,
 			fileName: applicationDocuments.fileName,
+			storageKey: applicationDocuments.storageKey,
 			createdAt: applicationDocuments.createdAt,
 			rejectionReason: applicationDocuments.rejectionReason,
 		})
@@ -514,6 +517,7 @@ export async function getApplicationDocuments(
 		status: row.status,
 		fileName: row.fileName,
 		url: `/api/application-documents/${row.id}/file`,
+		canDownload: isBlobStorageKey(row.storageKey),
 		createdAt: row.createdAt,
 		rejectionReason: row.rejectionReason,
 	}))
