@@ -465,37 +465,16 @@ export type ApplicationDocumentForList = {
 	status: DocumentStatus
 	fileName: string
 	url: string
+	createdAt: Date
+	rejectionReason: string | null
 }
 
 export async function getApplicationDocuments(
 	applicationId: number,
 ): Promise<ApplicationDocumentForList[] | null> {
-	const appRow = await db
-		.select({
-			id: applications.id,
-			applicantId: applications.applicantId,
-			companyId: termOfferings.companyId,
-		})
-		.from(applications)
-		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
-		.where(eq(applications.id, applicationId))
-		.limit(1)
+	if (!Number.isInteger(applicationId) || applicationId < 1) return null
 
-	const app = appRow[0]
-	if (!app) return null
-
-	const { ability } = await getAbility()
-	requireAbility(
-		ability,
-		'read',
-		subject('Application', {
-			id: app.id,
-			applicantId: app.applicantId,
-			companyId: app.companyId,
-		}),
-	)
-
-	return db
+	const rows = await db
 		.select({
 			id: applicationDocuments.id,
 			applicationId: applicationDocuments.applicationId,
@@ -503,10 +482,45 @@ export async function getApplicationDocuments(
 			status: applicationDocuments.status,
 			fileName: applicationDocuments.fileName,
 			url: applicationDocuments.storageKey,
+			createdAt: applicationDocuments.createdAt,
+			rejectionReason: applicationDocuments.rejectionReason,
+			appId: applications.id,
+			applicantId: applications.applicantId,
+			companyId: termOfferings.companyId,
 		})
 		.from(applicationDocuments)
-		.where(eq(applicationDocuments.applicationId, applicationId))
+		.innerJoin(
+			applications,
+			eq(applicationDocuments.applicationId, applications.id),
+		)
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.where(eq(applications.id, applicationId))
 		.orderBy(desc(applicationDocuments.createdAt))
+
+	const first = rows[0]
+	if (!first) return null
+
+	const { ability } = await getAbility()
+	requireAbility(
+		ability,
+		'read',
+		subject('Application', {
+			id: first.appId,
+			applicantId: first.applicantId,
+			companyId: first.companyId,
+		}),
+	)
+
+	return rows.map((row) => ({
+		id: row.id,
+		applicationId: row.applicationId,
+		documentType: row.documentType,
+		status: row.status,
+		fileName: row.fileName,
+		url: row.url,
+		createdAt: row.createdAt,
+		rejectionReason: row.rejectionReason,
+	}))
 }
 
 export type ApplicationForReview = {
