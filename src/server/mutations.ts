@@ -19,6 +19,7 @@ import {
 import { db } from '~/server/db'
 import type { ApplicationStatus } from '~/server/db/schema'
 import {
+	applicationDocuments,
 	applications,
 	companies,
 	userCompanies,
@@ -38,8 +39,14 @@ import {
 	createCompanySchema,
 	parseUpdateApplicationStatusPayload,
 	updateCompanySchema,
+	uploadApplicationDocumentSchema,
 } from '~/server/schemas'
 import { getCompaniesForSwitcher } from '~/server/scopes'
+import {
+	APPLICATION_DOCUMENTS_PREFIX,
+	deleteBlob,
+	uploadBlob,
+} from '~/server/storage'
 
 // ---- Selected company (sidebar switcher) ----
 
@@ -402,6 +409,92 @@ export async function createApplication(
 	}
 
 	redirect('/dashboard/applications')
+}
+
+export async function uploadApplicationDocument(
+	_prevState: unknown,
+	formData: FormData,
+): Promise<{ errors?: Record<string, string>; message?: string }> {
+	const user = await getRequiredApplicantUser()
+	const { ability } = await getAbility()
+
+	const file = formData.get('file')
+	if (!(file instanceof File) || file.size === 0) {
+		return { errors: { file: 'Selecciona un archivo válido.' } }
+	}
+
+	try {
+		const data = uploadApplicationDocumentSchema.parse({
+			applicationId: formData.get('applicationId'),
+			documentType: formData.get('documentType'),
+		})
+
+		const app = await db.query.applications.findFirst({
+			where: (a, { eq }) => eq(a.id, data.applicationId),
+			columns: { id: true, applicantId: true, termOfferingId: true },
+			with: {
+				termOffering: { columns: { companyId: true } },
+			},
+		})
+
+		if (!app?.termOffering) {
+			return { message: 'Solicitud no encontrada.' }
+		}
+
+		requireAbility(
+			ability,
+			'read',
+			subject('Application', {
+				id: app.id,
+				applicantId: app.applicantId,
+				companyId: app.termOffering.companyId,
+			}),
+		)
+
+		if (app.applicantId !== user.id) {
+			return { message: 'Solo el solicitante puede subir documentos.' }
+		}
+
+		const existing = await db.query.applicationDocuments.findFirst({
+			where: and(
+				eq(applicationDocuments.applicationId, data.applicationId),
+				eq(applicationDocuments.documentType, data.documentType),
+			),
+			columns: { id: true, storageKey: true },
+		})
+
+		if (existing) {
+			await deleteBlob(existing.storageKey)
+			await db
+				.delete(applicationDocuments)
+				.where(eq(applicationDocuments.id, existing.id))
+		}
+
+		const fileName =
+			file.name.replace(/\0/g, '').replace(/[/\\]/g, '_').trim() || 'document'
+		const pathname = `${APPLICATION_DOCUMENTS_PREFIX}${data.applicationId}/${data.documentType}/${fileName}`
+
+		const { url } = await uploadBlob(pathname, file, {
+			contentType: file.type || undefined,
+		})
+
+		await db.insert(applicationDocuments).values({
+			applicationId: data.applicationId,
+			documentType: data.documentType,
+			status: 'pending',
+			storageKey: url,
+			fileName,
+		})
+
+		revalidatePath('/dashboard/applications')
+		revalidatePath(`/dashboard/applications/${data.applicationId}`)
+		revalidatePath('/app/applications')
+		revalidatePath(`/app/applications/${data.applicationId}`)
+	} catch (error) {
+		return fromErrorToFormState(error)
+	}
+
+	return {}
 }
 
 export async function updateApplicationStatus(

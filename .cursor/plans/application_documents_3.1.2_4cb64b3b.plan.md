@@ -61,7 +61,7 @@ Implementation order: **A1 → A2 → A3 → A4 → B**. Each part is one focuse
 
 ---
 
-## Part A4 — Upload API (next)
+## Part A4 — Upload API ✅ Done
 
 **Goal:** Server action to upload a document. Depends on A1, A2, A3 (schemas).
 
@@ -76,7 +76,7 @@ Implementation order: **A1 → A2 → A3 → A4 → B**. Each part is one focuse
 
 ---
 
-## Part B — UI
+## Part B — UI (next)
 
 **Goal:** List and upload on application detail.
 
@@ -90,13 +90,13 @@ Implementation order: **A1 → A2 → A3 → A4 → B**. Each part is one focuse
 ## Summary
 
 
-| Part   | Status  | Deliverable                                                            |
-| ------ | ------- | ---------------------------------------------------------------------- |
-| **A1** | ✅ Done  | Schema + migration                                                     |
-| **A2** | ✅ Done  | Env + generic storage module (`uploadBlob`, `deleteBlob`, `listBlobs`) |
-| **A3** | ✅ Done  | Zod enums + `getApplicationDocuments` query                            |
-| **A4** | Next    | `uploadApplicationDocument` action (uses `uploadBlob` + pathname)      |
-| **B**  | Pending | UI list + upload form                                                  |
+| Part   | Status | Deliverable                                                            |
+| ------ | ------ | ---------------------------------------------------------------------- |
+| **A1** | ✅ Done | Schema + migration                                                     |
+| **A2** | ✅ Done | Env + generic storage module (`uploadBlob`, `deleteBlob`, `listBlobs`) |
+| **A3** | ✅ Done | Zod enums + `getApplicationDocuments` query                            |
+| **A4** | ✅ Done | `uploadApplicationDocument` action (uses `uploadBlob` + pathname)      |
+| **B**  | Next   | UI list + upload form                                                  |
 
 
 No changes to [ability.ts](src/server/auth/ability.ts). E2E for upload + list can be added in Part B.

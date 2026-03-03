@@ -109,6 +109,11 @@ export const documentStatusSchema = z.enum(DOCUMENT_STATUS_VALUES, {
 	message: 'Estado de documento no válido',
 })
 
+export const uploadApplicationDocumentSchema = z.object({
+	applicationId: z.coerce.number().int().positive('Solicitud no válida'),
+	documentType: documentTypeSchema,
+})
+
 /** Parse and validate update-status payload. Single place for validation and error-key mapping. */
 export function parseUpdateApplicationStatusPayload(
 	payload: unknown,
