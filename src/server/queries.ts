@@ -2,8 +2,13 @@ import { and, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
-import type { ApplicationStatus } from '~/server/db/schema'
+import type {
+	ApplicationStatus,
+	DocumentStatus,
+	DocumentType,
+} from '~/server/db/schema'
 import {
+	applicationDocuments,
 	applications,
 	companies,
 	termOfferings,
@@ -451,6 +456,57 @@ export async function getApplicationByApplicantId(
 			duration: row.duration,
 		},
 	}
+}
+
+export type ApplicationDocumentForList = {
+	id: number
+	applicationId: number
+	documentType: DocumentType
+	status: DocumentStatus
+	fileName: string
+	url: string
+}
+
+export async function getApplicationDocuments(
+	applicationId: number,
+): Promise<ApplicationDocumentForList[] | null> {
+	const appRow = await db
+		.select({
+			id: applications.id,
+			applicantId: applications.applicantId,
+			companyId: termOfferings.companyId,
+		})
+		.from(applications)
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.where(eq(applications.id, applicationId))
+		.limit(1)
+
+	const app = appRow[0]
+	if (!app) return null
+
+	const { ability } = await getAbility()
+	requireAbility(
+		ability,
+		'read',
+		subject('Application', {
+			id: app.id,
+			applicantId: app.applicantId,
+			companyId: app.companyId,
+		}),
+	)
+
+	return db
+		.select({
+			id: applicationDocuments.id,
+			applicationId: applicationDocuments.applicationId,
+			documentType: applicationDocuments.documentType,
+			status: applicationDocuments.status,
+			fileName: applicationDocuments.fileName,
+			url: applicationDocuments.storageKey,
+		})
+		.from(applicationDocuments)
+		.where(eq(applicationDocuments.applicationId, applicationId))
+		.orderBy(desc(applicationDocuments.createdAt))
 }
 
 export type ApplicationForReview = {
