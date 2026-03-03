@@ -81,6 +81,10 @@ declare namespace Cypress {
 			event: 'cleanupApplicationsReview',
 			params: import('../tasks').CleanupApplicationsReviewParams,
 		): Chainable<null>
+		task(
+			event: 'insertApplicationDocument',
+			params: import('../tasks').InsertApplicationDocumentTaskParams,
+		): Chainable<{ id: number }>
 	}
 }
 

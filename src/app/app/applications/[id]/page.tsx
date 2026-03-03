@@ -1,11 +1,15 @@
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
+import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { canTransitionApplicationFrom } from '~/lib/application-rules'
 import { APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import { formatCurrencyMxn } from '~/lib/utils'
-import { getApplicationForReview } from '~/server/queries'
+import {
+	getApplicationDocuments,
+	getApplicationForReview,
+} from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
 import { formatApplicationTerm } from '../constants'
@@ -25,6 +29,8 @@ export default async function AppApplicationDetailPage({
 	if (!application) {
 		notFound()
 	}
+	const documents = await getApplicationDocuments(applicationId)
+	const documentList = documents ?? []
 	const t = await getTranslations('app')
 	const canTransition = canTransitionApplicationFrom(application.status)
 
@@ -91,6 +97,43 @@ export default async function AppApplicationDetailPage({
 				<CardContent>
 					{canTransition && (
 						<ApplicationActions applicationId={application.id} />
+					)}
+				</CardContent>
+			</Card>
+
+			<Card className="mt-6">
+				<CardHeader>
+					<h2 className="font-semibold text-lg">
+						{t('applications-detail-documents')}
+					</h2>
+				</CardHeader>
+				<CardContent>
+					{documentList.length > 0 ? (
+						<ul className="space-y-2 text-sm">
+							{documentList.map((doc) => (
+								<li
+									key={doc.id}
+									className="flex flex-wrap items-center gap-x-4 gap-y-1"
+								>
+									<span className="text-muted-foreground">
+										{t(`applications-document-type-${doc.documentType}`)}:
+									</span>
+									<span>{t(`applications-document-status-${doc.status}`)}</span>
+									<span className="truncate text-muted-foreground">
+										{doc.fileName}
+									</span>
+									<Button variant="link" className="h-auto p-0" asChild>
+										<a href={doc.url} target="_blank" rel="noopener noreferrer">
+											{t('applications-document-link')}
+										</a>
+									</Button>
+								</li>
+							))}
+						</ul>
+					) : (
+						<p className="text-muted-foreground text-sm">
+							{t('applications-documents-empty')}
+						</p>
 					)}
 				</CardContent>
 			</Card>

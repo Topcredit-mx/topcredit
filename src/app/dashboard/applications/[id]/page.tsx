@@ -3,12 +3,16 @@ import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
-import { Card, CardHeader } from '~/components/ui/card'
+import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { DASHBOARD_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
-import { getApplicationByApplicantId } from '~/server/queries'
+import {
+	getApplicationByApplicantId,
+	getApplicationDocuments,
+} from '~/server/queries'
 import { formatApplicationTerm } from '../constants'
+import { ApplicationDocumentUploadForm } from './application-document-upload-form'
 
 export default async function DashboardApplicationDetailPage({
 	params,
@@ -26,6 +30,9 @@ export default async function DashboardApplicationDetailPage({
 	if (!application) {
 		notFound()
 	}
+
+	const documents = await getApplicationDocuments(applicationId)
+	const documentList = documents ?? []
 
 	const t = await getTranslations('dashboard.applications')
 
@@ -88,6 +95,49 @@ export default async function DashboardApplicationDetailPage({
 							</div>
 						</div>
 					</CardHeader>
+				</Card>
+
+				<Card className="mt-6">
+					<CardHeader>
+						<h2 className="font-semibold text-lg">{t('documents-title')}</h2>
+					</CardHeader>
+					<CardContent className="space-y-6">
+						{documentList.length > 0 ? (
+							<ul className="space-y-2 text-sm">
+								{documentList.map((doc) => (
+									<li
+										key={doc.id}
+										className="flex flex-wrap items-center gap-x-4 gap-y-1"
+									>
+										<span className="text-muted-foreground">
+											{t(`document-type-${doc.documentType}`)}:
+										</span>
+										<span>{t(`document-status-${doc.status}`)}</span>
+										<span className="truncate text-muted-foreground">
+											{doc.fileName}
+										</span>
+										<Button variant="link" className="h-auto p-0" asChild>
+											<a
+												href={doc.url}
+												target="_blank"
+												rel="noopener noreferrer"
+											>
+												{t('document-link')}
+											</a>
+										</Button>
+									</li>
+								))}
+							</ul>
+						) : (
+							<p className="text-muted-foreground text-sm">
+								{t('documents-empty')}
+							</p>
+						)}
+						<div>
+							<h3 className="mb-3 font-medium text-sm">{t('upload-title')}</h3>
+							<ApplicationDocumentUploadForm applicationId={applicationId} />
+						</div>
+					</CardContent>
 				</Card>
 			</main>
 		</div>

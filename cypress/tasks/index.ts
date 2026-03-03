@@ -50,6 +50,7 @@ import {
 } from '~/app/login/login.fixtures'
 import type { Role } from '~/server/auth/session'
 import {
+	applicationDocuments,
 	applications,
 	companies,
 	termOfferings,
@@ -402,6 +403,32 @@ export const deleteApplicationsByApplicantId = async (
 	const db = getDb(process.env.DATABASE_URL || '')
 	await db.delete(applications).where(eq(applications.applicantId, applicantId))
 	return null
+}
+
+export type InsertApplicationDocumentTaskParams = {
+	applicationId: number
+	documentType: 'authorization' | 'contract' | 'payroll-receipt'
+	fileName: string
+	storageKey: string
+}
+
+/** Insert one application document for E2E (e.g. to test list display). Documents are deleted when application/user is cleaned up. */
+export const insertApplicationDocument = async (
+	params: InsertApplicationDocumentTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	const [doc] = await db
+		.insert(applicationDocuments)
+		.values({
+			applicationId: params.applicationId,
+			documentType: params.documentType,
+			status: 'pending',
+			fileName: params.fileName,
+			storageKey: params.storageKey,
+		})
+		.returning()
+	if (!doc) throw new Error('Failed to insert application document')
+	return doc
 }
 
 export const getUserIdByEmail = async (
@@ -1108,6 +1135,8 @@ export type SeedApplicationsReviewResult = {
 	companyDId: number
 	termId: number
 	companyBApplicationId: number
+	/** First application (for companyId) – use for documents E2E. */
+	applicationId: number
 }
 
 export const seedApplicationsReview =
@@ -1228,12 +1257,15 @@ export const seedApplicationsReview =
 		const companyBApp = apps[companyBAppIdx]
 		if (companyBAppIdx < 0 || !companyBApp)
 			throw new Error('Seed: company B app not found')
+		const firstApp = apps[0]
+		if (!firstApp) throw new Error('Seed: no application created')
 
 		return {
 			companyId: findCompany(companyForReview.domain).id,
 			companyDId: findCompany(companyForReviewD.domain).id,
 			termId: term.id,
 			companyBApplicationId: companyBApp.id,
+			applicationId: firstApp.id,
 		}
 	}
 
