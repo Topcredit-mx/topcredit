@@ -30,6 +30,7 @@ import {
 	sendApplicationSubmittedEvent,
 } from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
+import { detectAllowedMime } from '~/server/file-validation'
 import {
 	getCompanyByEmailDomain,
 	getTermOfferingsForCompany,
@@ -439,13 +440,12 @@ export async function uploadApplicationDocument(
 	if (file.size > APPLICATION_DOCUMENT_MAX_BYTES) {
 		return { errors: { file: 'El archivo no debe superar 15 MB.' } }
 	}
-	const mime = file.type?.toLowerCase() ?? ''
-	if (!APPLICATION_DOCUMENT_ALLOWED_TYPES.has(mime)) {
-		return {
-			errors: {
-				file: 'Solo se permiten archivos PDF, JPG, PNG o WebP.',
-			},
-		}
+	const detected = await detectAllowedMime(
+		file,
+		APPLICATION_DOCUMENT_ALLOWED_TYPES,
+	)
+	if ('error' in detected) {
+		return { errors: { file: detected.error } }
 	}
 
 	try {
@@ -499,7 +499,7 @@ export async function uploadApplicationDocument(
 		const pathname = `${APPLICATION_DOCUMENTS_PREFIX}${data.applicationId}/${data.documentType}/${fileName}`
 
 		const { pathname: storedPathname } = await uploadBlob(pathname, file, {
-			contentType: file.type || undefined,
+			contentType: detected.mime,
 		})
 
 		await db.insert(applicationDocuments).values({
