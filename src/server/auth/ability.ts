@@ -19,7 +19,13 @@ import { requireAuth } from './session'
 
 export { subject }
 
-export type AppAction = 'manage' | 'create' | 'read' | 'update' | 'delete'
+export type AppAction =
+	| 'manage'
+	| 'create'
+	| 'read'
+	| 'update'
+	| 'delete'
+	| 'uploadDocument'
 export type AppSubject = 'Company' | 'User' | 'Admin' | 'Application' | 'all'
 
 export type CompanySubject = { id: number } & ForcedSubject<'Company'>
@@ -62,6 +68,7 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 			can('create', 'Application')
 		}
 		can('read', 'Application', { applicantId: ctx.userId })
+		can('uploadDocument', 'Application', { applicantId: ctx.userId })
 		can('update', 'User', { id: ctx.userId })
 		return build()
 	}

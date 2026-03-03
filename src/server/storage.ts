@@ -1,22 +1,37 @@
-import { del, list, put } from '@vercel/blob'
+import { del, get, list, put } from '@vercel/blob'
 
 export const APPLICATION_DOCUMENTS_PREFIX = 'application-documents/'
+
+const VERCEL_BLOB_URL_HOST = 'blob.vercel-storage.com'
+
+/** True if the key is a Vercel Blob URL or our pathname prefix (so safe to pass to del/get). */
+export function isBlobStorageKey(key: string): boolean {
+	return (
+		key.includes(VERCEL_BLOB_URL_HOST) ||
+		key.startsWith(APPLICATION_DOCUMENTS_PREFIX)
+	)
+}
 
 export async function uploadBlob(
 	pathname: string,
 	body: Blob | Buffer | ReadableStream,
 	options?: { contentType?: string },
-): Promise<{ url: string }> {
+): Promise<{ pathname: string }> {
 	const blob = await put(pathname, body, {
-		access: 'public',
+		access: 'private',
 		addRandomSuffix: true,
 		contentType: options?.contentType,
 	})
-	return { url: blob.url }
+	return { pathname: blob.pathname }
 }
 
-export async function deleteBlob(url: string): Promise<void> {
-	await del(url)
+export async function deleteBlob(urlOrPathname: string): Promise<void> {
+	await del(urlOrPathname)
+}
+
+/** Fetch private blob by pathname for streaming (e.g. authenticated download). */
+export async function getBlob(pathname: string) {
+	return get(pathname, { access: 'private' })
 }
 
 export type ListBlobItem = { url: string; pathname: string }

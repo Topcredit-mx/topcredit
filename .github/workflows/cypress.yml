@@ -20,6 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         containers: [1]
+    # BLOB_READ_WRITE_TOKEN is required for application document upload E2E tests; the suite will fail without it.
     env:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       AUTH_URL: http://localhost:3000

@@ -29,8 +29,7 @@ export default async function AppApplicationDetailPage({
 	if (!application) {
 		notFound()
 	}
-	const documents = await getApplicationDocuments(applicationId)
-	const documentList = documents ?? []
+	const documentList = await getApplicationDocuments(applicationId)
 	const t = await getTranslations('app')
 	const canTransition = canTransitionApplicationFrom(application.status)
 

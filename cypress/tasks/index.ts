@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import {
 	adminOverviewAdmin,
@@ -59,7 +59,73 @@ import {
 	userRoles,
 	users,
 } from '~/server/db/schema'
+import { deleteBlob, isBlobStorageKey } from '~/server/storage'
 import { getDb } from './cypress-db'
+
+/** Delete Vercel Blob files for all application documents under applications in the given term. No-op when BLOB_READ_WRITE_TOKEN is unset. */
+async function deleteBlobsForTerm(
+	db: Awaited<ReturnType<typeof getDb>>,
+	termId: number,
+): Promise<void> {
+	if (!process.env.BLOB_READ_WRITE_TOKEN)
+		throw new Error('BLOB_READ_WRITE_TOKEN is not set')
+
+	const appIds = await db
+		.select({ id: applications.id })
+		.from(applications)
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.where(eq(termOfferings.termId, termId))
+
+	const ids = appIds.map((r) => r.id)
+	if (ids.length === 0) return
+
+	const docs = await db
+		.select({
+			id: applicationDocuments.id,
+			storageKey: applicationDocuments.storageKey,
+		})
+		.from(applicationDocuments)
+		.where(inArray(applicationDocuments.applicationId, ids))
+
+	const toDelete = docs.filter((d) => isBlobStorageKey(d.storageKey))
+	if (toDelete.length > 0) {
+		console.info(
+			`[deleteBlobsForTerm] Deleting ${toDelete.length} blob(s) for termId=${termId}`,
+		)
+		for (const d of toDelete) {
+			console.info(
+				`[deleteBlobsForTerm] application_document id=${d.id} storageKey=${d.storageKey}`,
+			)
+		}
+	}
+	const results = await Promise.allSettled(
+		toDelete.map((d) => deleteBlob(d.storageKey)),
+	)
+	const failed = results.filter(
+		(r): r is PromiseRejectedResult => r.status === 'rejected',
+	)
+	failed.forEach((result) => {
+		const idx = results.indexOf(result)
+		const d = toDelete[idx]
+		console.error(
+			`[deleteBlobsForTerm] Failed application_document id=${d?.id ?? '?'} storageKey="${d?.storageKey ?? '?'}":`,
+			result.reason,
+		)
+	})
+	results.forEach((result, i) => {
+		if (result.status === 'fulfilled' && toDelete[i]) {
+			const d = toDelete[i]
+			console.info(
+				`[deleteBlobsForTerm] del() completed (void) application_document id=${d.id} storageKey=${d.storageKey}`,
+			)
+		}
+	})
+	if (failed.length === 0 && toDelete.length > 0) {
+		console.info(
+			`[deleteBlobsForTerm] Successfully deleted ${toDelete.length} blob(s)`,
+		)
+	}
+}
 
 export type LoginTaskParams = string
 
@@ -464,6 +530,22 @@ export const resetApplicantApplication = async (
 	params: ResetApplicantApplicationTaskParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	// Delete blobs for applications we're about to remove (so they don't persist in storage)
+	if (process.env.BLOB_READ_WRITE_TOKEN) {
+		const appsToRemove = await db
+			.select({ id: applications.id })
+			.from(applications)
+			.where(eq(applications.applicantId, params.applicantId))
+		const ids = appsToRemove.map((r) => r.id)
+		if (ids.length > 0) {
+			const docs = await db
+				.select({ storageKey: applicationDocuments.storageKey })
+				.from(applicationDocuments)
+				.where(inArray(applicationDocuments.applicationId, ids))
+			const toDelete = docs.filter((d) => isBlobStorageKey(d.storageKey))
+			await Promise.allSettled(toDelete.map((d) => deleteBlob(d.storageKey)))
+		}
+	}
 	await db
 		.delete(applications)
 		.where(eq(applications.applicantId, params.applicantId))
@@ -695,6 +777,7 @@ export const cleanupDashboardApplications = async (
 	params: CleanupDashboardApplicationsParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	await deleteBlobsForTerm(db, params.termId)
 	const allApplicants = [
 		applicantWithCompany,
 		applicantB,
@@ -1277,7 +1360,7 @@ export const cleanupApplicationsReview = async (
 	params: CleanupApplicationsReviewParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
-
+	await deleteBlobsForTerm(db, params.termId)
 	const allUserFixtures = [agentForReview, ...allReviewApplicants]
 
 	await Promise.all(

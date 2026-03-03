@@ -3,7 +3,9 @@
  * - Documents section and upload form visible on application detail.
  * - Empty state and list with one seeded document (DB-only; no real blob).
  * - Upload form validation: submit without file shows error.
- * - Full upload flow: real file upload to blob, then list shows the document (requires BLOB_READ_WRITE_TOKEN in CI).
+ * - Full upload flow: real file upload to blob, then list shows the document.
+ *
+ * Requires BLOB_READ_WRITE_TOKEN in CI; the suite will fail without it.
  */
 
 import type { SeedDashboardApplicationsResult } from '../../../../cypress/tasks'
@@ -70,9 +72,11 @@ describe('Dashboard Application Documents', () => {
 				cy.contains(/autorización/i).should('be.visible')
 				cy.contains(/pendiente/i).should('be.visible')
 				cy.contains('auth.pdf').should('be.visible')
-				cy.contains('a', /ver/i)
+				// Scope to document list: link inside the row that contains auth.pdf (avoids matching back link "Volver...")
+				cy.contains('li', 'auth.pdf')
+					.find('a')
 					.invoke('attr', 'href')
-					.should('include', 'example.com')
+					.should('match', /\/api\/application-documents\/\d+\/file$/)
 			})
 		})
 
@@ -87,16 +91,21 @@ describe('Dashboard Application Documents', () => {
 				cy.contains('h2', /documentos/i).should('be.visible')
 				cy.selectRadix('label:Tipo de documento', 'Recibo de nómina')
 				cy.get('input[name="file"]').selectFile(
-					'cypress/fixtures/sample-document.txt',
+					'cypress/fixtures/sample-document.webp',
 					{ force: true },
 				)
+				cy.intercept('POST', '**/dashboard/applications/*').as('uploadDoc')
 				cy.contains('button', /subir/i).click()
+				cy.wait('@uploadDoc')
+				// List is server-rendered; revalidatePath runs after action but page does not auto-refresh. Reload to see new document.
+				cy.visit(`/dashboard/applications/${app.id}`)
 				cy.contains(/pendiente/i).should('be.visible')
-				cy.contains('sample-document.txt').should('be.visible')
+				cy.contains('sample-document.webp').should('be.visible')
 				cy.contains(/recibo de nómina/i).should('be.visible')
-				cy.contains('a', /ver/i)
+				cy.contains('li', 'sample-document.webp')
+					.find('a')
 					.invoke('attr', 'href')
-					.should('match', /^https:\/\//)
+					.should('match', /\/api\/application-documents\/\d+\/file$/)
 			})
 		})
 
@@ -112,6 +121,38 @@ describe('Dashboard Application Documents', () => {
 				cy.contains('button', /subir/i).click()
 				cy.contains(/selecciona un archivo válido/i).should('be.visible')
 				cy.url().should('include', `/dashboard/applications/${app.id}`)
+			})
+		})
+
+		it('preview document returns file when authenticated (real blob)', () => {
+			cy.task('resetApplicantApplication', {
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '15000',
+				salaryAtApplication: '100000',
+			}).then((app) => {
+				cy.visit(`/dashboard/applications/${app.id}`)
+				cy.contains('h2', /documentos/i).should('be.visible')
+				cy.selectRadix('label:Tipo de documento', 'Recibo de nómina')
+				cy.get('input[name="file"]').selectFile(
+					'cypress/fixtures/sample-document.webp',
+					{ force: true },
+				)
+				cy.intercept('POST', '**/dashboard/applications/*').as('uploadDoc')
+				cy.contains('button', /subir/i).click()
+				cy.wait('@uploadDoc')
+				cy.visit(`/dashboard/applications/${app.id}`)
+				cy.contains('li', 'sample-document.webp')
+					.find('a')
+					.invoke('attr', 'href')
+					.then((href) => {
+						expect(href).to.match(/\/api\/application-documents\/\d+\/file$/)
+						cy.request({ url: href, encoding: 'binary' }).then((res) => {
+							expect(res.status).to.eq(200)
+							expect(res.body).to.have.length.greaterThan(0)
+							expect(res.headers['content-type']).to.include('image/webp')
+						})
+					})
 			})
 		})
 	})

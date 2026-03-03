@@ -31,8 +31,7 @@ export default async function DashboardApplicationDetailPage({
 		notFound()
 	}
 
-	const documents = await getApplicationDocuments(applicationId)
-	const documentList = documents ?? []
+	const documentList = await getApplicationDocuments(applicationId)
 
 	const t = await getTranslations('dashboard.applications')
 

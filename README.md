@@ -48,7 +48,7 @@
 
 #### Phase 3.1: Applicants – application detail and documents (split for smaller PRs)
 - [x] **3.1.1** Applicants: application detail page (dashboard) — view own application by id (status, amount, term, denial reason); link from applications list.
-- [ ] **3.1.2** Application documents: schema + storage — `application_documents` table (document types: authorization, contract, payrollReceipt; status pending/approved/rejected); choose storage (e.g. Vercel Blob/S3); upload + list APIs and auth.
+- [x] **3.1.2** Application documents: schema + storage — `application_documents` table (document types: authorization, contract, payrollReceipt; status pending/approved/rejected); Vercel Blob (private); upload + list APIs and auth; applicant upload + agent read-only list; authenticated file route for preview.
 - [ ] **3.1.3** Applicants: resubmit rejected flow — when status is denied or invalid-documentation, applicant can resubmit (transition to pending + upload required docs); CASL and mutation.
 - [ ] **3.1.4** Applicants: pre-authorized flow (contract, docs) — when status is pre-authorized, applicant views/accepts contract and uploads or confirms docs; then agent can authorize.
 
@@ -117,6 +117,9 @@ Applications are the first phase; once disbursed, a credit is created and the fl
 - Show only applications where current user is applicant (borrower)
 - Display application status, amount, link to credit once disbursed
 - Access to application documents
+
+### Deferred / later
+- **Delete application:** Not implemented yet. When adding it, delete the application row (DB will cascade-delete `application_documents` rows). **Blob cleanup:** Storage (e.g. Vercel Blob) is external—deleting DB rows does not remove files in the cloud. The delete flow must explicitly delete each document’s blob (by `storageKey`) before or after removing the application so test and production data do not accumulate in storage.
 
 ## Credit Management (post-disbursement)
 
