@@ -70,7 +70,16 @@
 		"applications-error-generic": "Error al actualizar la solicitud",
 		"applications-filter-all": "Todas",
 		"applications-term-months": "meses",
-		"applications-term-fortnights": "quincenas"
+		"applications-term-fortnights": "quincenas",
+		"applications-detail-documents": "Documentos",
+		"applications-documents-empty": "No hay documentos.",
+		"applications-document-type-authorization": "Autorización",
+		"applications-document-type-contract": "Contrato",
+		"applications-document-type-payroll-receipt": "Recibo de nómina",
+		"applications-document-status-pending": "Pendiente",
+		"applications-document-status-approved": "Aprobado",
+		"applications-document-status-rejected": "Rechazado",
+		"applications-document-link": "Ver"
 	},
 	"admin": {
 		"overview-title": "Vista general",
@@ -211,7 +220,21 @@
 			"detail-created": "Fecha de creación",
 			"detail-updated": "Última actualización",
 			"term-months": "meses",
-			"term-fortnights": "quincenas"
+			"term-fortnights": "quincenas",
+			"documents-title": "Documentos",
+			"documents-empty": "No hay documentos cargados.",
+			"document-type-authorization": "Autorización",
+			"document-type-contract": "Contrato",
+			"document-type-payroll-receipt": "Recibo de nómina",
+			"document-status-pending": "Pendiente",
+			"document-status-approved": "Aprobado",
+			"document-status-rejected": "Rechazado",
+			"upload-title": "Subir documento",
+			"label-document-type": "Tipo de documento",
+			"placeholder-document-type": "Selecciona el tipo",
+			"label-file": "Archivo",
+			"submit-upload": "Subir",
+			"document-link": "Ver"
 		},
 		"verify": {
 			"title": "Verificación",

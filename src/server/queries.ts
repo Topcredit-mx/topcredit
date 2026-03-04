@@ -18,6 +18,7 @@ import {
 	users,
 } from '~/server/db/schema'
 import type { CompanyBasic, CompanyScope } from '~/server/scopes'
+import { isBlobStorageKey } from '~/server/storage'
 
 export type { CompanyBasic, CompanyScope } from '~/server/scopes'
 
@@ -465,14 +466,34 @@ export type ApplicationDocumentForList = {
 	status: DocumentStatus
 	fileName: string
 	url: string
+	hasBlobContent: boolean
 	createdAt: Date
 	rejectionReason: string | null
 }
 
 export async function getApplicationDocuments(
 	applicationId: number,
-): Promise<ApplicationDocumentForList[] | null> {
-	if (!Number.isInteger(applicationId) || applicationId < 1) return null
+): Promise<ApplicationDocumentForList[]> {
+	if (!Number.isInteger(applicationId) || applicationId < 1) return []
+
+	const app = await db.query.applications.findFirst({
+		where: (a, { eq }) => eq(a.id, applicationId),
+		columns: { id: true, applicantId: true },
+		with: { termOffering: { columns: { companyId: true } } },
+	})
+
+	if (!app?.termOffering) return []
+
+	const { ability } = await getAbility()
+	requireAbility(
+		ability,
+		'read',
+		subject('Application', {
+			id: app.id,
+			applicantId: app.applicantId,
+			companyId: app.termOffering.companyId,
+		}),
+	)
 
 	const rows = await db
 		.select({
@@ -481,35 +502,13 @@ export async function getApplicationDocuments(
 			documentType: applicationDocuments.documentType,
 			status: applicationDocuments.status,
 			fileName: applicationDocuments.fileName,
-			url: applicationDocuments.storageKey,
+			storageKey: applicationDocuments.storageKey,
 			createdAt: applicationDocuments.createdAt,
 			rejectionReason: applicationDocuments.rejectionReason,
-			appId: applications.id,
-			applicantId: applications.applicantId,
-			companyId: termOfferings.companyId,
 		})
 		.from(applicationDocuments)
-		.innerJoin(
-			applications,
-			eq(applicationDocuments.applicationId, applications.id),
-		)
-		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
-		.where(eq(applications.id, applicationId))
+		.where(eq(applicationDocuments.applicationId, applicationId))
 		.orderBy(desc(applicationDocuments.createdAt))
-
-	const first = rows[0]
-	if (!first) return null
-
-	const { ability } = await getAbility()
-	requireAbility(
-		ability,
-		'read',
-		subject('Application', {
-			id: first.appId,
-			applicantId: first.applicantId,
-			companyId: first.companyId,
-		}),
-	)
 
 	return rows.map((row) => ({
 		id: row.id,
@@ -517,7 +516,8 @@ export async function getApplicationDocuments(
 		documentType: row.documentType,
 		status: row.status,
 		fileName: row.fileName,
-		url: row.url,
+		url: `/api/application-documents/${row.id}/file`,
+		hasBlobContent: isBlobStorageKey(row.storageKey),
 		createdAt: row.createdAt,
 		rejectionReason: row.rejectionReason,
 	}))

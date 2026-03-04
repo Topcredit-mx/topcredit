@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import {
 	adminOverviewAdmin,
@@ -50,6 +50,7 @@ import {
 } from '~/app/login/login.fixtures'
 import type { Role } from '~/server/auth/session'
 import {
+	applicationDocuments,
 	applications,
 	companies,
 	termOfferings,
@@ -58,7 +59,37 @@ import {
 	userRoles,
 	users,
 } from '~/server/db/schema'
+import { deleteBlob, isBlobStorageKey } from '~/server/storage'
 import { getDb } from './cypress-db'
+
+/** Delete Vercel Blob files for all application documents under applications in the given term. No-op when BLOB_READ_WRITE_TOKEN is unset. */
+async function deleteBlobsForTerm(
+	db: Awaited<ReturnType<typeof getDb>>,
+	termId: number,
+): Promise<void> {
+	if (!process.env.BLOB_READ_WRITE_TOKEN)
+		throw new Error('BLOB_READ_WRITE_TOKEN is not set')
+
+	const appIds = await db
+		.select({ id: applications.id })
+		.from(applications)
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.where(eq(termOfferings.termId, termId))
+
+	const ids = appIds.map((r) => r.id)
+	if (ids.length === 0) return
+
+	const docs = await db
+		.select({
+			id: applicationDocuments.id,
+			storageKey: applicationDocuments.storageKey,
+		})
+		.from(applicationDocuments)
+		.where(inArray(applicationDocuments.applicationId, ids))
+
+	const toDelete = docs.filter((d) => isBlobStorageKey(d.storageKey))
+	await Promise.allSettled(toDelete.map((d) => deleteBlob(d.storageKey)))
+}
 
 export type LoginTaskParams = string
 
@@ -404,6 +435,32 @@ export const deleteApplicationsByApplicantId = async (
 	return null
 }
 
+export type InsertApplicationDocumentTaskParams = {
+	applicationId: number
+	documentType: 'authorization' | 'contract' | 'payroll-receipt'
+	fileName: string
+	storageKey: string
+}
+
+/** Insert one application document for E2E (e.g. to test list display). Documents are deleted when application/user is cleaned up. */
+export const insertApplicationDocument = async (
+	params: InsertApplicationDocumentTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	const [doc] = await db
+		.insert(applicationDocuments)
+		.values({
+			applicationId: params.applicationId,
+			documentType: params.documentType,
+			status: 'pending',
+			fileName: params.fileName,
+			storageKey: params.storageKey,
+		})
+		.returning()
+	if (!doc) throw new Error('Failed to insert application document')
+	return doc
+}
+
 export const getUserIdByEmail = async (
 	email: string,
 ): Promise<number | null> => {
@@ -437,6 +494,22 @@ export const resetApplicantApplication = async (
 	params: ResetApplicantApplicationTaskParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	// Delete blobs for applications we're about to remove (so they don't persist in storage)
+	if (process.env.BLOB_READ_WRITE_TOKEN) {
+		const appsToRemove = await db
+			.select({ id: applications.id })
+			.from(applications)
+			.where(eq(applications.applicantId, params.applicantId))
+		const ids = appsToRemove.map((r) => r.id)
+		if (ids.length > 0) {
+			const docs = await db
+				.select({ storageKey: applicationDocuments.storageKey })
+				.from(applicationDocuments)
+				.where(inArray(applicationDocuments.applicationId, ids))
+			const toDelete = docs.filter((d) => isBlobStorageKey(d.storageKey))
+			await Promise.allSettled(toDelete.map((d) => deleteBlob(d.storageKey)))
+		}
+	}
 	await db
 		.delete(applications)
 		.where(eq(applications.applicantId, params.applicantId))
@@ -668,6 +741,7 @@ export const cleanupDashboardApplications = async (
 	params: CleanupDashboardApplicationsParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	await deleteBlobsForTerm(db, params.termId)
 	const allApplicants = [
 		applicantWithCompany,
 		applicantB,
@@ -1108,6 +1182,8 @@ export type SeedApplicationsReviewResult = {
 	companyDId: number
 	termId: number
 	companyBApplicationId: number
+	/** First application (for companyId) – use for documents E2E. */
+	applicationId: number
 }
 
 export const seedApplicationsReview =
@@ -1228,12 +1304,15 @@ export const seedApplicationsReview =
 		const companyBApp = apps[companyBAppIdx]
 		if (companyBAppIdx < 0 || !companyBApp)
 			throw new Error('Seed: company B app not found')
+		const firstApp = apps[0]
+		if (!firstApp) throw new Error('Seed: no application created')
 
 		return {
 			companyId: findCompany(companyForReview.domain).id,
 			companyDId: findCompany(companyForReviewD.domain).id,
 			termId: term.id,
 			companyBApplicationId: companyBApp.id,
+			applicationId: firstApp.id,
 		}
 	}
 
@@ -1245,7 +1324,7 @@ export const cleanupApplicationsReview = async (
 	params: CleanupApplicationsReviewParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
-
+	await deleteBlobsForTerm(db, params.termId)
 	const allUserFixtures = [agentForReview, ...allReviewApplicants]
 
 	await Promise.all(

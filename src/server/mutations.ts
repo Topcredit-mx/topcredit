@@ -30,6 +30,7 @@ import {
 	sendApplicationSubmittedEvent,
 } from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
+import { detectAllowedMime } from '~/server/file-validation'
 import {
 	getCompanyByEmailDomain,
 	getTermOfferingsForCompany,
@@ -45,6 +46,7 @@ import { getCompaniesForSwitcher } from '~/server/scopes'
 import {
 	APPLICATION_DOCUMENTS_PREFIX,
 	deleteBlob,
+	isBlobStorageKey,
 	uploadBlob,
 } from '~/server/storage'
 
@@ -411,16 +413,39 @@ export async function createApplication(
 	redirect('/dashboard/applications')
 }
 
+const APPLICATION_DOCUMENT_MAX_BYTES = 15 * 1024 * 1024 // 15 MB
+const APPLICATION_DOCUMENT_ALLOWED_TYPES = new Set<string>([
+	'application/pdf',
+	'image/jpeg',
+	'image/png',
+	'image/webp',
+])
+const APPLICATION_DOCUMENT_FILE_NAME_MAX_LENGTH = 255
+
 export async function uploadApplicationDocument(
 	_prevState: unknown,
 	formData: FormData,
-): Promise<{ errors?: Record<string, string>; message?: string }> {
-	const user = await getRequiredApplicantUser()
+): Promise<{
+	errors?: Record<string, string>
+	message?: string
+	success?: boolean
+}> {
+	await getRequiredApplicantUser()
 	const { ability } = await getAbility()
 
 	const file = formData.get('file')
 	if (!(file instanceof File) || file.size === 0) {
 		return { errors: { file: 'Selecciona un archivo válido.' } }
+	}
+	if (file.size > APPLICATION_DOCUMENT_MAX_BYTES) {
+		return { errors: { file: 'El archivo no debe superar 15 MB.' } }
+	}
+	const detected = await detectAllowedMime(
+		file,
+		APPLICATION_DOCUMENT_ALLOWED_TYPES,
+	)
+	if ('error' in detected) {
+		return { errors: { file: detected.error } }
 	}
 
 	try {
@@ -443,17 +468,13 @@ export async function uploadApplicationDocument(
 
 		requireAbility(
 			ability,
-			'read',
+			'uploadDocument',
 			subject('Application', {
 				id: app.id,
 				applicantId: app.applicantId,
 				companyId: app.termOffering.companyId,
 			}),
 		)
-
-		if (app.applicantId !== user.id) {
-			return { message: 'Solo el solicitante puede subir documentos.' }
-		}
 
 		const existing = await db.query.applicationDocuments.findFirst({
 			where: and(
@@ -464,25 +485,28 @@ export async function uploadApplicationDocument(
 		})
 
 		if (existing) {
-			await deleteBlob(existing.storageKey)
+			if (isBlobStorageKey(existing.storageKey)) {
+				await deleteBlob(existing.storageKey)
+			}
 			await db
 				.delete(applicationDocuments)
 				.where(eq(applicationDocuments.id, existing.id))
 		}
 
-		const fileName =
+		const rawName =
 			file.name.replace(/\0/g, '').replace(/[/\\]/g, '_').trim() || 'document'
+		const fileName = rawName.slice(0, APPLICATION_DOCUMENT_FILE_NAME_MAX_LENGTH)
 		const pathname = `${APPLICATION_DOCUMENTS_PREFIX}${data.applicationId}/${data.documentType}/${fileName}`
 
-		const { url } = await uploadBlob(pathname, file, {
-			contentType: file.type || undefined,
+		const { pathname: storedPathname } = await uploadBlob(pathname, file, {
+			contentType: detected.mime,
 		})
 
 		await db.insert(applicationDocuments).values({
 			applicationId: data.applicationId,
 			documentType: data.documentType,
 			status: 'pending',
-			storageKey: url,
+			storageKey: storedPathname,
 			fileName,
 		})
 
@@ -494,7 +518,7 @@ export async function uploadApplicationDocument(
 		return fromErrorToFormState(error)
 	}
 
-	return {}
+	return { success: true }
 }
 
 export async function updateApplicationStatus(

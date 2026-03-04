@@ -8,6 +8,7 @@ export default defineConfig({
 	env: {
 		/** E2E login OTP code when app runs in E2E test mode. Set in CI. */
 		E2E_OTP_CODE: process.env.E2E_OTP_CODE,
+		BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
 	},
 	e2e: {
 		baseUrl: 'http://localhost:3000',
