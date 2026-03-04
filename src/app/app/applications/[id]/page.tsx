@@ -118,7 +118,9 @@ export default async function AppApplicationDetailPage({
 									<span className="text-muted-foreground">
 										{t(`applications-document-type-${doc.documentType}`)}:
 									</span>
-									<span>{t(`applications-document-status-${doc.status}`)}</span>
+									<span data-status={doc.status}>
+										{t(`applications-document-status-${doc.status}`)}
+									</span>
 									<span className="truncate text-muted-foreground">
 										{doc.fileName}
 									</span>

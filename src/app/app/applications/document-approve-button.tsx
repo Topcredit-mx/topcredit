@@ -47,6 +47,7 @@ export function DocumentApproveButton({ documentId }: { documentId: number }) {
 				size="sm"
 				disabled={pending}
 				onClick={handleClick}
+				data-document-action="approve"
 			>
 				{pending
 					? t('applications-submit-saving')

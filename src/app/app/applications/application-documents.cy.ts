@@ -52,7 +52,7 @@ describe('App Application Documents (Agent)', () => {
 		})
 	})
 
-	it('shows approved state when agent clicks Aprobar on pending document', () => {
+	it('shows approved state when agent approves a pending document', () => {
 		cy.task('insertApplicationDocument', {
 			applicationId: seed.applicationId,
 			documentType: 'authorization',
@@ -66,10 +66,11 @@ describe('App Application Documents (Agent)', () => {
 		cy.contains('h2', /documentos/i).should('be.visible')
 		cy.contains('li', 'auth-approve-e2e.pdf')
 			.should('be.visible')
-			.and('contain', /pendiente/i)
 			.within(() => {
-				cy.contains('button', /aprobar/i).click()
-				cy.contains(/aprobado/i).should('be.visible')
+				cy.get('button[data-document-action="approve"]')
+					.should('be.visible')
+					.click()
+				cy.get('[data-status="approved"]').should('be.visible')
 			})
 	})
 })
