@@ -114,6 +114,16 @@ export const uploadApplicationDocumentSchema = z.object({
 	documentType: documentTypeSchema,
 })
 
+/** Payload for updating a single application document status (e.g. approve). Plan 2 will extend with rejected + rejectionReason. */
+export const updateApplicationDocumentStatusSchema = z.object({
+	documentId: z.coerce.number().int().positive('Documento no válido'),
+	status: z.literal('approved'),
+})
+
+export type UpdateApplicationDocumentStatusInput = z.infer<
+	typeof updateApplicationDocumentStatusSchema
+>
+
 /** Parse and validate update-status payload. Single place for validation and error-key mapping. */
 export function parseUpdateApplicationStatusPayload(
 	payload: unknown,
