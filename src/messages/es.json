@@ -79,7 +79,8 @@
 		"applications-document-status-pending": "Pendiente",
 		"applications-document-status-approved": "Aprobado",
 		"applications-document-status-rejected": "Rechazado",
-		"applications-document-link": "Ver"
+		"applications-document-link": "Ver",
+		"applications-document-action-approve": "Aprobar"
 	},
 	"admin": {
 		"overview-title": "Vista general",

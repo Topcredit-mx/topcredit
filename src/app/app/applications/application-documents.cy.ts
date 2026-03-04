@@ -51,4 +51,26 @@ describe('App Application Documents (Agent)', () => {
 			cy.get('input[name="file"]').should('not.exist')
 		})
 	})
+
+	it('shows approved state when agent approves a pending document', () => {
+		cy.task('insertApplicationDocument', {
+			applicationId: seed.applicationId,
+			documentType: 'authorization',
+			fileName: 'auth-approve-e2e.pdf',
+			storageKey: 'application-documents/e2e-auth-approve.pdf',
+		})
+		cy.login(agentForReview.email)
+		cy.setCookie('selected_company_id', String(seed.companyId))
+		cy.visit(`/app/applications/${seed.applicationId}`)
+		cy.url().should('include', `/app/applications/${seed.applicationId}`)
+		cy.contains('h2', /documentos/i).should('be.visible')
+		cy.contains('li', 'auth-approve-e2e.pdf')
+			.should('be.visible')
+			.within(() => {
+				cy.get('button[data-document-action="approve"]')
+					.should('be.visible')
+					.click()
+				cy.get('[data-status="approved"]').should('be.visible')
+			})
+	})
 })

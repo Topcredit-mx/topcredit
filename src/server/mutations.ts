@@ -35,10 +35,12 @@ import {
 	getCompanyByEmailDomain,
 	getTermOfferingsForCompany,
 } from '~/server/queries'
+import type { UpdateApplicationDocumentStatusInput } from '~/server/schemas'
 import {
 	createApplicationSchema,
 	createCompanySchema,
 	parseUpdateApplicationStatusPayload,
+	updateApplicationDocumentStatusSchema,
 	updateCompanySchema,
 	uploadApplicationDocumentSchema,
 } from '~/server/schemas'
@@ -519,6 +521,59 @@ export async function uploadApplicationDocument(
 	}
 
 	return { success: true }
+}
+
+export async function updateApplicationDocumentStatus(
+	payload: UpdateApplicationDocumentStatusInput,
+): Promise<{ error?: string }> {
+	const parsed = updateApplicationDocumentStatusSchema.safeParse(payload)
+	if (!parsed.success) return { error: 'applications-error-generic' }
+
+	const { documentId } = parsed.data
+	const { ability } = await getAbility()
+
+	const doc = await db.query.applicationDocuments.findFirst({
+		where: (d, { eq }) => eq(d.id, documentId),
+		columns: { id: true, applicationId: true, status: true },
+		with: {
+			application: {
+				columns: { id: true, applicantId: true },
+				with: {
+					termOffering: { columns: { companyId: true } },
+				},
+			},
+		},
+	})
+
+	if (!doc?.application?.termOffering)
+		return { error: 'applications-not-found' }
+	if (doc.status !== 'pending') return { error: 'applications-error-generic' }
+
+	const companyId = doc.application.termOffering.companyId
+	requireAbility(
+		ability,
+		'update',
+		subject('Application', {
+			id: doc.application.id,
+			applicantId: doc.application.applicantId,
+			companyId,
+		}),
+	)
+
+	await db
+		.update(applicationDocuments)
+		.set({
+			status: 'approved',
+			rejectionReason: null,
+			updatedAt: new Date(),
+		})
+		.where(eq(applicationDocuments.id, documentId))
+
+	revalidatePath('/app/applications')
+	revalidatePath(`/app/applications/${doc.applicationId}`)
+	revalidatePath('/dashboard/applications')
+	revalidatePath(`/dashboard/applications/${doc.applicationId}`)
+	return {}
 }
 
 export async function updateApplicationStatus(

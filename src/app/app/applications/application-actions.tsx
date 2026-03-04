@@ -12,17 +12,12 @@ import {
 } from '~/server/mutations'
 import { ApplicationReasonDialog } from './application-reason-dialog'
 
-const ACTION_ERROR_KEYS = [
+const ACTION_ERROR_KEYS = new Set([
 	'applications-reason-required',
 	'applications-error-transition',
 	'applications-error-generic',
 	'applications-not-found',
-] as const
-const ACTION_ERROR_KEYS_SET = new Set<string>(ACTION_ERROR_KEYS)
-
-function translateActionError(t: (k: string) => string, error: string): string {
-	return ACTION_ERROR_KEYS_SET.has(error) ? t(error) : error
-}
+])
 
 const initialState = { error: '' }
 
@@ -65,7 +60,9 @@ export function ApplicationActions({
 
 	const translatedError =
 		state?.error != null && state.error !== ''
-			? translateActionError(t, state.error)
+			? ACTION_ERROR_KEYS.has(state.error)
+				? t(state.error)
+				: state.error
 			: null
 
 	async function handleSubmitReason(
@@ -120,7 +117,9 @@ export function ApplicationActions({
 				onClose={() => setDialogAction(null)}
 				onSubmit={handleSubmitReason}
 				onSuccess={() => router.refresh()}
-				translateError={(error) => translateActionError(t, error)}
+				translateError={(error) =>
+					ACTION_ERROR_KEYS.has(error) ? t(error) : error
+				}
 			/>
 		</div>
 	)

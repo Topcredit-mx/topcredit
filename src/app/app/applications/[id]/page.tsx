@@ -13,6 +13,7 @@ import {
 import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
 import { formatApplicationTerm } from '../constants'
+import { DocumentApproveButton } from '../document-approve-button'
 
 export default async function AppApplicationDetailPage({
 	params,
@@ -117,7 +118,9 @@ export default async function AppApplicationDetailPage({
 									<span className="text-muted-foreground">
 										{t(`applications-document-type-${doc.documentType}`)}:
 									</span>
-									<span>{t(`applications-document-status-${doc.status}`)}</span>
+									<span data-status={doc.status}>
+										{t(`applications-document-status-${doc.status}`)}
+									</span>
 									<span className="truncate text-muted-foreground">
 										{doc.fileName}
 									</span>
@@ -131,6 +134,9 @@ export default async function AppApplicationDetailPage({
 												{t('applications-document-link')}
 											</a>
 										</Button>
+									) : null}
+									{doc.status === 'pending' ? (
+										<DocumentApproveButton documentId={doc.id} />
 									) : null}
 								</li>
 							))}
