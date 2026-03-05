@@ -67,9 +67,8 @@ describe('App Application Documents (Agent)', () => {
 		cy.contains('li', 'auth-approve-e2e.pdf')
 			.should('be.visible')
 			.within(() => {
-				cy.get('button[data-document-action="approve"]')
-					.should('be.visible')
-					.click()
+				cy.get('button[data-document-action="menu"]').click()
+				cy.get('[data-document-action="approve"]').click()
 				cy.get('[data-status="approved"]').should('be.visible')
 			})
 	})
@@ -87,7 +86,8 @@ describe('App Application Documents (Agent)', () => {
 		cy.contains('li', 'reject-validation-e2e.pdf')
 			.should('be.visible')
 			.within(() => {
-				cy.get('button[data-document-action="reject"]').click()
+				cy.get('button[data-document-action="menu"]').click()
+				cy.get('[data-document-action="reject"]').click()
 			})
 		cy.get('[data-slot="dialog-content"]').within(() => {
 			cy.contains('button', /confirmar/i).click()
@@ -109,7 +109,8 @@ describe('App Application Documents (Agent)', () => {
 		cy.contains('li', 'reject-with-reason-e2e.pdf')
 			.should('be.visible')
 			.within(() => {
-				cy.get('button[data-document-action="reject"]').click()
+				cy.get('button[data-document-action="menu"]').click()
+				cy.get('[data-document-action="reject"]').click()
 			})
 		cy.get('[data-slot="dialog-content"]').within(() => {
 			cy.get('textarea[name="rejectionReason"]').type(reason)
@@ -121,5 +122,86 @@ describe('App Application Documents (Agent)', () => {
 				cy.get('[data-status="rejected"]').should('be.visible')
 				cy.contains(reason).should('be.visible')
 			})
+	})
+
+	it('allows agent to correct mistake: deny document then approve it again', () => {
+		const rejectReason = 'Rechazado por error'
+		cy.task('insertApplicationDocument', {
+			applicationId: seed.applicationId,
+			documentType: 'payroll-receipt',
+			fileName: 'deny-then-approve-e2e.pdf',
+			storageKey: 'application-documents/e2e-deny-approve.pdf',
+		})
+		cy.login(agentForReview.email)
+		cy.setCookie('selected_company_id', String(seed.companyId))
+		cy.visit(`/app/applications/${seed.applicationId}`)
+		cy.contains('li', 'deny-then-approve-e2e.pdf')
+			.should('be.visible')
+			.within(() => {
+				cy.get('button[data-document-action="menu"]').click()
+				cy.get('[data-document-action="reject"]').click()
+			})
+		cy.get('[data-slot="dialog-content"]').within(() => {
+			cy.get('textarea[name="rejectionReason"]').type(rejectReason)
+			cy.contains('button', /confirmar/i).click()
+		})
+		cy.contains('li', 'deny-then-approve-e2e.pdf')
+			.should('be.visible')
+			.within(() => {
+				cy.get('[data-status="rejected"]').should('be.visible')
+			})
+		cy.contains('li', 'deny-then-approve-e2e.pdf').within(() => {
+			cy.get('button[data-document-action="menu"]').click()
+			cy.get('[data-document-action="approve"]').click()
+		})
+		cy.contains('li', 'deny-then-approve-e2e.pdf')
+			.should('be.visible')
+			.within(() => {
+				cy.get('[data-status="approved"]').should('be.visible')
+			})
+	})
+
+	it('disables Documentación inválida when no document is rejected', () => {
+		cy.task('insertApplicationDocument', {
+			applicationId: seed.applicationId,
+			documentType: 'authorization',
+			fileName: 'pending-only-e2e.pdf',
+			storageKey: 'application-documents/e2e-pending-only.pdf',
+		})
+		cy.login(agentForReview.email)
+		cy.setCookie('selected_company_id', String(seed.companyId))
+		cy.visit(`/app/applications/${seed.applicationId}`)
+		cy.contains('button', /acciones/i).click()
+		cy.get('[data-application-action="invalid-docs"]').should(
+			'have.attr',
+			'data-disabled',
+		)
+	})
+
+	it('enables Documentación inválida when at least one document is rejected', () => {
+		cy.task('insertApplicationDocument', {
+			applicationId: seed.applicationId,
+			documentType: 'contract',
+			fileName: 'invalid-docs-enabled-e2e.pdf',
+			storageKey: 'application-documents/e2e-invalid-docs.pdf',
+		})
+		cy.login(agentForReview.email)
+		cy.setCookie('selected_company_id', String(seed.companyId))
+		cy.visit(`/app/applications/${seed.applicationId}`)
+		cy.contains('li', 'invalid-docs-enabled-e2e.pdf').within(() => {
+			cy.get('button[data-document-action="menu"]').click()
+			cy.get('[data-document-action="reject"]').click()
+		})
+		cy.get('[data-slot="dialog-content"]').within(() => {
+			cy.get('textarea[name="rejectionReason"]').type('Doc rechazado para E2E')
+			cy.contains('button', /confirmar/i).click()
+		})
+		cy.contains('button', /acciones/i).click()
+		cy.get('[data-application-action="invalid-docs"]').should(
+			'not.have.attr',
+			'data-disabled',
+		)
+		cy.get('[data-application-action="invalid-docs"]').click()
+		cy.contains('Documentación inválida').should('be.visible')
 	})
 })

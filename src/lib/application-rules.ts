@@ -21,9 +21,8 @@ export function isNotifyStatus(
 	return NOTIFY_STATUS_SET.has(status)
 }
 
-export type ApplicationStatusRequiringReason =
-	| 'denied'
-	| 'invalid-documentation'
+/** Only 'denied' requires a reason; invalid-documentation reasons are per document. */
+export type ApplicationStatusRequiringReason = 'denied'
 
 export type ApplicantEligibilityData = {
 	hasCompany: boolean
@@ -40,7 +39,7 @@ export function isApplicationStatus(s: string): s is ApplicationStatus {
 export function statusRequiresReason(
 	s: ApplicationStatus,
 ): s is ApplicationStatusRequiringReason {
-	return s === 'denied' || s === 'invalid-documentation'
+	return s === 'denied'
 }
 
 export function isActiveApplicationStatus(status: ApplicationStatus): boolean {

@@ -17,6 +17,7 @@ import {
 } from '~/components/ui/dialog'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Textarea } from '~/components/ui/textarea'
+import { useTabNavigationScope } from '~/hooks/use-tab-navigation-scope'
 
 interface DocumentRejectDialogProps {
 	documentId: number
@@ -50,9 +51,22 @@ export function DocumentRejectDialog({
 			: null
 	const showError = open && displayError !== null
 
+	function handleTextareaKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+		if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+			e.preventDefault()
+			const form = (e.currentTarget as HTMLTextAreaElement).form
+			if (form) form.requestSubmit()
+		}
+	}
+
+	useTabNavigationScope(
+		open,
+		'[data-slot="dialog-content"][data-reject-dialog]',
+	)
+
 	return (
 		<Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-			<DialogContent>
+			<DialogContent data-reject-dialog>
 				<DialogHeader>
 					<DialogTitle>{t('applications-document-action-reject')}</DialogTitle>
 				</DialogHeader>
@@ -76,6 +90,7 @@ export function DocumentRejectDialog({
 							className="resize-none"
 							maxLength={1000}
 							required
+							onKeyDown={handleTextareaKeyDown}
 						/>
 						{showError ? <FieldError>{displayError}</FieldError> : null}
 					</Field>
@@ -89,9 +104,19 @@ export function DocumentRejectDialog({
 							{t('applications-submit-cancel')}
 						</Button>
 						<Button type="submit" disabled={pending}>
-							{pending
-								? t('applications-submit-saving')
-								: t('applications-submit-confirm')}
+							{pending ? (
+								t('applications-submit-saving')
+							) : (
+								<>
+									{t('applications-submit-confirm')}
+									<kbd
+										className="ml-1.5 inline-flex font-mono text-[10px] opacity-70"
+										aria-hidden
+									>
+										⌘↵
+									</kbd>
+								</>
+							)}
 						</Button>
 					</DialogFooter>
 				</form>

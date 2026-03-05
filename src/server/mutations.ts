@@ -168,7 +168,6 @@ async function setDocumentStatus(
 	})
 	if (!doc?.application?.termOffering)
 		return { error: 'applications-not-found' }
-	if (doc.status !== 'pending') return { error: 'applications-error-generic' }
 	const companyId = doc.application.termOffering.companyId
 	requireAbility(
 		ability,
