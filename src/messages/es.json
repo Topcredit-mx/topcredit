@@ -80,7 +80,12 @@
 		"applications-document-status-approved": "Aprobado",
 		"applications-document-status-rejected": "Rechazado",
 		"applications-document-link": "Ver",
-		"applications-document-action-approve": "Aprobar"
+		"applications-document-action-approve": "Aprobar",
+		"applications-document-action-reject": "Rechazar",
+		"applications-document-rejection-reason-label": "Motivo de rechazo",
+		"applications-document-rejection-reason-placeholder": "Indica el motivo por el cual se rechaza este documento",
+		"applications-document-rejection-reason-required": "El motivo de rechazo es obligatorio",
+		"applications-document-invalid": "Documento no válido"
 	},
 	"admin": {
 		"overview-title": "Vista general",
