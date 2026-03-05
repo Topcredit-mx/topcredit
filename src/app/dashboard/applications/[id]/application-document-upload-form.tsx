@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useId, useRef, useState } from 'react'
+import { uploadApplicationDocumentAction } from '~/app/dashboard/applications/actions'
 import { Button } from '~/components/ui/button'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import {
@@ -11,7 +12,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-import { uploadApplicationDocument } from '~/server/mutations'
 
 const DOCUMENT_TYPES = ['authorization', 'contract', 'payroll-receipt'] as const
 
@@ -34,7 +34,7 @@ export function ApplicationDocumentUploadForm({
 	const tCommon = useTranslations('common')
 
 	const [state, action, pending] = useActionState(
-		uploadApplicationDocument,
+		uploadApplicationDocumentAction,
 		initialFormState,
 	)
 

@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useActionState, useId, useState } from 'react'
+import { createApplicationAction } from '~/app/dashboard/applications/actions'
 import { Button } from '~/components/ui/button'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
@@ -12,7 +13,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-import { createApplication } from '~/server/mutations'
 import type { TermOfferingForForm } from '~/server/queries'
 
 interface ApplicationFormProps {
@@ -31,7 +31,7 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 	const t = useTranslations('dashboard.applications')
 	const tCommon = useTranslations('common')
 
-	const [state, action, pending] = useActionState(createApplication, {
+	const [state, action, pending] = useActionState(createApplicationAction, {
 		errors: undefined,
 		message: undefined,
 	})
