@@ -72,10 +72,11 @@ export const createApplicationSchema = z.object({
 	salaryAtApplication: positiveNumericString,
 })
 
+/** Payload for updating application status (status + optional reason when required). */
 export const updateApplicationStatusSchema = z
 	.object({
 		status: z.enum(APPLICATION_STATUS_VALUES, {
-			message: 'Estado no válido',
+			message: 'applications-error-generic',
 		}),
 		reason: z.string().max(1000).optional(),
 	})
@@ -86,21 +87,12 @@ export const updateApplicationStatusSchema = z
 			}
 			return true
 		},
-		{
-			message:
-				'El motivo es obligatorio al rechazar o marcar documentación inválida',
-			path: ['reason'],
-		},
+		{ message: 'applications-reason-required', path: ['reason'] },
 	)
 
 export type UpdateApplicationStatusInput = z.infer<
 	typeof updateApplicationStatusSchema
 >
-
-const UPDATE_STATUS_ERROR_KEYS = [
-	'applications-reason-required',
-	'applications-error-generic',
-] as const
 
 export const documentTypeSchema = z.enum(DOCUMENT_TYPE_VALUES, {
 	message: 'Tipo de documento no válido',
@@ -114,30 +106,14 @@ export const uploadApplicationDocumentSchema = z.object({
 	documentType: documentTypeSchema,
 })
 
-/** Payload for updating a single application document status (e.g. approve). Plan 2 will extend with rejected + rejectionReason. */
-export const updateApplicationDocumentStatusSchema = z.object({
-	documentId: z.coerce.number().int().positive('Documento no válido'),
-	status: z.literal('approved'),
+/** Payload for approving a document (form: documentId). */
+export const approveApplicationDocumentSchema = z.object({
+	documentId: z.coerce.number().int().positive('applications-document-invalid'),
 })
 
-export type UpdateApplicationDocumentStatusInput = z.infer<
-	typeof updateApplicationDocumentStatusSchema
->
+/** Payload for rejecting a document (form: documentId + rejectionReason). */
+export const rejectApplicationDocumentSchema = z.object({
+	documentId: z.coerce.number().int().positive('applications-document-invalid'),
+	rejectionReason: z.string().min(1, 'applications-document-rejection-reason-required'),
+})
 
-/** Parse and validate update-status payload. Single place for validation and error-key mapping. */
-export function parseUpdateApplicationStatusPayload(
-	payload: unknown,
-):
-	| { data: UpdateApplicationStatusInput }
-	| { error: (typeof UPDATE_STATUS_ERROR_KEYS)[number] } {
-	const parsed = updateApplicationStatusSchema.safeParse(payload)
-	if (parsed.success) return { data: parsed.data }
-	const first = parsed.error.issues[0]
-	const isReasonRequired =
-		first?.path?.length === 1 && first.path[0] === 'reason'
-	return {
-		error: isReasonRequired
-			? 'applications-reason-required'
-			: 'applications-error-generic',
-	}
-}
