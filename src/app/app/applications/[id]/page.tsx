@@ -13,7 +13,8 @@ import {
 import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
 import { formatApplicationTerm } from '../constants'
-import { DocumentApproveButton } from '../document-approve-button'
+import { DocumentApproveForm } from '../document-approve-form'
+import { DocumentRejectButton } from '../document-reject-button'
 
 export default async function AppApplicationDetailPage({
 	params,
@@ -136,7 +137,16 @@ export default async function AppApplicationDetailPage({
 										</Button>
 									) : null}
 									{doc.status === 'pending' ? (
-										<DocumentApproveButton documentId={doc.id} />
+										<>
+											<DocumentApproveForm documentId={doc.id} />
+											<DocumentRejectButton documentId={doc.id} />
+										</>
+									) : null}
+									{doc.status === 'rejected' && doc.rejectionReason ? (
+										<span className="text-muted-foreground text-xs">
+											{t('applications-document-rejection-reason-label')}:{' '}
+											{doc.rejectionReason}
+										</span>
 									) : null}
 								</li>
 							))}
