@@ -33,10 +33,8 @@ import {
 import {
 	approveApplicationDocumentSchema,
 	createApplicationSchema,
-	createCompanySchema,
 	rejectApplicationDocumentSchema,
 	updateApplicationStatusSchema,
-	updateCompanySchema,
 	uploadApplicationDocumentSchema,
 } from '~/server/schemas'
 import {
@@ -95,136 +93,47 @@ export async function updateUserCompanies(
 
 // ---- Company ----
 
-export async function createCompany(
-	_prevState: unknown,
-	formData: FormData,
-): Promise<{ errors?: Record<string, string>; message?: string }> {
-	const { ability } = await getAbility()
-	requireAbility(ability, 'create', 'Company')
-
-	try {
-		const activeValue = formData.get('active')
-		const active = activeValue === 'on' || activeValue === 'true'
-
-		const data = createCompanySchema.parse({
-			name: formData.get('name'),
-			domain: formData.get('domain'),
-			rate: formData.get('rate'),
-			borrowingCapacityRate: formData.get('borrowingCapacityRate') || null,
-			employeeSalaryFrequency: formData.get('employeeSalaryFrequency'),
-			active,
-		})
-
-		const existingCompany = await db.query.companies.findFirst({
-			where: eq(companies.domain, data.domain),
-		})
-
-		if (existingCompany) {
-			return {
-				errors: {
-					domain: 'El dominio ya existe. Debe ser único.',
-				},
-			}
-		}
-
-		await db.insert(companies).values({
-			name: data.name,
-			domain: data.domain,
-			rate: (data.rate / 100).toFixed(4),
-			borrowingCapacityRate: data.borrowingCapacityRate
-				? (data.borrowingCapacityRate / 100).toFixed(2)
-				: null,
-			employeeSalaryFrequency: data.employeeSalaryFrequency,
-			active: data.active ?? true,
-		})
-
-		revalidatePath('/app/companies')
-	} catch (error) {
-		return fromErrorToFormState(error)
-	}
-
-	redirect('/app/companies')
+export type CreateCompanyData = {
+	name: string
+	domain: string
+	rate: number
+	borrowingCapacityRate: number | null
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	active: boolean
 }
 
-export async function updateCompany(
-	_prevState: unknown,
-	formData: FormData,
-): Promise<{ errors?: Record<string, string>; message?: string }> {
-	const id = Number.parseInt(String(formData.get('id')), 10)
-	if (Number.isNaN(id)) {
-		return { message: 'ID de empresa inválido' }
-	}
-
-	const company = await db.query.companies.findFirst({
-		where: eq(companies.id, id),
+export async function insertCompany(data: CreateCompanyData): Promise<void> {
+	await db.insert(companies).values({
+		name: data.name,
+		domain: data.domain,
+		rate: (data.rate / 100).toFixed(4),
+		borrowingCapacityRate: data.borrowingCapacityRate
+			? (data.borrowingCapacityRate / 100).toFixed(2)
+			: null,
+		employeeSalaryFrequency: data.employeeSalaryFrequency,
+		active: data.active ?? true,
 	})
+	revalidatePath('/app/companies')
+}
 
-	if (!company) {
-		return { message: 'Empresa no encontrada' }
+export type UpdateCompanyData = {
+	name?: string
+	rate?: string
+	borrowingCapacityRate?: string | null
+	employeeSalaryFrequency?: 'monthly' | 'bi-monthly'
+	active: boolean
+}
+
+export async function updateCompanyById(
+	id: number,
+	data: UpdateCompanyData,
+): Promise<void> {
+	const updateData: Record<string, unknown> = {
+		...data,
+		updatedAt: new Date(),
 	}
-
-	const { ability } = await getAbility()
-	requireAbility(ability, 'update', subject('Company', company))
-
-	try {
-		const activeValue = formData.get('active')
-		const active = activeValue === 'on' || activeValue === 'true'
-
-		const updateData: Record<string, unknown> = {}
-		const formName = formData.get('name')
-		const formRate = formData.get('rate')
-		const formBorrowingCapacityRate = formData.get('borrowingCapacityRate')
-		const formEmployeeSalaryFrequency = formData.get('employeeSalaryFrequency')
-
-		if (formName) {
-			const parsed = updateCompanySchema
-				.pick({ name: true })
-				.parse({ name: formName })
-			updateData.name = parsed.name
-		}
-
-		if (formRate) {
-			const parsed = updateCompanySchema
-				.pick({ rate: true })
-				.parse({ rate: formRate })
-			if (parsed.rate !== undefined) {
-				updateData.rate = (parsed.rate / 100).toFixed(4)
-			}
-		}
-
-		if (
-			formBorrowingCapacityRate !== null &&
-			formBorrowingCapacityRate !== ''
-		) {
-			const parsed = updateCompanySchema
-				.pick({ borrowingCapacityRate: true })
-				.parse({ borrowingCapacityRate: formBorrowingCapacityRate })
-			updateData.borrowingCapacityRate = parsed.borrowingCapacityRate
-				? (parsed.borrowingCapacityRate / 100).toFixed(2)
-				: null
-		} else if (formBorrowingCapacityRate === '') {
-			updateData.borrowingCapacityRate = null
-		}
-
-		if (formEmployeeSalaryFrequency) {
-			const parsed = updateCompanySchema
-				.pick({ employeeSalaryFrequency: true })
-				.parse({ employeeSalaryFrequency: formEmployeeSalaryFrequency })
-			updateData.employeeSalaryFrequency = parsed.employeeSalaryFrequency
-		}
-
-		updateData.active = active
-		updateData.updatedAt = new Date()
-
-		await db.update(companies).set(updateData).where(eq(companies.id, id))
-
-		revalidatePath('/app/companies')
-		revalidatePath(`/app/companies/${company.domain}/edit`)
-	} catch (error) {
-		return fromErrorToFormState(error)
-	}
-
-	redirect('/app/companies')
+	await db.update(companies).set(updateData).where(eq(companies.id, id))
+	revalidatePath('/app/companies')
 }
 
 export async function deleteCompany(id: number) {

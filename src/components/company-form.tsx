@@ -2,6 +2,10 @@
 
 import { useTranslations } from 'next-intl'
 import { useActionState, useId, useState } from 'react'
+import {
+	createCompanyAction,
+	updateCompanyAction,
+} from '~/app/app/companies/actions'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import {
@@ -19,7 +23,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-import { createCompany, updateCompany } from '~/server/mutations'
 import type { Company } from '~/server/queries'
 
 /** Subset of Company used by the form – no Date fields (can't serialize to Client Components). */
@@ -50,7 +53,7 @@ export function CompanyForm({ company }: CompanyFormProps) {
 	const tCommon = useTranslations('common')
 	// Use useActionState for form state management
 	const [state, action, pending] = useActionState(
-		company ? updateCompany : createCompany,
+		company ? updateCompanyAction : createCompanyAction,
 		{ errors: undefined, message: undefined },
 	)
 
