@@ -114,6 +114,7 @@ export const approveApplicationDocumentSchema = z.object({
 /** Payload for rejecting a document (form: documentId + rejectionReason). */
 export const rejectApplicationDocumentSchema = z.object({
 	documentId: z.coerce.number().int().positive('applications-document-invalid'),
-	rejectionReason: z.string().min(1, 'applications-document-rejection-reason-required'),
+	rejectionReason: z
+		.string()
+		.min(1, 'applications-document-rejection-reason-required'),
 })
-

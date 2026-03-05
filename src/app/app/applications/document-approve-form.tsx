@@ -1,21 +1,21 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useActionState, useEffect } from 'react'
 import { Button } from '~/components/ui/button'
 import {
-	approveDocumentAction,
 	type ApproveDocumentState,
+	approveDocumentAction,
 } from '~/server/mutations'
 
 export function DocumentApproveForm({ documentId }: { documentId: number }) {
 	const t = useTranslations('app')
 	const router = useRouter()
-	const [state, action, pending] = useActionState<ApproveDocumentState, FormData>(
-		approveDocumentAction,
-		null,
-	)
+	const [state, action, pending] = useActionState<
+		ApproveDocumentState,
+		FormData
+	>(approveDocumentAction, null)
 
 	useEffect(() => {
 		if (state != null && !('error' in state)) {

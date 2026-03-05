@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '~/components/ui/button'
@@ -8,12 +7,7 @@ import { DocumentRejectDialog } from './document-reject-dialog'
 
 export function DocumentRejectButton({ documentId }: { documentId: number }) {
 	const t = useTranslations('app')
-	const router = useRouter()
 	const [open, setOpen] = useState(false)
-
-	function handleSuccess() {
-		router.refresh()
-	}
 
 	return (
 		<>
@@ -31,7 +25,6 @@ export function DocumentRejectButton({ documentId }: { documentId: number }) {
 				documentId={documentId}
 				open={open}
 				onClose={() => setOpen(false)}
-				onSuccess={handleSuccess}
 			/>
 		</>
 	)

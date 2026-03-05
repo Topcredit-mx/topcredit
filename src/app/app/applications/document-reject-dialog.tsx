@@ -1,7 +1,8 @@
 'use client'
 
-import { useActionState, useEffect, useId } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useActionState, useEffect, useId } from 'react'
 import { Button } from '~/components/ui/button'
 import {
 	Dialog,
@@ -12,34 +13,36 @@ import {
 } from '~/components/ui/dialog'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Textarea } from '~/components/ui/textarea'
-import { rejectDocumentAction, type RejectDocumentState } from '~/server/mutations'
+import {
+	type RejectDocumentState,
+	rejectDocumentAction,
+} from '~/server/mutations'
 
 interface DocumentRejectDialogProps {
 	documentId: number
 	open: boolean
 	onClose: () => void
-	onSuccess?: () => void
 }
 
 export function DocumentRejectDialog({
 	documentId,
 	open,
 	onClose,
-	onSuccess,
 }: DocumentRejectDialogProps) {
 	const t = useTranslations('app')
+	const router = useRouter()
 	const reasonId = useId()
-	const [state, action, pending] = useActionState<RejectDocumentState, FormData>(
-		rejectDocumentAction,
-		null,
-	)
+	const [state, action, pending] = useActionState<
+		RejectDocumentState,
+		FormData
+	>(rejectDocumentAction, null)
 
 	useEffect(() => {
 		if (open && state != null && !('error' in state)) {
-			onSuccess?.()
+			router.refresh()
 			onClose()
 		}
-	}, [open, state, onSuccess, onClose])
+	}, [open, state, router, onClose])
 
 	const displayError =
 		state != null && 'error' in state && state.error != null
@@ -63,7 +66,9 @@ export function DocumentRejectDialog({
 						<Textarea
 							id={reasonId}
 							name="rejectionReason"
-							placeholder={t('applications-document-rejection-reason-placeholder')}
+							placeholder={t(
+								'applications-document-rejection-reason-placeholder',
+							)}
 							aria-required="true"
 							aria-invalid={!!showError}
 							aria-label={t('applications-document-rejection-reason-label')}
