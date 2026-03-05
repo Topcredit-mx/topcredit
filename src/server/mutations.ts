@@ -35,12 +35,12 @@ import {
 	getCompanyByEmailDomain,
 	getTermOfferingsForCompany,
 } from '~/server/queries'
-import type { UpdateApplicationDocumentStatusInput } from '~/server/schemas'
 import {
+	approveApplicationDocumentSchema,
 	createApplicationSchema,
 	createCompanySchema,
-	parseUpdateApplicationStatusPayload,
-	updateApplicationDocumentStatusSchema,
+	rejectApplicationDocumentSchema,
+	updateApplicationStatusSchema,
 	updateCompanySchema,
 	uploadApplicationDocumentSchema,
 } from '~/server/schemas'
@@ -523,32 +523,23 @@ export async function uploadApplicationDocument(
 	return { success: true }
 }
 
-export async function updateApplicationDocumentStatus(
-	payload: UpdateApplicationDocumentStatusInput,
+async function setDocumentStatus(
+	documentId: number,
+	updates: { status: 'approved' | 'rejected'; rejectionReason: string | null },
 ): Promise<{ error?: string }> {
-	const parsed = updateApplicationDocumentStatusSchema.safeParse(payload)
-	if (!parsed.success) return { error: 'applications-error-generic' }
-
-	const { documentId } = parsed.data
 	const { ability } = await getAbility()
-
 	const doc = await db.query.applicationDocuments.findFirst({
 		where: (d, { eq }) => eq(d.id, documentId),
 		columns: { id: true, applicationId: true, status: true },
 		with: {
 			application: {
 				columns: { id: true, applicantId: true },
-				with: {
-					termOffering: { columns: { companyId: true } },
-				},
+				with: { termOffering: { columns: { companyId: true } } },
 			},
 		},
 	})
-
-	if (!doc?.application?.termOffering)
-		return { error: 'applications-not-found' }
+	if (!doc?.application?.termOffering) return { error: 'applications-not-found' }
 	if (doc.status !== 'pending') return { error: 'applications-error-generic' }
-
 	const companyId = doc.application.termOffering.companyId
 	requireAbility(
 		ability,
@@ -559,21 +550,70 @@ export async function updateApplicationDocumentStatus(
 			companyId,
 		}),
 	)
-
 	await db
 		.update(applicationDocuments)
-		.set({
-			status: 'approved',
-			rejectionReason: null,
-			updatedAt: new Date(),
-		})
+		.set({ ...updates, updatedAt: new Date() })
 		.where(eq(applicationDocuments.id, documentId))
-
 	revalidatePath('/app/applications')
 	revalidatePath(`/app/applications/${doc.applicationId}`)
 	revalidatePath('/dashboard/applications')
 	revalidatePath(`/dashboard/applications/${doc.applicationId}`)
 	return {}
+}
+
+export async function approveApplicationDocument(
+	payload: unknown,
+): Promise<{ error?: string }> {
+	const parsed = approveApplicationDocumentSchema.safeParse(payload)
+	if (!parsed.success) {
+		const msg = parsed.error.issues[0]?.message
+		return { error: msg ?? 'applications-error-generic' }
+	}
+	return setDocumentStatus(parsed.data.documentId, {
+		status: 'approved',
+		rejectionReason: null,
+	})
+}
+
+export async function rejectApplicationDocument(
+	payload: unknown,
+): Promise<{ error?: string }> {
+	const parsed = rejectApplicationDocumentSchema.safeParse(payload)
+	if (!parsed.success) {
+		const msg = parsed.error.issues[0]?.message
+		return { error: msg ?? 'applications-error-generic' }
+	}
+	return setDocumentStatus(parsed.data.documentId, {
+		status: 'rejected',
+		rejectionReason: parsed.data.rejectionReason.trim(),
+	})
+}
+
+export type ApproveDocumentState = { error?: string } | null
+
+/** Form action for useFormState approve form. */
+export async function approveDocumentAction(
+	_prevState: ApproveDocumentState,
+	formData: FormData,
+): Promise<ApproveDocumentState> {
+	const result = await approveApplicationDocument({
+		documentId: formData.get('documentId'),
+	})
+	return result.error != null ? { error: result.error } : {}
+}
+
+export type RejectDocumentState = { error?: string } | null
+
+/** Form action for useActionState reject form. */
+export async function rejectDocumentAction(
+	_prevState: RejectDocumentState,
+	formData: FormData,
+): Promise<RejectDocumentState> {
+	const result = await rejectApplicationDocument({
+		documentId: formData.get('documentId'),
+		rejectionReason: formData.get('rejectionReason'),
+	})
+	return result.error != null ? { error: result.error } : {}
 }
 
 export async function updateApplicationStatus(
@@ -615,10 +655,12 @@ export async function updateApplicationStatus(
 		return { error: 'applications-error-transition' }
 	}
 
-	const parsed = parseUpdateApplicationStatusPayload(payload)
-	if ('error' in parsed) return { error: parsed.error }
-
-	const { data } = parsed
+	const parsed = updateApplicationStatusSchema.safeParse(payload)
+	if (!parsed.success) {
+		const msg = parsed.error.issues[0]?.message
+		return { error: msg ?? 'applications-error-generic' }
+	}
+	const data = parsed.data
 
 	await db
 		.update(applications)
