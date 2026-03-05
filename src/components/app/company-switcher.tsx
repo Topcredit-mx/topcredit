@@ -3,6 +3,7 @@
 import { Building2, ChevronsUpDown, LayoutDashboard } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { setSelectedCompanyId } from '~/app/app/actions'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -13,7 +14,6 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { SidebarMenuButton } from '~/components/ui/sidebar'
 import { cn } from '~/lib/utils'
-import { setSelectedCompanyId } from '~/server/mutations'
 import type { CompanyForSwitcher } from '~/server/scopes'
 
 type CompanySwitcherProps = {
