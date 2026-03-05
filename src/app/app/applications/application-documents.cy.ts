@@ -73,4 +73,53 @@ describe('App Application Documents (Agent)', () => {
 				cy.get('[data-status="approved"]').should('be.visible')
 			})
 	})
+
+	it('shows validation error when agent submits Rechazar without reason', () => {
+		cy.task('insertApplicationDocument', {
+			applicationId: seed.applicationId,
+			documentType: 'contract',
+			fileName: 'reject-validation-e2e.pdf',
+			storageKey: 'application-documents/e2e-reject-validation.pdf',
+		})
+		cy.login(agentForReview.email)
+		cy.setCookie('selected_company_id', String(seed.companyId))
+		cy.visit(`/app/applications/${seed.applicationId}`)
+		cy.contains('li', 'reject-validation-e2e.pdf')
+			.should('be.visible')
+			.within(() => {
+				cy.get('button[data-document-action="reject"]').click()
+			})
+		cy.get('[data-slot="dialog-content"]').within(() => {
+			cy.contains('button', /confirmar/i).click()
+		})
+		cy.contains(/motivo de rechazo es obligatorio/i).should('be.visible')
+	})
+
+	it('shows rejected state and reason when agent submits Rechazar with reason', () => {
+		const reason = 'Documento ilegible en la página 2'
+		cy.task('insertApplicationDocument', {
+			applicationId: seed.applicationId,
+			documentType: 'authorization',
+			fileName: 'reject-with-reason-e2e.pdf',
+			storageKey: 'application-documents/e2e-reject-reason.pdf',
+		})
+		cy.login(agentForReview.email)
+		cy.setCookie('selected_company_id', String(seed.companyId))
+		cy.visit(`/app/applications/${seed.applicationId}`)
+		cy.contains('li', 'reject-with-reason-e2e.pdf')
+			.should('be.visible')
+			.within(() => {
+				cy.get('button[data-document-action="reject"]').click()
+			})
+		cy.get('[data-slot="dialog-content"]').within(() => {
+			cy.get('textarea[name="rejectionReason"]').type(reason)
+			cy.contains('button', /confirmar/i).click()
+		})
+		cy.contains('li', 'reject-with-reason-e2e.pdf')
+			.should('be.visible')
+			.within(() => {
+				cy.get('[data-status="rejected"]').should('be.visible')
+				cy.contains(reason).should('be.visible')
+			})
+	})
 })
