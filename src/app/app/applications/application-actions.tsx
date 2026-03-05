@@ -4,12 +4,12 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useActionState, useState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { Button } from '~/components/ui/button'
-import type { ApplicationStatusRequiringReason } from '~/lib/application-rules'
 import {
 	updateApplicationStatus,
 	updateApplicationStatusFormAction,
-} from '~/server/mutations'
+} from '~/app/app/applications/actions'
+import { Button } from '~/components/ui/button'
+import type { ApplicationStatusRequiringReason } from '~/lib/application-rules'
 import { ApplicationReasonDialog } from './application-reason-dialog'
 
 const ACTION_ERROR_KEYS = new Set([

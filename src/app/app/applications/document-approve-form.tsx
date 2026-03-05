@@ -3,11 +3,11 @@
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect } from 'react'
-import { Button } from '~/components/ui/button'
 import {
 	type ApproveDocumentState,
 	approveDocumentAction,
-} from '~/server/mutations'
+} from '~/app/app/applications/actions'
+import { Button } from '~/components/ui/button'
 
 export function DocumentApproveForm({ documentId }: { documentId: number }) {
 	const t = useTranslations('app')

@@ -3,6 +3,10 @@
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useId } from 'react'
+import {
+	type RejectDocumentState,
+	rejectDocumentAction,
+} from '~/app/app/applications/actions'
 import { Button } from '~/components/ui/button'
 import {
 	Dialog,
@@ -13,10 +17,6 @@ import {
 } from '~/components/ui/dialog'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Textarea } from '~/components/ui/textarea'
-import {
-	type RejectDocumentState,
-	rejectDocumentAction,
-} from '~/server/mutations'
 
 interface DocumentRejectDialogProps {
 	documentId: number
