@@ -24,6 +24,7 @@ const {
 	terms,
 	termOfferings,
 	applications,
+	applicationDocuments,
 } = schema
 
 export function getDb() {
@@ -199,6 +200,55 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 			console.log(
 				`  ✓ Created application: ${app.applicantEmail} ${app.status} (${app.creditAmount})`,
 			)
+		}
+	}
+
+	// Pending application documents (for testing document approve/reject)
+	const applicantId = userIdByEmail.get('applicant@example.com')
+	if (applicantId != null) {
+		const pendingApp = await db.query.applications.findFirst({
+			where: and(
+				eq(applications.applicantId, applicantId),
+				eq(applications.status, 'pending'),
+			),
+			columns: { id: true },
+		})
+		if (pendingApp) {
+			const existingDocs = await db.query.applicationDocuments.findMany({
+				where: eq(applicationDocuments.applicationId, pendingApp.id),
+				columns: { documentType: true },
+			})
+			const existingTypes = new Set(existingDocs.map((d) => d.documentType))
+			const docsToAdd: Array<{
+				documentType: 'authorization' | 'contract' | 'payroll-receipt'
+				fileName: string
+				storageKey: string
+			}> = [
+				{
+					documentType: 'authorization',
+					fileName: 'seed-authorization.pdf',
+					storageKey: `application-documents/${pendingApp.id}/authorization/seed-authorization.pdf`,
+				},
+				{
+					documentType: 'contract',
+					fileName: 'seed-contract.pdf',
+					storageKey: `application-documents/${pendingApp.id}/contract/seed-contract.pdf`,
+				},
+			]
+			for (const doc of docsToAdd) {
+				if (existingTypes.has(doc.documentType)) continue
+				await db.insert(applicationDocuments).values({
+					applicationId: pendingApp.id,
+					documentType: doc.documentType,
+					status: 'pending',
+					fileName: doc.fileName,
+					storageKey: doc.storageKey,
+				})
+				existingTypes.add(doc.documentType)
+				console.log(
+					`  ✓ Created application document: ${doc.documentType} (application ${pendingApp.id})`,
+				)
+			}
 		}
 	}
 
