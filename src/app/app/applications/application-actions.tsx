@@ -149,6 +149,7 @@ export function ApplicationActions({
 								invalidDocsFormRef.current?.requestSubmit()
 							}}
 							disabled={pending || !canMarkInvalidDocumentation}
+							aria-disabled={pending || !canMarkInvalidDocumentation}
 							title={
 								!canMarkInvalidDocumentation
 									? t('applications-action-invalid-docs-disabled-hint')

@@ -1,9 +1,9 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { FormattedDate } from '~/components/formatted-date'
+import { ListDetailLink } from '~/components/list-detail-link'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import {
@@ -13,6 +13,7 @@ import {
 	DataTablePagination,
 } from '~/components/ui/data-table'
 import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
+import { getPrefetchStrategy } from '~/lib/prefetch-strategy'
 import type { Company } from '~/server/queries'
 
 /** Company with Date fields serialized as ISO strings (for Client Component). */
@@ -144,11 +145,12 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				const company = row.original
 				return (
 					<Button variant="ghost" size="sm" asChild>
-						<Link
+						<ListDetailLink
 							href={`/app/companies/${encodeURIComponent(company.domain)}/edit`}
+							prefetchStrategy={getPrefetchStrategy(companies.length)}
 						>
 							{t('companies-edit')}
-						</Link>
+						</ListDetailLink>
 					</Button>
 				)
 			},

@@ -67,8 +67,7 @@ async function deleteBlobsForTerm(
 	db: Awaited<ReturnType<typeof getDb>>,
 	termId: number,
 ): Promise<void> {
-	if (!process.env.BLOB_READ_WRITE_TOKEN)
-		throw new Error('BLOB_READ_WRITE_TOKEN is not set')
+	if (!process.env.BLOB_READ_WRITE_TOKEN) return
 
 	const appIds = await db
 		.select({ id: applications.id })

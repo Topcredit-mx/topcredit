@@ -36,6 +36,7 @@ function DocumentStatusIcon({ status }: { status: DocumentStatus }) {
 			<span
 				className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-500"
 				title={t('applications-document-status-pending')}
+				data-status="pending"
 			>
 				<Clock className="size-4 shrink-0" aria-hidden />
 			</span>
@@ -46,6 +47,7 @@ function DocumentStatusIcon({ status }: { status: DocumentStatus }) {
 			<span
 				className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500"
 				title={t('applications-document-status-approved')}
+				data-status="approved"
 			>
 				<CheckCircle2 className="size-4 shrink-0" aria-hidden />
 			</span>
@@ -74,6 +76,7 @@ export function ApplicationDocumentRow({
 	const t = useTranslations('app')
 	const router = useRouter()
 	const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
+	const [documentActionsOpen, setDocumentActionsOpen] = useState(false)
 	const approveFormRef = useRef<HTMLFormElement>(null)
 
 	const [state, action, pending] = useActionState<
@@ -140,7 +143,10 @@ export function ApplicationDocumentRow({
 						<input type="hidden" name="documentId" value={id} />
 						<button type="submit" />
 					</form>
-					<DropdownMenu>
+					<DropdownMenu
+						open={documentActionsOpen}
+						onOpenChange={setDocumentActionsOpen}
+					>
 						<DropdownMenuTrigger asChild>
 							<Button
 								variant="outline"
@@ -169,6 +175,7 @@ export function ApplicationDocumentRow({
 								variant="destructive"
 								onSelect={(e) => {
 									e.preventDefault()
+									setDocumentActionsOpen(false)
 									setRejectDialogOpen(true)
 								}}
 								disabled={pending || status === 'rejected'}

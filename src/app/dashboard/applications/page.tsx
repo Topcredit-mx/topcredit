@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
+import { ListDetailLink } from '~/components/list-detail-link'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { DASHBOARD_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import { getPrefetchStrategy } from '~/lib/prefetch-strategy'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { getRequiredApplicantUser } from '~/server/auth/session'
@@ -89,13 +91,16 @@ export default async function ApplicationsListPage() {
 													<FormattedDate value={app.createdAt.toISOString()} />
 												</td>
 												<td className="px-4 py-3">
-													<Link
+													<ListDetailLink
 														href={`/dashboard/applications/${app.id}`}
 														className="text-primary hover:underline"
 														aria-label={t('view-aria-label')}
+														prefetchStrategy={getPrefetchStrategy(
+															applicationsList.length,
+														)}
 													>
 														{t('view')}
-													</Link>
+													</ListDetailLink>
 												</td>
 											</tr>
 										))}

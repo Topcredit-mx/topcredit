@@ -1,7 +1,6 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import {
 	Select,
 	SelectContent,
@@ -9,18 +8,24 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-import { APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import type { ApplicationStatus } from '~/server/db/schema'
 import { APPLICATION_STATUS_VALUES } from '~/server/db/schema'
 
 const ALL_VALUE = '__all__'
 
+/** Labels resolved on the server so this client component does not need NextIntl context (avoids E2E/SSR fallback issues). */
+export type ApplicationsStatusFilterLabels = {
+	all: string
+	statusLabels: Record<ApplicationStatus, string>
+}
+
 export function ApplicationsStatusFilter({
 	currentStatus,
+	labels,
 }: {
 	currentStatus: ApplicationStatus | undefined
+	labels: ApplicationsStatusFilterLabels
 }) {
-	const t = useTranslations('app')
 	const router = useRouter()
 	const value = currentStatus ?? ALL_VALUE
 
@@ -44,12 +49,10 @@ export function ApplicationsStatusFilter({
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					<SelectItem value={ALL_VALUE}>
-						{t('applications-filter-all')}
-					</SelectItem>
+					<SelectItem value={ALL_VALUE}>{labels.all}</SelectItem>
 					{APPLICATION_STATUS_VALUES.map((status) => (
 						<SelectItem key={status} value={status}>
-							{t(APPLICATION_STATUS_KEYS[status])}
+							{labels.statusLabels[status]}
 						</SelectItem>
 					))}
 				</SelectContent>

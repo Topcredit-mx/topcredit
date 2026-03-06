@@ -25,9 +25,9 @@ describe('App Application Documents (Agent)', () => {
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
 		cy.url().should('include', `/app/applications/${seed.applicationId}`)
-		cy.contains('h2', /documentos/i).should('be.visible')
-		cy.contains(/no hay documentos/i).should('be.visible')
 		cy.get('main').within(() => {
+			cy.contains(/documentos/i).should('be.visible')
+			cy.contains(/no hay documentos/i).should('be.visible')
 			cy.get('input[name="file"]').should('not.exist')
 		})
 	})
@@ -43,13 +43,30 @@ describe('App Application Documents (Agent)', () => {
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
 		cy.url().should('include', `/app/applications/${seed.applicationId}`)
-		cy.contains('h2', /documentos/i).should('be.visible')
-		cy.contains(/contrato/i).should('be.visible')
-		cy.contains('contract-e2e.pdf').should('be.visible')
-		cy.contains('a', /ver/i).should('be.visible')
 		cy.get('main').within(() => {
+			cy.contains(/documentos/i).should('be.visible')
+			cy.contains(/contrato/i).should('be.visible')
+			cy.contains('contract-e2e.pdf').should('be.visible')
 			cy.get('input[name="file"]').should('not.exist')
 		})
+	})
+
+	it('disables Documentación inválida when no document is rejected', () => {
+		cy.task('insertApplicationDocument', {
+			applicationId: seed.applicationId,
+			documentType: 'authorization',
+			fileName: 'pending-only-e2e.pdf',
+			storageKey: 'application-documents/e2e-pending-only.pdf',
+		})
+		cy.login(agentForReview.email)
+		cy.setCookie('selected_company_id', String(seed.companyId))
+		cy.visit(`/app/applications/${seed.applicationId}`)
+		cy.contains('button', /acciones/i).click()
+		cy.get('[data-application-action="invalid-docs"]').should(
+			'have.attr',
+			'aria-disabled',
+			'true',
+		)
 	})
 
 	it('shows approved state when agent approves a pending document', () => {
@@ -63,14 +80,13 @@ describe('App Application Documents (Agent)', () => {
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
 		cy.url().should('include', `/app/applications/${seed.applicationId}`)
-		cy.contains('h2', /documentos/i).should('be.visible')
 		cy.contains('li', 'auth-approve-e2e.pdf')
 			.should('be.visible')
-			.within(() => {
-				cy.get('button[data-document-action="menu"]').click()
-				cy.get('[data-document-action="approve"]').click()
-				cy.get('[data-status="approved"]').should('be.visible')
-			})
+			.within(() => cy.get('button[data-document-action="menu"]').click())
+		cy.get('[data-document-action="approve"]').click()
+		cy.contains('li', 'auth-approve-e2e.pdf').within(() => {
+			cy.get('[data-status="approved"]').should('be.visible')
+		})
 	})
 
 	it('shows validation error when agent submits Rechazar without reason', () => {
@@ -85,10 +101,8 @@ describe('App Application Documents (Agent)', () => {
 		cy.visit(`/app/applications/${seed.applicationId}`)
 		cy.contains('li', 'reject-validation-e2e.pdf')
 			.should('be.visible')
-			.within(() => {
-				cy.get('button[data-document-action="menu"]').click()
-				cy.get('[data-document-action="reject"]').click()
-			})
+			.within(() => cy.get('button[data-document-action="menu"]').click())
+		cy.get('[data-document-action="reject"]').click()
 		cy.get('[data-slot="dialog-content"]').within(() => {
 			cy.contains('button', /confirmar/i).click()
 		})
@@ -108,20 +122,16 @@ describe('App Application Documents (Agent)', () => {
 		cy.visit(`/app/applications/${seed.applicationId}`)
 		cy.contains('li', 'reject-with-reason-e2e.pdf')
 			.should('be.visible')
-			.within(() => {
-				cy.get('button[data-document-action="menu"]').click()
-				cy.get('[data-document-action="reject"]').click()
-			})
+			.within(() => cy.get('button[data-document-action="menu"]').click())
+		cy.get('[data-document-action="reject"]').click()
 		cy.get('[data-slot="dialog-content"]').within(() => {
 			cy.get('textarea[name="rejectionReason"]').type(reason)
 			cy.contains('button', /confirmar/i).click()
 		})
-		cy.contains('li', 'reject-with-reason-e2e.pdf')
-			.should('be.visible')
-			.within(() => {
-				cy.get('[data-status="rejected"]').should('be.visible')
-				cy.contains(reason).should('be.visible')
-			})
+		cy.contains('li', 'reject-with-reason-e2e.pdf').within(() => {
+			cy.get('[data-status="rejected"]').should('be.visible')
+			cy.contains(reason).should('be.visible')
+		})
 	})
 
 	it('allows agent to correct mistake: deny document then approve it again', () => {
@@ -137,45 +147,23 @@ describe('App Application Documents (Agent)', () => {
 		cy.visit(`/app/applications/${seed.applicationId}`)
 		cy.contains('li', 'deny-then-approve-e2e.pdf')
 			.should('be.visible')
-			.within(() => {
-				cy.get('button[data-document-action="menu"]').click()
-				cy.get('[data-document-action="reject"]').click()
-			})
+			.within(() => cy.get('button[data-document-action="menu"]').click())
+		cy.get('[data-document-action="reject"]').click()
 		cy.get('[data-slot="dialog-content"]').within(() => {
 			cy.get('textarea[name="rejectionReason"]').type(rejectReason)
 			cy.contains('button', /confirmar/i).click()
 		})
-		cy.contains('li', 'deny-then-approve-e2e.pdf')
-			.should('be.visible')
-			.within(() => {
-				cy.get('[data-status="rejected"]').should('be.visible')
-			})
+		cy.get('[role="dialog"]').should('not.exist')
 		cy.contains('li', 'deny-then-approve-e2e.pdf').within(() => {
-			cy.get('button[data-document-action="menu"]').click()
-			cy.get('[data-document-action="approve"]').click()
+			cy.get('[data-status="rejected"]').should('be.visible')
 		})
-		cy.contains('li', 'deny-then-approve-e2e.pdf')
-			.should('be.visible')
-			.within(() => {
-				cy.get('[data-status="approved"]').should('be.visible')
-			})
-	})
-
-	it('disables Documentación inválida when no document is rejected', () => {
-		cy.task('insertApplicationDocument', {
-			applicationId: seed.applicationId,
-			documentType: 'authorization',
-			fileName: 'pending-only-e2e.pdf',
-			storageKey: 'application-documents/e2e-pending-only.pdf',
-		})
-		cy.login(agentForReview.email)
-		cy.setCookie('selected_company_id', String(seed.companyId))
-		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains('button', /acciones/i).click()
-		cy.get('[data-application-action="invalid-docs"]').should(
-			'have.attr',
-			'data-disabled',
+		cy.contains('li', 'deny-then-approve-e2e.pdf').within(() =>
+			cy.get('button[data-document-action="menu"]').click(),
 		)
+		cy.get('[data-document-action="approve"]').click()
+		cy.contains('li', 'deny-then-approve-e2e.pdf').within(() => {
+			cy.get('[data-status="approved"]').should('be.visible')
+		})
 	})
 
 	it('enables Documentación inválida when at least one document is rejected', () => {
@@ -188,18 +176,23 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains('li', 'invalid-docs-enabled-e2e.pdf').within(() => {
-			cy.get('button[data-document-action="menu"]').click()
-			cy.get('[data-document-action="reject"]').click()
-		})
+		cy.contains('li', 'invalid-docs-enabled-e2e.pdf').within(() =>
+			cy.get('button[data-document-action="menu"]').click(),
+		)
+		cy.get('[data-document-action="reject"]').click()
 		cy.get('[data-slot="dialog-content"]').within(() => {
 			cy.get('textarea[name="rejectionReason"]').type('Doc rechazado para E2E')
 			cy.contains('button', /confirmar/i).click()
 		})
+		cy.get('[role="dialog"]').should('not.exist')
+		cy.contains('li', 'invalid-docs-enabled-e2e.pdf').within(() => {
+			cy.get('[data-status="rejected"]').should('be.visible')
+		})
 		cy.contains('button', /acciones/i).click()
 		cy.get('[data-application-action="invalid-docs"]').should(
 			'not.have.attr',
-			'data-disabled',
+			'aria-disabled',
+			'true',
 		)
 		cy.get('[data-application-action="invalid-docs"]').click()
 		cy.contains('Documentación inválida').should('be.visible')

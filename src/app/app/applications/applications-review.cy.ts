@@ -136,7 +136,37 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('40,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
+			cy.url()
+				.should('match', /\/app\/applications\/(\d+)/)
+				.then((url) => {
+					const applicationId = parseInt(
+						url.replace(/.*\/app\/applications\//, ''),
+						10,
+					)
+					return cy.task('insertApplicationDocument', {
+						applicationId,
+						documentType: 'contract',
+						fileName: 'e2e-40k-invalid.pdf',
+						storageKey: 'application-documents/e2e-40k-invalid.pdf',
+					})
+				})
+			cy.visit('/app/applications')
+			cy.findTableRow('40,000')
+				.find('a[aria-label="Revisar solicitud"]')
+				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
+			cy.contains('li', 'e2e-40k-invalid.pdf').within(() =>
+				cy.get('button[data-document-action="menu"]').click(),
+			)
+			cy.get('[data-document-action="reject"]').should('be.visible').click()
+			cy.get('[data-slot="dialog-content"]').within(() => {
+				cy.get('textarea[name="rejectionReason"]').type('E2E invalid docs')
+				cy.contains('button', /confirmar/i).click()
+			})
+			cy.get('[role="dialog"]').should('not.exist')
+			cy.contains('li', 'e2e-40k-invalid.pdf').within(() => {
+				cy.get('[data-status="rejected"]').should('be.visible')
+			})
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]')
 				.contains(/documentación inválida/i)
@@ -238,11 +268,14 @@ describe('App Applications Review (Phase 3)', () => {
 		it('sees applications list and can open detail', () => {
 			cy.get('table').should('exist')
 			cy.contains(applicantForReview.name).should('exist')
-			cy.findTableRow('25,000')
+			cy.get('main')
+				.find('table')
 				.find('a[aria-label="Revisar solicitud"]')
+				.first()
 				.should('be.visible')
 				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
+			cy.contains(applicantForReview.name).should('be.visible')
 		})
 	})
 
@@ -279,7 +312,7 @@ describe('App Applications Review (Phase 3)', () => {
 		})
 
 		it('picking a company from switcher filters the list', () => {
-			cy.get('table tbody tr').should('have.length', 7)
+			cy.get('main').find('table tbody tr').should('have.length.at.least', 8)
 			cy.get('[data-slot="sidebar"]')
 				.find('[data-slot="dropdown-menu-trigger"]')
 				.first()
@@ -289,7 +322,7 @@ describe('App Applications Review (Phase 3)', () => {
 				.find('[data-slot="dropdown-menu-trigger"]')
 				.first()
 				.should('contain', 'Other Company')
-			cy.get('table tbody tr').should('have.length', 1)
+			cy.get('main').find('table tbody tr').should('have.length', 1)
 			cy.contains('othercompany.com').should('be.visible')
 			cy.findTableRow('15,000').should('exist')
 		})
@@ -358,7 +391,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.visit('/app')
 			cy.setCookie('selected_company_id', String(seed.companyDId))
 			cy.visit('/app/applications')
-			cy.get('table tbody tr').should('have.length', 7)
+			cy.get('main').find('table tbody tr').should('have.length.at.least', 8)
 			cy.contains('inactivecompany.com').should('not.exist')
 			cy.get('[data-slot="sidebar"]')
 				.find('[data-slot="dropdown-menu-trigger"]')

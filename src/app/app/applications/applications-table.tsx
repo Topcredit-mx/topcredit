@@ -1,8 +1,9 @@
-import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
+import { ListDetailLink } from '~/components/list-detail-link'
 import { Button } from '~/components/ui/button'
 import { APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import { getPrefetchStrategy } from '~/lib/prefetch-strategy'
 import { formatCurrencyMxn } from '~/lib/utils'
 import type { ApplicationForReview } from '~/server/queries'
 import { formatApplicationTerm } from './constants'
@@ -64,12 +65,13 @@ export async function ApplicationsTable({
 							</td>
 							<td className="px-4 py-3">
 								<Button variant="ghost" size="sm" asChild>
-									<Link
+									<ListDetailLink
 										href={`/app/applications/${app.id}`}
 										aria-label={`${t('applications-review')} solicitud`}
+										prefetchStrategy={getPrefetchStrategy(applications.length)}
 									>
 										{t('applications-review')}
-									</Link>
+									</ListDetailLink>
 								</Button>
 							</td>
 						</tr>
