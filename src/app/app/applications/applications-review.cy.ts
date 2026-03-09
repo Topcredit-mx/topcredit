@@ -86,7 +86,6 @@ describe('App Applications Review (Phase 3)', () => {
 		})
 
 		it('reject requires reason', () => {
-			cy.visit('/app/applications')
 			cy.findTableRow('30,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
@@ -102,7 +101,6 @@ describe('App Applications Review (Phase 3)', () => {
 		})
 
 		it('can reject with reason', () => {
-			cy.visit('/app/applications')
 			cy.findTableRow('30,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
@@ -120,7 +118,6 @@ describe('App Applications Review (Phase 3)', () => {
 		})
 
 		it('can pre-authorize application', () => {
-			cy.visit('/app/applications')
 			cy.findTableRow('35,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
@@ -132,28 +129,13 @@ describe('App Applications Review (Phase 3)', () => {
 		})
 
 		it('can mark as invalid documentation', () => {
-			cy.visit('/app/applications')
-			cy.findTableRow('40,000')
-				.find('a[aria-label="Revisar solicitud"]')
-				.click()
-			cy.url()
-				.should('match', /\/app\/applications\/(\d+)/)
-				.then((url) => {
-					const applicationId = parseInt(
-						url.replace(/.*\/app\/applications\//, ''),
-						10,
-					)
-					return cy.task('insertApplicationDocument', {
-						applicationId,
-						documentType: 'contract',
-						fileName: 'e2e-40k-invalid.pdf',
-						storageKey: 'application-documents/e2e-40k-invalid.pdf',
-					})
-				})
-			cy.visit('/app/applications')
-			cy.findTableRow('40,000')
-				.find('a[aria-label="Revisar solicitud"]')
-				.click()
+			cy.task('insertApplicationDocument', {
+				applicationId: seed.applicantA4ApplicationId,
+				documentType: 'contract',
+				fileName: 'e2e-40k-invalid.pdf',
+				storageKey: 'application-documents/e2e-40k-invalid.pdf',
+			})
+			cy.visit(`/app/applications/${seed.applicantA4ApplicationId}`)
 			cy.url().should('match', /\/app\/applications\/\d+/)
 			cy.contains('li', 'e2e-40k-invalid.pdf').within(() =>
 				cy.get('button[data-document-action="menu"]').click(),
@@ -196,10 +178,7 @@ describe('App Applications Review (Phase 3)', () => {
 		})
 
 		it('list reflects status after authorizing', () => {
-			cy.visit('/app/applications')
-			cy.findTableRow('45,000')
-				.find('a[aria-label="Revisar solicitud"]')
-				.click()
+			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]').contains('Autorizar').click()
 			cy.contains('Autorizado').should('be.visible')

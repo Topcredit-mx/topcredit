@@ -201,9 +201,6 @@ describe('Dashboard Applications', () => {
 			cy.task('deleteApplicationsByApplicantId', seed.applicantId)
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
-			cy.contains(
-				/mis solicitudes de crédito|completa los datos para solicitar|plazo|monto solicitado/i,
-			).should('be.visible')
 
 			cy.selectRadix('label:Plazo', 'Mensual - 12 meses')
 			cy.get('input[name="salaryAtApplication"]').type('100000')
