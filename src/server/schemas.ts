@@ -12,36 +12,33 @@ const domainRegex =
 
 const nameSchema = z
 	.string()
-	.min(1, 'El nombre es requerido')
-	.max(100, 'El nombre no puede exceder 100 caracteres')
+	.min(1, 'company-name-required')
+	.max(100, 'company-name-max')
 
 const domainSchema = z
 	.string()
-	.min(1, 'El dominio es requerido')
-	.regex(
-		domainRegex,
-		'El dominio debe tener un formato válido (ej: ejemplo.com)',
-	)
+	.min(1, 'company-domain-required')
+	.regex(domainRegex, 'company-domain-format')
 
 const rateSchema = z
 	.string()
-	.min(1, 'La tasa es requerida')
+	.min(1, 'company-rate-required')
 	.transform((val) => {
 		const num = Number.parseFloat(val)
-		if (Number.isNaN(num)) throw new Error('La tasa debe ser un número')
+		if (Number.isNaN(num)) throw new Error('company-rate-number')
 		return num
 	})
-	.pipe(z.number().positive('La tasa debe ser un número positivo'))
+	.pipe(z.number().positive('company-rate-positive'))
 
 const borrowingCapacityRateSchema = z.coerce
 	.number()
-	.min(0, 'La capacidad de préstamo debe ser mayor o igual a 0')
-	.max(100, 'La capacidad de préstamo debe ser menor o igual a 100')
+	.min(0, 'company-borrowing-capacity-min')
+	.max(100, 'company-borrowing-capacity-max')
 	.optional()
 	.nullable()
 
 const employeeSalaryFrequencySchema = z.enum(['monthly', 'bi-monthly'], {
-	message: 'La frecuencia debe ser mensual o quincenal',
+	message: 'company-frequency',
 })
 
 export const createCompanySchema = z.object({
@@ -59,15 +56,15 @@ export const updateCompanySchema = createCompanySchema
 
 const positiveNumericString = z
 	.string()
-	.min(1, 'El valor es requerido')
+	.min(1, 'application-value-required')
 	.refine((val) => !Number.isNaN(Number(val)) && Number(val) > 0, {
-		message: 'Debe ser un número positivo',
+		message: 'application-value-positive',
 	})
 
 // ---- Application (solicitud) ----
 
 export const createApplicationSchema = z.object({
-	termOfferingId: z.coerce.number().int().positive('Selecciona un plazo'),
+	termOfferingId: z.coerce.number().int().positive('application-term-required'),
 	creditAmount: positiveNumericString,
 	salaryAtApplication: positiveNumericString,
 })
@@ -95,14 +92,14 @@ export type UpdateApplicationStatusInput = z.infer<
 >
 
 export const documentTypeSchema = z.enum(DOCUMENT_TYPE_VALUES, {
-	message: 'Tipo de documento no válido',
+	message: 'document-type-invalid',
 })
 export const documentStatusSchema = z.enum(DOCUMENT_STATUS_VALUES, {
-	message: 'Estado de documento no válido',
+	message: 'document-status-invalid',
 })
 
 export const uploadApplicationDocumentSchema = z.object({
-	applicationId: z.coerce.number().int().positive('Solicitud no válida'),
+	applicationId: z.coerce.number().int().positive('application-invalid'),
 	documentType: documentTypeSchema,
 })
 

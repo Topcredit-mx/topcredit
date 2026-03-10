@@ -82,7 +82,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.url().should('match', /\/app\/applications\/\d+/)
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]').contains('Autorizar').click()
-			cy.contains('Autorizado').should('be.visible')
+			cy.contains(/autorizado/i).should('be.visible')
 		})
 
 		it('reject requires reason', () => {
@@ -96,7 +96,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.get('[role="dialog"]').within(() => {
 				cy.get('textarea[name="reason"]').type(' ')
 				cy.contains('button', /confirmar/i).click()
-				cy.contains(/motivo es obligatorio/i).should('be.visible')
+				cy.contains('El motivo es obligatorio al rechazar').should('be.visible')
 			})
 		})
 
@@ -114,10 +114,11 @@ describe('App Applications Review (Phase 3)', () => {
 					.type('Documentación incompleta en E2E.')
 				cy.contains('button', /confirmar/i).click()
 			})
-			cy.contains('Denegado').should('be.visible')
+			cy.contains(/denegado/i).should('be.visible')
 		})
 
 		it('can pre-authorize application', () => {
+			cy.visit('/app/applications')
 			cy.findTableRow('35,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
@@ -125,7 +126,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.get('[role="menuitem"]')
 				.contains(/pre-autorizar/i)
 				.click()
-			cy.contains('Preautorizado').should('be.visible')
+			cy.contains(/preautorizado/i).should('be.visible')
 		})
 
 		it('can mark as invalid documentation', () => {
@@ -181,10 +182,11 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]').contains('Autorizar').click()
-			cy.contains('Autorizado').should('be.visible')
-			cy.visit('/app/applications')
+			cy.contains(/autorizado/i).should('be.visible')
+			cy.get('a[href="/app/applications"]').first().click()
+			cy.url().should('include', '/app/applications')
 			cy.findTableRow('45,000').within(() => {
-				cy.contains('Autorizado').should('be.visible')
+				cy.contains(/autorizado/i).should('be.visible')
 			})
 		})
 	})
@@ -291,19 +293,18 @@ describe('App Applications Review (Phase 3)', () => {
 		})
 
 		it('picking a company from switcher filters the list', () => {
-			cy.get('main').find('table tbody tr').should('have.length.at.least', 8)
+			// Seed: 3 active companies with 7 applications total (inactive company excluded by getApplicationsForReview)
+			cy.get('main').find('table tbody tr').should('have.length', 7)
 			cy.get('[data-slot="sidebar"]')
 				.find('[data-slot="dropdown-menu-trigger"]')
 				.first()
 				.click()
 			cy.contains('[data-slot="dropdown-menu-item"]', 'Other Company').click()
-			cy.get('[data-slot="sidebar"]')
-				.find('[data-slot="dropdown-menu-trigger"]')
-				.first()
-				.should('contain', 'Other Company')
+			// Wait for router.refresh() after selection; then assert list and trigger
 			cy.get('main').find('table tbody tr').should('have.length', 1)
 			cy.contains('othercompany.com').should('be.visible')
 			cy.findTableRow('15,000').should('exist')
+			cy.get('#company-switcher-trigger').should('contain', 'Other Company')
 		})
 	})
 
@@ -370,7 +371,8 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.visit('/app')
 			cy.setCookie('selected_company_id', String(seed.companyDId))
 			cy.visit('/app/applications')
-			cy.get('main').find('table tbody tr').should('have.length.at.least', 8)
+			// Seed: 3 active companies with 7 applications (inactive excluded)
+			cy.get('main').find('table tbody tr').should('have.length', 7)
 			cy.contains('inactivecompany.com').should('not.exist')
 			cy.get('[data-slot="sidebar"]')
 				.find('[data-slot="dropdown-menu-trigger"]')

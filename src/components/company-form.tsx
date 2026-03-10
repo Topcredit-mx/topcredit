@@ -95,9 +95,11 @@ export function CompanyForm({ company }: CompanyFormProps) {
 
 			{/* General error display (only if no field-specific errors) */}
 			{state.message && !state.errors && (
-				<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-					{state.message}
-				</div>
+				<FieldError
+					translationKey={state.message}
+					namespace="admin"
+					className="rounded-md bg-destructive/15 p-3"
+				/>
 			)}
 
 			<Field>
@@ -113,7 +115,9 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					aria-required="true"
 					aria-invalid={!!state.errors?.name}
 				/>
-				{state.errors?.name && <FieldError>{state.errors.name}</FieldError>}
+				{state.errors?.name && (
+					<FieldError translationKey={state.errors.name} namespace="admin" />
+				)}
 			</Field>
 
 			<Field>
@@ -131,7 +135,7 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					aria-invalid={!!state.errors?.domain}
 				/>
 				{state.errors?.domain ? (
-					<FieldError>{state.errors.domain}</FieldError>
+					<FieldError translationKey={state.errors.domain} namespace="admin" />
 				) : (
 					<FieldDescription>
 						{company
@@ -157,7 +161,7 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					aria-invalid={!!state.errors?.rate}
 				/>
 				{state.errors?.rate ? (
-					<FieldError>{state.errors.rate}</FieldError>
+					<FieldError translationKey={state.errors.rate} namespace="admin" />
 				) : (
 					<FieldDescription>
 						{t('company-form-rate-description')}
@@ -179,7 +183,10 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					aria-invalid={!!state.errors?.borrowingCapacityRate}
 				/>
 				{state.errors?.borrowingCapacityRate ? (
-					<FieldError>{state.errors.borrowingCapacityRate}</FieldError>
+					<FieldError
+						translationKey={state.errors.borrowingCapacityRate}
+						namespace="admin"
+					/>
 				) : (
 					<FieldDescription>
 						{t('company-form-borrowing-description')}
@@ -216,7 +223,10 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					</SelectContent>
 				</Select>
 				{state.errors?.employeeSalaryFrequency && (
-					<FieldError>{state.errors.employeeSalaryFrequency}</FieldError>
+					<FieldError
+						translationKey={state.errors.employeeSalaryFrequency}
+						namespace="admin"
+					/>
 				)}
 			</Field>
 

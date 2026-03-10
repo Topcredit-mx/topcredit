@@ -106,7 +106,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.get('[data-slot="dialog-content"]').within(() => {
 			cy.contains('button', /confirmar/i).click()
 		})
-		cy.contains(/motivo de rechazo es obligatorio/i).should('be.visible')
+		cy.contains('El motivo de rechazo es obligatorio').should('be.visible')
 	})
 
 	it('shows rejected state and reason when agent submits Rechazar with reason', () => {

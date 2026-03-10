@@ -140,7 +140,7 @@ describe('Dashboard Applications', () => {
 			cy.contains('button', /enviar solicitud/i).click()
 			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(
-				/no puede superar el máximo permitido \(\$30,000\.00\)/i,
+				'El monto no puede superar el máximo permitido ($30,000.00).',
 			).should('be.visible')
 		})
 
@@ -150,9 +150,7 @@ describe('Dashboard Applications', () => {
 			cy.selectRadix('label:Plazo', 'Mensual - 12 meses')
 			cy.contains('button', /enviar solicitud/i).click()
 			cy.url().should('include', '/dashboard/applications/new')
-			cy.contains(/requerido|valor es requerido|número positivo/i).should(
-				'be.visible',
-			)
+			cy.contains('El valor es requerido').should('be.visible')
 		})
 	})
 

@@ -86,7 +86,10 @@
 		"applications-document-rejection-reason-label": "Motivo de rechazo",
 		"applications-document-rejection-reason-placeholder": "Indica el motivo por el cual se rechaza este documento",
 		"applications-document-rejection-reason-required": "El motivo de rechazo es obligatorio",
-		"applications-document-invalid": "Documento no válido"
+		"applications-document-invalid": "Documento no válido",
+		"document-type-invalid": "Tipo de documento no válido",
+		"document-status-invalid": "Estado de documento no válido",
+		"application-invalid": "Solicitud no válida"
 	},
 	"admin": {
 		"overview-title": "Vista general",
@@ -165,7 +168,18 @@
 		"company-form-frequency-bi-monthly": "Quincenal",
 		"company-form-submit-saving": "Guardando...",
 		"company-form-submit-save-changes": "Guardar Cambios",
-		"company-form-submit-create": "Crear Empresa"
+		"company-form-submit-create": "Crear Empresa",
+		"company-name-required": "El nombre es requerido",
+		"company-name-max": "El nombre no puede exceder 100 caracteres",
+		"company-domain-required": "El dominio es requerido",
+		"company-domain-format": "El dominio debe tener un formato válido (ej: ejemplo.com)",
+		"company-domain-duplicate": "El dominio ya existe. Debe ser único.",
+		"company-rate-required": "La tasa es requerida",
+		"company-rate-number": "La tasa debe ser un número",
+		"company-rate-positive": "La tasa debe ser un número positivo",
+		"company-borrowing-capacity-min": "La capacidad de préstamo debe ser mayor o igual a 0",
+		"company-borrowing-capacity-max": "La capacidad de préstamo debe ser menor o igual a 100",
+		"company-frequency": "La frecuencia debe ser mensual o quincenal"
 	},
 	"dashboard": {
 		"title": "Mi Cuenta",
@@ -241,7 +255,13 @@
 			"placeholder-document-type": "Selecciona el tipo",
 			"label-file": "Archivo",
 			"submit-upload": "Subir",
-			"document-link": "Ver"
+			"document-link": "Ver",
+			"application-term-required": "Selecciona un plazo",
+			"application-value-required": "El valor es requerido",
+			"application-value-positive": "Debe ser un número positivo",
+			"application-invalid": "Solicitud no válida",
+			"document-type-invalid": "Tipo de documento no válido",
+			"document-status-invalid": "Estado de documento no válido"
 		},
 		"verify": {
 			"title": "Verificación",

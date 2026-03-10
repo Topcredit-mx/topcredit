@@ -214,15 +214,9 @@ describe('Admin Companies List', () => {
 
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			cy.contains(/el nombre es requerido|nombre es requerido/i).should(
-				'be.visible',
-			)
-			cy.contains(/el dominio es requerido|dominio es requerido/i).should(
-				'be.visible',
-			)
-			cy.contains(/la tasa es requerida|tasa es requerida/i).should(
-				'be.visible',
-			)
+			cy.contains('El nombre es requerido').should('be.visible')
+			cy.contains('El dominio es requerido').should('be.visible')
+			cy.contains('La tasa es requerida').should('be.visible')
 		})
 
 		it('should validate domain uniqueness', () => {
@@ -235,7 +229,7 @@ describe('Admin Companies List', () => {
 
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			cy.contains(/ya existe|duplicate|único/i).should('be.visible')
+			cy.contains('El dominio ya existe. Debe ser único.').should('be.visible')
 		})
 
 		it('should validate domain format', () => {
@@ -248,7 +242,9 @@ describe('Admin Companies List', () => {
 
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			cy.contains(/formato|format|válido/i).should('be.visible')
+			cy.contains(
+				'El dominio debe tener un formato válido (ej: ejemplo.com)',
+			).should('be.visible')
 		})
 
 		it('should validate rate is positive', () => {
@@ -261,7 +257,7 @@ describe('Admin Companies List', () => {
 
 			cy.contains('button', /crear|guardar|submit/i).click()
 
-			cy.contains(/positivo|positive|mayor/i).should('be.visible')
+			cy.contains('La tasa debe ser un número positivo').should('be.visible')
 		})
 
 		it('should validate borrowingCapacityRate is between 0 and 100', () => {
@@ -276,7 +272,7 @@ describe('Admin Companies List', () => {
 			cy.contains('button', /crear|guardar|submit/i).click()
 
 			cy.contains(
-				/menor o igual a 100|less than or equal to 100|entre 0 y 100|between 0 and 100/i,
+				'La capacidad de préstamo debe ser menor o igual a 100',
 			).should('be.visible')
 		})
 	})

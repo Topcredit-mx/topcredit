@@ -47,9 +47,11 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 			<input type="hidden" name="termOfferingId" value={termOfferingId} />
 
 			{state.message && !state.errors && (
-				<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-					{state.message}
-				</div>
+				<FieldError
+					translationKey={state.message}
+					namespace="dashboard.applications"
+					className="rounded-md bg-destructive/15 p-3"
+				/>
 			)}
 
 			<Field data-invalid={!!state.errors?.termOfferingId}>
@@ -78,7 +80,10 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 					</SelectContent>
 				</Select>
 				{state.errors?.termOfferingId && (
-					<FieldError>{state.errors.termOfferingId}</FieldError>
+					<FieldError
+						translationKey={state.errors.termOfferingId}
+						namespace="dashboard.applications"
+					/>
 				)}
 			</Field>
 
@@ -97,7 +102,10 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 					aria-invalid={!!state.errors?.salaryAtApplication}
 				/>
 				{state.errors?.salaryAtApplication && (
-					<FieldError>{state.errors.salaryAtApplication}</FieldError>
+					<FieldError
+						translationKey={state.errors.salaryAtApplication}
+						namespace="dashboard.applications"
+					/>
 				)}
 			</Field>
 
@@ -116,7 +124,10 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 					aria-invalid={!!state.errors?.creditAmount}
 				/>
 				{state.errors?.creditAmount && (
-					<FieldError>{state.errors.creditAmount}</FieldError>
+					<FieldError
+						translationKey={state.errors.creditAmount}
+						namespace="dashboard.applications"
+					/>
 				)}
 			</Field>
 

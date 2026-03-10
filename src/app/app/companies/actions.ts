@@ -47,7 +47,7 @@ export async function createCompanyAction(
 		if (existingCompany) {
 			return {
 				errors: {
-					domain: 'El dominio ya existe. Debe ser único.',
+					domain: 'company-domain-duplicate',
 				},
 			}
 		}

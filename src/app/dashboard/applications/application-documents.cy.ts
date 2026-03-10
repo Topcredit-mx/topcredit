@@ -118,7 +118,7 @@ describe('Dashboard Application Documents', () => {
 				cy.visit(`/dashboard/applications/${app.id}`)
 				cy.selectRadix('label:Tipo de documento', 'Autorización')
 				cy.contains('button', /subir/i).click()
-				cy.contains(/selecciona un archivo válido/i).should('be.visible')
+				cy.contains('Selecciona un archivo válido.').should('be.visible')
 				cy.url().should('include', `/dashboard/applications/${app.id}`)
 			})
 		})

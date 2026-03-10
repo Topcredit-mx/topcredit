@@ -59,9 +59,11 @@ export function ApplicationDocumentUploadForm({
 			<input type="hidden" name="documentType" value={documentType} />
 
 			{state.message && !state.errors && (
-				<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-					{state.message}
-				</div>
+				<FieldError
+					translationKey={state.message}
+					namespace="dashboard.applications"
+					className="rounded-md bg-destructive/15 p-3"
+				/>
 			)}
 
 			<Field data-invalid={!!state.errors?.documentType}>
@@ -89,7 +91,10 @@ export function ApplicationDocumentUploadForm({
 					</SelectContent>
 				</Select>
 				{state.errors?.documentType && (
-					<FieldError>{state.errors.documentType}</FieldError>
+					<FieldError
+						translationKey={state.errors.documentType}
+						namespace="dashboard.applications"
+					/>
 				)}
 			</Field>
 
@@ -106,7 +111,12 @@ export function ApplicationDocumentUploadForm({
 					className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs file:border-0 file:bg-transparent file:font-medium file:text-foreground file:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
 					aria-invalid={!!state.errors?.file}
 				/>
-				{state.errors?.file && <FieldError>{state.errors.file}</FieldError>}
+				{state.errors?.file && (
+					<FieldError
+						translationKey={state.errors.file}
+						namespace="dashboard.applications"
+					/>
+				)}
 			</Field>
 
 			<Button type="submit" disabled={pending || !documentType}>

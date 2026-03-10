@@ -47,7 +47,7 @@ export function fromErrorToFormState(error: unknown): {
 				if (error.constraint?.includes('domain')) {
 					return {
 						errors: {
-							domain: 'El dominio ya existe. Debe ser único.',
+							domain: 'company-domain-duplicate',
 						},
 					}
 				}
