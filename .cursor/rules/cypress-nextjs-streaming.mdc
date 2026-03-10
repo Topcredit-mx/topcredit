@@ -22,9 +22,15 @@ cy.findTableRow('25,000').find('a').click()
 cy.url().should('match', /\/app\/applications\/\d+/)
 cy.contains('button', /acciones/i).click()
 
-// ✅ GOOD — guard on content that proves streaming finished
-cy.visit(`/app/applications/${id}`)
+// ❌ BAD — applicant name exists on BOTH the list and detail page;
+// matches stale list-page DOM before the skeleton replaces it
+cy.findTableRow('25,000').find('a').click()
 cy.contains(applicant.name).should('be.visible')
+cy.contains('button', /acciones/i).click()
+
+// ✅ GOOD — guard on content UNIQUE to the destination page
+cy.visit(`/app/applications/${id}`)
+cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 cy.contains('button', /acciones/i).click()
 ```
 

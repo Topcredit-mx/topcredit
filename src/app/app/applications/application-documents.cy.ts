@@ -3,10 +3,7 @@
  */
 
 import type { SeedApplicationsReviewResult } from '../../../../cypress/tasks'
-import {
-	agentForReview,
-	applicantForReview,
-} from './applications-review.fixtures'
+import { agentForReview } from './applications-review.fixtures'
 
 describe('App Application Documents (Agent)', () => {
 	let seed: SeedApplicationsReviewResult
@@ -27,7 +24,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains(applicantForReview.name).should('be.visible')
+		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.get('main').within(() => {
 			cy.contains(/documentos/i).should('be.visible')
 			cy.contains(/no hay documentos/i).should('be.visible')
@@ -45,7 +42,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains(applicantForReview.name).should('be.visible')
+		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.get('main').within(() => {
 			cy.contains(/documentos/i).should('be.visible')
 			cy.contains(/contrato/i).should('be.visible')
@@ -64,7 +61,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains(applicantForReview.name).should('be.visible')
+		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.contains('button', /acciones/i).click()
 		cy.get('[data-application-action="invalid-docs"]').should(
 			'have.attr',
@@ -83,7 +80,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains(applicantForReview.name).should('be.visible')
+		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'auth-approve-e2e.pdf')
 			.should('be.visible')
 			.within(() => cy.get('button[data-document-action="menu"]').click())
@@ -103,7 +100,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains(applicantForReview.name).should('be.visible')
+		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'reject-validation-e2e.pdf')
 			.should('be.visible')
 			.within(() => cy.get('button[data-document-action="menu"]').click())
@@ -125,7 +122,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains(applicantForReview.name).should('be.visible')
+		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'reject-with-reason-e2e.pdf')
 			.should('be.visible')
 			.within(() => cy.get('button[data-document-action="menu"]').click())
@@ -151,7 +148,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains(applicantForReview.name).should('be.visible')
+		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'deny-then-approve-e2e.pdf')
 			.should('be.visible')
 			.within(() => cy.get('button[data-document-action="menu"]').click())
@@ -182,7 +179,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains(applicantForReview.name).should('be.visible')
+		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'invalid-docs-enabled-e2e.pdf').within(() =>
 			cy.get('button[data-document-action="menu"]').click(),
 		)

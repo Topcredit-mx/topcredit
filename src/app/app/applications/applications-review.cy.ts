@@ -14,9 +14,6 @@
 import type { SeedApplicationsReviewResult } from '../../../../cypress/tasks'
 import {
 	agentForReview,
-	applicantA2,
-	applicantA3,
-	applicantA4,
 	applicantA5,
 	applicantForReview,
 	applicantForReviewD,
@@ -67,7 +64,7 @@ describe('App Applications Review (Phase 3)', () => {
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
-			cy.contains(applicantForReview.name).should('be.visible')
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains(applicantEmail).should('be.visible')
 			cy.contains('25,000').should('exist')
 		})
@@ -82,8 +79,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('25,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.url().should('match', /\/app\/applications\/\d+/)
-			cy.contains(applicantForReview.name).should('be.visible')
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]').contains('Autorizar').click()
 			cy.contains(/autorizado/i).should('be.visible')
@@ -93,7 +89,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('30,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.contains(applicantA2.name).should('be.visible')
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]')
 				.contains(/rechazar/i)
@@ -109,7 +105,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('30,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.contains(applicantA2.name).should('be.visible')
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]')
 				.contains(/rechazar/i)
@@ -128,7 +124,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('35,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.contains(applicantA3.name).should('be.visible')
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]')
 				.contains(/pre-autorizar/i)
@@ -144,7 +140,7 @@ describe('App Applications Review (Phase 3)', () => {
 				storageKey: 'application-documents/e2e-40k-invalid.pdf',
 			})
 			cy.visit(`/app/applications/${seed.applicantA4ApplicationId}`)
-			cy.contains(applicantA4.name).should('be.visible')
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains('li', 'e2e-40k-invalid.pdf').within(() =>
 				cy.get('button[data-document-action="menu"]').click(),
 			)
@@ -186,7 +182,7 @@ describe('App Applications Review (Phase 3)', () => {
 
 		it('list reflects status after authorizing', () => {
 			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
-			cy.contains(applicantA5.name).should('be.visible')
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]').contains('Autorizar').click()
 			cy.contains(/autorizado/i).should('be.visible')
@@ -263,7 +259,7 @@ describe('App Applications Review (Phase 3)', () => {
 				.should('be.visible')
 				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
-			cy.contains(applicantForReview.name).should('be.visible')
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		})
 	})
 
