@@ -17,7 +17,6 @@
 		"cy:open": "cypress open",
 		"cy:run": "cypress run --browser chrome",
 		"dev": "next dev",
-		"dev:webpack": "next dev --webpack",
 		"preview": "next build && next start",
 		"start": "next start",
 		"typecheck": "tsc --noEmit",
