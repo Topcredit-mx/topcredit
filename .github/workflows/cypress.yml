@@ -89,12 +89,12 @@ jobs:
         run: pnpm dlx wait-on http://localhost:3000 --timeout 60000 --strict
 
       - name: Cypress run
-        uses: cypress-io/github-action@v7.1.2
+        uses: cypress-io/github-action@v7.1.5
         with:
-          browser: chrome
+          browser: electron
           record: true
           parallel: true
-          group: 'Chrome'
+          group: 'Electron'
         env:
           E2E_TEST_MODE: "true"
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
