@@ -14,6 +14,7 @@
 import type { SeedApplicationsReviewResult } from '../../../../cypress/tasks'
 import {
 	agentForReview,
+	applicantA2,
 	applicantA3,
 	applicantA4,
 	applicantA5,
@@ -92,7 +93,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('30,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.contains(applicantForReview.name).should('be.visible')
+			cy.contains(applicantA2.name).should('be.visible')
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]')
 				.contains(/rechazar/i)
@@ -108,7 +109,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('30,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.contains(applicantForReview.name).should('be.visible')
+			cy.contains(applicantA2.name).should('be.visible')
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]')
 				.contains(/rechazar/i)
