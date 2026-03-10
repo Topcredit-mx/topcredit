@@ -184,6 +184,7 @@ describe('Admin Companies List', () => {
 				.click()
 
 			cy.url().should('include', '/app/companies')
+			cy.get('table').should('be.visible')
 			cy.contains(newCompany.name).should('exist')
 			cy.contains(newCompany.domain).should('exist')
 
@@ -210,6 +211,7 @@ describe('Admin Companies List', () => {
 				.click()
 
 			cy.url().should('include', '/app/companies')
+			cy.get('table').should('be.visible')
 			cy.contains(newCompany.name).should('exist')
 
 			cy.task('deleteCompaniesByDomain', [newCompany.domain])
@@ -358,7 +360,10 @@ describe('Admin Companies List', () => {
 				.click()
 
 			cy.url().should('include', '/app/companies')
-			cy.get('input[aria-label="Filtrar empresas..."]').type('Updated')
+			cy.get('table').should('be.visible')
+			cy.get('input[aria-label="Filtrar empresas..."]')
+				.should('be.visible')
+				.type('Updated')
 			cy.contains('Updated Company Name').should('exist')
 
 			cy.visit(`/app/companies/${editCompany.domain}/edit`)
@@ -380,6 +385,7 @@ describe('Admin Companies List', () => {
 				.click()
 
 			cy.url().should('include', '/app/companies')
+			cy.get('table').should('be.visible')
 			cy.findTableRow(editCompany.name).within(() => {
 				cy.contains('Inactiva').should('exist')
 			})
@@ -389,6 +395,9 @@ describe('Admin Companies List', () => {
 			cy.contains('button', /guardar|save/i)
 				.should('be.visible')
 				.click()
+
+			cy.url().should('include', '/app/companies')
+			cy.get('table').should('be.visible')
 		})
 
 		it('should prevent editing domain to duplicate value', () => {

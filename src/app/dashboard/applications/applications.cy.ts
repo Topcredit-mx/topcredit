@@ -214,6 +214,7 @@ describe('Dashboard Applications', () => {
 				.click()
 
 			cy.url().should('include', '/dashboard/applications')
+			cy.get('main').should('be.visible')
 			cy.contains('25,000').should('be.visible')
 		})
 	})

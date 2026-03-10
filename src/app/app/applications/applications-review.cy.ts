@@ -87,6 +87,8 @@ describe('App Applications Review (Phase 3)', () => {
 				.contains('Autorizar')
 				.should('be.visible')
 				.click()
+			// Action redirects to same URL (reload); wait for new page then new state
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains(/autorizado/i).should('be.visible')
 		})
 
@@ -131,6 +133,8 @@ describe('App Applications Review (Phase 3)', () => {
 					.should('be.visible')
 					.click()
 			})
+			// Action redirects to same URL (reload); wait for new page then new state
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains(/denegado/i).should('be.visible')
 		})
 
@@ -147,6 +151,8 @@ describe('App Applications Review (Phase 3)', () => {
 				.contains(/pre-autorizar/i)
 				.should('be.visible')
 				.click()
+			// Action redirects to same URL (reload); wait for new page then new state
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains(/preautorizado/i).should('be.visible')
 		})
 
@@ -182,6 +188,8 @@ describe('App Applications Review (Phase 3)', () => {
 				.contains(/documentación inválida/i)
 				.should('be.visible')
 				.click()
+			// Action redirects to same URL (reload); wait for new page then new state
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains('Documentación inválida').should('be.visible')
 		})
 
@@ -216,9 +224,13 @@ describe('App Applications Review (Phase 3)', () => {
 				.contains('Autorizar')
 				.should('be.visible')
 				.click()
+			// Action redirects to same URL (reload); wait for new page then new state
+			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains(/autorizado/i).should('be.visible')
-			cy.get('a[href="/app/applications"]').first().click()
+			cy.get('a[href="/app/applications"]').first().should('be.visible').click()
 			cy.url().should('include', '/app/applications')
+			// Wait for list page to be ready after navigation
+			cy.get('main').find('table').should('be.visible')
 			cy.findTableRow('45,000').within(() => {
 				cy.contains(/autorizado/i).should('be.visible')
 			})
