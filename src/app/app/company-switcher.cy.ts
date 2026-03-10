@@ -34,6 +34,7 @@ describe('Company Switcher (US-2.2.3)', () => {
 		cy.get('[data-slot="sidebar"]')
 			.find('[data-slot="dropdown-menu-trigger"]')
 			.first()
+			.should('be.visible')
 			.click()
 	}
 
@@ -65,10 +66,9 @@ describe('Company Switcher (US-2.2.3)', () => {
 
 	it('agent can switch between assigned companies', () => {
 		openCompanySwitcher()
-		cy.contains(
-			'[data-slot="dropdown-menu-item"]',
-			companyAssignedActive.name,
-		).click()
+		cy.contains('[data-slot="dropdown-menu-item"]', companyAssignedActive.name)
+			.should('be.visible')
+			.click()
 
 		cy.get('[data-slot="sidebar"]')
 			.find('[data-slot="dropdown-menu-trigger"]')
@@ -88,10 +88,9 @@ describe('Company Switcher (US-2.2.3)', () => {
 
 	it('selected company persists after page reload', () => {
 		openCompanySwitcher()
-		cy.contains(
-			'[data-slot="dropdown-menu-item"]',
-			companyAssignedActive2.name,
-		).click()
+		cy.contains('[data-slot="dropdown-menu-item"]', companyAssignedActive2.name)
+			.should('be.visible')
+			.click()
 
 		cy.get('[data-slot="sidebar"]')
 			.find('[data-slot="dropdown-menu-trigger"]')

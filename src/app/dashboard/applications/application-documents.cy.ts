@@ -94,7 +94,7 @@ describe('Dashboard Application Documents', () => {
 					{ force: true },
 				)
 				cy.intercept('POST', '**/dashboard/applications/*').as('uploadDoc')
-				cy.contains('button', /subir/i).click()
+				cy.contains('button', /subir/i).should('be.visible').click()
 				cy.wait('@uploadDoc')
 				// List is server-rendered; revalidatePath runs after action but page does not auto-refresh. Reload to see new document.
 				cy.visit(`/dashboard/applications/${app.id}`)
@@ -117,7 +117,7 @@ describe('Dashboard Application Documents', () => {
 			}).then((app) => {
 				cy.visit(`/dashboard/applications/${app.id}`)
 				cy.selectRadix('label:Tipo de documento', 'Autorización')
-				cy.contains('button', /subir/i).click()
+				cy.contains('button', /subir/i).should('be.visible').click()
 				cy.contains('Selecciona un archivo válido.').should('be.visible')
 				cy.url().should('include', `/dashboard/applications/${app.id}`)
 			})
@@ -138,7 +138,7 @@ describe('Dashboard Application Documents', () => {
 					{ force: true },
 				)
 				cy.intercept('POST', '**/dashboard/applications/*').as('uploadDoc')
-				cy.contains('button', /subir/i).click()
+				cy.contains('button', /subir/i).should('be.visible').click()
 				cy.wait('@uploadDoc')
 				cy.visit(`/dashboard/applications/${app.id}`)
 				cy.contains('li', 'sample-document.webp')

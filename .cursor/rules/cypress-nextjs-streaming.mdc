@@ -35,6 +35,17 @@ cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 cy.contains('button', /acciones/i).should('be.visible').click()
 ```
 
+## Wait for element before clicking (reduce flakiness)
+
+Always chain `.should('be.visible')` before `.click()` on buttons, links, and menu items. Cypress will retry until the element is in the DOM and visible, then click.
+
+```typescript
+// ✅ GOOD — wait then click
+cy.contains('button', /guardar/i).should('be.visible').click()
+cy.get('[role="menuitem"]').contains('Autorizar').should('be.visible').click()
+cy.findTableRow(name).find('button[aria-label="Asignar empresas"]').should('be.visible').click()
+```
+
 ## Prefer positive assertions over negative ones for async actions
 
 After a server action (form submit, dialog confirm), assert the **next expected state** rather than the absence of the previous state.

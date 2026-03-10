@@ -32,6 +32,7 @@ describe('Admin company switcher (US-2.2.6)', () => {
 		cy.get('[data-slot="sidebar"]')
 			.find('[data-slot="dropdown-menu-trigger"]')
 			.first()
+			.should('be.visible')
 			.click()
 	}
 
@@ -56,7 +57,9 @@ describe('Admin company switcher (US-2.2.6)', () => {
 
 	it('admin can select a company and sees company name in trigger', () => {
 		openCompanySwitcher()
-		cy.contains('[data-slot="dropdown-menu-item"]', companyAName).click()
+		cy.contains('[data-slot="dropdown-menu-item"]', companyAName)
+			.should('be.visible')
+			.click()
 
 		cy.get('[data-slot="sidebar"]')
 			.find('[data-slot="dropdown-menu-trigger"]')
@@ -66,7 +69,9 @@ describe('Admin company switcher (US-2.2.6)', () => {
 
 	it('selected company persists after page reload', () => {
 		openCompanySwitcher()
-		cy.contains('[data-slot="dropdown-menu-item"]', companyBName).click()
+		cy.contains('[data-slot="dropdown-menu-item"]', companyBName)
+			.should('be.visible')
+			.click()
 
 		cy.get('[data-slot="sidebar"]')
 			.find('[data-slot="dropdown-menu-trigger"]')
@@ -83,7 +88,9 @@ describe('Admin company switcher (US-2.2.6)', () => {
 
 	it('admin can select Vista general to return to overview dashboard', () => {
 		openCompanySwitcher()
-		cy.contains('[data-slot="dropdown-menu-item"]', companyAName).click()
+		cy.contains('[data-slot="dropdown-menu-item"]', companyAName)
+			.should('be.visible')
+			.click()
 
 		cy.get('[data-slot="sidebar"]')
 			.find('[data-slot="dropdown-menu-trigger"]')
@@ -91,7 +98,9 @@ describe('Admin company switcher (US-2.2.6)', () => {
 			.should('contain', companyAName)
 
 		openCompanySwitcher()
-		cy.contains('[data-slot="dropdown-menu-item"]', 'Vista general').click()
+		cy.contains('[data-slot="dropdown-menu-item"]', 'Vista general')
+			.should('be.visible')
+			.click()
 
 		cy.get('[data-slot="sidebar"]')
 			.find('[data-slot="dropdown-menu-trigger"]')

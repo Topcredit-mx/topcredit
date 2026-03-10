@@ -85,8 +85,13 @@ describe('App Application Documents (Agent)', () => {
 		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'auth-approve-e2e.pdf')
 			.should('be.visible')
-			.within(() => cy.get('button[data-document-action="menu"]').click())
-		cy.get('[data-document-action="approve"]').click()
+			.within(() =>
+				cy
+					.get('button[data-document-action="menu"]')
+					.should('be.visible')
+					.click(),
+			)
+		cy.get('[data-document-action="approve"]').should('be.visible').click()
 		cy.contains('li', 'auth-approve-e2e.pdf').within(() => {
 			cy.get('[data-status="approved"]').should('be.visible')
 		})
@@ -105,10 +110,17 @@ describe('App Application Documents (Agent)', () => {
 		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'reject-validation-e2e.pdf')
 			.should('be.visible')
-			.within(() => cy.get('button[data-document-action="menu"]').click())
-		cy.get('[data-document-action="reject"]').click()
+			.within(() =>
+				cy
+					.get('button[data-document-action="menu"]')
+					.should('be.visible')
+					.click(),
+			)
+		cy.get('[data-document-action="reject"]').should('be.visible').click()
 		cy.get('[data-slot="dialog-content"]').within(() => {
-			cy.contains('button', /confirmar/i).click()
+			cy.contains('button', /confirmar/i)
+				.should('be.visible')
+				.click()
 		})
 		cy.contains('El motivo de rechazo es obligatorio').should('be.visible')
 	})
@@ -127,11 +139,18 @@ describe('App Application Documents (Agent)', () => {
 		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'reject-with-reason-e2e.pdf')
 			.should('be.visible')
-			.within(() => cy.get('button[data-document-action="menu"]').click())
-		cy.get('[data-document-action="reject"]').click()
+			.within(() =>
+				cy
+					.get('button[data-document-action="menu"]')
+					.should('be.visible')
+					.click(),
+			)
+		cy.get('[data-document-action="reject"]').should('be.visible').click()
 		cy.get('[data-slot="dialog-content"]').within(() => {
 			cy.get('textarea[name="rejectionReason"]').type(reason)
-			cy.contains('button', /confirmar/i).click()
+			cy.contains('button', /confirmar/i)
+				.should('be.visible')
+				.click()
 		})
 		cy.contains('li', 'reject-with-reason-e2e.pdf').within(() => {
 			cy.get('[data-status="rejected"]').should('be.visible')
@@ -153,19 +172,29 @@ describe('App Application Documents (Agent)', () => {
 		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'deny-then-approve-e2e.pdf')
 			.should('be.visible')
-			.within(() => cy.get('button[data-document-action="menu"]').click())
-		cy.get('[data-document-action="reject"]').click()
+			.within(() =>
+				cy
+					.get('button[data-document-action="menu"]')
+					.should('be.visible')
+					.click(),
+			)
+		cy.get('[data-document-action="reject"]').should('be.visible').click()
 		cy.get('[data-slot="dialog-content"]').within(() => {
 			cy.get('textarea[name="rejectionReason"]').type(rejectReason)
-			cy.contains('button', /confirmar/i).click()
+			cy.contains('button', /confirmar/i)
+				.should('be.visible')
+				.click()
 		})
 		cy.contains('li', 'deny-then-approve-e2e.pdf').within(() => {
 			cy.get('[data-status="rejected"]').should('be.visible')
 		})
 		cy.contains('li', 'deny-then-approve-e2e.pdf').within(() =>
-			cy.get('button[data-document-action="menu"]').click(),
+			cy
+				.get('button[data-document-action="menu"]')
+				.should('be.visible')
+				.click(),
 		)
-		cy.get('[data-document-action="approve"]').click()
+		cy.get('[data-document-action="approve"]').should('be.visible').click()
 		cy.contains('li', 'deny-then-approve-e2e.pdf').within(() => {
 			cy.get('[data-status="approved"]').should('be.visible')
 		})
@@ -183,12 +212,17 @@ describe('App Application Documents (Agent)', () => {
 		cy.visit(`/app/applications/${seed.applicationId}`)
 		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'invalid-docs-enabled-e2e.pdf').within(() =>
-			cy.get('button[data-document-action="menu"]').click(),
+			cy
+				.get('button[data-document-action="menu"]')
+				.should('be.visible')
+				.click(),
 		)
-		cy.get('[data-document-action="reject"]').click()
+		cy.get('[data-document-action="reject"]').should('be.visible').click()
 		cy.get('[data-slot="dialog-content"]').within(() => {
 			cy.get('textarea[name="rejectionReason"]').type('Doc rechazado para E2E')
-			cy.contains('button', /confirmar/i).click()
+			cy.contains('button', /confirmar/i)
+				.should('be.visible')
+				.click()
 		})
 		cy.contains('li', 'invalid-docs-enabled-e2e.pdf').within(() => {
 			cy.get('[data-status="rejected"]').should('be.visible')
@@ -201,7 +235,9 @@ describe('App Application Documents (Agent)', () => {
 			'aria-disabled',
 			'true',
 		)
-		cy.get('[data-application-action="invalid-docs"]').click()
+		cy.get('[data-application-action="invalid-docs"]')
+			.should('be.visible')
+			.click()
 		cy.contains('Documentación inválida').should('be.visible')
 	})
 })
