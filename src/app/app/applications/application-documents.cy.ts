@@ -62,7 +62,9 @@ describe('App Application Documents (Agent)', () => {
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
 		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
-		cy.contains('button', /acciones/i).click()
+		cy.contains('button', /acciones/i)
+			.should('be.visible')
+			.click()
 		cy.get('[data-application-action="invalid-docs"]').should(
 			'have.attr',
 			'aria-disabled',
@@ -191,7 +193,9 @@ describe('App Application Documents (Agent)', () => {
 		cy.contains('li', 'invalid-docs-enabled-e2e.pdf').within(() => {
 			cy.get('[data-status="rejected"]').should('be.visible')
 		})
-		cy.contains('button', /acciones/i).click()
+		cy.contains('button', /acciones/i)
+			.should('be.visible')
+			.click()
 		cy.get('[data-application-action="invalid-docs"]').should(
 			'not.have.attr',
 			'aria-disabled',

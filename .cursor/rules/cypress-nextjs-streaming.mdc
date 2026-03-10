@@ -31,7 +31,8 @@ cy.contains('button', /acciones/i).click()
 // ✅ GOOD — guard on content UNIQUE to the destination page
 cy.visit(`/app/applications/${id}`)
 cy.contains('h1', /detalle de solicitud/i).should('be.visible')
-cy.contains('button', /acciones/i).click()
+// Wait for the element you'll interact with; content may stream in chunks
+cy.contains('button', /acciones/i).should('be.visible').click()
 ```
 
 ## Prefer positive assertions over negative ones for async actions
