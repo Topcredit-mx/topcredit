@@ -1,0 +1,43 @@
+---
+description: Cypress E2E patterns for Next.js App Router with streaming/Suspense
+globs: **/*.cy.ts
+alwaysApply: false
+---
+
+# Cypress + Next.js Streaming
+
+When a route has a `loading.tsx` (Suspense boundary), the skeleton HTML arrives before the server component content streams in. Cypress `cy.visit()` resolves on the `load` event, which fires during the skeleton — **not** after streaming completes.
+
+## After navigating to a page, always wait for streamed content
+
+Assert on an element that only exists in the **real** page, not the skeleton, before interacting.
+
+```typescript
+// ❌ BAD — URL changes while skeleton is still showing
+cy.visit(`/app/applications/${id}`)
+cy.contains('button', /acciones/i).click()
+
+// ❌ BAD — URL updates before content streams in
+cy.findTableRow('25,000').find('a').click()
+cy.url().should('match', /\/app\/applications\/\d+/)
+cy.contains('button', /acciones/i).click()
+
+// ✅ GOOD — guard on content that proves streaming finished
+cy.visit(`/app/applications/${id}`)
+cy.contains(applicant.name).should('be.visible')
+cy.contains('button', /acciones/i).click()
+```
+
+## Prefer positive assertions over negative ones for async actions
+
+After a server action (form submit, dialog confirm), assert the **next expected state** rather than the absence of the previous state.
+
+```typescript
+// ❌ BAD — races against animation + server action latency
+cy.contains('button', /confirmar/i).click()
+cy.get('[role="dialog"]').should('not.exist')
+
+// ✅ GOOD — retries until the new state appears
+cy.contains('button', /confirmar/i).click()
+cy.get('[data-status="rejected"]').should('be.visible')
+```
