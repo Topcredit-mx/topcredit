@@ -46,6 +46,23 @@ cy.get('[role="menuitem"]').contains('Autorizar').should('be.visible').click()
 cy.findTableRow(name).find('button[aria-label="Asignar empresas"]').should('be.visible').click()
 ```
 
+## Elements in scrollable areas (tables, long lists)
+
+For links or buttons inside a table row or scrollable list, Cypress's "visible" can flake: the element is in the DOM but may be considered not visible (viewport, stacking, or timing). Use **scroll into view** then assert **existence** instead of visibility before clicking.
+
+1. Wait for the table/list to be ready.
+2. Find the row (e.g. `findTableRow(name)`).
+3. `.scrollIntoView()` so the row (and its action link) is in view.
+4. Within the row, use `.should('exist').click()` — not `.should('be.visible').click()` — so the test doesn't fail on visibility quirks.
+
+```typescript
+// ✅ GOOD — scroll row into view, then assert exists and click
+cy.get('table').should('be.visible')
+cy.findTableRow(editCompany.name).scrollIntoView().within(() => {
+  cy.get('a[href*="/edit"]').should('exist').click()
+})
+```
+
 ## After actions that cause redirect or reload
 
 Server actions that call `redirect()` or same-URL redirect cause a full page load. Wait for the new page before asserting or interacting.

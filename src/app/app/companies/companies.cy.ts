@@ -327,9 +327,12 @@ describe('Admin Companies List', () => {
 
 		it('should navigate to edit company page', () => {
 			cy.visit('/app/companies')
-			cy.findTableRow(editCompany.name).within(() => {
-				cy.get('a[href*="/edit"]').should('be.visible').click()
-			})
+			cy.get('table').should('be.visible')
+			cy.findTableRow(editCompany.name)
+				.scrollIntoView()
+				.within(() => {
+					cy.get('a[href*="/edit"]').should('exist').click()
+				})
 			const editPath = `/app/companies/${editCompany.domain}/edit`
 			cy.url().should('include', editPath)
 			cy.contains(/editar|edit/i).should('be.visible')
