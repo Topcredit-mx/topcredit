@@ -180,6 +180,7 @@ describe('App Applications Review (Phase 3)', () => {
 
 		it('list reflects status after authorizing', () => {
 			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
+			cy.contains(applicantA5.name).should('be.visible')
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]').contains('Autorizar').click()
 			cy.contains(/autorizado/i).should('be.visible')
