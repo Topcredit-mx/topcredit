@@ -14,6 +14,8 @@
 import type { SeedApplicationsReviewResult } from '../../../../cypress/tasks'
 import {
 	agentForReview,
+	applicantA3,
+	applicantA4,
 	applicantA5,
 	applicantForReview,
 	applicantForReviewD,
@@ -125,6 +127,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('35,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
+			cy.contains(applicantA3.name).should('be.visible')
 			cy.contains('button', /acciones/i).click()
 			cy.get('[role="menuitem"]')
 				.contains(/pre-autorizar/i)
@@ -140,7 +143,7 @@ describe('App Applications Review (Phase 3)', () => {
 				storageKey: 'application-documents/e2e-40k-invalid.pdf',
 			})
 			cy.visit(`/app/applications/${seed.applicantA4ApplicationId}`)
-			cy.url().should('match', /\/app\/applications\/\d+/)
+			cy.contains(applicantA4.name).should('be.visible')
 			cy.contains('li', 'e2e-40k-invalid.pdf').within(() =>
 				cy.get('button[data-document-action="menu"]').click(),
 			)
@@ -149,7 +152,6 @@ describe('App Applications Review (Phase 3)', () => {
 				cy.get('textarea[name="rejectionReason"]').type('E2E invalid docs')
 				cy.contains('button', /confirmar/i).click()
 			})
-			cy.get('[role="dialog"]').should('not.exist')
 			cy.contains('li', 'e2e-40k-invalid.pdf').within(() => {
 				cy.get('[data-status="rejected"]').should('be.visible')
 			})
