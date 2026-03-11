@@ -24,7 +24,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+		cy.contains(/detalle de solicitud/i).should('be.visible')
 		cy.get('main').within(() => {
 			cy.contains(/documentos/i).should('be.visible')
 			cy.contains(/no hay documentos/i).should('be.visible')
@@ -42,7 +42,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+		cy.contains(/detalle de solicitud/i).should('be.visible')
 		cy.get('main').within(() => {
 			cy.contains(/documentos/i).should('be.visible')
 			cy.contains(/contrato/i).should('be.visible')
@@ -61,7 +61,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+		cy.contains(/detalle de solicitud/i).should('be.visible')
 		cy.contains('button', /acciones/i)
 			.should('be.visible')
 			.click()
@@ -82,7 +82,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+		cy.contains(/detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'auth-approve-e2e.pdf')
 			.should('be.visible')
 			.within(() =>
@@ -107,7 +107,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+		cy.contains(/detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'reject-validation-e2e.pdf')
 			.should('be.visible')
 			.within(() =>
@@ -136,7 +136,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+		cy.contains(/detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'reject-with-reason-e2e.pdf')
 			.should('be.visible')
 			.within(() =>
@@ -169,7 +169,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+		cy.contains(/detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'deny-then-approve-e2e.pdf')
 			.should('be.visible')
 			.within(() =>
@@ -210,7 +210,7 @@ describe('App Application Documents (Agent)', () => {
 		cy.login(agentForReview.email)
 		cy.setCookie('selected_company_id', String(seed.companyId))
 		cy.visit(`/app/applications/${seed.applicationId}`)
-		cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+		cy.contains(/detalle de solicitud/i).should('be.visible')
 		cy.contains('li', 'invalid-docs-enabled-e2e.pdf').within(() =>
 			cy
 				.get('button[data-document-action="menu"]')

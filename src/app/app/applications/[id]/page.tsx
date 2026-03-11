@@ -1,6 +1,5 @@
 import {
 	AlertCircle,
-	ArrowLeft,
 	Banknote,
 	CalendarClock,
 	CalendarDays,
@@ -10,7 +9,6 @@ import {
 	User,
 	Wallet,
 } from 'lucide-react'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
@@ -71,20 +69,6 @@ export default async function AppApplicationDetailPage({
 
 	return (
 		<div className="container mx-auto max-w-4xl py-6">
-			{/* Header with back */}
-			<div className="mb-6 flex items-center gap-4">
-				<Link
-					href="/app/applications"
-					className="inline-flex items-center gap-1.5 text-muted-foreground text-sm transition-colors hover:text-foreground"
-				>
-					<ArrowLeft className="size-4" aria-hidden />
-					{t('applications-title')}
-				</Link>
-			</div>
-			<h1 className="mb-6 font-bold text-2xl tracking-tight sm:text-3xl">
-				{t('applications-detail-title')}
-			</h1>
-
 			{/* Stat cards row - key data at a glance */}
 			<div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 				<Card className="py-4">

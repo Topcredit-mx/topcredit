@@ -64,7 +64,7 @@ describe('App Applications Review (Phase 3)', () => {
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(applicantEmail).should('be.visible')
 			cy.contains('25,000').should('exist')
 		})
@@ -79,7 +79,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('25,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains('button', /acciones/i)
 				.should('be.visible')
 				.click()
@@ -88,7 +88,7 @@ describe('App Applications Review (Phase 3)', () => {
 				.should('be.visible')
 				.click()
 			// Action redirects to same URL (reload); wait for new page then new state
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/autorizado/i).should('be.visible')
 		})
 
@@ -96,7 +96,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('30,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains('button', /acciones/i)
 				.should('be.visible')
 				.click()
@@ -117,7 +117,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('30,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains('button', /acciones/i)
 				.should('be.visible')
 				.click()
@@ -134,7 +134,7 @@ describe('App Applications Review (Phase 3)', () => {
 					.click()
 			})
 			// Action redirects to same URL (reload); wait for new page then new state
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/denegado/i).should('be.visible')
 		})
 
@@ -143,7 +143,7 @@ describe('App Applications Review (Phase 3)', () => {
 			cy.findTableRow('35,000')
 				.find('a[aria-label="Revisar solicitud"]')
 				.click()
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains('button', /acciones/i)
 				.should('be.visible')
 				.click()
@@ -152,7 +152,7 @@ describe('App Applications Review (Phase 3)', () => {
 				.should('be.visible')
 				.click()
 			// Action redirects to same URL (reload); wait for new page then new state
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/preautorizado/i).should('be.visible')
 		})
 
@@ -164,7 +164,7 @@ describe('App Applications Review (Phase 3)', () => {
 				storageKey: 'application-documents/e2e-40k-invalid.pdf',
 			})
 			cy.visit(`/app/applications/${seed.applicantA4ApplicationId}`)
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains('li', 'e2e-40k-invalid.pdf').within(() =>
 				cy
 					.get('button[data-document-action="menu"]')
@@ -189,7 +189,7 @@ describe('App Applications Review (Phase 3)', () => {
 				.should('be.visible')
 				.click()
 			// Action redirects to same URL (reload); wait for new page then new state
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains('Documentación inválida').should('be.visible')
 		})
 
@@ -216,7 +216,7 @@ describe('App Applications Review (Phase 3)', () => {
 
 		it('list reflects status after authorizing', () => {
 			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains('button', /acciones/i)
 				.should('be.visible')
 				.click()
@@ -225,9 +225,12 @@ describe('App Applications Review (Phase 3)', () => {
 				.should('be.visible')
 				.click()
 			// Action redirects to same URL (reload); wait for new page then new state
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/autorizado/i).should('be.visible')
-			cy.get('a[href="/app/applications"]').first().should('be.visible').click()
+			cy.get('nav[aria-label="Breadcrumb"]')
+				.find('a[href="/app/applications"]')
+				.should('be.visible')
+				.click()
 			cy.url().should('include', '/app/applications')
 			// Wait for list page to be ready after navigation
 			cy.get('main').find('table').should('be.visible')
@@ -304,7 +307,7 @@ describe('App Applications Review (Phase 3)', () => {
 				.should('be.visible')
 				.click()
 			cy.url().should('match', /\/app\/applications\/\d+/)
-			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+			cy.contains(/detalle de solicitud/i).should('be.visible')
 		})
 	})
 

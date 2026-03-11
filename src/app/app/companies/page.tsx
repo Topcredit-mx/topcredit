@@ -1,4 +1,3 @@
-import { getTranslations } from 'next-intl/server'
 import { getAbility } from '~/server/auth/ability'
 import { requireAuth } from '~/server/auth/session'
 import { getCompanies } from '~/server/queries'
@@ -54,14 +53,8 @@ export default async function CompaniesPage({
 		updatedAt: c.updatedAt.toISOString(),
 	}))
 
-	const t = await getTranslations('admin')
 	return (
 		<div className="container mx-auto py-6">
-			<div className="mb-6">
-				<h1 className="font-bold text-3xl">{t('companies-title')}</h1>
-				<p className="text-muted-foreground">{t('companies-subtitle')}</p>
-			</div>
-
 			<CompaniesTable companies={companiesForTable} />
 		</div>
 	)

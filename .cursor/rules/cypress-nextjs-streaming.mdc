@@ -6,6 +6,21 @@ alwaysApply: false
 
 # Cypress + Next.js Streaming
 
+## Never use data-testid
+
+Do **not** use `data-testid` (or `get('[data-testid="..."]')`) in Cypress tests. Prefer selectors that reflect what the user sees or accessibility tree: visible text (`cy.contains(...)`), roles (`role="..."`, `aria-label`), semantic elements (`main`, `nav`, `button`, `h1`), or other attributes that already exist for behavior or a11y.
+
+```typescript
+// ❌ BAD
+cy.get('[data-testid="breadcrumb"]').contains('Mi Cuenta')
+
+// ✅ GOOD — by visible text
+cy.contains('Mi Cuenta').should('be.visible')
+
+// ✅ GOOD — by role/label when you need a specific container
+cy.get('nav[aria-label="Breadcrumb"]').contains('Mi Cuenta').should('be.visible')
+```
+
 When a route has a `loading.tsx` (Suspense boundary), the skeleton HTML arrives before the server component content streams in. Cypress `cy.visit()` resolves on the `load` event, which fires during the skeleton — **not** after streaming completes.
 
 ## After navigating to a page, always wait for streamed content

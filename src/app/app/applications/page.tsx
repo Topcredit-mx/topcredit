@@ -55,12 +55,6 @@ export default async function AppApplicationsPage({
 
 	return (
 		<div className="container mx-auto py-6">
-			<div className="mb-6">
-				<h1 className="font-bold text-3xl">{t('applications-title')}</h1>
-				<p className="mt-1 text-muted-foreground">
-					{t('applications-subtitle')}
-				</p>
-			</div>
 			<ApplicationsStatusFilter
 				currentStatus={currentStatus}
 				labels={filterLabels}
