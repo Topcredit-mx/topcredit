@@ -1,0 +1,109 @@
+---
+description: Cypress E2E standards — selectors, assertions, state, auth, Next.js streaming, test titles. Apply when writing or editing .cy.ts specs.
+globs: **/*.cy.ts, **/cypress/**/*
+alwaysApply: false
+---
+
+# Cypress E2E Best Practices
+
+Apply when writing or refactoring Cypress E2E tests. Keep tests isolated, stable, and readable.
+
+---
+
+## Selectors — no data-testid
+
+Do **not** use `data-testid` or `get('[data-testid="..."]')`. Use what the user sees or the accessibility tree: **visible text** (`cy.contains(...)`), **roles** (`role="..."`, `aria-label`), **semantic elements** (`main`, `nav`, `button`, `h1`).
+
+```typescript
+// ❌ BAD
+cy.get('[data-testid="breadcrumb"]').contains('Mi Cuenta')
+
+// ✅ GOOD
+cy.contains('Mi Cuenta').should('be.visible')
+cy.get('nav[aria-label="Breadcrumb"]').contains('Mi Cuenta').should('be.visible')
+```
+
+---
+
+## Assertions and waiting
+
+- Use **`.should()`** for assertions (Cypress retries). Avoid **`.then()`** for assertions — it runs once and does not retry.
+- Never **`cy.wait(ms)`** (e.g. `cy.wait(2000)`). Use **route aliases** (`cy.intercept(...).as('getUsers')` then `cy.wait('@getUsers')`) or **assertions** (e.g. `cy.get(...).should('be.visible')`).
+- Prefer **positive assertions** after actions (assert the new state) instead of "element no longer exists" (races with animation/server).
+
+```typescript
+// ❌ BAD
+cy.contains('button', /confirmar/i).click()
+cy.get('[role="dialog"]').should('not.exist')
+
+// ✅ GOOD
+cy.contains('button', /confirmar/i).click()
+cy.get('[data-status="rejected"]').should('be.visible')
+```
+
+---
+
+## Test isolation and state
+
+- Each test must **pass in isolation** (e.g. with `it.only`). No relying on state from a previous test.
+- Put **setup in `beforeEach`** (visit, login, seed). Put **required cleanup in `beforeEach`**, not `afterEach`/`after` — if the run is stopped or refreshed, after hooks may not run.
+- Prefer **programmatic setup** (`cy.request()`, `cy.task('db:seed')`) over doing everything through the UI.
+- Use **`baseUrl`** in config; use **`cy.env()`** for secrets (never hardcode; never `Cypress.expose()` for sensitive values).
+
+---
+
+## Auth
+
+- **Log in via API** (`cy.request()`) and set cookies/session; then `cy.visit()`. Use **`cy.session()`** to cache login across tests.
+- Use a **dedicated E2E user** with fixed permissions. Do not depend on third-party login UIs you don’t control.
+
+---
+
+## Next.js App Router — streaming / Suspense
+
+`cy.visit()` resolves on `load`; with `loading.tsx`, the skeleton may still be showing. **Always wait for content unique to the real page** before interacting.
+
+- After **navigate** (visit or click to new page): assert on something that exists **only on the destination** (e.g. `cy.contains('h1', /detalle de solicitud/i).should('be.visible')`), then wait for the element you’ll interact with.
+- **Before every click** on buttons/links/menus: chain `.should('be.visible')` then `.click()` so Cypress retries until visible.
+- **Tables / scrollable lists**: wait for table, find row, `.scrollIntoView()`, then within row use `.should('exist').click()` (not `.should('be.visible').click()`) to avoid viewport flakiness.
+- **After redirect/reload** (server action): wait for URL if changed, then a **stable element on the new page** (e.g. `cy.get('table').should('be.visible')` or `cy.contains('h1', /detalle de solicitud/i).should('be.visible')`), then the new state (e.g. `cy.contains(/autorizado/i).should('be.visible')`).
+
+```typescript
+// ✅ After visit — guard on content unique to page
+cy.visit(`/app/applications/${id}`)
+cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+cy.contains('button', /acciones/i).should('be.visible').click()
+
+// ✅ Table row action — scroll into view, exist then click
+cy.get('table').should('be.visible')
+cy.findTableRow(editCompany.name).scrollIntoView().within(() => {
+  cy.get('a[href*="/edit"]').should('exist').click()
+})
+
+// ✅ After same-URL redirect (e.g. status update)
+cy.get('[role="menuitem"]').contains('Autorizar').should('be.visible').click()
+cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+cy.contains(/autorizado/i).should('be.visible')
+```
+
+---
+
+## Test titles (describe / it)
+
+- **Describe behavior**, not implementation: "shows empty state when cart has no items", not "updates state".
+- **Include the trigger**: "shows error when email is invalid", not "shows error".
+- **Nested describe for context**: `describe('Feature', () => { describe('when unauthenticated', () => { ... }) })`.
+- **State changes**: "changes status from pending to approved", not "changes status".
+- **Specific errors/async**: "shows skeleton while loading", "shows 'Invalid card' when card number is wrong".
+- Use **domain language**, not technical: "saves application", not "calls API".
+- **Avoid**: "works", "test form", "test 1", "checks X"; no duplicate titles; title must match what the test does.
+
+---
+
+## Don’t
+
+- **Selectors**: `data-testid`, fragile class/id/tag selectors.
+- **Waits**: `cy.wait(ms)`; use aliases or `.should()`.
+- **State**: shared state between tests; required cleanup in `afterEach`/`after`; unnecessary manual clear of cookies/localStorage (Cypress clears when isolation is on).
+- **Auth**: UI login every time when API/session is possible; depending on social/OAuth UIs.
+- **Titles**: vague ("works"), no trigger, implementation-focused, "test/check" as verb.
