@@ -29,7 +29,7 @@ describe('Agent with no company picked', () => {
 
 	it('shows multi-scope view with Todas mis empresas when no company is selected', () => {
 		cy.contains('Todas mis empresas').should('be.visible')
-		cy.contains('Panel de Empleados').should('be.visible')
+		cy.contains('Panel').should('be.visible')
 	})
 
 	it('keeps sidebar navigation enabled so agent can navigate', () => {

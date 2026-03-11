@@ -43,11 +43,7 @@ export function BreadcrumbNav({ scope }: { scope: BreadcrumbScope }) {
 	if (segments.length === 0) return null
 
 	return (
-		<Breadcrumb
-			aria-label="Breadcrumb"
-			data-testid="breadcrumb"
-			className="flex-1"
-		>
+		<Breadcrumb aria-label="Breadcrumb" className="flex-1">
 			<BreadcrumbList>
 				{segments.flatMap((segment, index) => {
 					const isLast = index === segments.length - 1
