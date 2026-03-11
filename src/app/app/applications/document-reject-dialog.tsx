@@ -18,6 +18,10 @@ import {
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Textarea } from '~/components/ui/textarea'
 import { useTabNavigationScope } from '~/hooks/use-tab-navigation-scope'
+import {
+	getResolvedError,
+	useResolveValidationError,
+} from '~/lib/validation-code-to-i18n'
 
 interface DocumentRejectDialogProps {
 	documentId: number
@@ -33,6 +37,7 @@ export function DocumentRejectDialog({
 	const t = useTranslations('app')
 	const router = useRouter()
 	const reasonId = useId()
+	const resolveError = useResolveValidationError()
 	const [state, action, pending] = useActionState<
 		RejectDocumentState,
 		FormData
@@ -45,11 +50,8 @@ export function DocumentRejectDialog({
 		}
 	}, [open, state, router, onClose])
 
-	const displayError =
-		state != null && 'error' in state && state.error != null
-			? t(state.error)
-			: null
-	const showError = open && displayError !== null
+	const displayError = getResolvedError(state, resolveError)
+	const showError = open && displayError != null
 
 	function handleTextareaKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
 		if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -92,7 +94,7 @@ export function DocumentRejectDialog({
 							required
 							onKeyDown={handleTextareaKeyDown}
 						/>
-						{showError ? <FieldError>{displayError}</FieldError> : null}
+						{open && displayError && <FieldError message={displayError} />}
 					</Field>
 					<DialogFooter>
 						<Button

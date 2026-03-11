@@ -13,6 +13,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { TermOfferingForForm } from '~/server/queries'
 
 interface ApplicationFormProps {
@@ -30,6 +31,7 @@ function termOfferingLabel(offering: TermOfferingForForm): string {
 export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 	const t = useTranslations('dashboard.applications')
 	const tCommon = useTranslations('common')
+	const resolveError = useResolveValidationError()
 
 	const [state, action, pending] = useActionState(createApplicationAction, {
 		errors: undefined,
@@ -48,8 +50,7 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 
 			{state.message && !state.errors && (
 				<FieldError
-					translationKey={state.message}
-					namespace="dashboard.applications"
+					message={resolveError(state.message)}
 					className="rounded-md bg-destructive/15 p-3"
 				/>
 			)}
@@ -80,10 +81,7 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 					</SelectContent>
 				</Select>
 				{state.errors?.termOfferingId && (
-					<FieldError
-						translationKey={state.errors.termOfferingId}
-						namespace="dashboard.applications"
-					/>
+					<FieldError message={resolveError(state.errors.termOfferingId)} />
 				)}
 			</Field>
 
@@ -103,8 +101,7 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 				/>
 				{state.errors?.salaryAtApplication && (
 					<FieldError
-						translationKey={state.errors.salaryAtApplication}
-						namespace="dashboard.applications"
+						message={resolveError(state.errors.salaryAtApplication)}
 					/>
 				)}
 			</Field>
@@ -124,10 +121,7 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 					aria-invalid={!!state.errors?.creditAmount}
 				/>
 				{state.errors?.creditAmount && (
-					<FieldError
-						translationKey={state.errors.creditAmount}
-						namespace="dashboard.applications"
-					/>
+					<FieldError message={resolveError(state.errors.creditAmount)} />
 				)}
 			</Field>
 

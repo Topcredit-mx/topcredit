@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { isApplicationStatus } from '~/lib/application-rules'
+import { ValidationCode } from '~/lib/validation-codes'
 import {
 	approveApplicationDocument,
 	rejectApplicationDocument,
@@ -46,7 +47,7 @@ export async function updateApplicationStatusFormAction(
 	const applicationId = Number(formData.get('applicationId'))
 	const statusRaw = formData.get('status')
 	if (typeof statusRaw !== 'string' || !isApplicationStatus(statusRaw)) {
-		return { error: 'applications-error-generic' }
+		return { error: ValidationCode.APPLICATIONS_ERROR_GENERIC }
 	}
 	const result = await updateApplicationStatus(applicationId, {
 		status: statusRaw,

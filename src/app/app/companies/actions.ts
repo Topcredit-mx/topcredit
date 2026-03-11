@@ -3,6 +3,7 @@
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { ValidationCode } from '~/lib/validation-codes'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { db } from '~/server/db'
 import { companies } from '~/server/db/schema'
@@ -47,7 +48,7 @@ export async function createCompanyAction(
 		if (existingCompany) {
 			return {
 				errors: {
-					domain: 'company-domain-duplicate',
+					domain: ValidationCode.COMPANY_DOMAIN_DUPLICATE,
 				},
 			}
 		}

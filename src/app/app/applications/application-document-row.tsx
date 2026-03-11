@@ -15,6 +15,12 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
+import { FieldError } from '~/components/ui/field'
+import { APP_DOCUMENT_TYPE_KEYS, isDocumentType } from '~/lib/i18n-keys'
+import {
+	getResolvedError,
+	useResolveValidationError,
+} from '~/lib/validation-code-to-i18n'
 import { DocumentRejectDialog } from './document-reject-dialog'
 
 type DocumentStatus = 'pending' | 'approved' | 'rejected'
@@ -75,6 +81,7 @@ export function ApplicationDocumentRow({
 }: ApplicationDocumentRowProps) {
 	const t = useTranslations('app')
 	const router = useRouter()
+	const resolveError = useResolveValidationError()
 	const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
 	const [documentActionsOpen, setDocumentActionsOpen] = useState(false)
 	const approveFormRef = useRef<HTMLFormElement>(null)
@@ -90,17 +97,16 @@ export function ApplicationDocumentRow({
 		}
 	}, [state, router])
 
-	const typeLabel = t(`applications-document-type-${documentType}`)
+	const typeLabel = isDocumentType(documentType)
+		? t(APP_DOCUMENT_TYPE_KEYS[documentType])
+		: documentType
 	const documentActionLabel =
 		status === 'pending'
 			? t('applications-actions')
 			: status === 'approved'
 				? t('applications-document-status-approved')
 				: t('applications-document-status-rejected')
-	const displayError =
-		state != null && 'error' in state && state.error != null
-			? t(state.error)
-			: null
+	const displayError = getResolvedError(state, resolveError)
 
 	return (
 		<li className="flex flex-col gap-2 border-border/60 border-b py-3 last:border-b-0">
@@ -131,9 +137,13 @@ export function ApplicationDocumentRow({
 					) : null}
 				</span>
 				<span className="ml-auto flex shrink-0 items-center gap-2">
-					{displayError != null ? (
-						<span className="text-destructive text-xs">{displayError}</span>
-					) : null}
+					{displayError && (
+						<FieldError
+							message={displayError}
+							className="text-xs"
+							role="alert"
+						/>
+					)}
 					<form
 						ref={approveFormRef}
 						action={action}

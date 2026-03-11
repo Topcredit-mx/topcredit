@@ -23,6 +23,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { Company } from '~/server/queries'
 
 /** Subset of Company used by the form – no Date fields (can't serialize to Client Components). */
@@ -51,6 +52,7 @@ function formatPercentage(value: string, decimals: number = 2): string {
 export function CompanyForm({ company }: CompanyFormProps) {
 	const t = useTranslations('admin')
 	const tCommon = useTranslations('common')
+	const resolveError = useResolveValidationError()
 	// Use useActionState for form state management
 	const [state, action, pending] = useActionState(
 		company ? updateCompanyAction : createCompanyAction,
@@ -96,8 +98,7 @@ export function CompanyForm({ company }: CompanyFormProps) {
 			{/* General error display (only if no field-specific errors) */}
 			{state.message && !state.errors && (
 				<FieldError
-					translationKey={state.message}
-					namespace="admin"
+					message={resolveError(state.message)}
 					className="rounded-md bg-destructive/15 p-3"
 				/>
 			)}
@@ -116,7 +117,7 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					aria-invalid={!!state.errors?.name}
 				/>
 				{state.errors?.name && (
-					<FieldError translationKey={state.errors.name} namespace="admin" />
+					<FieldError message={resolveError(state.errors.name)} />
 				)}
 			</Field>
 
@@ -134,9 +135,10 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					aria-required="true"
 					aria-invalid={!!state.errors?.domain}
 				/>
-				{state.errors?.domain ? (
-					<FieldError translationKey={state.errors.domain} namespace="admin" />
-				) : (
+				{state.errors?.domain && (
+					<FieldError message={resolveError(state.errors.domain)} />
+				)}
+				{!state.errors?.domain && (
 					<FieldDescription>
 						{company
 							? t('company-form-domain-readonly')
@@ -160,9 +162,10 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					aria-required="true"
 					aria-invalid={!!state.errors?.rate}
 				/>
-				{state.errors?.rate ? (
-					<FieldError translationKey={state.errors.rate} namespace="admin" />
-				) : (
+				{state.errors?.rate && (
+					<FieldError message={resolveError(state.errors.rate)} />
+				)}
+				{!state.errors?.rate && (
 					<FieldDescription>
 						{t('company-form-rate-description')}
 					</FieldDescription>
@@ -182,12 +185,12 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					defaultValue={initialBorrowingCapacityRate}
 					aria-invalid={!!state.errors?.borrowingCapacityRate}
 				/>
-				{state.errors?.borrowingCapacityRate ? (
+				{state.errors?.borrowingCapacityRate && (
 					<FieldError
-						translationKey={state.errors.borrowingCapacityRate}
-						namespace="admin"
+						message={resolveError(state.errors.borrowingCapacityRate)}
 					/>
-				) : (
+				)}
+				{!state.errors?.borrowingCapacityRate && (
 					<FieldDescription>
 						{t('company-form-borrowing-description')}
 					</FieldDescription>
@@ -224,8 +227,7 @@ export function CompanyForm({ company }: CompanyFormProps) {
 				</Select>
 				{state.errors?.employeeSalaryFrequency && (
 					<FieldError
-						translationKey={state.errors.employeeSalaryFrequency}
-						namespace="admin"
+						message={resolveError(state.errors.employeeSalaryFrequency)}
 					/>
 				)}
 			</Field>

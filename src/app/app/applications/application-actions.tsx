@@ -8,6 +8,7 @@ import {
 	updateApplicationStatus,
 	updateApplicationStatusFormAction,
 } from '~/app/app/applications/actions'
+import { Alert } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
 import {
 	DropdownMenu,
@@ -16,14 +17,11 @@ import {
 	DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import type { ApplicationStatusRequiringReason } from '~/lib/application-rules'
+import {
+	getResolvedError,
+	useResolveValidationError,
+} from '~/lib/validation-code-to-i18n'
 import { ApplicationReasonDialog } from './application-reason-dialog'
-
-const ACTION_ERROR_KEYS = new Set([
-	'applications-reason-required',
-	'applications-error-transition',
-	'applications-error-generic',
-	'applications-not-found',
-])
 
 const initialState = { error: '' }
 
@@ -37,6 +35,7 @@ export function ApplicationActions({
 }) {
 	const t = useTranslations('app')
 	const router = useRouter()
+	const resolveError = useResolveValidationError()
 	const [state, action, pending] = useActionState(
 		updateApplicationStatusFormAction,
 		initialState,
@@ -46,12 +45,9 @@ export function ApplicationActions({
 	const authFormRef = useRef<HTMLFormElement>(null)
 	const invalidDocsFormRef = useRef<HTMLFormElement>(null)
 
-	const translatedError =
-		state?.error != null && state.error !== ''
-			? ACTION_ERROR_KEYS.has(state.error)
-				? t(state.error)
-				: state.error
-			: null
+	const translatedError = getResolvedError(state, resolveError, {
+		treatEmptyAsNone: true,
+	})
 
 	function handleSubmitReason(
 		actionStatus: ApplicationStatusRequiringReason,
@@ -65,11 +61,7 @@ export function ApplicationActions({
 
 	return (
 		<div className="flex flex-col gap-2">
-			{translatedError && (
-				<div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-destructive text-sm">
-					{translatedError}
-				</div>
-			)}
+			{translatedError && <Alert variant="banner" message={translatedError} />}
 			<div className="flex flex-wrap items-center gap-2">
 				{/* Hidden forms for immediate actions */}
 				<form
@@ -169,9 +161,7 @@ export function ApplicationActions({
 					onClose={() => setDialogOpen(false)}
 					onSubmit={handleSubmitReason}
 					onSuccess={() => router.refresh()}
-					translateError={(error) =>
-						ACTION_ERROR_KEYS.has(error) ? t(error) : error
-					}
+					translateError={resolveError}
 				/>
 			</div>
 		</div>

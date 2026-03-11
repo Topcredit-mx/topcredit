@@ -1,5 +1,6 @@
 import { NeonDbError } from '@neondatabase/serverless'
 import { ZodError } from 'zod'
+import { ValidationCode } from '~/lib/validation-codes'
 
 /**
  * Converts various error types to a form-friendly state object.
@@ -47,7 +48,7 @@ export function fromErrorToFormState(error: unknown): {
 				if (error.constraint?.includes('domain')) {
 					return {
 						errors: {
-							domain: 'company-domain-duplicate',
+							domain: ValidationCode.COMPANY_DOMAIN_DUPLICATE,
 						},
 					}
 				}

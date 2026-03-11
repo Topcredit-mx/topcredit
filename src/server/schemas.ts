@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { statusRequiresReason } from '~/lib/application-rules'
+import { ValidationCode } from '~/lib/validation-codes'
 import {
 	APPLICATION_STATUS_VALUES,
 	DOCUMENT_STATUS_VALUES,
@@ -12,33 +13,33 @@ const domainRegex =
 
 const nameSchema = z
 	.string()
-	.min(1, 'company-name-required')
-	.max(100, 'company-name-max')
+	.min(1, ValidationCode.COMPANY_NAME_REQUIRED)
+	.max(100, ValidationCode.COMPANY_NAME_MAX)
 
 const domainSchema = z
 	.string()
-	.min(1, 'company-domain-required')
-	.regex(domainRegex, 'company-domain-format')
+	.min(1, ValidationCode.COMPANY_DOMAIN_REQUIRED)
+	.regex(domainRegex, ValidationCode.COMPANY_DOMAIN_FORMAT)
 
 const rateSchema = z
 	.string()
-	.min(1, 'company-rate-required')
+	.min(1, ValidationCode.COMPANY_RATE_REQUIRED)
 	.transform((val) => {
 		const num = Number.parseFloat(val)
-		if (Number.isNaN(num)) throw new Error('company-rate-number')
+		if (Number.isNaN(num)) throw new Error(ValidationCode.COMPANY_RATE_NUMBER)
 		return num
 	})
-	.pipe(z.number().positive('company-rate-positive'))
+	.pipe(z.number().positive(ValidationCode.COMPANY_RATE_POSITIVE))
 
 const borrowingCapacityRateSchema = z.coerce
 	.number()
-	.min(0, 'company-borrowing-capacity-min')
-	.max(100, 'company-borrowing-capacity-max')
+	.min(0, ValidationCode.COMPANY_BORROWING_CAPACITY_MIN)
+	.max(100, ValidationCode.COMPANY_BORROWING_CAPACITY_MAX)
 	.optional()
 	.nullable()
 
 const employeeSalaryFrequencySchema = z.enum(['monthly', 'bi-monthly'], {
-	message: 'company-frequency',
+	message: ValidationCode.COMPANY_FREQUENCY,
 })
 
 export const createCompanySchema = z.object({
@@ -56,15 +57,18 @@ export const updateCompanySchema = createCompanySchema
 
 const positiveNumericString = z
 	.string()
-	.min(1, 'application-value-required')
+	.min(1, ValidationCode.APPLICATION_VALUE_REQUIRED)
 	.refine((val) => !Number.isNaN(Number(val)) && Number(val) > 0, {
-		message: 'application-value-positive',
+		message: ValidationCode.APPLICATION_VALUE_POSITIVE,
 	})
 
 // ---- Application (solicitud) ----
 
 export const createApplicationSchema = z.object({
-	termOfferingId: z.coerce.number().int().positive('application-term-required'),
+	termOfferingId: z.coerce
+		.number()
+		.int()
+		.positive(ValidationCode.APPLICATION_TERM_REQUIRED),
 	creditAmount: positiveNumericString,
 	salaryAtApplication: positiveNumericString,
 })
@@ -73,7 +77,7 @@ export const createApplicationSchema = z.object({
 export const updateApplicationStatusSchema = z
 	.object({
 		status: z.enum(APPLICATION_STATUS_VALUES, {
-			message: 'applications-error-generic',
+			message: ValidationCode.APPLICATIONS_ERROR_GENERIC,
 		}),
 		reason: z.string().max(1000).optional(),
 	})
@@ -84,7 +88,7 @@ export const updateApplicationStatusSchema = z
 			}
 			return true
 		},
-		{ message: 'applications-reason-required', path: ['reason'] },
+		{ message: ValidationCode.APPLICATIONS_REASON_REQUIRED, path: ['reason'] },
 	)
 
 export type UpdateApplicationStatusInput = z.infer<
@@ -92,26 +96,35 @@ export type UpdateApplicationStatusInput = z.infer<
 >
 
 export const documentTypeSchema = z.enum(DOCUMENT_TYPE_VALUES, {
-	message: 'document-type-invalid',
+	message: ValidationCode.DOCUMENT_TYPE_INVALID,
 })
 export const documentStatusSchema = z.enum(DOCUMENT_STATUS_VALUES, {
-	message: 'document-status-invalid',
+	message: ValidationCode.DOCUMENT_STATUS_INVALID,
 })
 
 export const uploadApplicationDocumentSchema = z.object({
-	applicationId: z.coerce.number().int().positive('application-invalid'),
+	applicationId: z.coerce
+		.number()
+		.int()
+		.positive(ValidationCode.APPLICATION_INVALID),
 	documentType: documentTypeSchema,
 })
 
 /** Payload for approving a document (form: documentId). */
 export const approveApplicationDocumentSchema = z.object({
-	documentId: z.coerce.number().int().positive('applications-document-invalid'),
+	documentId: z.coerce
+		.number()
+		.int()
+		.positive(ValidationCode.APPLICATIONS_DOCUMENT_INVALID),
 })
 
 /** Payload for rejecting a document (form: documentId + rejectionReason). */
 export const rejectApplicationDocumentSchema = z.object({
-	documentId: z.coerce.number().int().positive('applications-document-invalid'),
+	documentId: z.coerce
+		.number()
+		.int()
+		.positive(ValidationCode.APPLICATIONS_DOCUMENT_INVALID),
 	rejectionReason: z
 		.string()
-		.min(1, 'applications-document-rejection-reason-required'),
+		.min(1, ValidationCode.APPLICATIONS_DOCUMENT_REJECTION_REASON_REQUIRED),
 })

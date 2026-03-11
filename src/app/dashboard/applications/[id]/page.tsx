@@ -5,6 +5,12 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { DASHBOARD_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import {
+	DASHBOARD_DOCUMENT_STATUS_KEYS,
+	DASHBOARD_DOCUMENT_TYPE_KEYS,
+	isDocumentStatus,
+	isDocumentType,
+} from '~/lib/i18n-keys'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import {
@@ -109,9 +115,20 @@ export default async function DashboardApplicationDetailPage({
 										className="flex flex-wrap items-center gap-x-4 gap-y-1"
 									>
 										<span className="text-muted-foreground">
-											{t(`document-type-${doc.documentType}`)}:
+											{t(
+												isDocumentType(doc.documentType)
+													? DASHBOARD_DOCUMENT_TYPE_KEYS[doc.documentType]
+													: 'document-type-invalid',
+											)}
+											:
 										</span>
-										<span>{t(`document-status-${doc.status}`)}</span>
+										<span>
+											{t(
+												isDocumentStatus(doc.status)
+													? DASHBOARD_DOCUMENT_STATUS_KEYS[doc.status]
+													: 'document-status-invalid',
+											)}
+										</span>
 										<span className="truncate text-muted-foreground">
 											{doc.fileName}
 										</span>

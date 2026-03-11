@@ -7,6 +7,7 @@ import {
 	statusRequiresReason,
 } from '~/lib/application-rules'
 import { formatCurrencyMxn } from '~/lib/utils'
+import { ValidationCode } from '~/lib/validation-codes'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -167,7 +168,7 @@ async function setDocumentStatus(
 		},
 	})
 	if (!doc?.application?.termOffering)
-		return { error: 'applications-not-found' }
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
 	const companyId = doc.application.termOffering.companyId
 	requireAbility(
 		ability,
@@ -195,7 +196,7 @@ export async function approveApplicationDocument(
 	const parsed = approveApplicationDocumentSchema.safeParse(payload)
 	if (!parsed.success) {
 		const msg = parsed.error.issues[0]?.message
-		return { error: msg ?? 'applications-error-generic' }
+		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
 	}
 	return setDocumentStatus(parsed.data.documentId, {
 		status: 'approved',
@@ -209,7 +210,7 @@ export async function rejectApplicationDocument(
 	const parsed = rejectApplicationDocumentSchema.safeParse(payload)
 	if (!parsed.success) {
 		const msg = parsed.error.issues[0]?.message
-		return { error: msg ?? 'applications-error-generic' }
+		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
 	}
 	return setDocumentStatus(parsed.data.documentId, {
 		status: 'rejected',
@@ -238,7 +239,8 @@ export async function updateApplicationStatus(
 		},
 	})
 
-	if (!app?.termOffering) return { error: 'applications-not-found' }
+	if (!app?.termOffering)
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
 
 	const companyId = app.termOffering.companyId
 	requireAbility(
@@ -253,13 +255,13 @@ export async function updateApplicationStatus(
 
 	// Allowed transitions: from (new | pending | pre-authorized) to (pre-authorized | authorized | denied | invalid-documentation).
 	if (!canTransitionApplicationFrom(app.status)) {
-		return { error: 'applications-error-transition' }
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
 	}
 
 	const parsed = updateApplicationStatusSchema.safeParse(payload)
 	if (!parsed.success) {
 		const msg = parsed.error.issues[0]?.message
-		return { error: msg ?? 'applications-error-generic' }
+		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
 	}
 	const data = parsed.data
 

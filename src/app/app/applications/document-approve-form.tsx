@@ -8,10 +8,16 @@ import {
 	approveDocumentAction,
 } from '~/app/app/applications/actions'
 import { Button } from '~/components/ui/button'
+import { FieldError } from '~/components/ui/field'
+import {
+	getResolvedError,
+	useResolveValidationError,
+} from '~/lib/validation-code-to-i18n'
 
 export function DocumentApproveForm({ documentId }: { documentId: number }) {
 	const t = useTranslations('app')
 	const router = useRouter()
+	const resolveError = useResolveValidationError()
 	const [state, action, pending] = useActionState<
 		ApproveDocumentState,
 		FormData
@@ -23,16 +29,11 @@ export function DocumentApproveForm({ documentId }: { documentId: number }) {
 		}
 	}, [state, router])
 
-	const displayError =
-		state != null && 'error' in state && state.error != null
-			? t(state.error)
-			: null
+	const displayError = getResolvedError(state, resolveError)
 
 	return (
 		<span className="inline-flex items-center gap-2">
-			{displayError != null ? (
-				<span className="text-destructive text-sm">{displayError}</span>
-			) : null}
+			{displayError && <FieldError message={displayError} className="inline" />}
 			<form action={action} className="inline">
 				<input type="hidden" name="documentId" value={documentId} />
 				<Button

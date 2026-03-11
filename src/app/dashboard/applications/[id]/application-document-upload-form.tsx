@@ -12,8 +12,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-
-const DOCUMENT_TYPES = ['authorization', 'contract', 'payroll-receipt'] as const
+import { DASHBOARD_DOCUMENT_TYPE_KEYS } from '~/lib/i18n-keys'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
+import { DOCUMENT_TYPE_VALUES } from '~/server/db/schema'
 
 const FILE_INPUT_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp'
 
@@ -32,6 +33,7 @@ export function ApplicationDocumentUploadForm({
 }: ApplicationDocumentUploadFormProps) {
 	const t = useTranslations('dashboard.applications')
 	const tCommon = useTranslations('common')
+	const resolveError = useResolveValidationError()
 
 	const [state, action, pending] = useActionState(
 		uploadApplicationDocumentAction,
@@ -60,8 +62,7 @@ export function ApplicationDocumentUploadForm({
 
 			{state.message && !state.errors && (
 				<FieldError
-					translationKey={state.message}
-					namespace="dashboard.applications"
+					message={resolveError(state.message)}
 					className="rounded-md bg-destructive/15 p-3"
 				/>
 			)}
@@ -83,18 +84,15 @@ export function ApplicationDocumentUploadForm({
 						<SelectValue placeholder={t('placeholder-document-type')} />
 					</SelectTrigger>
 					<SelectContent>
-						{DOCUMENT_TYPES.map((type) => (
+						{DOCUMENT_TYPE_VALUES.map((type) => (
 							<SelectItem key={type} value={type}>
-								{t(`document-type-${type}`)}
+								{t(DASHBOARD_DOCUMENT_TYPE_KEYS[type])}
 							</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
 				{state.errors?.documentType && (
-					<FieldError
-						translationKey={state.errors.documentType}
-						namespace="dashboard.applications"
-					/>
+					<FieldError message={resolveError(state.errors.documentType)} />
 				)}
 			</Field>
 
@@ -112,10 +110,7 @@ export function ApplicationDocumentUploadForm({
 					aria-invalid={!!state.errors?.file}
 				/>
 				{state.errors?.file && (
-					<FieldError
-						translationKey={state.errors.file}
-						namespace="dashboard.applications"
-					/>
+					<FieldError message={resolveError(state.errors.file)} />
 				)}
 			</Field>
 

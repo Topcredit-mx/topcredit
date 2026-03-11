@@ -1,6 +1,5 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
 import type * as React from 'react'
 import { cn } from '~/lib/utils'
 
@@ -61,28 +60,13 @@ function FieldDescription({ className, ...props }: React.ComponentProps<'p'>) {
 function FieldError({
 	className,
 	children,
-	translationKey,
-	namespace,
+	message,
 	...props
 }: React.ComponentProps<'p'> & {
-	/** When set, render the translated message or the key as fallback. */
-	translationKey?: string
-	/** Required when translationKey is set; e.g. 'admin' or 'dashboard.applications'. */
-	namespace?: string
+	/** Resolved error message (e.g. from useResolveValidationError). Prefer over children when showing server/validation errors. */
+	message?: string | null
 }) {
-	const t = useTranslations(namespace ?? 'common')
-	const content =
-		translationKey != null && namespace != null
-			? (() => {
-					try {
-						const result = t(translationKey)
-						return result ?? translationKey
-					} catch {
-						return translationKey
-					}
-				})()
-			: children
-
+	const content = message ?? children
 	return (
 		<p
 			data-slot="field-error"

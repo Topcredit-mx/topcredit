@@ -109,7 +109,7 @@ export function ApplicationReasonDialog({
 							className="resize-none"
 							maxLength={1000}
 						/>
-						{showError && <FieldError>{error}</FieldError>}
+						{showError && error && <FieldError>{error}</FieldError>}
 					</Field>
 					<DialogFooter>
 						<Button
