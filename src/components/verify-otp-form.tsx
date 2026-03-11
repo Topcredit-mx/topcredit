@@ -11,6 +11,7 @@ import {
 	InputOTPSlot,
 } from '~/components/ui/input-otp'
 import { cn } from '~/lib/utils'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import { resendOtp } from '~/server/auth/actions'
 
 export function VerifyOTPForm({
@@ -20,11 +21,13 @@ export function VerifyOTPForm({
 }: React.ComponentProps<'div'> & { email: string }) {
 	const t = useTranslations('verify-otp')
 	const tAuth = useTranslations('auth')
+	const resolveError = useResolveValidationError()
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [value, setValue] = useState('')
 	const [resendLoading, setResendLoading] = useState(false)
 	const [resendMessage, setResendMessage] = useState<string | null>(null)
+	const [resendSuccess, setResendSuccess] = useState<boolean | null>(null)
 
 	const handleOTPComplete = async (value: string) => {
 		if (value.length !== 6) return
@@ -61,15 +64,12 @@ export function VerifyOTPForm({
 	const handleResend = async () => {
 		setResendLoading(true)
 		setResendMessage(null)
+		setResendSuccess(null)
 		setError(null)
 
 		const result = await resendOtp(email)
-
-		if (result.success) {
-			setResendMessage(result.message)
-		} else {
-			setResendMessage(result.message)
-		}
+		setResendMessage(result.message)
+		setResendSuccess(result.success)
 
 		setResendLoading(false)
 	}
@@ -157,13 +157,12 @@ export function VerifyOTPForm({
 							</button>
 							{resendMessage && (
 								<p
-									className={`text-center text-sm ${
-										resendMessage.includes('exitosamente')
-											? 'text-green-600'
-											: 'text-red-600'
-									}`}
+									className={cn(
+										'text-center text-sm',
+										resendSuccess ? 'text-green-600' : 'text-red-600',
+									)}
 								>
-									{resendMessage}
+									{resolveError(resendMessage)}
 								</p>
 							)}
 						</div>

@@ -15,3 +15,12 @@
 
 // Import commands.js using ES2015 syntax:
 import './commands'
+
+// Ignore Next.js internal performance measurement errors (react-server-dom-turbopack).
+// These are not application errors — they occur when Next.js calls performance.measure()
+// with an invalid timestamp during RSC hydration in dev/turbopack mode.
+Cypress.on('uncaught:exception', (err) => {
+	if (err.message.includes('cannot have a negative time stamp')) {
+		return false
+	}
+})

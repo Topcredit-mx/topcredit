@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useActionState, useId, useState } from 'react'
+import { createApplicationAction } from '~/app/dashboard/applications/actions'
 import { Button } from '~/components/ui/button'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
@@ -12,7 +13,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-import { createApplication } from '~/server/mutations'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { TermOfferingForForm } from '~/server/queries'
 
 interface ApplicationFormProps {
@@ -30,8 +31,9 @@ function termOfferingLabel(offering: TermOfferingForForm): string {
 export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 	const t = useTranslations('dashboard.applications')
 	const tCommon = useTranslations('common')
+	const resolveError = useResolveValidationError()
 
-	const [state, action, pending] = useActionState(createApplication, {
+	const [state, action, pending] = useActionState(createApplicationAction, {
 		errors: undefined,
 		message: undefined,
 	})
@@ -47,9 +49,10 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 			<input type="hidden" name="termOfferingId" value={termOfferingId} />
 
 			{state.message && !state.errors && (
-				<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-					{state.message}
-				</div>
+				<FieldError
+					message={resolveError(state.message)}
+					className="rounded-md bg-destructive/15 p-3"
+				/>
 			)}
 
 			<Field data-invalid={!!state.errors?.termOfferingId}>
@@ -78,7 +81,7 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 					</SelectContent>
 				</Select>
 				{state.errors?.termOfferingId && (
-					<FieldError>{state.errors.termOfferingId}</FieldError>
+					<FieldError message={resolveError(state.errors.termOfferingId)} />
 				)}
 			</Field>
 
@@ -97,7 +100,9 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 					aria-invalid={!!state.errors?.salaryAtApplication}
 				/>
 				{state.errors?.salaryAtApplication && (
-					<FieldError>{state.errors.salaryAtApplication}</FieldError>
+					<FieldError
+						message={resolveError(state.errors.salaryAtApplication)}
+					/>
 				)}
 			</Field>
 
@@ -116,7 +121,7 @@ export function ApplicationForm({ termOfferings }: ApplicationFormProps) {
 					aria-invalid={!!state.errors?.creditAmount}
 				/>
 				{state.errors?.creditAmount && (
-					<FieldError>{state.errors.creditAmount}</FieldError>
+					<FieldError message={resolveError(state.errors.creditAmount)} />
 				)}
 			</Field>
 

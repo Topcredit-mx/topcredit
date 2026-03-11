@@ -150,7 +150,9 @@ describe('Admin Companies List', () => {
 
 		it('should navigate to create company page', () => {
 			cy.get('table').should('exist')
-			cy.contains('a', /nueva empresa/i).click()
+			cy.contains('a', /nueva empresa/i)
+				.should('be.visible')
+				.click()
 			cy.url().should('include', '/app/companies/new')
 			cy.contains(/crear empresa/i).should('be.visible')
 		})
@@ -177,9 +179,12 @@ describe('Admin Companies List', () => {
 					: 'Quincenal',
 			)
 
-			cy.contains('button', /crear|guardar|submit/i).click()
+			cy.contains('button', /crear|guardar|submit/i)
+				.should('be.visible')
+				.click()
 
 			cy.url().should('include', '/app/companies')
+			cy.get('table').should('be.visible')
 			cy.contains(newCompany.name).should('exist')
 			cy.contains(newCompany.domain).should('exist')
 
@@ -201,9 +206,12 @@ describe('Admin Companies List', () => {
 			cy.get('input[name="rate"]').type('2.5')
 			cy.selectRadix('employeeSalaryFrequency', 'Quincenal')
 
-			cy.contains('button', /crear|guardar|submit/i).click()
+			cy.contains('button', /crear|guardar|submit/i)
+				.should('be.visible')
+				.click()
 
 			cy.url().should('include', '/app/companies')
+			cy.get('table').should('be.visible')
 			cy.contains(newCompany.name).should('exist')
 
 			cy.task('deleteCompaniesByDomain', [newCompany.domain])
@@ -212,17 +220,13 @@ describe('Admin Companies List', () => {
 		it('should validate required fields', () => {
 			cy.visit('/app/companies/new')
 
-			cy.contains('button', /crear|guardar|submit/i).click()
+			cy.contains('button', /crear|guardar|submit/i)
+				.should('be.visible')
+				.click()
 
-			cy.contains(/el nombre es requerido|nombre es requerido/i).should(
-				'be.visible',
-			)
-			cy.contains(/el dominio es requerido|dominio es requerido/i).should(
-				'be.visible',
-			)
-			cy.contains(/la tasa es requerida|tasa es requerida/i).should(
-				'be.visible',
-			)
+			cy.contains('El nombre es requerido').should('be.visible')
+			cy.contains('El dominio es requerido').should('be.visible')
+			cy.contains('La tasa es requerida').should('be.visible')
 		})
 
 		it('should validate domain uniqueness', () => {
@@ -233,9 +237,11 @@ describe('Admin Companies List', () => {
 			cy.get('input[name="rate"]').type('2.5')
 			cy.selectRadix('employeeSalaryFrequency', 'Mensual')
 
-			cy.contains('button', /crear|guardar|submit/i).click()
+			cy.contains('button', /crear|guardar|submit/i)
+				.should('be.visible')
+				.click()
 
-			cy.contains(/ya existe|duplicate|único/i).should('be.visible')
+			cy.contains('El dominio ya existe. Debe ser único.').should('be.visible')
 		})
 
 		it('should validate domain format', () => {
@@ -246,9 +252,13 @@ describe('Admin Companies List', () => {
 			cy.get('input[name="rate"]').type('2.5')
 			cy.selectRadix('employeeSalaryFrequency', 'Mensual')
 
-			cy.contains('button', /crear|guardar|submit/i).click()
+			cy.contains('button', /crear|guardar|submit/i)
+				.should('be.visible')
+				.click()
 
-			cy.contains(/formato|format|válido/i).should('be.visible')
+			cy.contains(
+				'El dominio debe tener un formato válido (ej: ejemplo.com)',
+			).should('be.visible')
 		})
 
 		it('should validate rate is positive', () => {
@@ -259,9 +269,11 @@ describe('Admin Companies List', () => {
 			cy.get('input[name="rate"]').type('-5')
 			cy.selectRadix('employeeSalaryFrequency', 'Mensual')
 
-			cy.contains('button', /crear|guardar|submit/i).click()
+			cy.contains('button', /crear|guardar|submit/i)
+				.should('be.visible')
+				.click()
 
-			cy.contains(/positivo|positive|mayor/i).should('be.visible')
+			cy.contains('La tasa debe ser un número positivo').should('be.visible')
 		})
 
 		it('should validate borrowingCapacityRate is between 0 and 100', () => {
@@ -273,10 +285,12 @@ describe('Admin Companies List', () => {
 			cy.get('input[name="borrowingCapacityRate"]').type('150')
 			cy.selectRadix('employeeSalaryFrequency', 'Mensual')
 
-			cy.contains('button', /crear|guardar|submit/i).click()
+			cy.contains('button', /crear|guardar|submit/i)
+				.should('be.visible')
+				.click()
 
 			cy.contains(
-				/menor o igual a 100|less than or equal to 100|entre 0 y 100|between 0 and 100/i,
+				'La capacidad de préstamo debe ser menor o igual a 100',
 			).should('be.visible')
 		})
 	})
@@ -313,9 +327,12 @@ describe('Admin Companies List', () => {
 
 		it('should navigate to edit company page', () => {
 			cy.visit('/app/companies')
-			cy.findTableRow(editCompany.name).within(() => {
-				cy.get('a[href*="/edit"]').click()
-			})
+			cy.get('table').should('be.visible')
+			cy.findTableRow(editCompany.name)
+				.scrollIntoView()
+				.within(() => {
+					cy.get('a[href*="/edit"]').should('exist').click()
+				})
 			const editPath = `/app/companies/${editCompany.domain}/edit`
 			cy.url().should('include', editPath)
 			cy.contains(/editar|edit/i).should('be.visible')
@@ -341,17 +358,24 @@ describe('Admin Companies List', () => {
 			cy.get('input[name="rate"]').clear().type('3.0')
 			cy.get('input[name="borrowingCapacityRate"]').clear().type('40')
 
-			cy.contains('button', /guardar|save|actualizar/i).click()
+			cy.contains('button', /guardar|save|actualizar/i)
+				.should('be.visible')
+				.click()
 
 			cy.url().should('include', '/app/companies')
-			cy.get('input[aria-label="Filtrar empresas..."]').type('Updated')
+			cy.get('table').should('be.visible')
+			cy.get('input[aria-label="Filtrar empresas..."]')
+				.should('be.visible')
+				.type('Updated')
 			cy.contains('Updated Company Name').should('exist')
 
 			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 			cy.get('input[name="name"]').clear().type(editCompany.name)
 			cy.get('input[name="rate"]').clear().type('2.5')
 			cy.get('input[name="borrowingCapacityRate"]').clear().type('30')
-			cy.contains('button', /guardar|save/i).click()
+			cy.contains('button', /guardar|save/i)
+				.should('be.visible')
+				.click()
 		})
 
 		it('should toggle active status', () => {
@@ -359,16 +383,24 @@ describe('Admin Companies List', () => {
 
 			cy.contains('label', /activa/i).click()
 
-			cy.contains('button', /guardar|save/i).click()
+			cy.contains('button', /guardar|save/i)
+				.should('be.visible')
+				.click()
 
 			cy.url().should('include', '/app/companies')
+			cy.get('table').should('be.visible')
 			cy.findTableRow(editCompany.name).within(() => {
 				cy.contains('Inactiva').should('exist')
 			})
 
 			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 			cy.contains('label', /activa/i).click()
-			cy.contains('button', /guardar|save/i).click()
+			cy.contains('button', /guardar|save/i)
+				.should('be.visible')
+				.click()
+
+			cy.url().should('include', '/app/companies')
+			cy.get('table').should('be.visible')
 		})
 
 		it('should prevent editing domain to duplicate value', () => {

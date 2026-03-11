@@ -10,14 +10,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from '~/components/ui/card'
+import { PROFILE_ROLE_KEYS } from '~/lib/i18n-keys'
 import type { Role } from '~/server/auth/session'
-
-const ROLE_KEYS: Record<Role, string> = {
-	applicant: 'role-applicant',
-	agent: 'role-agent',
-	requests: 'role-requests',
-	admin: 'role-admin',
-}
 
 interface ProfileViewProps {
 	user: {
@@ -97,7 +91,7 @@ export function ProfileView({ user, roles }: ProfileViewProps) {
 						) : (
 							roles.map((role) => (
 								<Badge key={role} variant="secondary">
-									{t(ROLE_KEYS[role])}
+									{t(PROFILE_ROLE_KEYS[role])}
 								</Badge>
 							))
 						)}

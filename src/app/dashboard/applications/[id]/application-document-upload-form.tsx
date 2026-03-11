@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useId, useRef, useState } from 'react'
+import { uploadApplicationDocumentAction } from '~/app/dashboard/applications/actions'
 import { Button } from '~/components/ui/button'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import {
@@ -11,9 +12,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-import { uploadApplicationDocument } from '~/server/mutations'
-
-const DOCUMENT_TYPES = ['authorization', 'contract', 'payroll-receipt'] as const
+import { DASHBOARD_DOCUMENT_TYPE_KEYS } from '~/lib/i18n-keys'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
+import { DOCUMENT_TYPE_VALUES } from '~/server/db/schema'
 
 const FILE_INPUT_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp'
 
@@ -32,9 +33,10 @@ export function ApplicationDocumentUploadForm({
 }: ApplicationDocumentUploadFormProps) {
 	const t = useTranslations('dashboard.applications')
 	const tCommon = useTranslations('common')
+	const resolveError = useResolveValidationError()
 
 	const [state, action, pending] = useActionState(
-		uploadApplicationDocument,
+		uploadApplicationDocumentAction,
 		initialFormState,
 	)
 
@@ -59,9 +61,10 @@ export function ApplicationDocumentUploadForm({
 			<input type="hidden" name="documentType" value={documentType} />
 
 			{state.message && !state.errors && (
-				<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-					{state.message}
-				</div>
+				<FieldError
+					message={resolveError(state.message)}
+					className="rounded-md bg-destructive/15 p-3"
+				/>
 			)}
 
 			<Field data-invalid={!!state.errors?.documentType}>
@@ -81,15 +84,15 @@ export function ApplicationDocumentUploadForm({
 						<SelectValue placeholder={t('placeholder-document-type')} />
 					</SelectTrigger>
 					<SelectContent>
-						{DOCUMENT_TYPES.map((type) => (
+						{DOCUMENT_TYPE_VALUES.map((type) => (
 							<SelectItem key={type} value={type}>
-								{t(`document-type-${type}`)}
+								{t(DASHBOARD_DOCUMENT_TYPE_KEYS[type])}
 							</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
 				{state.errors?.documentType && (
-					<FieldError>{state.errors.documentType}</FieldError>
+					<FieldError message={resolveError(state.errors.documentType)} />
 				)}
 			</Field>
 
@@ -106,7 +109,9 @@ export function ApplicationDocumentUploadForm({
 					className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs file:border-0 file:bg-transparent file:font-medium file:text-foreground file:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
 					aria-invalid={!!state.errors?.file}
 				/>
-				{state.errors?.file && <FieldError>{state.errors.file}</FieldError>}
+				{state.errors?.file && (
+					<FieldError message={resolveError(state.errors.file)} />
+				)}
 			</Field>
 
 			<Button type="submit" disabled={pending || !documentType}>

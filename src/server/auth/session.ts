@@ -28,9 +28,7 @@ export async function getRequiredUser(): Promise<{
 }> {
 	const session = await getServerSession(authOptions)
 	if (!session?.user) {
-		throw new Error(
-			'Unauthorized: No session found. This should not happen due to middleware protection.',
-		)
+		redirect('/login')
 	}
 	return session.user
 }
@@ -42,11 +40,10 @@ export async function getRequiredApplicantUser(): Promise<{
 	image?: string | null
 	roles: Role[]
 }> {
-	const user = await getRequiredUser()
+	const session = await requireAuth()
+	const user = session.user
 	if (!user.roles.includes('applicant')) {
-		throw new Error(
-			'Unauthorized: User does not have the applicant role. This should not happen due to middleware protection.',
-		)
+		redirect('/unauthorized')
 	}
 	return user
 }
@@ -58,11 +55,10 @@ export async function getRequiredAgentUser(): Promise<{
 	image?: string | null
 	roles: Role[]
 }> {
-	const user = await getRequiredUser()
+	const session = await requireAuth()
+	const user = session.user
 	if (!user.roles.includes('agent')) {
-		throw new Error(
-			'Unauthorized: User does not have the agent role. This should not happen due to middleware protection.',
-		)
+		redirect('/unauthorized')
 	}
 	return user
 }

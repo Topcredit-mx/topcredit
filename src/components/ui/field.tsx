@@ -60,15 +60,20 @@ function FieldDescription({ className, ...props }: React.ComponentProps<'p'>) {
 function FieldError({
 	className,
 	children,
+	message,
 	...props
-}: React.ComponentProps<'p'>) {
+}: React.ComponentProps<'p'> & {
+	/** Resolved error message (e.g. from useResolveValidationError). Prefer over children when showing server/validation errors. */
+	message?: string | null
+}) {
+	const content = message ?? children
 	return (
 		<p
 			data-slot="field-error"
 			className={cn('text-destructive text-sm', className)}
 			{...props}
 		>
-			{children}
+			{content}
 		</p>
 	)
 }

@@ -14,6 +14,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from '~/components/ui/card'
+import { PROFILE_ROLE_KEYS } from '~/lib/i18n-keys'
 import type { Role } from '~/server/auth/session'
 
 interface User {
@@ -29,13 +30,6 @@ interface User {
 interface SettingsFormProps {
 	user: User
 	roles: Role[]
-}
-
-const ROLE_KEYS: Record<Role, string> = {
-	applicant: 'role-applicant',
-	agent: 'role-agent',
-	requests: 'role-requests',
-	admin: 'role-admin',
 }
 
 export function SettingsForm({ user, roles }: SettingsFormProps) {
@@ -80,7 +74,7 @@ export function SettingsForm({ user, roles }: SettingsFormProps) {
 						) : (
 							roles.map((role) => (
 								<Badge key={role} variant="secondary">
-									{tProfile(ROLE_KEYS[role])}
+									{tProfile(PROFILE_ROLE_KEYS[role])}
 								</Badge>
 							))
 						)}

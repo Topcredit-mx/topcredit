@@ -65,7 +65,11 @@ export const seedTermOfferings: ReadonlyArray<{
 
 /** Requests (and other non-admin agents) need assigned companies. Admin does not. */
 export const userCompanyAssignments: Record<string, readonly string[]> = {
-	'solicitudes@topcredit.mx': ['acme.topcredit.mx', 'techstart.topcredit.mx'],
+	'solicitudes@topcredit.mx': [
+		'acme.topcredit.mx',
+		'techstart.topcredit.mx',
+		'example.com',
+	],
 }
 
 export const applicationStatusEnum = [

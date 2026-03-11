@@ -8,6 +8,7 @@ import { Button } from '~/components/ui/button'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
 import { cn } from '~/lib/utils'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import { sendOtpForm } from '~/server/auth/actions'
 
 export function LoginForm({
@@ -16,6 +17,7 @@ export function LoginForm({
 }: React.ComponentProps<'div'>) {
 	const t = useTranslations('auth')
 	const tCommon = useTranslations('common')
+	const resolveError = useResolveValidationError()
 	const [state, action, loading] = useActionState(sendOtpForm, { message: '' })
 	const emailId = useId()
 
@@ -53,7 +55,9 @@ export function LoginForm({
 								placeholder={t('email-placeholder')}
 								aria-required="true"
 							/>
-							{state.message && <FieldError>{state.message}</FieldError>}
+							{state.message && (
+								<FieldError message={resolveError(state.message)} />
+							)}
 						</Field>
 						<Button type="submit" className="w-full" disabled={loading}>
 							{loading ? tCommon('loading') : t('submit-login')}

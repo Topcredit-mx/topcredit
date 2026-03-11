@@ -12,6 +12,7 @@ import {
 	verifyBackupCode,
 	verifyTotpToken,
 } from '~/lib/totp'
+import { ValidationCode } from '~/lib/validation-codes'
 import { db } from '~/server/db'
 import { emailOtps, userRoles, users } from '~/server/db/schema'
 import { sendGenericEmail } from '~/server/email'
@@ -28,15 +29,12 @@ export async function registerUser(
 	const name = formData.get('name') as string
 
 	if (!email || !name) {
-		return { message: 'Email and name are required' }
+		return { message: ValidationCode.AUTH_EMAIL_NAME_REQUIRED }
 	}
 
 	const eligibility = await getApplicantEligibilityData(email)
 	if (!isEligibleForNewApplication(eligibility)) {
-		return {
-			message:
-				'Tu correo no está asociado a una empresa con crédito disponible. No puedes registrarte.',
-		}
+		return { message: ValidationCode.AUTH_SIGNUP_EMAIL_NOT_ELIGIBLE }
 	}
 
 	const [newUser] = await db.insert(users).values({ email, name }).returning()
@@ -57,7 +55,7 @@ export async function sendOtpForm(
 	const email = formData.get('email') as string
 
 	if (!email) {
-		return { message: 'Email is required' }
+		return { message: ValidationCode.AUTH_EMAIL_REQUIRED }
 	}
 
 	const user = await db.query.users.findFirst({
@@ -70,10 +68,7 @@ export async function sendOtpForm(
 	if (userWithRoles?.roles?.includes('applicant')) {
 		const eligibility = await getApplicantEligibilityData(email)
 		if (!isEligibleForNewApplication(eligibility)) {
-			return {
-				message:
-					'Tu cuenta no tiene acceso al crédito. Contacta a tu empresa o a soporte.',
-			}
+			return { message: ValidationCode.AUTH_LOGIN_NO_CREDIT_ACCESS }
 		}
 	}
 
@@ -97,7 +92,10 @@ export async function sendOtpForm(
 		await sendOtp(email, ip)
 	} catch (error) {
 		return {
-			message: error instanceof Error ? error.message : 'Rate limit exceeded',
+			message:
+				error instanceof Error
+					? error.message
+					: ValidationCode.AUTH_RATE_LIMIT_EXCEEDED,
 		}
 	}
 
@@ -113,7 +111,7 @@ export async function resendOtp(email: string): Promise<{
 	})
 
 	if (!user) {
-		return { success: false, message: 'Usuario no encontrado' }
+		return { success: false, message: ValidationCode.AUTH_USER_NOT_FOUND }
 	}
 
 	try {
@@ -130,12 +128,14 @@ export async function resendOtp(email: string): Promise<{
 
 		const ip = await getClientIP()
 		await sendOtp(email, ip)
-		return { success: true, message: 'Código reenviado exitosamente' }
+		return { success: true, message: ValidationCode.AUTH_OTP_RESENT_SUCCESS }
 	} catch (error) {
 		return {
 			success: false,
 			message:
-				error instanceof Error ? error.message : 'Límite de intentos excedido',
+				error instanceof Error
+					? error.message
+					: ValidationCode.AUTH_RATE_LIMIT_EXCEEDED,
 		}
 	}
 }

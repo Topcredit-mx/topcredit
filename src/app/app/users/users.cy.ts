@@ -104,14 +104,14 @@ describe('Admin Users', () => {
 
 		it('should toggle role on checkbox click', () => {
 			cy.findTableRow(users.jane.name).then(($row) => {
-				findRoleCheckbox(cy.wrap($row), 'Admin').click()
+				findRoleCheckbox(cy.wrap($row), 'Admin').should('be.visible').click()
 			})
 
 			cy.wait(500)
 			cy.contains(users.jane.name).should('exist')
 
 			cy.findTableRow(users.jane.name).then(($row) => {
-				findRoleCheckbox(cy.wrap($row), 'Admin').click()
+				findRoleCheckbox(cy.wrap($row), 'Admin').should('be.visible').click()
 			})
 		})
 
@@ -136,8 +136,9 @@ describe('Admin Users', () => {
 				.parent()
 				.find('button[aria-haspopup="menu"]')
 				.first()
+				.should('be.visible')
 				.click()
-			cy.get('[role="menu"]').contains(/email/i).click()
+			cy.get('[role="menu"]').contains(/email/i).should('be.visible').click()
 			cy.get('table').within(() => {
 				cy.contains('th', /email/i).should('not.exist')
 			})
@@ -152,7 +153,7 @@ describe('Admin Users', () => {
 
 		it('should show confirmation dialog when admin tries to remove their own admin role', () => {
 			cy.findTableRow('Admin User').then(($row) => {
-				findRoleCheckbox(cy.wrap($row), 'Admin').click()
+				findRoleCheckbox(cy.wrap($row), 'Admin').should('be.visible').click()
 			})
 
 			cy.get('[role="alertdialog"]').should('be.visible')
@@ -162,10 +163,13 @@ describe('Admin Users', () => {
 
 		it('should keep admin role when canceling the confirmation dialog', () => {
 			cy.findTableRow('Admin User').then(($row) => {
-				findRoleCheckbox(cy.wrap($row), 'Admin').click()
+				findRoleCheckbox(cy.wrap($row), 'Admin').should('be.visible').click()
 			})
 
-			cy.get('[role="alertdialog"]').contains('button', 'Cancelar').click()
+			cy.get('[role="alertdialog"]')
+				.contains('button', 'Cancelar')
+				.should('be.visible')
+				.click()
 			cy.get('[role="alertdialog"]').should('not.exist')
 
 			cy.findTableRow('Admin User').within(() => {
@@ -177,7 +181,7 @@ describe('Admin Users', () => {
 
 		it('should NOT show confirmation dialog when removing admin role from another user', () => {
 			cy.findTableRow(users.bob.name).then(($row) => {
-				findRoleCheckbox(cy.wrap($row), 'Admin').click()
+				findRoleCheckbox(cy.wrap($row), 'Admin').should('be.visible').click()
 			})
 
 			cy.get('[role="alertdialog"]').should('not.exist')
@@ -194,11 +198,12 @@ describe('Admin Users', () => {
 
 		it('should remove admin role when confirming the dialog', () => {
 			cy.findTableRow('Admin User').then(($row) => {
-				findRoleCheckbox(cy.wrap($row), 'Admin').click()
+				findRoleCheckbox(cy.wrap($row), 'Admin').should('be.visible').click()
 			})
 
 			cy.get('[role="alertdialog"]')
 				.contains('button', 'Sí, eliminar mi rol de admin')
+				.should('be.visible')
 				.click()
 
 			cy.contains('403').should('be.visible')
@@ -213,7 +218,7 @@ describe('Admin Users', () => {
 			cy.task('removeRole', { email: adminUser.email, role: 'admin' })
 
 			cy.findTableRow(agentOnlyUser.name).then(($row) => {
-				findRoleCheckbox(cy.wrap($row), 'Admin').click()
+				findRoleCheckbox(cy.wrap($row), 'Admin').should('be.visible').click()
 			})
 
 			cy.url().should('include', '/unauthorized')
@@ -268,6 +273,7 @@ describe('Admin Users', () => {
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
+				.should('be.visible')
 				.click()
 
 			cy.get('[role="dialog"]').should('be.visible')
@@ -279,6 +285,7 @@ describe('Admin Users', () => {
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
+				.should('be.visible')
 				.click()
 
 			cy.get('[role="dialog"]').within(() => {
@@ -293,11 +300,12 @@ describe('Admin Users', () => {
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
+				.should('be.visible')
 				.click()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()
-				cy.contains('button', 'Guardar').click()
+				cy.contains('button', 'Guardar').should('be.visible').click()
 			})
 
 			cy.get('[role="dialog"]').should('not.exist')
@@ -312,12 +320,13 @@ describe('Admin Users', () => {
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
+				.should('be.visible')
 				.click()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()
 				cy.contains('label', companies.globex.name).click()
-				cy.contains('button', 'Guardar').click()
+				cy.contains('button', 'Guardar').should('be.visible').click()
 			})
 
 			cy.get('[role="dialog"]').should('not.exist')
@@ -337,6 +346,7 @@ describe('Admin Users', () => {
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
+				.should('be.visible')
 				.click()
 
 			cy.get('[role="dialog"]').within(() => {
@@ -359,6 +369,7 @@ describe('Admin Users', () => {
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
+				.should('be.visible')
 				.click()
 
 			cy.get('[role="dialog"]').within(() => {
@@ -383,11 +394,12 @@ describe('Admin Users', () => {
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
+				.should('be.visible')
 				.click()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()
-				cy.contains('button', 'Guardar').click()
+				cy.contains('button', 'Guardar').should('be.visible').click()
 			})
 
 			cy.get('[role="dialog"]').should('not.exist')
@@ -410,11 +422,12 @@ describe('Admin Users', () => {
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
+				.should('be.visible')
 				.click()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()
-				cy.contains('button', 'Guardar').click()
+				cy.contains('button', 'Guardar').should('be.visible').click()
 			})
 
 			cy.get('[role="dialog"]').should('not.exist')
@@ -440,11 +453,12 @@ describe('Admin Users', () => {
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
+				.should('be.visible')
 				.click()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()
-				cy.contains('button', 'Guardar').click()
+				cy.contains('button', 'Guardar').should('be.visible').click()
 			})
 
 			cy.get('[role="dialog"]').should('not.exist')
@@ -473,11 +487,12 @@ describe('Admin Users', () => {
 
 			cy.findTableRow(agentOnlyUser.name)
 				.find('button[aria-label="Asignar empresas"]')
+				.should('be.visible')
 				.click()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()
-				cy.contains('button', 'Guardar').click()
+				cy.contains('button', 'Guardar').should('be.visible').click()
 			})
 
 			cy.wait('@saveCompanies')

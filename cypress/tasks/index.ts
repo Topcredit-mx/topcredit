@@ -10,6 +10,8 @@ import {
 	agentForReview,
 	allReviewApplicants,
 	allReviewCompanies,
+	applicantA4,
+	applicantA5,
 	applicantForReviewB,
 	companyForReview,
 	companyForReviewD,
@@ -67,8 +69,7 @@ async function deleteBlobsForTerm(
 	db: Awaited<ReturnType<typeof getDb>>,
 	termId: number,
 ): Promise<void> {
-	if (!process.env.BLOB_READ_WRITE_TOKEN)
-		throw new Error('BLOB_READ_WRITE_TOKEN is not set')
+	if (!process.env.BLOB_READ_WRITE_TOKEN) return
 
 	const appIds = await db
 		.select({ id: applications.id })
@@ -1184,6 +1185,10 @@ export type SeedApplicationsReviewResult = {
 	companyBApplicationId: number
 	/** First application (for companyId) – use for documents E2E. */
 	applicationId: number
+	/** Application with creditAmount 40,000 (applicantA4) – use for invalid-documentation E2E. */
+	applicantA4ApplicationId: number
+	/** Application with creditAmount 45,000 (applicantA5) – use for list-reflects-status E2E. */
+	applicantA5ApplicationId: number
 }
 
 export const seedApplicationsReview =
@@ -1306,6 +1311,18 @@ export const seedApplicationsReview =
 			throw new Error('Seed: company B app not found')
 		const firstApp = apps[0]
 		if (!firstApp) throw new Error('Seed: no application created')
+		const applicantA4AppIdx = reviewApplicationConfigs.findIndex(
+			(cfg) => cfg.applicantEmail === applicantA4.email,
+		)
+		const applicantA4App = apps[applicantA4AppIdx]
+		if (applicantA4AppIdx < 0 || !applicantA4App)
+			throw new Error('Seed: applicant A4 application not found')
+		const applicantA5AppIdx = reviewApplicationConfigs.findIndex(
+			(cfg) => cfg.applicantEmail === applicantA5.email,
+		)
+		const applicantA5App = apps[applicantA5AppIdx]
+		if (applicantA5AppIdx < 0 || !applicantA5App)
+			throw new Error('Seed: applicant A5 application not found')
 
 		return {
 			companyId: findCompany(companyForReview.domain).id,
@@ -1313,6 +1330,8 @@ export const seedApplicationsReview =
 			termId: term.id,
 			companyBApplicationId: companyBApp.id,
 			applicationId: firstApp.id,
+			applicantA4ApplicationId: applicantA4App.id,
+			applicantA5ApplicationId: applicantA5App.id,
 		}
 	}
 

@@ -1,21 +1,15 @@
 'use server'
 
-import { and, eq, gte, notInArray } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
 import {
 	canTransitionApplicationFrom,
-	isApplicationStatus,
 	statusRequiresReason,
 } from '~/lib/application-rules'
 import { formatCurrencyMxn } from '~/lib/utils'
+import { ValidationCode } from '~/lib/validation-codes'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
-import {
-	getRequiredAgentUser,
-	getRequiredApplicantUser,
-} from '~/server/auth/session'
 import { db } from '~/server/db'
 import type { ApplicationStatus } from '~/server/db/schema'
 import {
@@ -25,64 +19,12 @@ import {
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
+import { sendApplicationStatusEvent } from '~/server/email'
 import {
-	sendApplicationStatusEvent,
-	sendApplicationSubmittedEvent,
-} from '~/server/email'
-import { fromErrorToFormState } from '~/server/errors/errors'
-import { detectAllowedMime } from '~/server/file-validation'
-import {
-	getCompanyByEmailDomain,
-	getTermOfferingsForCompany,
-} from '~/server/queries'
-import type { UpdateApplicationDocumentStatusInput } from '~/server/schemas'
-import {
-	createApplicationSchema,
-	createCompanySchema,
-	parseUpdateApplicationStatusPayload,
-	updateApplicationDocumentStatusSchema,
-	updateCompanySchema,
-	uploadApplicationDocumentSchema,
+	approveApplicationDocumentSchema,
+	rejectApplicationDocumentSchema,
+	updateApplicationStatusSchema,
 } from '~/server/schemas'
-import { getCompaniesForSwitcher } from '~/server/scopes'
-import {
-	APPLICATION_DOCUMENTS_PREFIX,
-	deleteBlob,
-	isBlobStorageKey,
-	uploadBlob,
-} from '~/server/storage'
-
-// ---- Selected company (sidebar switcher) ----
-
-export async function setSelectedCompanyId(companyId: number | null) {
-	const user = await getRequiredAgentUser()
-	if (companyId !== null) {
-		const { ability } = await getAbility()
-		requireAbility(ability, 'read', subject('Company', { id: companyId }))
-	}
-	const isAdmin = user.roles?.includes('admin') ?? false
-	const allowed = await getCompaniesForSwitcher(user.id, isAdmin)
-	const allowedIds = new Set(allowed.map((c) => c.id))
-
-	if (companyId !== null && !allowedIds.has(companyId)) {
-		return { error: 'No puede seleccionar esa empresa' }
-	}
-
-	const cookieStore = await cookies()
-	if (companyId === null) {
-		cookieStore.delete('selected_company_id')
-		revalidatePath('/app')
-		return { success: true }
-	}
-	cookieStore.set('selected_company_id', String(companyId), {
-		path: '/',
-		httpOnly: true,
-		sameSite: 'lax',
-		maxAge: 60 * 60 * 24 * 365,
-	})
-	revalidatePath('/app')
-	return { success: true }
-}
 
 // ---- User ----
 
@@ -133,136 +75,47 @@ export async function updateUserCompanies(
 
 // ---- Company ----
 
-export async function createCompany(
-	_prevState: unknown,
-	formData: FormData,
-): Promise<{ errors?: Record<string, string>; message?: string }> {
-	const { ability } = await getAbility()
-	requireAbility(ability, 'create', 'Company')
-
-	try {
-		const activeValue = formData.get('active')
-		const active = activeValue === 'on' || activeValue === 'true'
-
-		const data = createCompanySchema.parse({
-			name: formData.get('name'),
-			domain: formData.get('domain'),
-			rate: formData.get('rate'),
-			borrowingCapacityRate: formData.get('borrowingCapacityRate') || null,
-			employeeSalaryFrequency: formData.get('employeeSalaryFrequency'),
-			active,
-		})
-
-		const existingCompany = await db.query.companies.findFirst({
-			where: eq(companies.domain, data.domain),
-		})
-
-		if (existingCompany) {
-			return {
-				errors: {
-					domain: 'El dominio ya existe. Debe ser único.',
-				},
-			}
-		}
-
-		await db.insert(companies).values({
-			name: data.name,
-			domain: data.domain,
-			rate: (data.rate / 100).toFixed(4),
-			borrowingCapacityRate: data.borrowingCapacityRate
-				? (data.borrowingCapacityRate / 100).toFixed(2)
-				: null,
-			employeeSalaryFrequency: data.employeeSalaryFrequency,
-			active: data.active ?? true,
-		})
-
-		revalidatePath('/app/companies')
-	} catch (error) {
-		return fromErrorToFormState(error)
-	}
-
-	redirect('/app/companies')
+export type CreateCompanyData = {
+	name: string
+	domain: string
+	rate: number
+	borrowingCapacityRate: number | null
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	active: boolean
 }
 
-export async function updateCompany(
-	_prevState: unknown,
-	formData: FormData,
-): Promise<{ errors?: Record<string, string>; message?: string }> {
-	const id = Number.parseInt(String(formData.get('id')), 10)
-	if (Number.isNaN(id)) {
-		return { message: 'ID de empresa inválido' }
-	}
-
-	const company = await db.query.companies.findFirst({
-		where: eq(companies.id, id),
+export async function insertCompany(data: CreateCompanyData): Promise<void> {
+	await db.insert(companies).values({
+		name: data.name,
+		domain: data.domain,
+		rate: (data.rate / 100).toFixed(4),
+		borrowingCapacityRate: data.borrowingCapacityRate
+			? (data.borrowingCapacityRate / 100).toFixed(2)
+			: null,
+		employeeSalaryFrequency: data.employeeSalaryFrequency,
+		active: data.active ?? true,
 	})
+	revalidatePath('/app/companies')
+}
 
-	if (!company) {
-		return { message: 'Empresa no encontrada' }
+export type UpdateCompanyData = {
+	name?: string
+	rate?: string
+	borrowingCapacityRate?: string | null
+	employeeSalaryFrequency?: 'monthly' | 'bi-monthly'
+	active: boolean
+}
+
+export async function updateCompanyById(
+	id: number,
+	data: UpdateCompanyData,
+): Promise<void> {
+	const updateData: Record<string, unknown> = {
+		...data,
+		updatedAt: new Date(),
 	}
-
-	const { ability } = await getAbility()
-	requireAbility(ability, 'update', subject('Company', company))
-
-	try {
-		const activeValue = formData.get('active')
-		const active = activeValue === 'on' || activeValue === 'true'
-
-		const updateData: Record<string, unknown> = {}
-		const formName = formData.get('name')
-		const formRate = formData.get('rate')
-		const formBorrowingCapacityRate = formData.get('borrowingCapacityRate')
-		const formEmployeeSalaryFrequency = formData.get('employeeSalaryFrequency')
-
-		if (formName) {
-			const parsed = updateCompanySchema
-				.pick({ name: true })
-				.parse({ name: formName })
-			updateData.name = parsed.name
-		}
-
-		if (formRate) {
-			const parsed = updateCompanySchema
-				.pick({ rate: true })
-				.parse({ rate: formRate })
-			if (parsed.rate !== undefined) {
-				updateData.rate = (parsed.rate / 100).toFixed(4)
-			}
-		}
-
-		if (
-			formBorrowingCapacityRate !== null &&
-			formBorrowingCapacityRate !== ''
-		) {
-			const parsed = updateCompanySchema
-				.pick({ borrowingCapacityRate: true })
-				.parse({ borrowingCapacityRate: formBorrowingCapacityRate })
-			updateData.borrowingCapacityRate = parsed.borrowingCapacityRate
-				? (parsed.borrowingCapacityRate / 100).toFixed(2)
-				: null
-		} else if (formBorrowingCapacityRate === '') {
-			updateData.borrowingCapacityRate = null
-		}
-
-		if (formEmployeeSalaryFrequency) {
-			const parsed = updateCompanySchema
-				.pick({ employeeSalaryFrequency: true })
-				.parse({ employeeSalaryFrequency: formEmployeeSalaryFrequency })
-			updateData.employeeSalaryFrequency = parsed.employeeSalaryFrequency
-		}
-
-		updateData.active = active
-		updateData.updatedAt = new Date()
-
-		await db.update(companies).set(updateData).where(eq(companies.id, id))
-
-		revalidatePath('/app/companies')
-		revalidatePath(`/app/companies/${company.domain}/edit`)
-	} catch (error) {
-		return fromErrorToFormState(error)
-	}
-
-	redirect('/app/companies')
+	await db.update(companies).set(updateData).where(eq(companies.id, id))
+	revalidatePath('/app/companies')
 }
 
 export async function deleteCompany(id: number) {
@@ -299,256 +152,23 @@ export async function deleteCompany(id: number) {
 
 // ---- Application (solicitud) ----
 
-export async function createApplication(
-	_prevState: unknown,
-	formData: FormData,
-): Promise<{ errors?: Record<string, string>; message?: string }> {
-	const user = await getRequiredApplicantUser()
-	const { ability } = await getAbility()
-	requireAbility(ability, 'create', 'Application')
-
-	const email = user.email ?? ''
-	const company = await getCompanyByEmailDomain(email)
-	if (!company) {
-		return {
-			message: 'Tu correo no está asociado a ninguna empresa afiliada.',
-		}
-	}
-
-	const borrowingCapacityRate = company.borrowingCapacityRate
-	if (!borrowingCapacityRate || Number(borrowingCapacityRate) <= 0) {
-		return {
-			message: 'Tu empresa no tiene configuración de crédito.',
-		}
-	}
-
-	const offerings = await getTermOfferingsForCompany(company.id)
-	if (offerings.length === 0) {
-		return {
-			message: 'Tu empresa no tiene plazos disponibles.',
-		}
-	}
-
-	try {
-		const data = createApplicationSchema.parse({
-			termOfferingId: formData.get('termOfferingId'),
-			creditAmount: formData.get('creditAmount'),
-			salaryAtApplication: formData.get('salaryAtApplication'),
-		})
-
-		const offering = offerings.find((o) => o.id === data.termOfferingId)
-		if (!offering || offering.disabled) {
-			return {
-				errors: {
-					termOfferingId: 'El plazo seleccionado no está disponible.',
-				},
-			}
-		}
-
-		const salary = Number.parseFloat(String(data.salaryAtApplication))
-		const rate = Number.parseFloat(String(borrowingCapacityRate))
-		const maxLoanAmount = salary * rate
-		const amount = Number.parseFloat(String(data.creditAmount))
-		if (amount > maxLoanAmount) {
-			return {
-				errors: {
-					creditAmount: `El monto no puede superar el máximo permitido (${formatCurrencyMxn(maxLoanAmount)}).`,
-				},
-			}
-		}
-
-		const sixtySecondsAgo = new Date(Date.now() - 60_000)
-		const duplicate = await db.query.applications.findFirst({
-			where: and(
-				eq(applications.applicantId, user.id),
-				eq(applications.termOfferingId, data.termOfferingId),
-				eq(applications.creditAmount, String(amount.toFixed(2))),
-				eq(applications.salaryAtApplication, String(salary.toFixed(2))),
-				gte(applications.createdAt, sixtySecondsAgo),
-			),
-			columns: { id: true },
-		})
-		if (duplicate) {
-			return {
-				message:
-					'Ya enviaste esta solicitud. Por favor espera un momento antes de intentar de nuevo.',
-			}
-		}
-
-		const existingActive = await db.query.applications.findFirst({
-			where: and(
-				eq(applications.applicantId, user.id),
-				notInArray(applications.status, ['authorized', 'denied']),
-			),
-			columns: { id: true },
-		})
-		if (existingActive) {
-			return {
-				message:
-					'Tienes una solicitud en proceso. Solo puedes tener una solicitud activa a la vez.',
-			}
-		}
-
-		await db.insert(applications).values({
-			applicantId: user.id,
-			termOfferingId: data.termOfferingId,
-			creditAmount: String(amount.toFixed(2)),
-			salaryAtApplication: String(salary.toFixed(2)),
-			status: 'new',
-		})
-
-		const termLabel =
-			offering.durationType === 'monthly'
-				? `${offering.duration} meses`
-				: `${offering.duration} quincenas`
-		const creditAmountFormatted = formatCurrencyMxn(amount)
-		await sendApplicationSubmittedEvent(email, {
-			creditAmountFormatted,
-			termLabel,
-		})
-
-		revalidatePath('/dashboard/applications')
-	} catch (error) {
-		return fromErrorToFormState(error)
-	}
-
-	redirect('/dashboard/applications')
-}
-
-const APPLICATION_DOCUMENT_MAX_BYTES = 15 * 1024 * 1024 // 15 MB
-const APPLICATION_DOCUMENT_ALLOWED_TYPES = new Set<string>([
-	'application/pdf',
-	'image/jpeg',
-	'image/png',
-	'image/webp',
-])
-const APPLICATION_DOCUMENT_FILE_NAME_MAX_LENGTH = 255
-
-export async function uploadApplicationDocument(
-	_prevState: unknown,
-	formData: FormData,
-): Promise<{
-	errors?: Record<string, string>
-	message?: string
-	success?: boolean
-}> {
-	await getRequiredApplicantUser()
-	const { ability } = await getAbility()
-
-	const file = formData.get('file')
-	if (!(file instanceof File) || file.size === 0) {
-		return { errors: { file: 'Selecciona un archivo válido.' } }
-	}
-	if (file.size > APPLICATION_DOCUMENT_MAX_BYTES) {
-		return { errors: { file: 'El archivo no debe superar 15 MB.' } }
-	}
-	const detected = await detectAllowedMime(
-		file,
-		APPLICATION_DOCUMENT_ALLOWED_TYPES,
-	)
-	if ('error' in detected) {
-		return { errors: { file: detected.error } }
-	}
-
-	try {
-		const data = uploadApplicationDocumentSchema.parse({
-			applicationId: formData.get('applicationId'),
-			documentType: formData.get('documentType'),
-		})
-
-		const app = await db.query.applications.findFirst({
-			where: (a, { eq }) => eq(a.id, data.applicationId),
-			columns: { id: true, applicantId: true, termOfferingId: true },
-			with: {
-				termOffering: { columns: { companyId: true } },
-			},
-		})
-
-		if (!app?.termOffering) {
-			return { message: 'Solicitud no encontrada.' }
-		}
-
-		requireAbility(
-			ability,
-			'uploadDocument',
-			subject('Application', {
-				id: app.id,
-				applicantId: app.applicantId,
-				companyId: app.termOffering.companyId,
-			}),
-		)
-
-		const existing = await db.query.applicationDocuments.findFirst({
-			where: and(
-				eq(applicationDocuments.applicationId, data.applicationId),
-				eq(applicationDocuments.documentType, data.documentType),
-			),
-			columns: { id: true, storageKey: true },
-		})
-
-		if (existing) {
-			if (isBlobStorageKey(existing.storageKey)) {
-				await deleteBlob(existing.storageKey)
-			}
-			await db
-				.delete(applicationDocuments)
-				.where(eq(applicationDocuments.id, existing.id))
-		}
-
-		const rawName =
-			file.name.replace(/\0/g, '').replace(/[/\\]/g, '_').trim() || 'document'
-		const fileName = rawName.slice(0, APPLICATION_DOCUMENT_FILE_NAME_MAX_LENGTH)
-		const pathname = `${APPLICATION_DOCUMENTS_PREFIX}${data.applicationId}/${data.documentType}/${fileName}`
-
-		const { pathname: storedPathname } = await uploadBlob(pathname, file, {
-			contentType: detected.mime,
-		})
-
-		await db.insert(applicationDocuments).values({
-			applicationId: data.applicationId,
-			documentType: data.documentType,
-			status: 'pending',
-			storageKey: storedPathname,
-			fileName,
-		})
-
-		revalidatePath('/dashboard/applications')
-		revalidatePath(`/dashboard/applications/${data.applicationId}`)
-		revalidatePath('/app/applications')
-		revalidatePath(`/app/applications/${data.applicationId}`)
-	} catch (error) {
-		return fromErrorToFormState(error)
-	}
-
-	return { success: true }
-}
-
-export async function updateApplicationDocumentStatus(
-	payload: UpdateApplicationDocumentStatusInput,
+async function setDocumentStatus(
+	documentId: number,
+	updates: { status: 'approved' | 'rejected'; rejectionReason: string | null },
 ): Promise<{ error?: string }> {
-	const parsed = updateApplicationDocumentStatusSchema.safeParse(payload)
-	if (!parsed.success) return { error: 'applications-error-generic' }
-
-	const { documentId } = parsed.data
 	const { ability } = await getAbility()
-
 	const doc = await db.query.applicationDocuments.findFirst({
 		where: (d, { eq }) => eq(d.id, documentId),
 		columns: { id: true, applicationId: true, status: true },
 		with: {
 			application: {
 				columns: { id: true, applicantId: true },
-				with: {
-					termOffering: { columns: { companyId: true } },
-				},
+				with: { termOffering: { columns: { companyId: true } } },
 			},
 		},
 	})
-
 	if (!doc?.application?.termOffering)
-		return { error: 'applications-not-found' }
-	if (doc.status !== 'pending') return { error: 'applications-error-generic' }
-
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
 	const companyId = doc.application.termOffering.companyId
 	requireAbility(
 		ability,
@@ -559,21 +179,43 @@ export async function updateApplicationDocumentStatus(
 			companyId,
 		}),
 	)
-
 	await db
 		.update(applicationDocuments)
-		.set({
-			status: 'approved',
-			rejectionReason: null,
-			updatedAt: new Date(),
-		})
+		.set({ ...updates, updatedAt: new Date() })
 		.where(eq(applicationDocuments.id, documentId))
-
 	revalidatePath('/app/applications')
 	revalidatePath(`/app/applications/${doc.applicationId}`)
 	revalidatePath('/dashboard/applications')
 	revalidatePath(`/dashboard/applications/${doc.applicationId}`)
 	return {}
+}
+
+export async function approveApplicationDocument(
+	payload: unknown,
+): Promise<{ error?: string }> {
+	const parsed = approveApplicationDocumentSchema.safeParse(payload)
+	if (!parsed.success) {
+		const msg = parsed.error.issues[0]?.message
+		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+	return setDocumentStatus(parsed.data.documentId, {
+		status: 'approved',
+		rejectionReason: null,
+	})
+}
+
+export async function rejectApplicationDocument(
+	payload: unknown,
+): Promise<{ error?: string }> {
+	const parsed = rejectApplicationDocumentSchema.safeParse(payload)
+	if (!parsed.success) {
+		const msg = parsed.error.issues[0]?.message
+		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+	return setDocumentStatus(parsed.data.documentId, {
+		status: 'rejected',
+		rejectionReason: parsed.data.rejectionReason.trim(),
+	})
 }
 
 export async function updateApplicationStatus(
@@ -597,7 +239,8 @@ export async function updateApplicationStatus(
 		},
 	})
 
-	if (!app?.termOffering) return { error: 'applications-not-found' }
+	if (!app?.termOffering)
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
 
 	const companyId = app.termOffering.companyId
 	requireAbility(
@@ -612,13 +255,15 @@ export async function updateApplicationStatus(
 
 	// Allowed transitions: from (new | pending | pre-authorized) to (pre-authorized | authorized | denied | invalid-documentation).
 	if (!canTransitionApplicationFrom(app.status)) {
-		return { error: 'applications-error-transition' }
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
 	}
 
-	const parsed = parseUpdateApplicationStatusPayload(payload)
-	if ('error' in parsed) return { error: parsed.error }
-
-	const { data } = parsed
+	const parsed = updateApplicationStatusSchema.safeParse(payload)
+	if (!parsed.success) {
+		const msg = parsed.error.issues[0]?.message
+		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+	const data = parsed.data
 
 	await db
 		.update(applications)
@@ -662,27 +307,4 @@ export async function updateApplicationStatus(
 	revalidatePath('/dashboard/applications')
 	revalidatePath(`/dashboard/applications/${applicationId}`)
 	return {}
-}
-
-/** Form action for useActionState: immediate status updates (no reason). Returns { error } on failure; redirects on success. */
-export async function updateApplicationStatusFormAction(
-	_prevState: { error?: string },
-	formData: FormData,
-): Promise<{ error?: string }> {
-	const applicationId = Number(formData.get('applicationId'))
-	const statusRaw = formData.get('status')
-	if (typeof statusRaw !== 'string' || !isApplicationStatus(statusRaw)) {
-		return { error: 'applications-error-generic' }
-	}
-	const result = await updateApplicationStatus(applicationId, {
-		status: statusRaw,
-	})
-	if (result.error) {
-		return { error: result.error }
-	}
-	revalidatePath('/app/applications')
-	revalidatePath(`/app/applications/${applicationId}`)
-	revalidatePath('/dashboard/applications')
-	revalidatePath(`/dashboard/applications/${applicationId}`)
-	redirect(`/app/applications/${applicationId}`)
 }

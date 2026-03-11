@@ -2,6 +2,10 @@
 
 import { useTranslations } from 'next-intl'
 import { useActionState, useId, useState } from 'react'
+import {
+	createCompanyAction,
+	updateCompanyAction,
+} from '~/app/app/companies/actions'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import {
@@ -19,7 +23,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
-import { createCompany, updateCompany } from '~/server/mutations'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { Company } from '~/server/queries'
 
 /** Subset of Company used by the form – no Date fields (can't serialize to Client Components). */
@@ -48,9 +52,10 @@ function formatPercentage(value: string, decimals: number = 2): string {
 export function CompanyForm({ company }: CompanyFormProps) {
 	const t = useTranslations('admin')
 	const tCommon = useTranslations('common')
+	const resolveError = useResolveValidationError()
 	// Use useActionState for form state management
 	const [state, action, pending] = useActionState(
-		company ? updateCompany : createCompany,
+		company ? updateCompanyAction : createCompanyAction,
 		{ errors: undefined, message: undefined },
 	)
 
@@ -92,9 +97,10 @@ export function CompanyForm({ company }: CompanyFormProps) {
 
 			{/* General error display (only if no field-specific errors) */}
 			{state.message && !state.errors && (
-				<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-					{state.message}
-				</div>
+				<FieldError
+					message={resolveError(state.message)}
+					className="rounded-md bg-destructive/15 p-3"
+				/>
 			)}
 
 			<Field>
@@ -110,7 +116,9 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					aria-required="true"
 					aria-invalid={!!state.errors?.name}
 				/>
-				{state.errors?.name && <FieldError>{state.errors.name}</FieldError>}
+				{state.errors?.name && (
+					<FieldError message={resolveError(state.errors.name)} />
+				)}
 			</Field>
 
 			<Field>
@@ -127,9 +135,10 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					aria-required="true"
 					aria-invalid={!!state.errors?.domain}
 				/>
-				{state.errors?.domain ? (
-					<FieldError>{state.errors.domain}</FieldError>
-				) : (
+				{state.errors?.domain && (
+					<FieldError message={resolveError(state.errors.domain)} />
+				)}
+				{!state.errors?.domain && (
 					<FieldDescription>
 						{company
 							? t('company-form-domain-readonly')
@@ -153,9 +162,10 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					aria-required="true"
 					aria-invalid={!!state.errors?.rate}
 				/>
-				{state.errors?.rate ? (
-					<FieldError>{state.errors.rate}</FieldError>
-				) : (
+				{state.errors?.rate && (
+					<FieldError message={resolveError(state.errors.rate)} />
+				)}
+				{!state.errors?.rate && (
 					<FieldDescription>
 						{t('company-form-rate-description')}
 					</FieldDescription>
@@ -175,9 +185,12 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					defaultValue={initialBorrowingCapacityRate}
 					aria-invalid={!!state.errors?.borrowingCapacityRate}
 				/>
-				{state.errors?.borrowingCapacityRate ? (
-					<FieldError>{state.errors.borrowingCapacityRate}</FieldError>
-				) : (
+				{state.errors?.borrowingCapacityRate && (
+					<FieldError
+						message={resolveError(state.errors.borrowingCapacityRate)}
+					/>
+				)}
+				{!state.errors?.borrowingCapacityRate && (
 					<FieldDescription>
 						{t('company-form-borrowing-description')}
 					</FieldDescription>
@@ -213,7 +226,9 @@ export function CompanyForm({ company }: CompanyFormProps) {
 					</SelectContent>
 				</Select>
 				{state.errors?.employeeSalaryFrequency && (
-					<FieldError>{state.errors.employeeSalaryFrequency}</FieldError>
+					<FieldError
+						message={resolveError(state.errors.employeeSalaryFrequency)}
+					/>
 				)}
 			</Field>
 

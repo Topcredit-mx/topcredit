@@ -3,7 +3,6 @@ import '~/styles/globals.css'
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages } from 'next-intl/server'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
@@ -88,11 +87,10 @@ const geist = Geist({
 export default async function RootLayout({
 	children,
 }: Readonly<{ children: React.ReactNode }>) {
-	const messages = await getMessages()
 	return (
 		<html lang="es" className={`${geist.variable}`}>
 			<body>
-				<NextIntlClientProvider messages={messages}>
+				<NextIntlClientProvider>
 					<Providers>{children}</Providers>
 				</NextIntlClientProvider>
 			</body>

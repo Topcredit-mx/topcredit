@@ -1,11 +1,16 @@
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { isApplicationStatus } from '~/lib/application-rules'
+import { APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import type { ApplicationStatus } from '~/server/db/schema'
+import { APPLICATION_STATUS_VALUES } from '~/server/db/schema'
 import { getApplicationsForReview } from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
-import { ApplicationsStatusFilter } from './applications-status-filter'
+import {
+	ApplicationsStatusFilter,
+	type ApplicationsStatusFilterLabels,
+} from './applications-status-filter'
 import { ApplicationsTable } from './applications-table'
 
 function parseStatusParam(
@@ -38,6 +43,16 @@ export default async function AppApplicationsPage({
 	})
 	const t = await getTranslations('app')
 
+	const filterLabels: ApplicationsStatusFilterLabels = {
+		all: t('applications-filter-all'),
+		statusLabels: Object.fromEntries(
+			APPLICATION_STATUS_VALUES.map((status) => [
+				status,
+				t(APPLICATION_STATUS_KEYS[status]),
+			]),
+		) as Record<ApplicationStatus, string>,
+	}
+
 	return (
 		<div className="container mx-auto py-6">
 			<div className="mb-6">
@@ -46,7 +61,10 @@ export default async function AppApplicationsPage({
 					{t('applications-subtitle')}
 				</p>
 			</div>
-			<ApplicationsStatusFilter currentStatus={currentStatus} />
+			<ApplicationsStatusFilter
+				currentStatus={currentStatus}
+				labels={filterLabels}
+			/>
 			{applications.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">

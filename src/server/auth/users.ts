@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { env } from '~/env'
 import { getClientIP } from '~/lib/ip-location'
 import { generateBackupCodes, hashBackupCodes } from '~/lib/totp'
+import { ValidationCode } from '~/lib/validation-codes'
 import { db } from '~/server/db'
 import { emailOtps, userRoles, users } from '~/server/db/schema'
 import { sendOtpEvent } from '~/server/email'
@@ -142,7 +143,7 @@ export async function sendEmailChangeOtp(
 		requireAbility(ability, 'update', subject('User', { id: sessionUser.id }))
 
 		if (!sessionUser.email) {
-			return { message: 'Usuario no autenticado' }
+			return { message: ValidationCode.AUTH_NOT_AUTHENTICATED }
 		}
 		const currentEmail = sessionUser.email
 
@@ -153,7 +154,7 @@ export async function sendEmailChangeOtp(
 		if (data.newEmail.toLowerCase() === currentEmail.toLowerCase()) {
 			return {
 				errors: {
-					newEmail: 'El nuevo correo debe ser diferente al actual',
+					newEmail: ValidationCode.AUTH_EMAIL_CHANGE_SAME,
 				},
 			}
 		}
@@ -165,7 +166,7 @@ export async function sendEmailChangeOtp(
 		if (existingUser) {
 			return {
 				errors: {
-					newEmail: 'Este correo electrónico ya está registrado.',
+					newEmail: ValidationCode.AUTH_EMAIL_ALREADY_REGISTERED,
 				},
 			}
 		}
@@ -175,7 +176,7 @@ export async function sendEmailChangeOtp(
 		})
 
 		if (!user) {
-			return { message: 'Usuario actual no encontrado' }
+			return { message: ValidationCode.AUTH_CURRENT_USER_NOT_FOUND }
 		}
 
 		const rateLimitAction = checkRateLimit(
@@ -218,7 +219,7 @@ export async function verifyEmailChangeOtp(
 		requireAbility(ability, 'update', subject('User', { id: sessionUser.id }))
 
 		if (!sessionUser.email) {
-			return { message: 'Usuario no autenticado' }
+			return { message: ValidationCode.AUTH_NOT_AUTHENTICATED }
 		}
 		const currentEmail = sessionUser.email
 
@@ -233,18 +234,14 @@ export async function verifyEmailChangeOtp(
 
 		if (!otpRecord) {
 			return {
-				errors: {
-					otp: 'Código OTP inválido',
-				},
+				errors: { otp: ValidationCode.AUTH_OTP_INVALID },
 			}
 		}
 
 		if (otpRecord.expiresAt < new Date()) {
 			await db.delete(emailOtps).where(eq(emailOtps.id, otpRecord.id))
 			return {
-				errors: {
-					otp: 'El código OTP ha expirado',
-				},
+				errors: { otp: ValidationCode.AUTH_OTP_EXPIRED },
 			}
 		}
 
@@ -252,9 +249,7 @@ export async function verifyEmailChangeOtp(
 
 		if (!isValid) {
 			return {
-				errors: {
-					otp: 'Código OTP inválido',
-				},
+				errors: { otp: ValidationCode.AUTH_OTP_INVALID },
 			}
 		}
 
@@ -265,7 +260,7 @@ export async function verifyEmailChangeOtp(
 		if (existingUser) {
 			return {
 				errors: {
-					newEmail: 'Este correo electrónico ya está registrado.',
+					newEmail: ValidationCode.AUTH_EMAIL_ALREADY_REGISTERED,
 				},
 			}
 		}

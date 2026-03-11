@@ -1,126 +1,169 @@
 'use client'
 
+import { CheckCircle2, ChevronDown, FileWarning, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useActionState, useState } from 'react'
-import { useFormStatus } from 'react-dom'
-import { Button } from '~/components/ui/button'
-import type { ApplicationStatusRequiringReason } from '~/lib/application-rules'
+import { useActionState, useRef, useState } from 'react'
 import {
 	updateApplicationStatus,
 	updateApplicationStatusFormAction,
-} from '~/server/mutations'
+} from '~/app/app/applications/actions'
+import { Alert } from '~/components/ui/alert'
+import { Button } from '~/components/ui/button'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
+import type { ApplicationStatusRequiringReason } from '~/lib/application-rules'
+import {
+	getResolvedError,
+	useResolveValidationError,
+} from '~/lib/validation-code-to-i18n'
 import { ApplicationReasonDialog } from './application-reason-dialog'
-
-const ACTION_ERROR_KEYS = new Set([
-	'applications-reason-required',
-	'applications-error-transition',
-	'applications-error-generic',
-	'applications-not-found',
-])
 
 const initialState = { error: '' }
 
-function FormSubmitButton({
-	labelKey,
-	disabled: disabledProp,
-}: {
-	labelKey:
-		| 'applications-action-pre-authorize'
-		| 'applications-action-authorize'
-	disabled: boolean
-}) {
-	const t = useTranslations('app')
-	const { pending } = useFormStatus()
-	return (
-		<Button
-			type="submit"
-			variant="default"
-			size="sm"
-			disabled={disabledProp || pending}
-		>
-			{pending ? t('applications-submit-saving') : t(labelKey)}
-		</Button>
-	)
-}
-
 export function ApplicationActions({
 	applicationId,
+	canMarkInvalidDocumentation,
 }: {
 	applicationId: number
+	/** True when there are documents and at least one is rejected (invalid). */
+	canMarkInvalidDocumentation: boolean
 }) {
 	const t = useTranslations('app')
 	const router = useRouter()
+	const resolveError = useResolveValidationError()
 	const [state, action, pending] = useActionState(
 		updateApplicationStatusFormAction,
 		initialState,
 	)
-	const [dialogAction, setDialogAction] =
-		useState<ApplicationStatusRequiringReason | null>(null)
+	const [dialogOpen, setDialogOpen] = useState(false)
+	const preAuthFormRef = useRef<HTMLFormElement>(null)
+	const authFormRef = useRef<HTMLFormElement>(null)
+	const invalidDocsFormRef = useRef<HTMLFormElement>(null)
 
-	const translatedError =
-		state?.error != null && state.error !== ''
-			? ACTION_ERROR_KEYS.has(state.error)
-				? t(state.error)
-				: state.error
-			: null
+	const translatedError = getResolvedError(state, resolveError, {
+		treatEmptyAsNone: true,
+	})
 
-	async function handleSubmitReason(
-		action: ApplicationStatusRequiringReason,
+	function handleSubmitReason(
+		actionStatus: ApplicationStatusRequiringReason,
 		reason: string,
 	) {
-		return updateApplicationStatus(applicationId, { status: action, reason })
+		return updateApplicationStatus(applicationId, {
+			status: actionStatus,
+			reason,
+		})
 	}
 
 	return (
-		<div className="flex flex-wrap items-center gap-2">
-			{translatedError && (
-				<div className="w-full rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-destructive text-sm">
-					{translatedError}
-				</div>
-			)}
-			<form action={action}>
-				<input type="hidden" name="applicationId" value={applicationId} />
-				<input type="hidden" name="status" value="pre-authorized" />
-				<FormSubmitButton
-					labelKey="applications-action-pre-authorize"
-					disabled={pending}
+		<div className="flex flex-col gap-2">
+			{translatedError && <Alert variant="banner" message={translatedError} />}
+			<div className="flex flex-wrap items-center gap-2">
+				{/* Hidden forms for immediate actions */}
+				<form
+					ref={preAuthFormRef}
+					action={action}
+					className="hidden"
+					aria-hidden
+				>
+					<input type="hidden" name="applicationId" value={applicationId} />
+					<input type="hidden" name="status" value="pre-authorized" />
+					<button type="submit" />
+				</form>
+				<form ref={authFormRef} action={action} className="hidden" aria-hidden>
+					<input type="hidden" name="applicationId" value={applicationId} />
+					<input type="hidden" name="status" value="authorized" />
+					<button type="submit" />
+				</form>
+				<form
+					ref={invalidDocsFormRef}
+					action={action}
+					className="hidden"
+					aria-hidden
+				>
+					<input type="hidden" name="applicationId" value={applicationId} />
+					<input type="hidden" name="status" value="invalid-documentation" />
+					<button type="submit" />
+				</form>
+
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="default"
+							size="sm"
+							disabled={pending}
+							className="gap-2"
+						>
+							{t('applications-actions')}
+							<ChevronDown className="size-4 opacity-70" />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="start" className="min-w-48">
+						<DropdownMenuItem
+							onSelect={(e) => {
+								e.preventDefault()
+								preAuthFormRef.current?.requestSubmit()
+							}}
+							disabled={pending}
+						>
+							<CheckCircle2 className="size-4" />
+							{t('applications-action-pre-authorize')}
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onSelect={(e) => {
+								e.preventDefault()
+								authFormRef.current?.requestSubmit()
+							}}
+							disabled={pending}
+						>
+							<CheckCircle2 className="size-4" />
+							{t('applications-action-authorize')}
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							variant="destructive"
+							onSelect={(e) => {
+								e.preventDefault()
+								setDialogOpen(true)
+							}}
+							disabled={pending}
+						>
+							<XCircle className="size-4" />
+							{t('applications-action-reject')}
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onSelect={(e) => {
+								e.preventDefault()
+								if (!canMarkInvalidDocumentation) return
+								invalidDocsFormRef.current?.requestSubmit()
+							}}
+							disabled={pending || !canMarkInvalidDocumentation}
+							aria-disabled={pending || !canMarkInvalidDocumentation}
+							title={
+								!canMarkInvalidDocumentation
+									? t('applications-action-invalid-docs-disabled-hint')
+									: undefined
+							}
+							data-application-action="invalid-docs"
+						>
+							<FileWarning className="size-4" />
+							{t('applications-action-invalid-docs')}
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+
+				<ApplicationReasonDialog
+					open={dialogOpen}
+					action={dialogOpen ? 'denied' : null}
+					onClose={() => setDialogOpen(false)}
+					onSubmit={handleSubmitReason}
+					onSuccess={() => router.refresh()}
+					translateError={resolveError}
 				/>
-			</form>
-			<form action={action}>
-				<input type="hidden" name="applicationId" value={applicationId} />
-				<input type="hidden" name="status" value="authorized" />
-				<FormSubmitButton
-					labelKey="applications-action-authorize"
-					disabled={pending}
-				/>
-			</form>
-			<Button
-				variant="destructive"
-				size="sm"
-				onClick={() => setDialogAction('denied')}
-				disabled={pending}
-			>
-				{t('applications-action-reject')}
-			</Button>
-			<Button
-				variant="secondary"
-				size="sm"
-				onClick={() => setDialogAction('invalid-documentation')}
-				disabled={pending}
-			>
-				{t('applications-action-invalid-docs')}
-			</Button>
-			<ApplicationReasonDialog
-				open={dialogAction !== null}
-				action={dialogAction}
-				onClose={() => setDialogAction(null)}
-				onSubmit={handleSubmitReason}
-				onSuccess={() => router.refresh()}
-				translateError={(error) =>
-					ACTION_ERROR_KEYS.has(error) ? t(error) : error
-				}
-			/>
+			</div>
 		</div>
 	)
 }

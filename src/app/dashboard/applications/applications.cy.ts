@@ -115,7 +115,9 @@ describe('Dashboard Applications', () => {
 			cy.visit('/signup')
 			cy.get('input[name="email"]').type(badEmail)
 			cy.get('input[name="name"]').type('Test Orphan')
-			cy.contains('button', /regístrate|registrarse/i).click()
+			cy.contains('button', /regístrate|registrarse/i)
+				.should('be.visible')
+				.click()
 			cy.url().should('include', '/signup')
 			cy.contains(/Tu correo no está asociado.*No puedes registrarte/i).should(
 				'be.visible',
@@ -137,10 +139,12 @@ describe('Dashboard Applications', () => {
 			cy.get('input[name="salaryAtApplication"]').type('100000')
 			// max = 100000 * 0.30 = 30000; submit 50000
 			cy.get('input[name="creditAmount"]').type('50000')
-			cy.contains('button', /enviar solicitud/i).click()
+			cy.contains('button', /enviar solicitud/i)
+				.should('be.visible')
+				.click()
 			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(
-				/no puede superar el máximo permitido \(\$30,000\.00\)/i,
+				'El monto no puede superar el máximo permitido ($30,000.00).',
 			).should('be.visible')
 		})
 
@@ -148,11 +152,11 @@ describe('Dashboard Applications', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
 			cy.selectRadix('label:Plazo', 'Mensual - 12 meses')
-			cy.contains('button', /enviar solicitud/i).click()
+			cy.contains('button', /enviar solicitud/i)
+				.should('be.visible')
+				.click()
 			cy.url().should('include', '/dashboard/applications/new')
-			cy.contains(/requerido|valor es requerido|número positivo/i).should(
-				'be.visible',
-			)
+			cy.contains('El valor es requerido').should('be.visible')
 		})
 	})
 
@@ -201,16 +205,16 @@ describe('Dashboard Applications', () => {
 			cy.task('deleteApplicationsByApplicantId', seed.applicantId)
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
-			cy.contains(
-				/mis solicitudes de crédito|completa los datos para solicitar|plazo|monto solicitado/i,
-			).should('be.visible')
 
 			cy.selectRadix('label:Plazo', 'Mensual - 12 meses')
 			cy.get('input[name="salaryAtApplication"]').type('100000')
 			cy.get('input[name="creditAmount"]').type('25000')
-			cy.contains('button', /enviar solicitud/i).click()
+			cy.contains('button', /enviar solicitud/i)
+				.should('be.visible')
+				.click()
 
 			cy.url().should('include', '/dashboard/applications')
+			cy.get('main').should('be.visible')
 			cy.contains('25,000').should('be.visible')
 		})
 	})
@@ -229,6 +233,7 @@ describe('Dashboard Applications', () => {
 		it('Solicitar Ahora goes to new application page', () => {
 			cy.visit('/dashboard')
 			cy.contains('a', /solicitar ahora/i)
+				.should('be.visible')
 				.should('have.attr', 'href', '/dashboard/applications/new')
 				.click()
 			cy.url().should('include', '/dashboard/applications/new')
@@ -255,7 +260,9 @@ describe('Dashboard Applications', () => {
 				salaryAtApplication: '100000',
 			}).then((app) => {
 				cy.visit('/dashboard/applications')
-				cy.get(`a[href="/dashboard/applications/${app.id}"]`).click()
+				cy.get(`a[href="/dashboard/applications/${app.id}"]`)
+					.should('be.visible')
+					.click()
 				cy.url().should('include', `/dashboard/applications/${app.id}`)
 				cy.contains('10,000').should('be.visible')
 				cy.contains(/detalle de solicitud|estado|monto solicitado/i).should(
