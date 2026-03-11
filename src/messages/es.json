@@ -1,4 +1,17 @@
 {
+	"breadcrumbs": {
+		"dashboard-home": "Mi Cuenta",
+		"dashboard-applications": "Mis Solicitudes",
+		"dashboard-applications-new": "Nueva Solicitud",
+		"dashboard-applications-detail": "Detalle de solicitud",
+		"app-dashboard": "Panel",
+		"app-applications": "Solicitudes",
+		"app-applications-detail": "Detalle de solicitud",
+		"app-companies": "Empresas",
+		"app-companies-new": "Crear Empresa",
+		"app-companies-edit": "Editar Empresa",
+		"app-users": "Usuarios"
+	},
 	"common": {
 		"save": "Guardar",
 		"cancel": "Cancelar",

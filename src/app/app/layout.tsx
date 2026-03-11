@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { AgentNoAssignmentsEmpty } from '~/components/app/agent-no-assignments-empty'
 import { AppSidebar } from '~/components/app/app-sidebar'
+import { BreadcrumbNav } from '~/components/breadcrumb-nav'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -38,8 +39,9 @@ export default async function AppLayout({
 			/>
 			<main className="flex flex-1 flex-col">
 				<header className="border-b">
-					<div className="flex h-16 items-center gap-4 px-6">
+					<div className="flex h-14 min-h-14 items-center gap-4 px-6">
 						<SidebarTrigger />
+						<BreadcrumbNav scope="app" />
 					</div>
 				</header>
 				<div className="flex-1 overflow-y-auto bg-gray-50 p-8">
