@@ -17,6 +17,7 @@ import {
 	InputOTPGroup,
 	InputOTPSlot,
 } from '~/components/ui/input-otp'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import { sendEmailChangeOtp, verifyEmailChangeOtp } from '~/server/auth/users'
 
 interface EmailChangeModalProps {
@@ -34,6 +35,7 @@ export function EmailChangeModal({
 }: EmailChangeModalProps) {
 	const t = useTranslations('security')
 	const tCommon = useTranslations('common')
+	const resolveError = useResolveValidationError()
 	const [step, setStep] = useState<'email' | 'otp'>('email')
 	const [newEmail, setNewEmail] = useState('')
 	const [otp, setOtp] = useState('')
@@ -123,10 +125,12 @@ export function EmailChangeModal({
 									aria-invalid={!!emailState.errors?.newEmail}
 								/>
 								{emailState.errors?.newEmail && (
-									<FieldError>{emailState.errors.newEmail}</FieldError>
+									<FieldError
+										message={resolveError(emailState.errors.newEmail)}
+									/>
 								)}
 								{emailState.message && !emailState.errors && (
-									<FieldError>{emailState.message}</FieldError>
+									<FieldError message={resolveError(emailState.message)} />
 								)}
 							</Field>
 
@@ -202,12 +206,12 @@ export function EmailChangeModal({
 
 							{otpState.errors?.otp && (
 								<div className="text-center">
-									<FieldError>{otpState.errors.otp}</FieldError>
+									<FieldError message={resolveError(otpState.errors.otp)} />
 								</div>
 							)}
 							{otpState.message && !otpState.errors && (
 								<div className="text-center">
-									<FieldError>{otpState.message}</FieldError>
+									<FieldError message={resolveError(otpState.message)} />
 								</div>
 							)}
 

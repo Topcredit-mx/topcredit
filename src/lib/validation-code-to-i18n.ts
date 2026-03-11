@@ -14,11 +14,13 @@ type AdminKey = keyof (typeof messages)['admin']
 type DashboardApplicationsKey =
 	keyof (typeof messages)['dashboard']['applications']
 type AppKey = keyof (typeof messages)['app']
+type AuthKey = keyof (typeof messages)['auth']
 
 type CodeMapping =
 	| { namespace: 'admin'; key: AdminKey }
 	| { namespace: 'dashboard.applications'; key: DashboardApplicationsKey }
 	| { namespace: 'app'; key: AppKey }
+	| { namespace: 'auth'; key: AuthKey }
 
 const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 	[ValidationCode.COMPANY_NAME_REQUIRED]: {
@@ -89,6 +91,50 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'dashboard.applications',
 		key: 'document-status-invalid',
 	},
+	[ValidationCode.DASHBOARD_APPLICATION_EMAIL_DOMAIN]: {
+		namespace: 'dashboard.applications',
+		key: 'error-email-domain',
+	},
+	[ValidationCode.DASHBOARD_APPLICATION_COMPANY_NO_RATE]: {
+		namespace: 'dashboard.applications',
+		key: 'error-company-no-rate',
+	},
+	[ValidationCode.DASHBOARD_APPLICATION_COMPANY_NO_TERMS]: {
+		namespace: 'dashboard.applications',
+		key: 'error-company-no-terms',
+	},
+	[ValidationCode.DASHBOARD_APPLICATION_TERM_NOT_AVAILABLE]: {
+		namespace: 'dashboard.applications',
+		key: 'term-not-available',
+	},
+	[ValidationCode.DASHBOARD_APPLICATION_DUPLICATE_WAIT]: {
+		namespace: 'dashboard.applications',
+		key: 'duplicate-application-wait',
+	},
+	[ValidationCode.DASHBOARD_APPLICATION_EXISTING_ACTIVE]: {
+		namespace: 'dashboard.applications',
+		key: 'existing-active-application',
+	},
+	[ValidationCode.DASHBOARD_APPLICATION_NOT_FOUND]: {
+		namespace: 'dashboard.applications',
+		key: 'application-not-found',
+	},
+	[ValidationCode.DASHBOARD_APPLICATION_FILE_REQUIRED]: {
+		namespace: 'dashboard.applications',
+		key: 'file-required',
+	},
+	[ValidationCode.DASHBOARD_APPLICATION_FILE_MAX_SIZE]: {
+		namespace: 'dashboard.applications',
+		key: 'file-max-size',
+	},
+	[ValidationCode.FILE_TYPE_UNKNOWN]: {
+		namespace: 'dashboard.applications',
+		key: 'file-type-unknown',
+	},
+	[ValidationCode.FILE_TYPE_NOT_ALLOWED]: {
+		namespace: 'dashboard.applications',
+		key: 'file-type-not-allowed',
+	},
 	[ValidationCode.APPLICATIONS_DOCUMENT_INVALID]: {
 		namespace: 'app',
 		key: 'applications-document-invalid',
@@ -112,6 +158,58 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 	[ValidationCode.APPLICATIONS_ERROR_TRANSITION]: {
 		namespace: 'app',
 		key: 'applications-error-transition',
+	},
+	[ValidationCode.AUTH_EMAIL_NAME_REQUIRED]: {
+		namespace: 'auth',
+		key: 'error-email-name-required',
+	},
+	[ValidationCode.AUTH_EMAIL_REQUIRED]: {
+		namespace: 'auth',
+		key: 'error-email-required',
+	},
+	[ValidationCode.AUTH_SIGNUP_EMAIL_NOT_ELIGIBLE]: {
+		namespace: 'auth',
+		key: 'error-signup-email-not-eligible',
+	},
+	[ValidationCode.AUTH_LOGIN_NO_CREDIT_ACCESS]: {
+		namespace: 'auth',
+		key: 'error-login-no-credit-access',
+	},
+	[ValidationCode.AUTH_RATE_LIMIT_EXCEEDED]: {
+		namespace: 'auth',
+		key: 'error-rate-limit-exceeded',
+	},
+	[ValidationCode.AUTH_USER_NOT_FOUND]: {
+		namespace: 'auth',
+		key: 'error-user-not-found',
+	},
+	[ValidationCode.AUTH_OTP_RESENT_SUCCESS]: {
+		namespace: 'auth',
+		key: 'error-otp-resent-success',
+	},
+	[ValidationCode.AUTH_NOT_AUTHENTICATED]: {
+		namespace: 'auth',
+		key: 'error-not-authenticated',
+	},
+	[ValidationCode.AUTH_EMAIL_CHANGE_SAME]: {
+		namespace: 'auth',
+		key: 'error-email-change-same',
+	},
+	[ValidationCode.AUTH_EMAIL_ALREADY_REGISTERED]: {
+		namespace: 'auth',
+		key: 'error-email-already-registered',
+	},
+	[ValidationCode.AUTH_CURRENT_USER_NOT_FOUND]: {
+		namespace: 'auth',
+		key: 'error-current-user-not-found',
+	},
+	[ValidationCode.AUTH_OTP_INVALID]: {
+		namespace: 'auth',
+		key: 'error-otp-invalid',
+	},
+	[ValidationCode.AUTH_OTP_EXPIRED]: {
+		namespace: 'auth',
+		key: 'error-otp-expired',
 	},
 }
 
@@ -146,12 +244,14 @@ export function useResolveValidationError(): (code: string) => string {
 	const tAdmin = useTranslations('admin')
 	const tDashboardApps = useTranslations('dashboard.applications')
 	const tApp = useTranslations('app')
+	const tAuth = useTranslations('auth')
 
 	return (code: string) => {
 		if (!isValidationCode(code)) return code
 		const { namespace, key } = CODE_TO_I18N[code]
 		if (namespace === 'admin') return tAdmin(key)
 		if (namespace === 'dashboard.applications') return tDashboardApps(key)
+		if (namespace === 'auth') return tAuth(key)
 		return tApp(key)
 	}
 }

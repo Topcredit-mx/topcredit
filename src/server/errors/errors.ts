@@ -55,7 +55,7 @@ export function fromErrorToFormState(error: unknown): {
 				if (error.constraint?.includes('email')) {
 					return {
 						errors: {
-							email: 'Este correo electrónico ya está registrado.',
+							email: ValidationCode.AUTH_EMAIL_ALREADY_REGISTERED,
 						},
 					}
 				}

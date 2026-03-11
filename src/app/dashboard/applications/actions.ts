@@ -4,6 +4,7 @@ import { and, eq, gte, notInArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { formatCurrencyMxn } from '~/lib/utils'
+import { ValidationCode } from '~/lib/validation-codes'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -57,23 +58,17 @@ export async function createApplicationAction(
 	const email = user.email ?? ''
 	const company = await getCompanyByEmailDomain(email)
 	if (!company) {
-		return {
-			message: 'Tu correo no está asociado a ninguna empresa afiliada.',
-		}
+		return { message: ValidationCode.DASHBOARD_APPLICATION_EMAIL_DOMAIN }
 	}
 
 	const borrowingCapacityRate = company.borrowingCapacityRate
 	if (!borrowingCapacityRate || Number(borrowingCapacityRate) <= 0) {
-		return {
-			message: 'Tu empresa no tiene configuración de crédito.',
-		}
+		return { message: ValidationCode.DASHBOARD_APPLICATION_COMPANY_NO_RATE }
 	}
 
 	const offerings = await getTermOfferingsForCompany(company.id)
 	if (offerings.length === 0) {
-		return {
-			message: 'Tu empresa no tiene plazos disponibles.',
-		}
+		return { message: ValidationCode.DASHBOARD_APPLICATION_COMPANY_NO_TERMS }
 	}
 
 	try {
@@ -87,7 +82,8 @@ export async function createApplicationAction(
 		if (!offering || offering.disabled) {
 			return {
 				errors: {
-					termOfferingId: 'El plazo seleccionado no está disponible.',
+					termOfferingId:
+						ValidationCode.DASHBOARD_APPLICATION_TERM_NOT_AVAILABLE,
 				},
 			}
 		}
@@ -116,10 +112,7 @@ export async function createApplicationAction(
 			columns: { id: true },
 		})
 		if (duplicate) {
-			return {
-				message:
-					'Ya enviaste esta solicitud. Por favor espera un momento antes de intentar de nuevo.',
-			}
+			return { message: ValidationCode.DASHBOARD_APPLICATION_DUPLICATE_WAIT }
 		}
 
 		const existingActive = await db.query.applications.findFirst({
@@ -131,8 +124,7 @@ export async function createApplicationAction(
 		})
 		if (existingActive) {
 			return {
-				message:
-					'Tienes una solicitud en proceso. Solo puedes tener una solicitud activa a la vez.',
+				message: ValidationCode.DASHBOARD_APPLICATION_EXISTING_ACTIVE,
 			}
 		}
 
@@ -171,10 +163,14 @@ export async function uploadApplicationDocumentAction(
 
 	const file = formData.get('file')
 	if (!(file instanceof File) || file.size === 0) {
-		return { errors: { file: 'Selecciona un archivo válido.' } }
+		return {
+			errors: { file: ValidationCode.DASHBOARD_APPLICATION_FILE_REQUIRED },
+		}
 	}
 	if (file.size > APPLICATION_DOCUMENT_MAX_BYTES) {
-		return { errors: { file: 'El archivo no debe superar 15 MB.' } }
+		return {
+			errors: { file: ValidationCode.DASHBOARD_APPLICATION_FILE_MAX_SIZE },
+		}
 	}
 	const detected = await detectAllowedMime(
 		file,
@@ -199,7 +195,7 @@ export async function uploadApplicationDocumentAction(
 		})
 
 		if (!app?.termOffering) {
-			return { message: 'Solicitud no encontrada.' }
+			return { message: ValidationCode.DASHBOARD_APPLICATION_NOT_FOUND }
 		}
 
 		requireAbility(

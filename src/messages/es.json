@@ -261,7 +261,15 @@
 			"application-value-positive": "Debe ser un número positivo",
 			"application-invalid": "Solicitud no válida",
 			"document-type-invalid": "Tipo de documento no válido",
-			"document-status-invalid": "Estado de documento no válido"
+			"document-status-invalid": "Estado de documento no válido",
+			"term-not-available": "El plazo seleccionado no está disponible.",
+			"duplicate-application-wait": "Ya enviaste esta solicitud. Por favor espera un momento antes de intentar de nuevo.",
+			"existing-active-application": "Tienes una solicitud en proceso. Solo puedes tener una solicitud activa a la vez.",
+			"application-not-found": "Solicitud no encontrada.",
+			"file-required": "Selecciona un archivo válido.",
+			"file-max-size": "El archivo no debe superar 15 MB.",
+			"file-type-unknown": "Tipo de archivo no reconocido.",
+			"file-type-not-allowed": "Solo se permiten archivos PDF, JPG, PNG o WebP."
 		},
 		"verify": {
 			"title": "Verificación",
@@ -294,7 +302,20 @@
 		"name-placeholder": "Tu nombre",
 		"submit-signup": "Regístrate",
 		"already-have-account": "¿Ya tienes una cuenta?",
-		"sign-in-link": "Iniciar sesión"
+		"sign-in-link": "Iniciar sesión",
+		"error-email-name-required": "El correo y el nombre son requeridos",
+		"error-email-required": "El correo es requerido",
+		"error-signup-email-not-eligible": "Tu correo no está asociado a una empresa con crédito disponible. No puedes registrarte.",
+		"error-login-no-credit-access": "Tu cuenta no tiene acceso al crédito. Contacta a tu empresa o a soporte.",
+		"error-rate-limit-exceeded": "Límite de intentos excedido",
+		"error-user-not-found": "Usuario no encontrado",
+		"error-otp-resent-success": "Código reenviado exitosamente",
+		"error-not-authenticated": "Usuario no autenticado",
+		"error-email-change-same": "El nuevo correo debe ser diferente al actual",
+		"error-email-already-registered": "Este correo electrónico ya está registrado.",
+		"error-current-user-not-found": "Usuario actual no encontrado",
+		"error-otp-invalid": "Código OTP inválido",
+		"error-otp-expired": "El código OTP ha expirado"
 	},
 	"profile": {
 		"card-title": "Datos del perfil",

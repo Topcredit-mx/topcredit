@@ -1,11 +1,12 @@
 import { fileTypeFromBuffer } from 'file-type'
+import { ValidationCode } from '~/lib/validation-codes'
 
 /** Bytes to read from the start of a file for magic-byte detection. */
 const MAGIC_BYTE_SAMPLE_SIZE = 4100
 
 /**
  * Detects MIME type from file content (magic bytes), not client-provided file.type.
- * Returns the detected MIME if it is in the allowed set; otherwise returns an error.
+ * Returns the detected MIME if it is in the allowed set; otherwise returns an error (validation code).
  */
 export async function detectAllowedMime(
 	file: File,
@@ -15,10 +16,10 @@ export async function detectAllowedMime(
 	const buffer = await slice.arrayBuffer()
 	const result = await fileTypeFromBuffer(new Uint8Array(buffer))
 	if (!result) {
-		return { error: 'Tipo de archivo no reconocido.' }
+		return { error: ValidationCode.FILE_TYPE_UNKNOWN }
 	}
 	if (!allowedMimes.has(result.mime)) {
-		return { error: 'Solo se permiten archivos PDF, JPG, PNG o WebP.' }
+		return { error: ValidationCode.FILE_TYPE_NOT_ALLOWED }
 	}
 	return { mime: result.mime }
 }

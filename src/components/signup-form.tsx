@@ -8,6 +8,7 @@ import { Button } from '~/components/ui/button'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
 import { cn } from '~/lib/utils'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import { registerUser } from '~/server/auth/actions'
 
 export function SignupForm({
@@ -16,6 +17,7 @@ export function SignupForm({
 }: React.ComponentProps<'div'>) {
 	const t = useTranslations('auth')
 	const tCommon = useTranslations('common')
+	const resolveError = useResolveValidationError()
 	const [state, action, loading] = useActionState(registerUser, { message: '' })
 	const emailId = useId()
 	const nameId = useId()
@@ -48,9 +50,6 @@ export function SignupForm({
 								placeholder={t('email-placeholder')}
 								aria-required="true"
 							/>
-							{state.message?.includes('email') && (
-								<FieldError>{state.message}</FieldError>
-							)}
 						</Field>
 						<Field>
 							<FieldLabel htmlFor={nameId}>
@@ -63,17 +62,12 @@ export function SignupForm({
 								placeholder={t('name-placeholder')}
 								aria-required="true"
 							/>
-							{state.message?.includes('nombre') && (
-								<FieldError>{state.message}</FieldError>
-							)}
 						</Field>
-						{state.message &&
-							!state.message?.includes('email') &&
-							!state.message?.includes('nombre') && (
-								<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-									{state.message}
-								</div>
-							)}
+						{state.message && (
+							<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
+								<FieldError message={resolveError(state.message)} />
+							</div>
+						)}
 						<Button type="submit" className="w-full" disabled={loading}>
 							{loading ? tCommon('loading') : t('submit-signup')}
 						</Button>
