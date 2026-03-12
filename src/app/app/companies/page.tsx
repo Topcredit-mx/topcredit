@@ -17,18 +17,15 @@ export default async function CompaniesPage({
 }: CompaniesPageProps) {
 	await requireAuth()
 
-	const [{ assignedCompanyIds }, selectedCompanyId] = await Promise.all([
-		getAbility(),
-		getEffectiveSelectedCompanyId(),
-	])
+	const [{ assignedCompanyIds, isAdmin }, selectedCompanyId] =
+		await Promise.all([getAbility(), getEffectiveSelectedCompanyId()])
 
-	let companyIds: number[] | undefined =
-		assignedCompanyIds === 'all' ? undefined : assignedCompanyIds
+	let companyIds: number[] | undefined = isAdmin
+		? undefined
+		: assignedCompanyIds
 	const useSelectedFilter =
 		selectedCompanyId !== null &&
-		(assignedCompanyIds === 'all' ||
-			(Array.isArray(assignedCompanyIds) &&
-				assignedCompanyIds.includes(selectedCompanyId)))
+		(isAdmin || assignedCompanyIds.includes(selectedCompanyId))
 	if (useSelectedFilter) {
 		companyIds = [selectedCompanyId]
 	}
