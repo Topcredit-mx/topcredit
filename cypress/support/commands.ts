@@ -35,7 +35,7 @@ Cypress.Commands.add('selectRadix', (selector: string, optionText: string) => {
 	} else if (!byLabel && selector.match(/^[a-zA-Z][a-zA-Z0-9_-]*$/)) {
 		// Looks like a name attribute (no spaces, starts with letter)
 		// Exclude hidden inputs - we want the visible SelectTrigger, not hidden form inputs
-		cy.get(`[name="${selector}"]:not(input[type="hidden"])`).click()
+		cy.get(`[name="${selector}"]:not(input[type="hidden"])`).first().click()
 	} else {
 		// Label text (or label:...) - find label, then trigger inside same field
 		cy.contains('label', new RegExp(labelText, 'i'))
@@ -45,11 +45,11 @@ Cypress.Commands.add('selectRadix', (selector: string, optionText: string) => {
 			.click()
 	}
 
-	// Wait for portal content to be visible
-	cy.get('[data-slot="select-content"]').should('be.visible')
+	// Wait for portal content to be visible (may be multiple in DOM from portals)
+	cy.get('[data-slot="select-content"]').should('be.visible').first()
 
-	// Click the option by text content
-	cy.contains('[data-slot="select-item"]', optionText).click()
+	// Click the first matching option in case multiple select contents exist
+	cy.contains('[data-slot="select-item"]', optionText).first().click()
 })
 
 /**

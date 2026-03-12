@@ -49,7 +49,7 @@
 #### Phase 3.1: Applicants – application detail and documents (split for smaller PRs)
 - [x] **3.1.1** Applicants: application detail page (dashboard) — view own application by id (status, amount, term, denial reason); link from applications list.
 - [x] **3.1.2** Application documents: schema + storage — `application_documents` table (document types: authorization, contract, payrollReceipt; status pending/approved/rejected); Vercel Blob (private); upload + list APIs and auth; applicant upload + agent read-only list; authenticated file route for preview.
-- [ ] **3.1.3** Applicants: resubmit rejected flow — when status is denied or invalid-documentation, applicant can resubmit (transition to pending + upload required docs); CASL and mutation.
+- [ ] **3.1.3** Applicants: resubmit rejected flow — when status is invalid-documentation, applicant can resubmit (transition to pending + upload required docs). applicant cannot submit again if denied.
 - [ ] **3.1.4** Applicants: pre-authorized flow (contract, docs) — when status is pre-authorized, applicant views/accepts contract and uploads or confirms docs; then agent can authorize.
 
 - [ ] Agents: pre-authorized review, HR review

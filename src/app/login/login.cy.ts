@@ -14,49 +14,49 @@ describe('Login Flow', () => {
 		cy.task('cleanupLoginFlow', { termId: seed.termId })
 	})
 
-	it('should access applicant dashboard after login', () => {
+	it('accesses applicant dashboard after login', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/dashboard')
 		cy.url().should('include', '/dashboard')
 		cy.contains('Mi Cuenta').should('be.visible')
 	})
 
-	it('should redirect to dashboard from /login when authenticated', () => {
+	it('redirects to dashboard from /login when authenticated', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/login')
 		cy.url().should('include', '/dashboard')
 		cy.contains('Mi Cuenta').should('be.visible')
 	})
 
-	it('should redirect to dashboard from / when authenticated', () => {
+	it('redirects to dashboard from / when authenticated', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/')
 		cy.url().should('include', '/dashboard')
 		cy.contains('Mi Cuenta').should('be.visible')
 	})
 
-	it('should show unauthorized page when applicant tries to access app', () => {
+	it('shows unauthorized page when applicant tries to access app', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/app')
 		cy.url().should('include', '/unauthorized')
 		cy.contains('h1', '403 - No Autorizado').should('be.visible')
 	})
 
-	it('should allow agent to access app routes', () => {
+	it('allows agent to access app routes', () => {
 		cy.login(agentUser.email)
 		cy.visit('/app')
 		cy.url().should('include', '/app')
 		cy.contains('Sin empresas asignadas').should('be.visible')
 	})
 
-	it('should show unauthorized page when agent tries to access dashboard', () => {
+	it('shows unauthorized page when agent tries to access dashboard', () => {
 		cy.login(agentUser.email)
 		cy.visit('/dashboard')
 		cy.url().should('include', '/unauthorized')
 		cy.contains('h1', '403 - No Autorizado').should('be.visible')
 	})
 
-	it('should redirect user with no roles to settings from / and /login, block /app and /dashboard', () => {
+	it('redirects user with no roles to settings from / and /login, blocks /app and /dashboard', () => {
 		cy.login(noRoleUser.email)
 		cy.visit('/')
 		cy.url().should('include', '/settings')
@@ -80,14 +80,14 @@ describe('Login Flow', () => {
 		cy.contains(/ningún rol asignado|no roles/i).should('be.visible')
 	})
 
-	it('should not allow access to /settings when unauthenticated', () => {
+	it('does not allow access to /settings when unauthenticated', () => {
 		cy.visit('/settings')
 		cy.url().should('not.include', '/settings')
 	})
 
 	// Requires app in E2E test mode (E2E_TEST_MODE=true) and E2E_OTP_CODE set. CI sets both; locally: E2E_TEST_MODE=true E2E_OTP_CODE=123456 pnpm dev:test and same for cy:run
 	describe('Full UI login', () => {
-		it('should log in via login → verify-otp with OTP code', () => {
+		it('logs in via login → verify-otp with OTP code', () => {
 			cy.visit('/login')
 			cy.get('input[name="email"]').type(applicantUser.email)
 			cy.get('form').submit()
@@ -108,7 +108,7 @@ describe('Login Flow', () => {
 			cy.contains('Mi Cuenta').should('be.visible')
 		})
 
-		it('should show invalid code when wrong OTP entered', () => {
+		it('shows invalid code when wrong OTP entered', () => {
 			cy.visit('/login')
 			cy.get('input[name="email"]').type(applicantUser.email)
 			cy.get('form').submit()

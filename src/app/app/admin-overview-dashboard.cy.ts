@@ -7,15 +7,12 @@
 
 import { adminOverviewAdmin } from './admin-overview-dashboard.fixtures'
 
-describe('Admin overview dashboard (US-2.2.5)', () => {
+describe('Admin overview dashboard', () => {
 	const adminEmail = adminOverviewAdmin.email
 
 	before(() => {
-		cy.task('seedAdminOverview')
-	})
-
-	after(() => {
 		cy.task('cleanupAdminOverview')
+		cy.task('seedAdminOverview')
 	})
 
 	beforeEach(() => {

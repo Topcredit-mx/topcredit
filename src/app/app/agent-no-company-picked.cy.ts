@@ -14,11 +14,8 @@ describe('Agent with no company picked', () => {
 	const agentEmail = agentWithAssignments.email
 
 	before(() => {
-		cy.task('seedCompanySwitcher')
-	})
-
-	after(() => {
 		cy.task('cleanupCompanySwitcher')
+		cy.task('seedCompanySwitcher')
 	})
 
 	beforeEach(() => {
