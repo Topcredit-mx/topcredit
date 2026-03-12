@@ -938,6 +938,18 @@ export const cleanupAdminUsers = async () => {
 
 // ---- Seed: Admin companies ----
 
+/** All company domains used by any E2E spec. Clean these in cleanupAdminCompanies so the companies list is not polluted by other specs or previous runs. */
+const ALL_E2E_COMPANY_DOMAINS = [
+	...companiesCompanyList.map((c) => c.domain),
+	...usersCompanyList.map((c) => c.domain),
+	...overviewCompanyList.map((c) => c.domain),
+	...switcherCompanyList.map((c) => c.domain),
+	...allReviewCompanies.map((c) => c.domain),
+	'newtest.com',
+	'norate.com',
+	'edittest.com',
+]
+
 export type SeedAdminCompaniesResult = {
 	adminId: number
 }
@@ -992,8 +1004,8 @@ export const cleanupAdminCompanies = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	await db.delete(users).where(eq(users.email, companiesAdminUser.email))
 	await Promise.all(
-		companiesCompanyList.map((c) =>
-			db.delete(companies).where(eq(companies.domain, c.domain)),
+		ALL_E2E_COMPANY_DOMAINS.map((domain) =>
+			db.delete(companies).where(eq(companies.domain, domain)),
 		),
 	)
 	return null
@@ -1191,9 +1203,30 @@ export type SeedApplicationsReviewResult = {
 	applicantA5ApplicationId: number
 }
 
+/** Company domains from other E2E specs. Remove their applications at seed start so the review list count is predictable (no leak from dashboard etc.). */
+const OTHER_E2E_APPLICATION_DOMAINS = [
+	'example.com',
+	'norate.com',
+	'noterms.com',
+] as const
+
 export const seedApplicationsReview =
 	async (): Promise<SeedApplicationsReviewResult> => {
 		const db = getDb(process.env.DATABASE_URL || '')
+
+		const otherOfferings = await db
+			.select({ id: termOfferings.id })
+			.from(termOfferings)
+			.innerJoin(companies, eq(termOfferings.companyId, companies.id))
+			.where(inArray(companies.domain, [...OTHER_E2E_APPLICATION_DOMAINS]))
+		if (otherOfferings.length > 0) {
+			await db.delete(applications).where(
+				inArray(
+					applications.termOfferingId,
+					otherOfferings.map((o) => o.id),
+				),
+			)
+		}
 
 		const allUserFixtures = [agentForReview, ...allReviewApplicants]
 

@@ -6,15 +6,12 @@
 
 import { agentNoAssignments } from './agent-no-assignments.fixtures'
 
-describe('Agent without assignments (US-2.2.4)', () => {
+describe('Agent without assignments', () => {
 	const email = agentNoAssignments.email
 
 	before(() => {
-		cy.task('seedAgentNoAssignments')
-	})
-
-	after(() => {
 		cy.task('cleanupAgentNoAssignments')
+		cy.task('seedAgentNoAssignments')
 	})
 
 	beforeEach(() => {

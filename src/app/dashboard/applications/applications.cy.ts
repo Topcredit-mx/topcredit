@@ -232,6 +232,7 @@ describe('Dashboard Applications', () => {
 
 		it('Solicitar Ahora goes to new application page', () => {
 			cy.visit('/dashboard')
+			cy.contains('Mi Cuenta').should('be.visible')
 			cy.contains('a', /solicitar ahora/i)
 				.should('be.visible')
 				.should('have.attr', 'href', '/dashboard/applications/new')
@@ -244,6 +245,7 @@ describe('Dashboard Applications', () => {
 
 		it('Ver Estado goes to applications list', () => {
 			cy.visit('/dashboard')
+			cy.contains('Mi Cuenta').should('be.visible')
 			cy.contains('a', /ver estado/i).should(
 				'have.attr',
 				'href',
@@ -260,6 +262,7 @@ describe('Dashboard Applications', () => {
 				salaryAtApplication: '100000',
 			}).then((app) => {
 				cy.visit('/dashboard/applications')
+				cy.get('main').should('be.visible')
 				cy.get(`a[href="/dashboard/applications/${app.id}"]`)
 					.should('be.visible')
 					.click()

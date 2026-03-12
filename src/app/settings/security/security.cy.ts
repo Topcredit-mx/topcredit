@@ -8,19 +8,16 @@ const totpUser = {
 
 describe('Settings Security', () => {
 	before(() => {
+		cy.task('cleanupSecurity')
 		cy.task('seedSecurity')
 	})
 
-	after(() => {
-		cy.task('cleanupSecurity')
-	})
-
-	it('should redirect to login when accessing /settings/security unauthenticated', () => {
+	it('redirects to login when accessing /settings/security unauthenticated', () => {
 		cy.visit('/settings/security')
 		cy.url().should('not.include', '/settings')
 	})
 
-	it('should show security content for authenticated user', () => {
+	it('shows security content when authenticated', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/settings/security')
 		cy.url().should('include', '/settings/security')
@@ -29,19 +26,19 @@ describe('Settings Security', () => {
 		cy.contains('Cambiar correo').should('be.visible')
 	})
 
-	it('should display current email on security page', () => {
+	it('displays current email on security page', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/settings/security')
 		cy.contains('p', applicantUser.email).should('be.visible')
 	})
 
-	it('should show TOTP / two-factor section', () => {
+	it('shows TOTP / two-factor section', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/settings/security')
 		cy.contains(/autenticación de dos factores|2FA|TOTP/i).should('be.visible')
 	})
 
-	it('should show TOTP-enabled state when user has TOTP setup', () => {
+	it('shows TOTP-enabled state when user has TOTP setup', () => {
 		cy.task('enableTotpForUser', totpUser.email)
 		cy.login(totpUser.email)
 		cy.visit('/settings/security')
@@ -54,7 +51,7 @@ describe('Settings Security', () => {
 		cy.contains('button', 'Deshabilitar').should('be.visible')
 	})
 
-	it('should show unverified state and warning for unverified user', () => {
+	it('shows unverified state and warning for unverified user', () => {
 		cy.task('resetUser', { ...applicantUser, verified: false })
 		cy.login(applicantUser.email)
 		cy.visit('/settings/security')
@@ -62,7 +59,7 @@ describe('Settings Security', () => {
 		cy.contains('Acción requerida').should('be.visible')
 	})
 
-	it('should show verified state for verified user', () => {
+	it('shows verified state for verified user', () => {
 		cy.task('resetUser', { ...applicantUser, verified: true })
 		cy.login(applicantUser.email)
 		cy.visit('/settings/security')

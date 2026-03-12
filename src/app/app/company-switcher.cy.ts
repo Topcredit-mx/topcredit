@@ -14,15 +14,12 @@ import {
 	companyUnassigned,
 } from './company-switcher.fixtures'
 
-describe('Company Switcher (US-2.2.3)', () => {
+describe('Company Switcher', () => {
 	const agentEmail = agentWithAssignments.email
 
 	before(() => {
-		cy.task('seedCompanySwitcher')
-	})
-
-	after(() => {
 		cy.task('cleanupCompanySwitcher')
+		cy.task('seedCompanySwitcher')
 	})
 
 	beforeEach(() => {

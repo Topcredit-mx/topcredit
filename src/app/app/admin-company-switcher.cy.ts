@@ -11,15 +11,12 @@ import {
 	overviewCompanyList,
 } from './admin-overview-dashboard.fixtures'
 
-describe('Admin company switcher (US-2.2.6)', () => {
+describe('Admin company switcher', () => {
 	const adminEmail = adminOverviewAdmin.email
 
 	before(() => {
-		cy.task('seedAdminOverview')
-	})
-
-	after(() => {
 		cy.task('cleanupAdminOverview')
+		cy.task('seedAdminOverview')
 	})
 
 	beforeEach(() => {

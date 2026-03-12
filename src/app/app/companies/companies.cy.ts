@@ -2,15 +2,12 @@ import { adminUser, companies } from './companies.fixtures'
 
 describe('Admin Companies List', () => {
 	before(() => {
+		cy.task('cleanupAdminCompanies')
 		cy.task('seedAdminCompanies')
 	})
 
-	after(() => {
-		cy.task('cleanupAdminCompanies')
-	})
-
 	describe('Access Control', () => {
-		it('should redirect non-admin users to unauthorized page', () => {
+		it('redirects non-admin users to unauthorized page', () => {
 			const agentUser = {
 				name: 'Agent User',
 				email: 'agent.companies@example.com',
@@ -24,7 +21,7 @@ describe('Admin Companies List', () => {
 			cy.task('deleteUsersByEmail', [agentUser.email])
 		})
 
-		it('should allow admin users to access companies page', () => {
+		it('allows admin users to access companies page', () => {
 			cy.login(adminUser.email)
 			cy.visit('/app/companies')
 			cy.url().should('include', '/app/companies')
@@ -35,9 +32,10 @@ describe('Admin Companies List', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
 			cy.visit('/app/companies')
+			cy.get('table').should('be.visible')
 		})
 
-		it('should display companies table with correct columns', () => {
+		it('displays companies table with correct columns', () => {
 			cy.get('table').should('exist')
 			cy.get('table').within(() => {
 				cy.contains('th', /nombre/i).should('exist')
@@ -50,13 +48,13 @@ describe('Admin Companies List', () => {
 			})
 		})
 
-		it('should display all companies including active and inactive', () => {
+		it('displays all companies including active and inactive', () => {
 			cy.contains(companies.acme.name).should('exist')
 			cy.contains(companies.techstart.name).should('exist')
 			cy.contains(companies.inactive.name).should('exist')
 		})
 
-		it('should display company details correctly', () => {
+		it('displays company details correctly', () => {
 			cy.get('table').should('contain', companies.acme.domain)
 			cy.findTableRow(companies.acme.name).within(() => {
 				cy.contains(companies.acme.domain).should('exist')
@@ -67,19 +65,19 @@ describe('Admin Companies List', () => {
 			})
 		})
 
-		it('should display inactive companies with inactive badge', () => {
+		it('displays inactive companies with inactive badge', () => {
 			cy.findTableRow(companies.inactive.name).within(() => {
 				cy.contains('Inactiva').should('exist')
 			})
 		})
 
-		it('should display companies without borrowing capacity rate', () => {
+		it('displays companies without borrowing capacity rate', () => {
 			cy.findTableRow(companies.techstart.name).within(() => {
 				cy.contains('-').should('exist')
 			})
 		})
 
-		it('should display bi-monthly frequency correctly', () => {
+		it('displays bi-monthly frequency correctly', () => {
 			cy.findTableRow(companies.techstart.name).within(() => {
 				cy.contains('Quincenal').should('exist')
 			})
@@ -90,23 +88,24 @@ describe('Admin Companies List', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
 			cy.visit('/app/companies')
+			cy.get('table').should('be.visible')
 		})
 
-		it('should filter companies by name', () => {
+		it('filters companies by name', () => {
 			cy.get('input[type="search"]').type('Acme')
 			cy.contains(companies.acme.name).should('exist')
 			cy.contains(companies.techstart.name).should('not.exist')
 			cy.contains(companies.inactive.name).should('not.exist')
 		})
 
-		it('should filter companies by domain', () => {
+		it('filters companies by domain', () => {
 			cy.get('input[type="search"]').clear().type('techstart')
 			cy.contains(companies.techstart.name).should('exist')
 			cy.contains(companies.acme.name).should('not.exist')
 			cy.contains(companies.inactive.name).should('not.exist')
 		})
 
-		it('should show "No results" when no companies match filter', () => {
+		it('shows "No results" when no companies match filter', () => {
 			cy.get('input[type="search"]').type('nonexistent')
 			cy.contains(/no results/i).should('exist')
 		})
@@ -116,15 +115,16 @@ describe('Admin Companies List', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
 			cy.visit('/app/companies')
+			cy.get('table').should('be.visible')
 		})
 
-		it('should show all companies by default', () => {
+		it('shows all companies by default', () => {
 			cy.contains(companies.acme.name).should('exist')
 			cy.contains(companies.techstart.name).should('exist')
 			cy.contains(companies.inactive.name).should('exist')
 		})
 
-		it('should filter to active companies only when activeOnly=true', () => {
+		it('filters to active companies only when activeOnly=true', () => {
 			cy.visit('/app/companies?activeOnly=true')
 			cy.contains(companies.acme.name).should('exist')
 			cy.contains(companies.techstart.name).should('exist')
@@ -146,9 +146,10 @@ describe('Admin Companies List', () => {
 		beforeEach(() => {
 			cy.login(adminUser.email)
 			cy.visit('/app/companies')
+			cy.get('table').should('be.visible')
 		})
 
-		it('should navigate to create company page', () => {
+		it('navigates to create company page', () => {
 			cy.get('table').should('exist')
 			cy.contains('a', /nueva empresa/i)
 				.should('be.visible')
@@ -157,7 +158,7 @@ describe('Admin Companies List', () => {
 			cy.contains(/crear empresa/i).should('be.visible')
 		})
 
-		it('should create a new company with all fields', () => {
+		it('creates a new company with all fields', () => {
 			const newCompany = {
 				name: 'New Test Company',
 				domain: 'newtest.com',
@@ -184,14 +185,19 @@ describe('Admin Companies List', () => {
 				.click()
 
 			cy.url().should('include', '/app/companies')
-			cy.get('table').should('be.visible')
-			cy.contains(newCompany.name).should('exist')
-			cy.contains(newCompany.domain).should('exist')
+			cy.get('main').should('be.visible')
+			cy.get('table', { timeout: 10000 }).should('be.visible')
+			cy.findTableRow(newCompany.name)
+				.scrollIntoView()
+				.within(() => {
+					cy.contains('td', newCompany.name).should('be.visible')
+					cy.contains('td', newCompany.domain).should('be.visible')
+				})
 
 			cy.task('deleteCompaniesByDomain', [newCompany.domain])
 		})
 
-		it('should create company without borrowingCapacityRate', () => {
+		it('creates company without borrowingCapacityRate', () => {
 			const newCompany = {
 				name: 'Company Without Rate',
 				domain: 'norate.com',
@@ -211,13 +217,18 @@ describe('Admin Companies List', () => {
 				.click()
 
 			cy.url().should('include', '/app/companies')
-			cy.get('table').should('be.visible')
-			cy.contains(newCompany.name).should('exist')
+			cy.get('main').should('be.visible')
+			cy.get('table', { timeout: 10000 }).should('be.visible')
+			cy.findTableRow(newCompany.name)
+				.scrollIntoView()
+				.within(() => {
+					cy.contains('td', newCompany.name).should('be.visible')
+				})
 
 			cy.task('deleteCompaniesByDomain', [newCompany.domain])
 		})
 
-		it('should validate required fields', () => {
+		it('validates required fields', () => {
 			cy.visit('/app/companies/new')
 
 			cy.contains('button', /crear|guardar|submit/i)
@@ -229,7 +240,7 @@ describe('Admin Companies List', () => {
 			cy.contains('La tasa es requerida').should('be.visible')
 		})
 
-		it('should validate domain uniqueness', () => {
+		it('validates domain uniqueness', () => {
 			cy.visit('/app/companies/new')
 
 			cy.get('input[name="name"]').type('Duplicate Domain Company')
@@ -244,7 +255,7 @@ describe('Admin Companies List', () => {
 			cy.contains('El dominio ya existe. Debe ser único.').should('be.visible')
 		})
 
-		it('should validate domain format', () => {
+		it('validates domain format', () => {
 			cy.visit('/app/companies/new')
 
 			cy.get('input[name="name"]').type('Invalid Domain')
@@ -261,7 +272,7 @@ describe('Admin Companies List', () => {
 			).should('be.visible')
 		})
 
-		it('should validate rate is positive', () => {
+		it('validates rate is positive', () => {
 			cy.visit('/app/companies/new')
 
 			cy.get('input[name="name"]').type('Invalid Rate')
@@ -276,7 +287,7 @@ describe('Admin Companies List', () => {
 			cy.contains('La tasa debe ser un número positivo').should('be.visible')
 		})
 
-		it('should validate borrowingCapacityRate is between 0 and 100', () => {
+		it('validates borrowingCapacityRate is between 0 and 100', () => {
 			cy.visit('/app/companies/new')
 
 			cy.get('input[name="name"]').type('Invalid Capacity')
@@ -325,7 +336,7 @@ describe('Admin Companies List', () => {
 			cy.login(adminUser.email)
 		})
 
-		it('should navigate to edit company page', () => {
+		it('navigates to edit company page', () => {
 			cy.visit('/app/companies')
 			cy.get('table').should('be.visible')
 			cy.findTableRow(editCompany.name)
@@ -338,7 +349,7 @@ describe('Admin Companies List', () => {
 			cy.contains(/editar|edit/i).should('be.visible')
 		})
 
-		it('should load existing company data in form', () => {
+		it('loads existing company data in form', () => {
 			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 
 			cy.get('input[name="name"]').should('have.value', editCompany.name)
@@ -351,7 +362,45 @@ describe('Admin Companies List', () => {
 				.should('contain', 'Mensual')
 		})
 
-		it('should update company details', () => {
+		it('toggles active status', () => {
+			cy.visit(`/app/companies/${editCompany.domain}/edit`)
+
+			cy.contains('label', /activa/i)
+				.should('be.visible')
+				.click()
+
+			cy.contains('button', /guardar|save/i)
+				.should('be.visible')
+				.click()
+
+			cy.url().should('include', '/app/companies')
+			cy.get('main').should('be.visible')
+			cy.get('table', { timeout: 10000 }).should('be.visible')
+			cy.findTableRow(editCompany.name)
+				.scrollIntoView()
+				.within(() => {
+					cy.contains('Inactiva').should('exist')
+				})
+
+			cy.visit(`/app/companies/${editCompany.domain}/edit`)
+			cy.contains('label', /activa/i)
+				.should('be.visible')
+				.click()
+			cy.contains('button', /guardar|save/i)
+				.should('be.visible')
+				.click()
+
+			cy.url().should('include', '/app/companies')
+			cy.get('main').should('be.visible')
+			cy.get('table', { timeout: 10000 }).should('be.visible')
+			cy.findTableRow(editCompany.name)
+				.scrollIntoView()
+				.within(() => {
+					cy.contains('Activa').should('exist')
+				})
+		})
+
+		it('updates company details', () => {
 			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 
 			cy.get('input[name="name"]').clear().type('Updated Company Name')
@@ -378,32 +427,7 @@ describe('Admin Companies List', () => {
 				.click()
 		})
 
-		it('should toggle active status', () => {
-			cy.visit(`/app/companies/${editCompany.domain}/edit`)
-
-			cy.contains('label', /activa/i).click()
-
-			cy.contains('button', /guardar|save/i)
-				.should('be.visible')
-				.click()
-
-			cy.url().should('include', '/app/companies')
-			cy.get('table').should('be.visible')
-			cy.findTableRow(editCompany.name).within(() => {
-				cy.contains('Inactiva').should('exist')
-			})
-
-			cy.visit(`/app/companies/${editCompany.domain}/edit`)
-			cy.contains('label', /activa/i).click()
-			cy.contains('button', /guardar|save/i)
-				.should('be.visible')
-				.click()
-
-			cy.url().should('include', '/app/companies')
-			cy.get('table').should('be.visible')
-		})
-
-		it('should prevent editing domain to duplicate value', () => {
+		it('prevents editing domain to duplicate value', () => {
 			cy.visit(`/app/companies/${editCompany.domain}/edit`)
 
 			cy.get('input[name="domain"]').should('be.disabled')

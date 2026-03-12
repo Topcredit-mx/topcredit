@@ -2,26 +2,23 @@ import { applicantUser } from '../../login/login.fixtures'
 
 describe('Settings Profile', () => {
 	before(() => {
+		cy.task('cleanupProfile')
 		cy.task('seedProfile')
 	})
 
-	after(() => {
-		cy.task('cleanupProfile')
-	})
-
-	it('should redirect to login when accessing /settings/profile unauthenticated', () => {
+	it('redirects to login when accessing /settings/profile unauthenticated', () => {
 		cy.visit('/settings/profile')
 		cy.url().should('not.include', '/settings')
 	})
 
-	it('should redirect /settings to profile and show Configuración', () => {
+	it('redirects /settings to profile and shows Configuración', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/settings')
 		cy.url().should('include', '/settings/profile')
 		cy.contains('h1', 'Configuración').should('be.visible')
 	})
 
-	it('should show profile content for authenticated user', () => {
+	it('shows profile content when authenticated', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/settings/profile')
 		cy.url().should('include', '/settings/profile')
@@ -31,20 +28,20 @@ describe('Settings Profile', () => {
 		cy.contains('Solicitante').should('be.visible')
 	})
 
-	it('should show user name on profile', () => {
+	it('shows user name on profile', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/settings/profile')
 		cy.contains('p', applicantUser.name).should('be.visible')
 	})
 
-	it('should show unverified state for user without verified email', () => {
+	it('shows unverified state for user without verified email', () => {
 		cy.task('resetUser', { ...applicantUser, verified: false })
 		cy.login(applicantUser.email)
 		cy.visit('/settings/profile')
 		cy.contains('Correo no verificado').should('be.visible')
 	})
 
-	it('should show verified state for user with verified email', () => {
+	it('shows verified state for user with verified email', () => {
 		cy.task('resetUser', { ...applicantUser, verified: true })
 		cy.login(applicantUser.email)
 		cy.visit('/settings/profile')
