@@ -231,7 +231,9 @@ describe('App Applications Review', () => {
 		it('list reflects status after authorizing', () => {
 			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains('button', /acciones/i)
+			cy.contains(applicantA5.name).should('be.visible')
+			cy.get('main')
+				.contains('button', /acciones/i)
 				.should('be.visible')
 				.click()
 			cy.get('[role="menuitem"]')
