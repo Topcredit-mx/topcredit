@@ -6,6 +6,7 @@ import {
 } from '~/app/app/admin-overview-dashboard.fixtures'
 import { agentNoAssignments } from '~/app/app/agent-no-assignments.fixtures'
 import {
+	adminForReview,
 	agentCompanyDomains,
 	agentForReview,
 	allReviewApplicants,
@@ -1228,7 +1229,11 @@ export const seedApplicationsReview =
 			)
 		}
 
-		const allUserFixtures = [agentForReview, ...allReviewApplicants]
+		const allUserFixtures = [
+			agentForReview,
+			adminForReview,
+			...allReviewApplicants,
+		]
 
 		await Promise.all(
 			allUserFixtures.map((u) =>
@@ -1377,7 +1382,11 @@ export const cleanupApplicationsReview = async (
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	await deleteBlobsForTerm(db, params.termId)
-	const allUserFixtures = [agentForReview, ...allReviewApplicants]
+	const allUserFixtures = [
+		agentForReview,
+		adminForReview,
+		...allReviewApplicants,
+	]
 
 	await Promise.all(
 		allUserFixtures.map((u) =>

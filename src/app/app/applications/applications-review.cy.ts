@@ -13,6 +13,7 @@
 
 import type { SeedApplicationsReviewResult } from '../../../../cypress/tasks'
 import {
+	adminForReview,
 	agentForReview,
 	applicantA5,
 	applicantForReview,
@@ -80,6 +81,10 @@ describe('App Applications Review', () => {
 		})
 
 		it('can authorize application', () => {
+			cy.login(adminForReview.email)
+			cy.setCookie('selected_company_id', String(seed.companyId))
+			cy.visit('/app/applications')
+			cy.get('table').should('be.visible')
 			cy.findTableRow('25,000')
 				.scrollIntoView()
 				.within(() => {
@@ -149,6 +154,8 @@ describe('App Applications Review', () => {
 		})
 
 		it('can pre-authorize application', () => {
+			cy.login(adminForReview.email)
+			cy.setCookie('selected_company_id', String(seed.companyId))
 			cy.visit('/app/applications')
 			cy.get('table').should('be.visible')
 			cy.findTableRow('35,000')
@@ -167,6 +174,18 @@ describe('App Applications Review', () => {
 			// Action redirects to same URL (reload); wait for new page then new state
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/preautorizado/i).should('be.visible')
+		})
+
+		it('requests agent does not see authorize or pre-authorize actions', () => {
+			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.contains('button', /acciones/i)
+				.should('be.visible')
+				.click()
+			cy.get('[role="menu"]').within(() => {
+				cy.contains(/autorizar/i).should('not.exist')
+				cy.contains(/pre-autorizar/i).should('not.exist')
+			})
 		})
 
 		it('can mark as invalid documentation', () => {

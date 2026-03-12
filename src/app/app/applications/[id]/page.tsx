@@ -23,6 +23,7 @@ import {
 import { canTransitionApplicationFrom } from '~/lib/application-rules'
 import { APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import { formatCurrencyMxn } from '~/lib/utils'
+import { getAbility, subject } from '~/server/auth/ability'
 import type { ApplicationStatus } from '~/server/db/schema'
 import {
 	getApplicationDocuments,
@@ -59,13 +60,23 @@ export default async function AppApplicationDetailPage({
 		notFound()
 	}
 	const scope = await getEffectiveCompanyScope()
-	const application = await getApplicationForReview(applicationId, scope)
+	const [{ ability }, application, documentList] = await Promise.all([
+		getAbility(),
+		getApplicationForReview(applicationId, scope),
+		getApplicationDocuments(applicationId),
+	])
 	if (!application) {
 		notFound()
 	}
-	const documentList = await getApplicationDocuments(applicationId)
 	const t = await getTranslations('app')
 	const canTransition = canTransitionApplicationFrom(application.status)
+	const appSubject = subject('Application', {
+		id: application.id,
+		applicantId: application.applicantId,
+		companyId: application.termOffering.companyId,
+	})
+	const canPreAuthorize = ability.can('setStatusPreAuthorized', appSubject)
+	const canAuthorize = ability.can('setStatusAuthorized', appSubject)
 
 	return (
 		<div className="container mx-auto max-w-4xl py-6">
@@ -147,6 +158,8 @@ export default async function AppApplicationDetailPage({
 									documentList.length > 0 &&
 									documentList.some((d) => d.status === 'rejected')
 								}
+								canPreAuthorize={canPreAuthorize}
+								canAuthorize={canAuthorize}
 							/>
 						</CardAction>
 					)}

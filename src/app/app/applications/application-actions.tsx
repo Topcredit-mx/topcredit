@@ -28,10 +28,13 @@ const initialState = { error: '' }
 export function ApplicationActions({
 	applicationId,
 	canMarkInvalidDocumentation,
+	canPreAuthorize,
+	canAuthorize,
 }: {
 	applicationId: number
-	/** True when there are documents and at least one is rejected (invalid). */
 	canMarkInvalidDocumentation: boolean
+	canPreAuthorize: boolean
+	canAuthorize: boolean
 }) {
 	const t = useTranslations('app')
 	const router = useRouter()
@@ -103,26 +106,30 @@ export function ApplicationActions({
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="start" className="min-w-48">
-						<DropdownMenuItem
-							onSelect={(e) => {
-								e.preventDefault()
-								preAuthFormRef.current?.requestSubmit()
-							}}
-							disabled={pending}
-						>
-							<CheckCircle2 className="size-4" />
-							{t('applications-action-pre-authorize')}
-						</DropdownMenuItem>
-						<DropdownMenuItem
-							onSelect={(e) => {
-								e.preventDefault()
-								authFormRef.current?.requestSubmit()
-							}}
-							disabled={pending}
-						>
-							<CheckCircle2 className="size-4" />
-							{t('applications-action-authorize')}
-						</DropdownMenuItem>
+						{canPreAuthorize && (
+							<DropdownMenuItem
+								onSelect={(e) => {
+									e.preventDefault()
+									preAuthFormRef.current?.requestSubmit()
+								}}
+								disabled={pending}
+							>
+								<CheckCircle2 className="size-4" />
+								{t('applications-action-pre-authorize')}
+							</DropdownMenuItem>
+						)}
+						{canAuthorize && (
+							<DropdownMenuItem
+								onSelect={(e) => {
+									e.preventDefault()
+									authFormRef.current?.requestSubmit()
+								}}
+								disabled={pending}
+							>
+								<CheckCircle2 className="size-4" />
+								{t('applications-action-authorize')}
+							</DropdownMenuItem>
+						)}
 						<DropdownMenuItem
 							variant="destructive"
 							onSelect={(e) => {

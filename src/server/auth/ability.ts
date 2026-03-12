@@ -26,6 +26,8 @@ export type AppAction =
 	| 'update'
 	| 'delete'
 	| 'uploadDocument'
+	| 'setStatusPreAuthorized'
+	| 'setStatusAuthorized'
 export type AppSubject = 'Company' | 'User' | 'Admin' | 'Application' | 'all'
 
 export type CompanySubject = { id: number } & ForcedSubject<'Company'>
@@ -60,6 +62,8 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 
 	if (isAdmin) {
 		can('manage', 'all')
+		can('setStatusPreAuthorized', 'Application')
+		can('setStatusAuthorized', 'Application')
 		return build()
 	}
 
@@ -75,10 +79,7 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 
 	if (isAgent && ctx.userId != null) {
 		can('update', 'User', { id: ctx.userId })
-		if (ctx.assignedCompanyIds === 'all') {
-			can('manage', 'Company')
-			can('manage', 'Application')
-		} else if (ctx.assignedCompanyIds.length > 0) {
+		if (ctx.assignedCompanyIds !== 'all' && ctx.assignedCompanyIds.length > 0) {
 			const condition = companyIdCondition(ctx.assignedCompanyIds)
 			can('read', 'Company', condition)
 			can('update', 'Company', condition)
