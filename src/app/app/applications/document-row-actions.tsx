@@ -16,6 +16,7 @@ import {
 	DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import { FieldError } from '~/components/ui/field'
+import { APP_DOCUMENT_STATUS_KEYS } from '~/lib/i18n-keys'
 import {
 	getResolvedError,
 	useResolveValidationError,
@@ -51,9 +52,7 @@ export function DocumentRowActions({
 	const buttonLabel =
 		status === 'pending'
 			? t('applications-actions')
-			: status === 'approved'
-				? t('applications-document-status-approved')
-				: t('applications-document-status-rejected')
+			: t(APP_DOCUMENT_STATUS_KEYS[status])
 	const displayError = getResolvedError(state, resolveError)
 
 	return (

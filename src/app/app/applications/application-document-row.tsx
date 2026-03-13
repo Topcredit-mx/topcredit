@@ -1,7 +1,11 @@
 import { CheckCircle2, Clock, Eye, XCircle } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import { Button } from '~/components/ui/button'
-import { APP_DOCUMENT_TYPE_KEYS, isDocumentType } from '~/lib/i18n-keys'
+import {
+	APP_DOCUMENT_STATUS_KEYS,
+	APP_DOCUMENT_TYPE_KEYS,
+	isDocumentType,
+} from '~/lib/i18n-keys'
 import type { DocumentStatus } from '~/server/db/schema'
 import { DocumentRowActions } from './document-row-actions'
 
@@ -82,9 +86,9 @@ export async function ApplicationDocumentRow({
 			<div className="flex min-h-8 w-full items-center gap-3 text-sm">
 				<DocumentStatusIcon
 					status={status}
-					titlePending={t('applications-document-status-pending')}
-					titleApproved={t('applications-document-status-approved')}
-					titleRejected={t('applications-document-status-rejected')}
+					titlePending={t(APP_DOCUMENT_STATUS_KEYS.pending)}
+					titleApproved={t(APP_DOCUMENT_STATUS_KEYS.approved)}
+					titleRejected={t(APP_DOCUMENT_STATUS_KEYS.rejected)}
 				/>
 				<span className="shrink-0 text-muted-foreground">{typeLabel}:</span>
 				<span className="flex min-w-0 flex-1 items-center gap-1.5">
