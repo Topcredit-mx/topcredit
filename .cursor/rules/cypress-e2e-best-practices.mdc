@@ -23,6 +23,9 @@ cy.contains('Mi Cuenta').should('be.visible')
 cy.get('nav[aria-label="Breadcrumb"]').contains('Mi Cuenta').should('be.visible')
 ```
 
+- **Prefer role + name over attributes.** Follow Kent C. Dodds–style queries: e.g. `cy.contains('h2', /solicitante/i).closest('[data-slot="card-header"]').within(() => cy.contains('button', /acciones/i).click())` instead of matching on `aria-*` or `data-*` directly.
+- **Use `asChild` for semantic headings.** When a UI primitive like `CardTitle` supports `asChild`, render real headings (`<h2>Solicitante</h2>`) and then query by that heading level in tests.
+
 ---
 
 ## Assertions and waiting
