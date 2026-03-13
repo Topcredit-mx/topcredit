@@ -243,15 +243,12 @@ export async function updateApplicationStatus(
 		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
 
 	const companyId = app.termOffering.companyId
-	requireAbility(
-		ability,
-		'update',
-		subject('Application', {
-			id: app.id,
-			applicantId: app.applicantId,
-			companyId,
-		}),
-	)
+	const appSubject = subject('Application', {
+		id: app.id,
+		applicantId: app.applicantId,
+		companyId,
+	})
+	requireAbility(ability, 'update', appSubject)
 
 	// Allowed transitions: from (new | pending | pre-authorized) to (pre-authorized | authorized | denied | invalid-documentation).
 	if (!canTransitionApplicationFrom(app.status)) {
@@ -264,6 +261,23 @@ export async function updateApplicationStatus(
 		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
 	}
 	const data = parsed.data
+
+	if (
+		data.status === 'pre-authorized' &&
+		!ability.can('setStatusPreAuthorized', appSubject)
+	) {
+		return {
+			error: ValidationCode.APPLICATIONS_REQUESTS_CANNOT_PREAUTH_OR_AUTH,
+		}
+	}
+	if (
+		data.status === 'authorized' &&
+		!ability.can('setStatusAuthorized', appSubject)
+	) {
+		return {
+			error: ValidationCode.APPLICATIONS_REQUESTS_CANNOT_PREAUTH_OR_AUTH,
+		}
+	}
 
 	await db
 		.update(applications)

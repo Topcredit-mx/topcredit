@@ -4,7 +4,7 @@
  */
 import type messages from '~/messages/es.json'
 import type { Role } from '~/server/auth/session'
-import type { DocumentType } from '~/server/db/schema'
+import type { DocumentStatus, DocumentType } from '~/server/db/schema'
 
 /** App namespace: document type → message key */
 export const APP_DOCUMENT_TYPE_KEYS: Record<
@@ -24,6 +24,16 @@ export const DASHBOARD_DOCUMENT_TYPE_KEYS: Record<
 	authorization: 'document-type-authorization',
 	contract: 'document-type-contract',
 	'payroll-receipt': 'document-type-payroll-receipt',
+}
+
+/** App namespace: document status → message key */
+export const APP_DOCUMENT_STATUS_KEYS: Record<
+	DocumentStatus,
+	keyof (typeof messages)['app']
+> = {
+	pending: 'applications-document-status-pending',
+	approved: 'applications-document-status-approved',
+	rejected: 'applications-document-status-rejected',
 }
 
 /** Dashboard.applications: document status → message key */

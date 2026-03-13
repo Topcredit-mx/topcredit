@@ -28,7 +28,7 @@ export async function getEffectiveSelectedCompanyId(): Promise<number | null> {
 
 /** Company scope for agent operational screens. Validates cookie via CASL. Treats inactive company as no selection. */
 export async function getEffectiveCompanyScope(): Promise<CompanyScope> {
-	const { ability, assignedCompanyIds } = await getAbility()
+	const { ability, assignedCompanyIds, isAdmin } = await getAbility()
 	const selectedCompanyId = await getEffectiveSelectedCompanyId()
 
 	if (selectedCompanyId !== null) {
@@ -41,7 +41,7 @@ export async function getEffectiveCompanyScope(): Promise<CompanyScope> {
 		}
 	}
 
-	if (assignedCompanyIds === 'all') {
+	if (isAdmin) {
 		return { type: 'all' }
 	}
 	return { type: 'multi', companyIds: assignedCompanyIds }

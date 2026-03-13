@@ -81,6 +81,7 @@
 		"applications-updated": "Estado actualizado",
 		"applications-not-found": "Solicitud no encontrada",
 		"applications-error-transition": "La solicitud no puede cambiar de estado",
+		"applications-requests-cannot-preauth-or-auth": "El rol de solicitudes no puede preautorizar ni autorizar; solo aprobar, documentación inválida o rechazar",
 		"applications-error-generic": "Error al actualizar la solicitud",
 		"applications-filter-all": "Todas",
 		"applications-term-months": "meses",

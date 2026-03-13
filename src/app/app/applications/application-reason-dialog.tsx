@@ -14,41 +14,41 @@ import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Textarea } from '~/components/ui/textarea'
 import type { ApplicationStatusRequiringReason } from '~/lib/application-rules'
 
+type ReasonFormState = { error?: string }
+
 interface ApplicationReasonDialogProps {
 	open: boolean
 	action: ApplicationStatusRequiringReason | null
+	applicationId: number
+	/** Bound action from useActionState(updateApplicationStatusWithReasonFormAction, ...) */
+	formAction: (formData: FormData) => void
+	formState: ReasonFormState
+	pending: boolean
 	onClose: () => void
-	onSubmit: (
-		action: ApplicationStatusRequiringReason,
-		reason: string,
-	) => Promise<{ error?: string }>
-	onSuccess?: () => void
 	translateError: (error: string) => string
 }
 
 export function ApplicationReasonDialog({
 	open,
 	action,
+	applicationId,
+	formAction,
+	formState,
+	pending,
 	onClose,
-	onSubmit,
-	onSuccess,
 	translateError,
 }: ApplicationReasonDialogProps) {
 	const t = useTranslations('app')
 	const reasonId = useId()
 	const [reason, setReason] = useState('')
-	const [error, setError] = useState<string | null>(null)
-	const [isSubmitting, setIsSubmitting] = useState(false)
 
 	function resetForm() {
 		setReason('')
-		setError(null)
 	}
 
 	useEffect(() => {
 		if (open) {
 			setReason('')
-			setError(null)
 		}
 	}, [open])
 
@@ -57,29 +57,14 @@ export function ApplicationReasonDialog({
 		onClose()
 	}
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-		e.preventDefault()
-		if (!action) return
-		setError(null)
-		setIsSubmitting(true)
-		try {
-			const result = await onSubmit(action, reason.trim())
-			if (result.error) {
-				setError(translateError(result.error))
-				return
-			}
-			onSuccess?.()
-			handleClose()
-		} finally {
-			setIsSubmitting(false)
-		}
-	}
-
-	const showError = open && error !== null
+	const showError =
+		open && formState.error !== undefined && formState.error !== ''
+	const translatedError =
+		showError && formState.error ? translateError(formState.error) : null
 
 	return (
 		<Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-			<DialogContent>
+			<DialogContent aria-describedby={undefined}>
 				<DialogHeader>
 					<DialogTitle>
 						{action === 'denied'
@@ -87,7 +72,9 @@ export function ApplicationReasonDialog({
 							: t('applications-action-invalid-docs')}
 					</DialogTitle>
 				</DialogHeader>
-				<form onSubmit={handleSubmit} noValidate>
+				<form action={formAction} noValidate>
+					<input type="hidden" name="applicationId" value={applicationId} />
+					<input type="hidden" name="status" value={action ?? ''} />
 					<Field data-invalid={!!showError} className="mb-4">
 						<FieldLabel htmlFor={reasonId}>
 							{t('applications-reason-label')}{' '}
@@ -97,10 +84,7 @@ export function ApplicationReasonDialog({
 							id={reasonId}
 							name="reason"
 							value={reason}
-							onChange={(e) => {
-								setReason(e.target.value)
-								setError(null)
-							}}
+							onChange={(e) => setReason(e.target.value)}
 							placeholder={t('applications-reason-placeholder')}
 							aria-required="true"
 							aria-invalid={!!showError}
@@ -109,19 +93,19 @@ export function ApplicationReasonDialog({
 							className="resize-none"
 							maxLength={1000}
 						/>
-						{showError && error && <FieldError>{error}</FieldError>}
+						{translatedError && <FieldError>{translatedError}</FieldError>}
 					</Field>
 					<DialogFooter>
 						<Button
 							type="button"
 							variant="outline"
 							onClick={handleClose}
-							disabled={isSubmitting}
+							disabled={pending}
 						>
 							{t('applications-submit-cancel')}
 						</Button>
-						<Button type="submit" disabled={isSubmitting}>
-							{isSubmitting
+						<Button type="submit" disabled={pending}>
+							{pending
 								? t('applications-submit-saving')
 								: t('applications-submit-confirm')}
 						</Button>

@@ -12,6 +12,12 @@ export const agentForReview = {
 	roles: ['agent', 'requests'] as const,
 }
 
+export const adminForReview = {
+	name: 'Admin Review',
+	email: 'admin.review@example.com',
+	roles: ['agent', 'admin'] as const,
+}
+
 export const applicantForReview = {
 	name: 'Applicant For Review',
 	email: 'applicant.review@reviewcompany.com',

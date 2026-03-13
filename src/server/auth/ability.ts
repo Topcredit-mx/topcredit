@@ -26,6 +26,8 @@ export type AppAction =
 	| 'update'
 	| 'delete'
 	| 'uploadDocument'
+	| 'setStatusPreAuthorized'
+	| 'setStatusAuthorized'
 export type AppSubject = 'Company' | 'User' | 'Admin' | 'Application' | 'all'
 
 export type CompanySubject = { id: number } & ForcedSubject<'Company'>
@@ -42,7 +44,7 @@ export type AppAbility = MongoAbility<
 
 export type AbilityContext = {
 	roles: string[]
-	assignedCompanyIds: number[] | 'all'
+	assignedCompanyIds: number[]
 	userId?: number
 	applicantEligibilityData?: ApplicantEligibilityData | null
 }
@@ -60,6 +62,8 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 
 	if (isAdmin) {
 		can('manage', 'all')
+		can('setStatusPreAuthorized', 'Application')
+		can('setStatusAuthorized', 'Application')
 		return build()
 	}
 
@@ -75,10 +79,7 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 
 	if (isAgent && ctx.userId != null) {
 		can('update', 'User', { id: ctx.userId })
-		if (ctx.assignedCompanyIds === 'all') {
-			can('manage', 'Company')
-			can('manage', 'Application')
-		} else if (ctx.assignedCompanyIds.length > 0) {
+		if (ctx.assignedCompanyIds.length > 0) {
 			const condition = companyIdCondition(ctx.assignedCompanyIds)
 			can('read', 'Company', condition)
 			can('update', 'Company', condition)
@@ -94,7 +95,8 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 
 export type AbilityResult = {
 	ability: AppAbility
-	assignedCompanyIds: number[] | 'all'
+	assignedCompanyIds: number[]
+	isAdmin: boolean
 }
 
 /** Roles from DB (not JWT) so role changes take effect immediately. */
@@ -114,8 +116,9 @@ export const getAbility = cache(async (): Promise<AbilityResult> => {
 	const roles = await getRolesFromDb(userId)
 	if (roles.length === 0) redirect('/unauthorized')
 
-	const assignedCompanyIds: number[] | 'all' = roles.includes('admin')
-		? 'all'
+	const isAdmin = roles.includes('admin')
+	const assignedCompanyIds: number[] = isAdmin
+		? []
 		: roles.includes('agent')
 			? (await getUserCompanyAssignments(userId)).map((c) => c.id)
 			: []
@@ -135,6 +138,7 @@ export const getAbility = cache(async (): Promise<AbilityResult> => {
 	return {
 		ability: defineAbilityFor(ctx),
 		assignedCompanyIds,
+		isAdmin,
 	}
 })
 
