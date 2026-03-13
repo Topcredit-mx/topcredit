@@ -2,7 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { isApplicationStatus } from '~/lib/application-rules'
+import {
+	isApplicationStatus,
+	statusRequiresReason,
+} from '~/lib/application-rules'
 import { ValidationCode } from '~/lib/validation-codes'
 import {
 	approveApplicationDocument,
@@ -51,6 +54,36 @@ export async function updateApplicationStatusFormAction(
 	}
 	const result = await updateApplicationStatus(applicationId, {
 		status: statusRaw,
+	})
+	if (result.error) {
+		return { error: result.error }
+	}
+	revalidatePath('/app/applications')
+	revalidatePath(`/app/applications/${applicationId}`)
+	revalidatePath('/dashboard/applications')
+	revalidatePath(`/dashboard/applications/${applicationId}`)
+	redirect(`/app/applications/${applicationId}`)
+}
+
+/** Form action for status updates that require a reason (e.g. denied). Redirects on success. */
+export async function updateApplicationStatusWithReasonFormAction(
+	_prevState: { error?: string },
+	formData: FormData,
+): Promise<{ error?: string }> {
+	const applicationId = Number(formData.get('applicationId'))
+	const statusRaw = formData.get('status')
+	const reason = formData.get('reason')
+	if (
+		typeof statusRaw !== 'string' ||
+		!isApplicationStatus(statusRaw) ||
+		!statusRequiresReason(statusRaw) ||
+		typeof reason !== 'string'
+	) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+	const result = await updateApplicationStatus(applicationId, {
+		status: statusRaw,
+		reason: reason.trim(),
 	})
 	if (result.error) {
 		return { error: result.error }

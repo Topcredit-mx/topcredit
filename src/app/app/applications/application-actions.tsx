@@ -1,12 +1,11 @@
 'use client'
 
 import { CheckCircle2, ChevronDown, FileWarning, XCircle } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useActionState, useRef, useState } from 'react'
 import {
-	updateApplicationStatus,
 	updateApplicationStatusFormAction,
+	updateApplicationStatusWithReasonFormAction,
 } from '~/app/app/applications/actions'
 import { Alert } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
@@ -16,7 +15,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
-import type { ApplicationStatusRequiringReason } from '~/lib/application-rules'
 import {
 	getResolvedError,
 	useResolveValidationError,
@@ -37,59 +35,44 @@ export function ApplicationActions({
 	canAuthorize: boolean
 }) {
 	const t = useTranslations('app')
-	const router = useRouter()
 	const resolveError = useResolveValidationError()
 	const [state, action, pending] = useActionState(
 		updateApplicationStatusFormAction,
 		initialState,
 	)
+	const [stateReason, actionReason, pendingReason] = useActionState(
+		updateApplicationStatusWithReasonFormAction,
+		initialState,
+	)
 	const [dialogOpen, setDialogOpen] = useState(false)
-	const preAuthFormRef = useRef<HTMLFormElement>(null)
-	const authFormRef = useRef<HTMLFormElement>(null)
-	const invalidDocsFormRef = useRef<HTMLFormElement>(null)
+	const immediateFormRef = useRef<HTMLFormElement>(null)
+	const statusInputRef = useRef<HTMLInputElement>(null)
 
 	const translatedError = getResolvedError(state, resolveError, {
 		treatEmptyAsNone: true,
 	})
 
-	function handleSubmitReason(
-		actionStatus: ApplicationStatusRequiringReason,
-		reason: string,
-	) {
-		return updateApplicationStatus(applicationId, {
-			status: actionStatus,
-			reason,
-		})
+	function submitImmediateStatus(status: string) {
+		const statusInput = statusInputRef.current
+		const form = immediateFormRef.current
+		if (statusInput && form) {
+			statusInput.value = status
+			form.requestSubmit()
+		}
 	}
 
 	return (
 		<div className="flex flex-col gap-2">
 			{translatedError && <Alert variant="banner" message={translatedError} />}
 			<div className="flex flex-wrap items-center gap-2">
-				{/* Hidden forms for immediate actions */}
 				<form
-					ref={preAuthFormRef}
+					ref={immediateFormRef}
 					action={action}
 					className="hidden"
 					aria-hidden
 				>
 					<input type="hidden" name="applicationId" value={applicationId} />
-					<input type="hidden" name="status" value="pre-authorized" />
-					<button type="submit" />
-				</form>
-				<form ref={authFormRef} action={action} className="hidden" aria-hidden>
-					<input type="hidden" name="applicationId" value={applicationId} />
-					<input type="hidden" name="status" value="authorized" />
-					<button type="submit" />
-				</form>
-				<form
-					ref={invalidDocsFormRef}
-					action={action}
-					className="hidden"
-					aria-hidden
-				>
-					<input type="hidden" name="applicationId" value={applicationId} />
-					<input type="hidden" name="status" value="invalid-documentation" />
+					<input ref={statusInputRef} type="hidden" name="status" value="" />
 					<button type="submit" />
 				</form>
 
@@ -98,7 +81,7 @@ export function ApplicationActions({
 						<Button
 							variant="default"
 							size="sm"
-							disabled={pending}
+							disabled={pending || pendingReason}
 							className="gap-2"
 						>
 							{t('applications-actions')}
@@ -110,9 +93,9 @@ export function ApplicationActions({
 							<DropdownMenuItem
 								onSelect={(e) => {
 									e.preventDefault()
-									preAuthFormRef.current?.requestSubmit()
+									submitImmediateStatus('pre-authorized')
 								}}
-								disabled={pending}
+								disabled={pending || pendingReason}
 							>
 								<CheckCircle2 className="size-4" />
 								{t('applications-action-pre-authorize')}
@@ -122,9 +105,9 @@ export function ApplicationActions({
 							<DropdownMenuItem
 								onSelect={(e) => {
 									e.preventDefault()
-									authFormRef.current?.requestSubmit()
+									submitImmediateStatus('authorized')
 								}}
-								disabled={pending}
+								disabled={pending || pendingReason}
 							>
 								<CheckCircle2 className="size-4" />
 								{t('applications-action-authorize')}
@@ -136,7 +119,7 @@ export function ApplicationActions({
 								e.preventDefault()
 								setDialogOpen(true)
 							}}
-							disabled={pending}
+							disabled={pending || pendingReason}
 						>
 							<XCircle className="size-4" />
 							{t('applications-action-reject')}
@@ -145,10 +128,14 @@ export function ApplicationActions({
 							onSelect={(e) => {
 								e.preventDefault()
 								if (!canMarkInvalidDocumentation) return
-								invalidDocsFormRef.current?.requestSubmit()
+								submitImmediateStatus('invalid-documentation')
 							}}
-							disabled={pending || !canMarkInvalidDocumentation}
-							aria-disabled={pending || !canMarkInvalidDocumentation}
+							disabled={
+								pending || pendingReason || !canMarkInvalidDocumentation
+							}
+							aria-disabled={
+								pending || pendingReason || !canMarkInvalidDocumentation
+							}
 							title={
 								!canMarkInvalidDocumentation
 									? t('applications-action-invalid-docs-disabled-hint')
@@ -165,9 +152,11 @@ export function ApplicationActions({
 				<ApplicationReasonDialog
 					open={dialogOpen}
 					action={dialogOpen ? 'denied' : null}
+					applicationId={applicationId}
+					formAction={actionReason}
+					formState={stateReason}
+					pending={pendingReason}
 					onClose={() => setDialogOpen(false)}
-					onSubmit={handleSubmitReason}
-					onSuccess={() => router.refresh()}
 					translateError={resolveError}
 				/>
 			</div>

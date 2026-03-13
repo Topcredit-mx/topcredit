@@ -37,11 +37,11 @@ describe('Requests agents', () => {
 		beforeEach(() => {
 			cy.login(agentEmail)
 			cy.setCookie('selected_company_id', String(seed.companyId))
-			cy.visit('/app/applications')
-			cy.get('table').should('be.visible')
 		})
 
 		it('shows applications list with table', () => {
+			cy.visit('/app/applications')
+			cy.get('table').should('be.visible')
 			cy.url().should('include', '/app/applications')
 			cy.contains('table', 'Solicitante').within(() => {
 				cy.contains('th', /solicitante/i).should('exist')
@@ -55,6 +55,8 @@ describe('Requests agents', () => {
 		})
 
 		it('opens application detail and shows data', () => {
+			cy.visit('/app/applications')
+			cy.get('table').should('be.visible')
 			cy.findTableRow('25,000')
 				.scrollIntoView()
 				.within(() => {
@@ -74,6 +76,8 @@ describe('Requests agents', () => {
 		})
 
 		it('reject requires reason', () => {
+			cy.visit('/app/applications')
+			cy.get('table').should('be.visible')
 			cy.findTableRow('30,000')
 				.scrollIntoView()
 				.within(() => {
@@ -97,6 +101,8 @@ describe('Requests agents', () => {
 		})
 
 		it('can reject with reason', () => {
+			cy.visit('/app/applications')
+			cy.get('table').should('be.visible')
 			cy.findTableRow('30,000')
 				.scrollIntoView()
 				.within(() => {

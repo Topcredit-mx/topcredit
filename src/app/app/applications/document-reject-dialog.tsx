@@ -68,7 +68,7 @@ export function DocumentRejectDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-			<DialogContent data-reject-dialog>
+			<DialogContent data-reject-dialog aria-describedby={undefined}>
 				<DialogHeader>
 					<DialogTitle>{t('applications-document-action-reject')}</DialogTitle>
 				</DialogHeader>
