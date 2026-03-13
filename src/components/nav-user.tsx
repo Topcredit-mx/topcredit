@@ -8,9 +8,8 @@ import {
 	User,
 } from 'lucide-react'
 import Link from 'next/link'
-import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
-
+import { authSignOut } from '~/client/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import {
 	DropdownMenu,
@@ -43,7 +42,7 @@ export function NavUser({ user }: NavUserProps) {
 	const showUnverifiedWarning = user.emailVerified === false
 
 	const handleLogout = async () => {
-		await signOut({ callbackUrl: '/login' })
+		await authSignOut({ callbackUrl: '/login' })
 	}
 
 	return (

@@ -1,15 +1,14 @@
 import { AlertCircle } from 'lucide-react'
 import Link from 'next/link'
-import { getServerSession } from 'next-auth'
 import { getTranslations } from 'next-intl/server'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
-import { authOptions } from '~/server/auth/config'
+import { requireAuth } from '~/server/auth/session'
 
 export default async function UnauthorizedPage() {
 	const t = await getTranslations('unauthorized')
 	const tAuth = await getTranslations('auth')
-	const session = await getServerSession(authOptions)
+	const session = await requireAuth()
 
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">

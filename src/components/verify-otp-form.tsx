@@ -2,9 +2,9 @@
 
 import { GalleryVerticalEnd } from 'lucide-react'
 import Link from 'next/link'
-import { signIn } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { authSignIn } from '~/client/auth'
 import {
 	InputOTP,
 	InputOTPGroup,
@@ -35,7 +35,7 @@ export function VerifyOTPForm({
 		setLoading(true)
 		setError(null)
 
-		const result = await signIn('email-otp', {
+		const result = await authSignIn('email-otp', {
 			email,
 			otp: value,
 			callbackUrl: '/',

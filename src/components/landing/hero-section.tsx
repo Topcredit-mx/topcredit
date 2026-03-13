@@ -3,16 +3,16 @@
 import { ArrowRight, CheckCircle, Shield, Zap } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useSession } from 'next-auth/react'
+import { useAuthSession } from '~/client/auth'
 import { Button } from '~/components/ui/button'
 
 export function HeroSection() {
-	const { data: session } = useSession()
+	const { data: session } = useAuthSession()
 
 	return (
-		<section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+		<section className="relative overflow-hidden bg-linear-to-br from-slate-50 via-blue-50 to-indigo-100">
 			{/* Background Pattern */}
-			<div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25 dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.5))]" />
+			<div className="mask-[linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:mask-[linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.5))] absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-700/25" />
 
 			<div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
 				<div className="text-center">
@@ -38,7 +38,7 @@ export function HeroSection() {
 					{/* Main Headline */}
 					<h1 className="mx-auto max-w-4xl font-bold text-4xl text-gray-900 tracking-tight sm:text-5xl lg:text-6xl">
 						Nunca a sido tan{' '}
-						<span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+						<span className="bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
 							fácil
 						</span>{' '}
 						conseguir un crédito
