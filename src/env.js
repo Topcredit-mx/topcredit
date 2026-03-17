@@ -13,7 +13,6 @@ export const env = createEnv({
 			.default('development'),
 		EMAIL_FROM: z.email(),
 		RESEND_API_KEY: z.string(),
-		AUTH_URL: z.string().url(),
 		AUTH_SECRET: z.string(),
 		INNGEST_EVENT_KEY: z.string().optional(),
 		/** E2E test mode: fixed OTP, no emails. Use this because next dev forces NODE_ENV=development. */
@@ -42,7 +41,6 @@ export const env = createEnv({
 		NODE_ENV: process.env.NODE_ENV,
 		EMAIL_FROM: process.env.EMAIL_FROM,
 		RESEND_API_KEY: process.env.RESEND_API_KEY,
-		AUTH_URL: process.env.AUTH_URL,
 		AUTH_SECRET: process.env.AUTH_SECRET,
 		INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
 		E2E_TEST_MODE: process.env.E2E_TEST_MODE,

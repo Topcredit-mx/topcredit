@@ -23,7 +23,6 @@ jobs:
     # BLOB_READ_WRITE_TOKEN is required for application document upload E2E tests; the suite will fail without it.
     env:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-      AUTH_URL: http://localhost:3000
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
