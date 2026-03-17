@@ -15,6 +15,13 @@
 			"when": 1772151775890,
 			"tag": "0001_typical_morbius",
 			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1773756941186,
+			"tag": "0002_pink_sway",
+			"breakpoints": true
 		}
 	]
 }
