@@ -71,6 +71,7 @@ export function DocumentRowActions({
 						size="sm"
 						disabled={pending}
 						className="h-8 gap-1.5"
+						aria-label={buttonLabel}
 						data-document-action="menu"
 					>
 						{buttonLabel}
