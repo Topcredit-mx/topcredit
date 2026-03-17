@@ -34,7 +34,7 @@ export async function getUserByEmail(email: string) {
 	}
 }
 
-const isE2ETestMode = () => env.E2E_TEST_MODE === 'true'
+const isE2ETestMode = () => !!env.E2E_OTP_CODE
 
 export async function sendOtp(email: string, ipAddress: string) {
 	await db.delete(emailOtps).where(eq(emailOtps.email, email))
@@ -44,7 +44,7 @@ export async function sendOtp(email: string, ipAddress: string) {
 				const code = env.E2E_OTP_CODE
 				if (!code)
 					throw new Error(
-						'E2E_OTP_CODE is required when E2E test mode (e.g. E2E_TEST_MODE=true E2E_OTP_CODE=123456 pnpm dev:test)',
+						'E2E_OTP_CODE must be set when running E2E login tests',
 					)
 				return code
 			})()
