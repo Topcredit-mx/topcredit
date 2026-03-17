@@ -3,6 +3,7 @@
 import { and, eq, gte, notInArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { INACTIVE_APPLICATION_STATUSES } from '~/lib/application-rules'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { ValidationCode } from '~/lib/validation-codes'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
@@ -118,7 +119,7 @@ export async function createApplicationAction(
 		const existingActive = await db.query.applications.findFirst({
 			where: and(
 				eq(applications.applicantId, user.id),
-				notInArray(applications.status, ['authorized', 'denied']),
+				notInArray(applications.status, [...INACTIVE_APPLICATION_STATUSES]),
 			),
 			columns: { id: true },
 		})

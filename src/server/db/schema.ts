@@ -35,6 +35,7 @@ export const durationTypeEnum = pgEnum('duration_type', [
 export const APPLICATION_STATUS_VALUES = [
 	'new',
 	'pending',
+	'approved',
 	'invalid-documentation',
 	'pre-authorized',
 	'authorized',

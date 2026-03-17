@@ -85,7 +85,7 @@ describe('Login Flow', () => {
 		cy.url().should('not.include', '/settings')
 	})
 
-	// Requires app in E2E test mode (E2E_TEST_MODE=true) and E2E_OTP_CODE set. CI sets both; locally: E2E_TEST_MODE=true E2E_OTP_CODE=123456 pnpm dev:test and same for cy:run
+	// Requires app in E2E mode (E2E_OTP_CODE set). CI sets it; locally: E2E_OTP_CODE=123456 pnpm dev:test and same for cy:run.
 	describe('Full UI login', () => {
 		it('logs in via login → verify-otp with OTP code', () => {
 			cy.visit('/login')

@@ -4,6 +4,7 @@ import type { ApplicationStatus } from '~/server/db/schema'
 const APP_STATUS_KEYS = [
 	'applications-status-new',
 	'applications-status-pending',
+	'applications-status-approved',
 	'applications-status-invalid-documentation',
 	'applications-status-pre-authorized',
 	'applications-status-authorized',
@@ -14,6 +15,7 @@ const APP_STATUS_KEYS = [
 const DASHBOARD_STATUS_KEYS = [
 	'status-new',
 	'status-pending',
+	'status-approved',
 	'status-invalid-documentation',
 	'status-pre-authorized',
 	'status-authorized',
@@ -27,6 +29,7 @@ export const APPLICATION_STATUS_KEYS: Record<
 > = {
 	new: 'applications-status-new',
 	pending: 'applications-status-pending',
+	approved: 'applications-status-approved',
 	'invalid-documentation': 'applications-status-invalid-documentation',
 	'pre-authorized': 'applications-status-pre-authorized',
 	authorized: 'applications-status-authorized',
@@ -40,6 +43,7 @@ export const DASHBOARD_APPLICATION_STATUS_KEYS: Record<
 > = {
 	new: 'status-new',
 	pending: 'status-pending',
+	approved: 'status-approved',
 	'invalid-documentation': 'status-invalid-documentation',
 	'pre-authorized': 'status-pre-authorized',
 	authorized: 'status-authorized',

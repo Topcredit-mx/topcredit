@@ -9,7 +9,8 @@ import { getClientIP } from '~/lib/ip-location'
 import { generateBackupCodes, hashBackupCodes } from '~/lib/totp'
 import { ValidationCode } from '~/lib/validation-codes'
 import { db } from '~/server/db'
-import { emailOtps, userRoles, users } from '~/server/db/schema'
+import { getRolesByUserId } from '~/server/db/role-queries'
+import { emailOtps, users } from '~/server/db/schema'
 import { sendOtpEvent } from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import { getAbility, requireAbility, subject } from './ability'
@@ -25,11 +26,7 @@ export async function getUserByEmail(email: string) {
 
 	if (!user) return null
 
-	const roles = await db
-		.select({ role: userRoles.role })
-		.from(userRoles)
-		.where(eq(userRoles.userId, user.id))
-		.then((res) => res.map((r) => r.role))
+	const roles = await getRolesByUserId(user.id)
 
 	return {
 		...user,
@@ -37,7 +34,7 @@ export async function getUserByEmail(email: string) {
 	}
 }
 
-const isE2ETestMode = () => env.E2E_TEST_MODE === 'true'
+const isE2ETestMode = () => !!env.E2E_OTP_CODE
 
 export async function sendOtp(email: string, ipAddress: string) {
 	await db.delete(emailOtps).where(eq(emailOtps.email, email))
@@ -47,7 +44,7 @@ export async function sendOtp(email: string, ipAddress: string) {
 				const code = env.E2E_OTP_CODE
 				if (!code)
 					throw new Error(
-						'E2E_OTP_CODE is required when E2E test mode (e.g. E2E_TEST_MODE=true E2E_OTP_CODE=123456 pnpm dev:test)',
+						'E2E_OTP_CODE must be set when running E2E login tests',
 					)
 				return code
 			})()

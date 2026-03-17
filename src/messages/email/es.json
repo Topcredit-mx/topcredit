@@ -26,6 +26,7 @@
 		"subject": {
 			"pre-authorized": "Tu crédito fue pre-autorizado - Topcredit",
 			"authorized": "Tu crédito fue autorizado - Topcredit",
+			"approved": "Tu solicitud fue aprobada - Topcredit",
 			"denied": "Actualización de tu solicitud de crédito - Topcredit",
 			"invalid-documentation": "Tu solicitud requiere documentación - Topcredit"
 		},
@@ -34,12 +35,14 @@
 		"statusLabel": {
 			"pre-authorized": "¡Pre-autorizado!",
 			"authorized": "¡Autorizado!",
+			"approved": "¡Aprobada!",
 			"denied": "Solicitud denegada",
 			"invalid-documentation": "Documentación requerida"
 		},
 		"subtitle": {
 			"pre-authorized": "Tu crédito ha sido pre-autorizado",
 			"authorized": "Tu crédito ha sido autorizado",
+			"approved": "Tu solicitud ha sido aprobada",
 			"denied": "Tu solicitud de crédito no fue aprobada",
 			"invalid-documentation": "Tu solicitud requiere atención"
 		},

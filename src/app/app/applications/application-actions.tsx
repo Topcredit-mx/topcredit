@@ -25,11 +25,13 @@ const initialState = { error: '' }
 
 export function ApplicationActions({
 	applicationId,
+	canApprove,
 	canMarkInvalidDocumentation,
 	canPreAuthorize,
 	canAuthorize,
 }: {
 	applicationId: number
+	canApprove: boolean
 	canMarkInvalidDocumentation: boolean
 	canPreAuthorize: boolean
 	canAuthorize: boolean
@@ -89,6 +91,18 @@ export function ApplicationActions({
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="start" className="min-w-48">
+						{canApprove && (
+							<DropdownMenuItem
+								onSelect={(e) => {
+									e.preventDefault()
+									submitImmediateStatus('approved')
+								}}
+								disabled={pending || pendingReason}
+							>
+								<CheckCircle2 className="size-4" />
+								{t('applications-action-approve')}
+							</DropdownMenuItem>
+						)}
 						{canPreAuthorize && (
 							<DropdownMenuItem
 								onSelect={(e) => {

@@ -80,7 +80,6 @@ jobs:
         run: pnpm start &
         env:
           NODE_ENV: test
-          E2E_TEST_MODE: "true"
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
 
@@ -95,7 +94,6 @@ jobs:
           parallel: true
           group: 'Electron'
         env:
-          E2E_TEST_MODE: "true"
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}

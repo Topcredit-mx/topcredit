@@ -15,9 +15,7 @@ export const env = createEnv({
 		RESEND_API_KEY: z.string(),
 		AUTH_SECRET: z.string(),
 		INNGEST_EVENT_KEY: z.string().optional(),
-		/** E2E test mode: fixed OTP, no emails. Use this because next dev forces NODE_ENV=development. */
-		E2E_TEST_MODE: z.enum(['true']).optional(),
-		/** When E2E test mode, OTP code for E2E login. Required when E2E_TEST_MODE=true; CI sets a random value per run. */
+		/** E2E OTP code for login flows; when set, app runs in E2E mode (fixed OTP, emails skipped). */
 		E2E_OTP_CODE: z.string().length(6).regex(/^\d+$/).optional(),
 		/** Vercel Blob: required for application document uploads. Omit in environments that don't use storage. */
 		BLOB_READ_WRITE_TOKEN: z.string().optional(),
@@ -43,7 +41,6 @@ export const env = createEnv({
 		RESEND_API_KEY: process.env.RESEND_API_KEY,
 		AUTH_SECRET: process.env.AUTH_SECRET,
 		INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
-		E2E_TEST_MODE: process.env.E2E_TEST_MODE,
 		E2E_OTP_CODE: process.env.E2E_OTP_CODE,
 		BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
 	},

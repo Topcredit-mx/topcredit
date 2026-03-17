@@ -3,6 +3,7 @@
 import { and, eq } from 'drizzle-orm'
 import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
+import { getRolesByUserId } from '~/server/db/role-queries'
 import { userRoles, users } from '~/server/db/schema'
 import { getAbility, requireAbility } from './ability'
 
@@ -38,13 +39,7 @@ export async function removeRoleFromUser(userId: number, role: Role) {
 export async function getUserRoles(userId: number): Promise<Role[]> {
 	const { ability } = await getAbility()
 	requireAbility(ability, 'manage', 'User')
-
-	const roles = await db
-		.select({ role: userRoles.role })
-		.from(userRoles)
-		.where(eq(userRoles.userId, userId))
-
-	return roles.map((r) => r.role)
+	return getRolesByUserId(userId)
 }
 
 export async function setUserRoles(userId: number, roles: Role[]) {

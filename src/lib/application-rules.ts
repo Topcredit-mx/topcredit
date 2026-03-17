@@ -7,6 +7,7 @@ import {
 export const NOTIFY_STATUSES = [
 	'pre-authorized',
 	'authorized',
+	'approved',
 	'denied',
 	'invalid-documentation',
 ] as const satisfies readonly ApplicationStatus[]
@@ -42,8 +43,18 @@ export function statusRequiresReason(
 	return s === 'denied'
 }
 
+/** Terminal statuses that are not considered "active" for applicants. */
+export const INACTIVE_APPLICATION_STATUSES = [
+	'authorized',
+	'denied',
+] as const satisfies readonly ApplicationStatus[]
+
+const INACTIVE_APPLICATION_STATUS_SET = new Set<string>(
+	INACTIVE_APPLICATION_STATUSES,
+)
+
 export function isActiveApplicationStatus(status: ApplicationStatus): boolean {
-	return status !== 'authorized' && status !== 'denied'
+	return !INACTIVE_APPLICATION_STATUS_SET.has(status)
 }
 
 export function canTransitionApplicationFrom(

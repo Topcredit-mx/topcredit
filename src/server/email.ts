@@ -21,7 +21,7 @@ async function getEmailT() {
 const isDev = env.NODE_ENV === 'development'
 const DEV_EMAIL = 'david.cantum@proton.me'
 
-// When E2E test mode (NODE_ENV=test or E2E_TEST_MODE=true), sendEmailEvent() returns without sending; resolve* below are only used in development and production.
+// When running E2E (E2E_OTP_CODE is set), sendEmailEvent() returns without sending; resolve* below are only used in development and production.
 function resolveRecipient(email: string): string {
 	return isDev ? DEV_EMAIL : email
 }
@@ -187,7 +187,7 @@ export async function sendEmailFromEventData(
 }
 
 async function sendEmailEvent(data: EmailEventData): Promise<void> {
-	if (env.E2E_TEST_MODE === 'true') return
+	if (env.E2E_OTP_CODE) return
 	if (!INNGEST_EVENT_KEY) {
 		await sendEmailFromEventData(data)
 		return
