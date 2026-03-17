@@ -442,6 +442,8 @@ export type InsertApplicationDocumentTaskParams = {
 	documentType: 'authorization' | 'contract' | 'payroll-receipt'
 	fileName: string
 	storageKey: string
+	status?: 'pending' | 'approved' | 'rejected'
+	rejectionReason?: string | null
 }
 
 /** Insert one application document for E2E (e.g. to test list display). Documents are deleted when application/user is cleaned up. */
@@ -449,14 +451,19 @@ export const insertApplicationDocument = async (
 	params: InsertApplicationDocumentTaskParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	const status = params.status ?? 'pending'
+	if (status === 'rejected' && !params.rejectionReason) {
+		throw new Error('Rejected documents require rejectionReason')
+	}
 	const [doc] = await db
 		.insert(applicationDocuments)
 		.values({
 			applicationId: params.applicationId,
 			documentType: params.documentType,
-			status: 'pending',
+			status,
 			fileName: params.fileName,
 			storageKey: params.storageKey,
+			rejectionReason: status === 'rejected' ? params.rejectionReason : null,
 		})
 		.returning()
 	if (!doc) throw new Error('Failed to insert application document')
