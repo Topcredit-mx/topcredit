@@ -16,6 +16,7 @@ export function DocumentRejectButton({ documentId }: { documentId: number }) {
 				variant="outline"
 				size="sm"
 				onClick={() => setOpen(true)}
+				aria-label={t('applications-document-action-reject')}
 				data-document-action="reject"
 			>
 				{t('applications-document-action-reject')}

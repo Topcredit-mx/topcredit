@@ -137,7 +137,7 @@ describe('Requests agents', () => {
 			cy.contains(/denegado/i).should('be.visible')
 		})
 
-		it('requests agent does not see authorize or pre-authorize actions', () => {
+		it('requests agent sees only approve, reject and invalid-docs in actions menu', () => {
 			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains('h2', /solicitante/i)
@@ -148,8 +148,12 @@ describe('Requests agents', () => {
 						.click()
 				})
 			cy.get('[role="menu"]').within(() => {
-				cy.contains(/autorizar/i).should('not.exist')
-				cy.contains(/pre-autorizar/i).should('not.exist')
+				cy.get('[role="menuitem"]').should('have.length', 3)
+				cy.contains('[role="menuitem"]', /aprobar/i).should('be.visible')
+				cy.contains('[role="menuitem"]', /rechazar/i).should('be.visible')
+				cy.contains('[role="menuitem"]', /documentación inválida/i).should(
+					'be.visible',
+				)
 			})
 		})
 
@@ -163,12 +167,14 @@ describe('Requests agents', () => {
 			cy.visit(`/app/applications/${seed.applicantA4ApplicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains('li', 'e2e-40k-invalid.pdf').within(() =>
+				cy.get('button[aria-label*="cciones"]').should('be.visible').click(),
+			)
+			cy.get('[role="menu"]').within(() =>
 				cy
-					.get('button[data-document-action="menu"]')
+					.contains('[role="menuitem"]', /rechazar/i)
 					.should('be.visible')
 					.click(),
 			)
-			cy.get('[data-document-action="reject"]').should('be.visible').click()
 			cy.get('[data-slot="dialog-content"]').within(() => {
 				cy.get('textarea[name="rejectionReason"]').type('E2E invalid docs')
 				cy.contains('button', /confirmar/i)
@@ -176,7 +182,7 @@ describe('Requests agents', () => {
 					.click()
 			})
 			cy.contains('li', 'e2e-40k-invalid.pdf').within(() => {
-				cy.get('[data-status="rejected"]').should('be.visible')
+				cy.get('[role="img"][aria-label*="Rechazado"]').should('be.visible')
 			})
 			cy.contains('h2', /solicitante/i)
 				.closest('[data-slot="card-header"]')
@@ -194,7 +200,7 @@ describe('Requests agents', () => {
 			cy.contains('Documentación inválida').should('be.visible')
 		})
 
-		it('can approve a pending application', () => {
+		it('changes status from pending to approved when agent clicks Aprobar', () => {
 			cy.visit(`/app/applications/${seed.applicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/pendiente/i).should('be.visible')
@@ -224,15 +230,19 @@ describe('Requests agents', () => {
 		})
 
 		it('invalid application id shows not found', () => {
-			cy.visit('/app/applications/999999')
-			cy.contains(applicantForReview.name).should('not.exist')
-			cy.contains(/detalle de solicitud/i).should('not.exist')
+			cy.visit('/app/applications/999999', { failOnStatusCode: false })
+			cy.contains(
+				/404|not found|página no encontrada|could not be found/i,
+			).should('be.visible')
 		})
 
 		it('application from another company returns 404', () => {
-			cy.visit(`/app/applications/${seed.companyBApplicationId}`)
-			cy.contains(applicantForReview.name).should('not.exist')
-			cy.contains(/detalle de solicitud/i).should('not.exist')
+			cy.visit(`/app/applications/${seed.companyBApplicationId}`, {
+				failOnStatusCode: false,
+			})
+			cy.contains(
+				/404|not found|página no encontrada|could not be found/i,
+			).should('be.visible')
 		})
 	})
 

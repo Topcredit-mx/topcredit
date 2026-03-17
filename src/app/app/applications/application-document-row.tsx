@@ -33,8 +33,10 @@ function DocumentStatusIcon({
 	if (status === 'pending') {
 		return (
 			<span
+				role="img"
 				className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-500"
 				title={titlePending}
+				aria-label={titlePending}
 				data-status="pending"
 			>
 				<Clock className="size-4 shrink-0" aria-hidden />
@@ -44,8 +46,10 @@ function DocumentStatusIcon({
 	if (status === 'approved') {
 		return (
 			<span
+				role="img"
 				className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500"
 				title={titleApproved}
+				aria-label={titleApproved}
 				data-status="approved"
 			>
 				<CheckCircle2 className="size-4 shrink-0" aria-hidden />
@@ -54,8 +58,10 @@ function DocumentStatusIcon({
 	}
 	return (
 		<span
+			role="img"
 			className="inline-flex items-center gap-1.5 text-destructive"
 			title={titleRejected}
+			aria-label={titleRejected}
 			data-status="rejected"
 		>
 			<XCircle className="size-4 shrink-0" aria-hidden />
