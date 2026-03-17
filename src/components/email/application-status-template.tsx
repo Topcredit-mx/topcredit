@@ -5,6 +5,7 @@ import type { ApplicationStatus } from '~/server/db/schema'
 const STATUS_HIGHLIGHT_COLOR: Record<ApplicationStatus, string> = {
 	new: '#666',
 	pending: '#666',
+	approved: '#15803d',
 	'invalid-documentation': '#b45309',
 	'pre-authorized': '#0070f3',
 	authorized: '#15803d',

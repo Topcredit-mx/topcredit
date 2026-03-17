@@ -194,6 +194,26 @@ describe('Requests agents', () => {
 			cy.contains('Documentación inválida').should('be.visible')
 		})
 
+		it('can approve a pending application', () => {
+			cy.visit(`/app/applications/${seed.applicationId}`)
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.contains(/pendiente/i).should('be.visible')
+			cy.contains('h2', /solicitante/i)
+				.closest('[data-slot="card-header"]')
+				.within(() => {
+					cy.contains('button', /acciones/i)
+						.should('be.visible')
+						.click()
+				})
+			cy.get('[role="menuitem"]')
+				.contains(/aprobar/i)
+				.should('be.visible')
+				.click()
+			// Action redirects to same URL (reload); wait for new page then new state
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.contains(/aprobada/i).should('be.visible')
+		})
+
 		it('filter by status shows matching applications', () => {
 			cy.visit('/app/applications')
 			cy.get('table').should('be.visible')

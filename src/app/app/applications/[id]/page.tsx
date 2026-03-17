@@ -38,6 +38,7 @@ function statusBadgeVariant(
 	status: ApplicationStatus,
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
 	switch (status) {
+		case 'approved':
 		case 'authorized':
 		case 'pre-authorized':
 			return 'default'
@@ -74,9 +75,11 @@ export default async function AppApplicationDetailPage({
 		id: application.id,
 		applicantId: application.applicantId,
 		companyId: application.termOffering.companyId,
+		status: application.status,
 	})
 	const canPreAuthorize = ability.can('setStatusPreAuthorized', appSubject)
 	const canAuthorize = ability.can('setStatusAuthorized', appSubject)
+	const canApprove = ability.can('setStatusApproved', appSubject)
 
 	return (
 		<div className="container mx-auto max-w-4xl py-6">
@@ -156,6 +159,7 @@ export default async function AppApplicationDetailPage({
 						<CardAction>
 							<ApplicationActions
 								applicationId={application.id}
+								canApprove={canApprove}
 								canMarkInvalidDocumentation={
 									documentList.length > 0 &&
 									documentList.some((d) => d.status === 'rejected')

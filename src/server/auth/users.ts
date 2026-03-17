@@ -9,7 +9,8 @@ import { getClientIP } from '~/lib/ip-location'
 import { generateBackupCodes, hashBackupCodes } from '~/lib/totp'
 import { ValidationCode } from '~/lib/validation-codes'
 import { db } from '~/server/db'
-import { emailOtps, userRoles, users } from '~/server/db/schema'
+import { getRolesByUserId } from '~/server/db/role-queries'
+import { emailOtps, users } from '~/server/db/schema'
 import { sendOtpEvent } from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import { getAbility, requireAbility, subject } from './ability'
@@ -25,11 +26,7 @@ export async function getUserByEmail(email: string) {
 
 	if (!user) return null
 
-	const roles = await db
-		.select({ role: userRoles.role })
-		.from(userRoles)
-		.where(eq(userRoles.userId, user.id))
-		.then((res) => res.map((r) => r.role))
+	const roles = await getRolesByUserId(user.id)
 
 	return {
 		...user,

@@ -2,13 +2,16 @@
 
 import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import {
-	canTransitionApplicationFrom,
-	statusRequiresReason,
-} from '~/lib/application-rules'
+import { redirect } from 'next/navigation'
+import { statusRequiresReason } from '~/lib/application-rules'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { ValidationCode } from '~/lib/validation-codes'
-import { getAbility, requireAbility, subject } from '~/server/auth/ability'
+import {
+	getAbility,
+	getActionForApplicationStatus,
+	requireAbility,
+	subject,
+} from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
 import type { ApplicationStatus } from '~/server/db/schema'
@@ -162,7 +165,7 @@ async function setDocumentStatus(
 		columns: { id: true, applicationId: true, status: true },
 		with: {
 			application: {
-				columns: { id: true, applicantId: true },
+				columns: { id: true, applicantId: true, status: true },
 				with: { termOffering: { columns: { companyId: true } } },
 			},
 		},
@@ -177,6 +180,7 @@ async function setDocumentStatus(
 			id: doc.application.id,
 			applicantId: doc.application.applicantId,
 			companyId,
+			status: doc.application.status,
 		}),
 	)
 	await db
@@ -247,13 +251,8 @@ export async function updateApplicationStatus(
 		id: app.id,
 		applicantId: app.applicantId,
 		companyId,
+		status: app.status,
 	})
-	requireAbility(ability, 'update', appSubject)
-
-	// Allowed transitions: from (new | pending | pre-authorized) to (pre-authorized | authorized | denied | invalid-documentation).
-	if (!canTransitionApplicationFrom(app.status)) {
-		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
-	}
 
 	const parsed = updateApplicationStatusSchema.safeParse(payload)
 	if (!parsed.success) {
@@ -262,22 +261,10 @@ export async function updateApplicationStatus(
 	}
 	const data = parsed.data
 
-	if (
-		data.status === 'pre-authorized' &&
-		!ability.can('setStatusPreAuthorized', appSubject)
-	) {
-		return {
-			error: ValidationCode.APPLICATIONS_REQUESTS_CANNOT_PREAUTH_OR_AUTH,
-		}
-	}
-	if (
-		data.status === 'authorized' &&
-		!ability.can('setStatusAuthorized', appSubject)
-	) {
-		return {
-			error: ValidationCode.APPLICATIONS_REQUESTS_CANNOT_PREAUTH_OR_AUTH,
-		}
-	}
+	const action = getActionForApplicationStatus(data.status)
+	if (!action) redirect('/unauthorized')
+
+	requireAbility(ability, action, appSubject)
 
 	await db
 		.update(applications)

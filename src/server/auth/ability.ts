@@ -3,16 +3,16 @@ import {
 	createMongoAbility,
 	type ForcedSubject,
 	type MongoAbility,
-	type MongoQuery,
 	subject,
 } from '@casl/ability'
-import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
-import type { ApplicantEligibilityData } from '~/lib/application-rules'
-import { isEligibleForNewApplication } from '~/lib/application-rules'
-import { db } from '~/server/db'
-import { userRoles } from '~/server/db/schema'
+import {
+	type ApplicantEligibilityData,
+	isEligibleForNewApplication,
+} from '~/lib/application-rules'
+import { getRolesByUserId } from '~/server/db/role-queries'
+import type { ApplicationStatus } from '~/server/db/schema'
 import { getUserCompanyAssignments } from '~/server/scopes'
 import { getApplicantEligibilityData } from './eligibility'
 import { requireAuth } from './session'
@@ -26,6 +26,9 @@ export type AppAction =
 	| 'update'
 	| 'delete'
 	| 'uploadDocument'
+	| 'setStatusApproved'
+	| 'setStatusDenied'
+	| 'setStatusInvalidDocumentation'
 	| 'setStatusPreAuthorized'
 	| 'setStatusAuthorized'
 export type AppSubject = 'Company' | 'User' | 'Admin' | 'Application' | 'all'
@@ -36,6 +39,7 @@ export type ApplicationSubject = {
 	id: number
 	applicantId: number
 	companyId?: number
+	status?: ApplicationStatus
 } & ForcedSubject<'Application'>
 
 export type AppAbility = MongoAbility<
@@ -49,45 +53,71 @@ export type AbilityContext = {
 	applicantEligibilityData?: ApplicantEligibilityData | null
 }
 
-function companyIdCondition(ids: number[]): MongoQuery<CompanySubject> {
-	return { id: { $in: ids } }
-}
-
 export function defineAbilityFor(ctx: AbilityContext): AppAbility {
-	const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility)
+	const { can, cannot, build } = new AbilityBuilder<AppAbility>(
+		createMongoAbility,
+	)
 
-	const isAdmin = ctx.roles.includes('admin')
-	const isAgent = ctx.roles.includes('agent')
-	const isApplicant = ctx.roles.includes('applicant')
-
-	if (isAdmin) {
-		can('manage', 'all')
-		can('setStatusPreAuthorized', 'Application')
-		can('setStatusAuthorized', 'Application')
+	if (!ctx.userId) {
 		return build()
 	}
 
-	if (isApplicant && ctx.userId != null) {
+	const isAdmin = ctx.roles.includes('admin')
+	const isAgent = ctx.roles.includes('agent')
+	const isRequests = ctx.roles.includes('requests')
+	const isApplicant = ctx.roles.includes('applicant')
+	const hasCompanyAssignments = ctx.assignedCompanyIds.length > 0
+
+	can('read', 'User', { id: ctx.userId })
+	can('update', 'User', { id: ctx.userId })
+
+	if (isApplicant) {
 		if (isEligibleForNewApplication(ctx.applicantEligibilityData)) {
 			can('create', 'Application')
 		}
 		can('read', 'Application', { applicantId: ctx.userId })
 		can('uploadDocument', 'Application', { applicantId: ctx.userId })
-		can('update', 'User', { id: ctx.userId })
 		return build()
 	}
 
-	if (isAgent && ctx.userId != null) {
-		can('update', 'User', { id: ctx.userId })
-		if (ctx.assignedCompanyIds.length > 0) {
-			const condition = companyIdCondition(ctx.assignedCompanyIds)
-			can('read', 'Company', condition)
-			can('update', 'Company', condition)
-			can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
-			can('update', 'Application', {
-				companyId: { $in: ctx.assignedCompanyIds },
-			})
-		}
+	if (isAdmin) {
+		can('manage', 'all')
+		can('setStatusApproved', 'Application', { status: 'pending' })
+		can('setStatusDenied', 'Application', { status: 'pending' })
+		can('setStatusInvalidDocumentation', 'Application', { status: 'pending' })
+		can('setStatusPreAuthorized', 'Application')
+		can('setStatusAuthorized', 'Application')
+		cannot('setStatusApproved', 'Application', { status: { $ne: 'pending' } })
+		cannot('setStatusDenied', 'Application', { status: { $ne: 'pending' } })
+		cannot('setStatusInvalidDocumentation', 'Application', {
+			status: { $ne: 'pending' },
+		})
+		return build()
+	}
+
+	if (isAgent && hasCompanyAssignments) {
+		can('read', 'Company', { id: { $in: ctx.assignedCompanyIds } })
+		can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
+	}
+
+	if (isRequests && hasCompanyAssignments) {
+		can('read', 'Company', { id: { $in: ctx.assignedCompanyIds } })
+		can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
+		can('update', 'Application', {
+			companyId: { $in: ctx.assignedCompanyIds },
+		})
+		can('setStatusApproved', 'Application', {
+			companyId: { $in: ctx.assignedCompanyIds },
+			status: 'pending',
+		})
+		can('setStatusDenied', 'Application', {
+			companyId: { $in: ctx.assignedCompanyIds },
+			status: 'pending',
+		})
+		can('setStatusInvalidDocumentation', 'Application', {
+			companyId: { $in: ctx.assignedCompanyIds },
+			status: 'pending',
+		})
 	}
 
 	return build()
@@ -99,27 +129,16 @@ export type AbilityResult = {
 	isAdmin: boolean
 }
 
-/** Roles from DB (not JWT) so role changes take effect immediately. */
-export const getRolesFromDb = cache(
-	async (userId: number): Promise<string[]> => {
-		const rows = await db
-			.select({ role: userRoles.role })
-			.from(userRoles)
-			.where(eq(userRoles.userId, userId))
-		return rows.length > 0 ? rows.map((r) => r.role) : []
-	},
-)
-
 export const getAbility = cache(async (): Promise<AbilityResult> => {
 	const session = await requireAuth()
 	const userId = session.user.id
-	const roles = await getRolesFromDb(userId)
+	const roles = await getRolesByUserId(userId)
 	if (roles.length === 0) redirect('/unauthorized')
 
 	const isAdmin = roles.includes('admin')
 	const assignedCompanyIds: number[] = isAdmin
 		? []
-		: roles.includes('agent')
+		: roles.includes('agent') || roles.includes('requests')
 			? (await getUserCompanyAssignments(userId)).map((c) => c.id)
 			: []
 
@@ -142,6 +161,12 @@ export const getAbility = cache(async (): Promise<AbilityResult> => {
 	}
 })
 
+/**
+ * Server-side guard: if the current user cannot perform `action` on `subj`, redirects to
+ * `/unauthorized` (never returns). Call after getAbility() when the route or mutation must
+ * be forbidden entirely when the user lacks permission—e.g. requireAbility(ability, 'manage', 'User').
+ * For returning a validation error instead of redirecting, use ability.can() and return { error }.
+ */
 export function requireAbility(
 	ability: AppAbility,
 	action: Parameters<AppAbility['can']>[0],
@@ -150,4 +175,19 @@ export function requireAbility(
 	if (!ability.can(action, subj)) {
 		redirect('/unauthorized')
 	}
+}
+
+const STATUS_TO_ACTION: Partial<Record<ApplicationStatus, AppAction>> = {
+	approved: 'setStatusApproved',
+	denied: 'setStatusDenied',
+	'invalid-documentation': 'setStatusInvalidDocumentation',
+	'pre-authorized': 'setStatusPreAuthorized',
+	authorized: 'setStatusAuthorized',
+}
+
+/** Returns the CASL action for setting an application to this status, or null if not allowed. */
+export function getActionForApplicationStatus(
+	status: ApplicationStatus,
+): AppAction | null {
+	return STATUS_TO_ACTION[status] ?? null
 }
