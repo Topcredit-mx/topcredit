@@ -8,7 +8,19 @@ Based on [app-flow-proposal.md](./app-flow-proposal.md): these are the suggested
 
 1. **New application without term/amount (align with 1.2)**
    - Make `termOfferingId` and `creditAmount` nullable on applications (or add a “draft”/“initial” phase and set them later).
-   - New application form: only general details (e.g. profile, salary, bank) + initial doc uploads; no term/amount selection.
+   - Signup should collect only full name and email. The application form should collect the rest of the applicant data.
+   - New application form: only general details + initial doc uploads; no term/amount selection.
+   - General details fields:
+     - Employment & income: salary, payroll/employee number, RFC (13 characters).
+     - Bank: interbank CLABE (18 digits).
+     - Address: street and number, interior number (optional), city, state (Mexican states dropdown), country (dropdown, default `México`), postal code (5 characters).
+     - Contact: phone number.
+   - Salary should align with the company's pay frequency (for example `quincenal` or `mensual`).
+   - Initial required uploads:
+     - Official ID: only INE or passport.
+     - Proof of address: no older than 3 months.
+     - Bank statement: no older than 3 months.
+     - Payroll slip: no older than 1 month.
    - Ensure creation sets status to `pending` (or keep `new` and move to `pending` when docs are submitted, per your product choice).
 
 2. **Dedicated roles and scoped transitions (1.4-1.6)**
@@ -29,4 +41,5 @@ Based on [app-flow-proposal.md](./app-flow-proposal.md): these are the suggested
    - HR: confirm payments. Payments agent: reporting views. Implement `/app/credits` and `/app/payments` pages.
 
 5. **Document types and initial docs**
-   - Align document types with proposal (e.g. ID, bank statement, proof of address) for initial submit and/or keep current types and map them in copy; ensure one-submit flow includes required uploads.
+   - Align document types with proposal for initial submit and/or keep current types and map them in copy.
+   - Initial submit should require: official ID (INE or passport), proof of address (<= 3 months), bank statement (<= 3 months), and payroll slip (<= 1 month).
