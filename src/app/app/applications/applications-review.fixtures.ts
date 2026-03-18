@@ -163,6 +163,7 @@ export const reviewApplicationConfigs = [
 		companyDomain: companyForReview.domain,
 		creditAmount: '25000',
 		salaryAtApplication: '40000',
+		status: 'new' as const,
 	},
 	{
 		applicantEmail: applicantA2.email,

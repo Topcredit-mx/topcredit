@@ -89,7 +89,7 @@ export function canTransitionToApplicationStatus(
 	nextStatus: ApplicationStatus,
 ): boolean {
 	if (nextStatus === 'approved' || nextStatus === 'invalid-documentation') {
-		return currentStatus === 'pending'
+		return currentStatus === 'new' || currentStatus === 'pending'
 	}
 
 	if (nextStatus === 'pre-authorized') {
@@ -102,6 +102,7 @@ export function canTransitionToApplicationStatus(
 
 	if (nextStatus === 'denied') {
 		return (
+			currentStatus === 'new' ||
 			currentStatus === 'pending' ||
 			currentStatus === 'approved' ||
 			currentStatus === 'pre-authorized'

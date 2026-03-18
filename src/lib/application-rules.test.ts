@@ -12,7 +12,13 @@ test('requires financial terms only for pre-authorized and authorized', () => {
 	assert.equal(statusRequiresFinancialTerms('authorized'), true)
 })
 
-test('allows pending requests review transitions only from pending', () => {
+test('allows requests review transitions from both new and pending', () => {
+	assert.equal(canTransitionToApplicationStatus('new', 'approved'), true)
+	assert.equal(
+		canTransitionToApplicationStatus('new', 'invalid-documentation'),
+		true,
+	)
+	assert.equal(canTransitionToApplicationStatus('new', 'denied'), true)
 	assert.equal(canTransitionToApplicationStatus('pending', 'approved'), true)
 	assert.equal(
 		canTransitionToApplicationStatus('pending', 'invalid-documentation'),

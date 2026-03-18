@@ -42,12 +42,12 @@ import {
 	applicantB,
 	applicantInactiveCompany,
 	applicantNoCompany,
-	applicantNoRate,
-	applicantNoTerms,
 	applicantWithCompany,
+	applicantWithCompanyWithoutCapacityRate,
+	applicantWithCompanyWithoutTermOfferings,
 	companyInactive,
-	companyNoRate,
-	companyNoTerms,
+	companyWithoutCapacityRate,
+	companyWithoutTermOfferings,
 	companyWithTerms,
 } from '~/app/dashboard/applications/applications.fixtures'
 import {
@@ -667,14 +667,14 @@ export const seedDashboardApplications =
 			applicantB,
 			applicantNoCompany,
 			applicantInactiveCompany,
-			applicantNoRate,
-			applicantNoTerms,
+			applicantWithCompanyWithoutCapacityRate,
+			applicantWithCompanyWithoutTermOfferings,
 		]
 		const allCompanies = [
 			companyWithTerms,
 			companyInactive,
-			companyNoRate,
-			companyNoTerms,
+			companyWithoutCapacityRate,
+			companyWithoutTermOfferings,
 		]
 
 		await Promise.all(
@@ -773,14 +773,14 @@ export const cleanupDashboardApplications = async (
 		applicantB,
 		applicantNoCompany,
 		applicantInactiveCompany,
-		applicantNoRate,
-		applicantNoTerms,
+		applicantWithCompanyWithoutCapacityRate,
+		applicantWithCompanyWithoutTermOfferings,
 	]
 	const allCompanies = [
 		companyWithTerms,
 		companyInactive,
-		companyNoRate,
-		companyNoTerms,
+		companyWithoutCapacityRate,
+		companyWithoutTermOfferings,
 	]
 	await Promise.all(
 		allApplicants.map((u) => db.delete(users).where(eq(users.email, u.email))),

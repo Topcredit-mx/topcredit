@@ -83,16 +83,22 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 
 	if (isAdmin) {
 		can('manage', 'all')
-		can('setStatusApproved', 'Application', { status: 'pending' })
-		can('setStatusDenied', 'Application', {
-			status: { $in: ['pending', 'approved', 'pre-authorized'] },
+		can('setStatusApproved', 'Application', {
+			status: { $in: ['new', 'pending'] },
 		})
-		can('setStatusInvalidDocumentation', 'Application', { status: 'pending' })
+		can('setStatusDenied', 'Application', {
+			status: { $in: ['new', 'pending', 'approved', 'pre-authorized'] },
+		})
+		can('setStatusInvalidDocumentation', 'Application', {
+			status: { $in: ['new', 'pending'] },
+		})
 		can('setStatusPreAuthorized', 'Application', { status: 'approved' })
 		can('setStatusAuthorized', 'Application', { status: 'pre-authorized' })
-		cannot('setStatusApproved', 'Application', { status: { $ne: 'pending' } })
+		cannot('setStatusApproved', 'Application', {
+			status: { $nin: ['new', 'pending'] },
+		})
 		cannot('setStatusInvalidDocumentation', 'Application', {
-			status: { $ne: 'pending' },
+			status: { $nin: ['new', 'pending'] },
 		})
 		return build()
 	}
@@ -110,15 +116,15 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		})
 		can('setStatusApproved', 'Application', {
 			companyId: { $in: ctx.assignedCompanyIds },
-			status: 'pending',
+			status: { $in: ['new', 'pending'] },
 		})
 		can('setStatusDenied', 'Application', {
 			companyId: { $in: ctx.assignedCompanyIds },
-			status: 'pending',
+			status: { $in: ['new', 'pending'] },
 		})
 		can('setStatusInvalidDocumentation', 'Application', {
 			companyId: { $in: ctx.assignedCompanyIds },
-			status: 'pending',
+			status: { $in: ['new', 'pending'] },
 		})
 	}
 

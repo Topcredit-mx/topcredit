@@ -10,7 +10,7 @@
 import type { SeedApplicationsReviewResult } from '../../../../cypress/tasks'
 import {
 	agentForReview,
-	applicantA5,
+	applicantA3,
 	applicantForReview,
 	applicantForReviewD,
 	preAuthAgentForReview,
@@ -54,6 +54,13 @@ describe('Requests agents', () => {
 				cy.contains('th', /acciones/i).should('exist')
 			})
 			cy.contains(applicantForReview.name).should('exist')
+		})
+
+		it('shows both new and pending applications in the requests queue', () => {
+			cy.visit('/app/applications')
+			cy.get('table').should('be.visible')
+			cy.contains(/nueva/i).should('be.visible')
+			cy.contains(/pendiente/i).should('be.visible')
 		})
 
 		it('opens application detail and shows data', () => {
@@ -202,10 +209,10 @@ describe('Requests agents', () => {
 			cy.contains('Documentación inválida').should('be.visible')
 		})
 
-		it('changes status from pending to approved when agent clicks Aprobar', () => {
+		it('changes status from new to approved when agent clicks Aprobar', () => {
 			cy.visit(`/app/applications/${seed.applicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains(/pendiente/i).should('be.visible')
+			cy.contains(/nueva/i).should('be.visible')
 			cy.contains('h2', /solicitante/i)
 				.closest('[data-slot="card-header"]')
 				.within(() => {
@@ -222,13 +229,32 @@ describe('Requests agents', () => {
 			cy.contains(/aprobada/i).should('be.visible')
 		})
 
+		it('changes status from pending to approved on re-review', () => {
+			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.contains(/pendiente/i).should('be.visible')
+			cy.contains('h2', /solicitante/i)
+				.closest('[data-slot="card-header"]')
+				.within(() => {
+					cy.contains('button', /acciones/i)
+						.should('be.visible')
+						.click()
+				})
+			cy.get('[role="menuitem"]')
+				.contains(/aprobar/i)
+				.should('be.visible')
+				.click()
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.contains(/aprobada/i).should('be.visible')
+		})
+
 		it('filter by status shows matching applications', () => {
 			cy.visit('/app/applications')
 			cy.get('table').should('be.visible')
 			cy.selectRadix('status', 'Pendiente')
 			cy.url().should('include', 'status=pending')
 			cy.get('table tbody tr').should('have.length.at.least', 1)
-			cy.contains(applicantA5.name).should('exist')
+			cy.contains(applicantA3.name).should('exist')
 		})
 
 		it('invalid application id shows not found', () => {

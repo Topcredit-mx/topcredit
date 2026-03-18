@@ -34,8 +34,8 @@ export const companyWithTerms: CompanyFixture = {
 	active: true,
 }
 
-/** Active company with no borrowingCapacityRate */
-export const companyNoRate: CompanyFixture = {
+/** Active company missing borrowingCapacityRate; applicant submission is still allowed. */
+export const companyWithoutCapacityRate: CompanyFixture = {
 	name: 'E2E No Rate Company',
 	domain: 'norate.com',
 	rate: '0.0250',
@@ -51,15 +51,15 @@ export const applicantNoCompany = {
 	roles: ['applicant'] as const,
 }
 
-/** Applicant whose active company has no borrowingCapacityRate (norate.com) */
-export const applicantNoRate = {
-	name: 'Applicant No Rate',
+/** Applicant whose active company is missing borrowingCapacityRate. */
+export const applicantWithCompanyWithoutCapacityRate = {
+	name: 'Applicant Missing Capacity Rate',
 	email: 'norate@norate.com',
 	roles: ['applicant'] as const,
 }
 
-/** Active company with rate and borrowingCapacityRate but no term offerings */
-export const companyNoTerms: CompanyFixture = {
+/** Active company with no term offerings; applicant submission is still allowed. */
+export const companyWithoutTermOfferings: CompanyFixture = {
 	name: 'E2E No Terms Company',
 	domain: 'noterms.com',
 	rate: '0.0250',
@@ -68,9 +68,9 @@ export const companyNoTerms: CompanyFixture = {
 	active: true,
 }
 
-/** Applicant whose active company has no term offerings (noterms.com) */
-export const applicantNoTerms = {
-	name: 'Applicant No Terms',
+/** Applicant whose active company has no term offerings. */
+export const applicantWithCompanyWithoutTermOfferings = {
+	name: 'Applicant Missing Terms',
 	email: 'user@noterms.com',
 	roles: ['applicant'] as const,
 }

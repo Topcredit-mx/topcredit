@@ -3,9 +3,9 @@ import {
 	applicantB,
 	applicantInactiveCompany,
 	applicantNoCompany,
-	applicantNoRate,
-	applicantNoTerms,
 	applicantWithCompany,
+	applicantWithCompanyWithoutCapacityRate,
+	applicantWithCompanyWithoutTermOfferings,
 } from './applications.fixtures'
 
 describe('Dashboard Applications', () => {
@@ -87,9 +87,9 @@ describe('Dashboard Applications', () => {
 		})
 	})
 
-	describe('Active company without rate', () => {
+	describe('Active company missing borrowing capacity rate', () => {
 		beforeEach(() => {
-			cy.login(applicantNoRate.email)
+			cy.login(applicantWithCompanyWithoutCapacityRate.email)
 			cy.visit('/dashboard/applications/new')
 		})
 
@@ -101,9 +101,9 @@ describe('Dashboard Applications', () => {
 		})
 	})
 
-	describe('Active company without terms', () => {
+	describe('Active company without term offerings', () => {
 		beforeEach(() => {
-			cy.login(applicantNoTerms.email)
+			cy.login(applicantWithCompanyWithoutTermOfferings.email)
 			cy.visit('/dashboard/applications/new')
 		})
 
@@ -250,7 +250,7 @@ describe('Dashboard Applications', () => {
 
 			cy.url().should('include', '/dashboard/applications')
 			cy.get('main').should('be.visible')
-			cy.contains(/nueva|pendiente/i).should('be.visible')
+			cy.contains(/nueva/i).should('be.visible')
 			cy.contains(/por definir/i).should('be.visible')
 		})
 	})
