@@ -503,6 +503,11 @@ export const resetApplicantApplication = async (
 	params: ResetApplicantApplicationTaskParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	const offering = await db.query.termOfferings.findFirst({
+		where: eq(termOfferings.id, params.termOfferingId),
+		columns: { companyId: true },
+	})
+	if (!offering) throw new Error('Failed to find term offering')
 	// Delete blobs for applications we're about to remove (so they don't persist in storage)
 	if (process.env.BLOB_READ_WRITE_TOKEN) {
 		const appsToRemove = await db
@@ -526,6 +531,7 @@ export const resetApplicantApplication = async (
 		.insert(applications)
 		.values({
 			applicantId: params.applicantId,
+			companyId: offering.companyId,
 			termOfferingId: params.termOfferingId,
 			creditAmount: params.creditAmount,
 			salaryAtApplication: params.salaryAtApplication,
@@ -612,6 +618,7 @@ export const seedLoginFlow = async (): Promise<SeedLoginFlowResult> => {
 
 	await db.insert(applications).values({
 		applicantId: applicant.id,
+		companyId: company.id,
 		termOfferingId: offering.id,
 		creditAmount: '10000',
 		salaryAtApplication: '100000',
@@ -1340,6 +1347,7 @@ export const seedApplicationsReview =
 			.values(
 				reviewApplicationConfigs.map((cfg) => ({
 					applicantId: findUser(cfg.applicantEmail).id,
+					companyId: findCompany(cfg.companyDomain).id,
 					termOfferingId: findOffering(cfg.companyDomain).id,
 					creditAmount: cfg.creditAmount,
 					salaryAtApplication: cfg.salaryAtApplication,

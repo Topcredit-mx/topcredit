@@ -1,6 +1,7 @@
 import { z } from 'zod'
-
 import { statusRequiresReason } from '~/lib/application-rules'
+import { validateClabe, validateIndividualRfc } from '~/lib/mexico-identifiers'
+import { MEXICAN_STATE_VALUES } from '~/lib/mexico-states'
 import { ValidationCode } from '~/lib/validation-codes'
 import {
 	APPLICATION_STATUS_VALUES,
@@ -62,15 +63,61 @@ const positiveNumericString = z
 		message: ValidationCode.APPLICATION_VALUE_POSITIVE,
 	})
 
+const requiredText = z
+	.string()
+	.trim()
+	.min(1, ValidationCode.APPLICATION_VALUE_REQUIRED)
+
+const rfcSchema = z
+	.string()
+	.trim()
+	.toUpperCase()
+	.superRefine((value, ctx) => {
+		const result = validateIndividualRfc(value)
+		if (!result.ok) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: result.code,
+			})
+		}
+	})
+
+const clabeSchema = z
+	.string()
+	.trim()
+	.superRefine((value, ctx) => {
+		const result = validateClabe(value)
+		if (!result.ok) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: result.code,
+			})
+		}
+	})
+
+const postalCodeSchema = z
+	.string()
+	.trim()
+	.refine((value) => /^\d{5}$/.test(value), {
+		message: ValidationCode.APPLICATION_POSTAL_CODE_LENGTH,
+	})
+
 // ---- Application (solicitud) ----
 
 export const createApplicationSchema = z.object({
-	termOfferingId: z.coerce
-		.number()
-		.int()
-		.positive(ValidationCode.APPLICATION_TERM_REQUIRED),
-	creditAmount: positiveNumericString,
 	salaryAtApplication: positiveNumericString,
+	payrollNumber: requiredText,
+	rfc: rfcSchema,
+	clabe: clabeSchema,
+	streetAndNumber: requiredText,
+	interiorNumber: z.string().trim().optional(),
+	city: requiredText,
+	state: z.enum(MEXICAN_STATE_VALUES, {
+		message: ValidationCode.APPLICATION_VALUE_REQUIRED,
+	}),
+	country: requiredText,
+	postalCode: postalCodeSchema,
+	phoneNumber: requiredText,
 })
 
 /** Payload for updating application status (status + optional reason when required). */

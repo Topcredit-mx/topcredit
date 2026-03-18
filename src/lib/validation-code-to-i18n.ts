@@ -79,6 +79,26 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'dashboard.applications',
 		key: 'application-value-positive',
 	},
+	[ValidationCode.APPLICATION_RFC_LENGTH]: {
+		namespace: 'dashboard.applications',
+		key: 'application-rfc-length',
+	},
+	[ValidationCode.APPLICATION_RFC_INVALID]: {
+		namespace: 'dashboard.applications',
+		key: 'application-rfc-invalid',
+	},
+	[ValidationCode.APPLICATION_CLABE_LENGTH]: {
+		namespace: 'dashboard.applications',
+		key: 'application-clabe-length',
+	},
+	[ValidationCode.APPLICATION_CLABE_INVALID]: {
+		namespace: 'dashboard.applications',
+		key: 'application-clabe-invalid',
+	},
+	[ValidationCode.APPLICATION_POSTAL_CODE_LENGTH]: {
+		namespace: 'dashboard.applications',
+		key: 'application-postal-code-length',
+	},
 	[ValidationCode.APPLICATION_INVALID]: {
 		namespace: 'dashboard.applications',
 		key: 'application-invalid',

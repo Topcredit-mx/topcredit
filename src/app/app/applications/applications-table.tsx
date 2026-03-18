@@ -52,10 +52,14 @@ export async function ApplicationsTable({
 								</div>
 							</td>
 							<td className="px-4 py-3">
-								{formatCurrencyMxn(app.creditAmount)}
+								{app.creditAmount
+									? formatCurrencyMxn(app.creditAmount)
+									: t('applications-detail-value-pending')}
 							</td>
 							<td className="px-4 py-3 text-muted-foreground">
-								{formatApplicationTerm(app.termOffering, t)}
+								{app.termOffering
+									? formatApplicationTerm(app.termOffering, t)
+									: t('applications-detail-value-pending')}
 							</td>
 							<td className="px-4 py-3">
 								{t(APPLICATION_STATUS_KEYS[app.status])}

@@ -29,7 +29,7 @@ describe('Dashboard Applications', () => {
 			cy.visit('/dashboard')
 			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(
-				/mis solicitudes de crédito|completa los datos para solicitar|plazo|monto solicitado/i,
+				/mis solicitudes de crédito|completa los datos para solicitar|salario|rfc|clabe/i,
 			).should('be.visible')
 		})
 
@@ -131,32 +131,42 @@ describe('Dashboard Applications', () => {
 	})
 
 	describe('Form validation', () => {
-		it('submitting amount above maxLoanAmount shows error', () => {
-			cy.task('deleteApplicationsByApplicantId', seed.applicantId)
+		it('shows detected bank name from CLABE prefix', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
-			cy.selectRadix('label:Plazo', 'Mensual - 12 meses')
-			cy.get('input[name="salaryAtApplication"]').type('100000')
-			// max = 100000 * 0.30 = 30000; submit 50000
-			cy.get('input[name="creditAmount"]').type('50000')
-			cy.contains('button', /enviar solicitud/i)
-				.should('be.visible')
-				.click()
-			cy.url().should('include', '/dashboard/applications/new')
-			cy.contains(
-				'El monto no puede superar el máximo permitido ($30,000.00).',
-			).should('be.visible')
+			cy.get('input[name="clabe"]').type('014580569257722968')
+			cy.contains(/Banco detectado:\s*SANTANDER/i).should('be.visible')
 		})
 
 		it('submitting with empty required fields shows field errors', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
-			cy.selectRadix('label:Plazo', 'Mensual - 12 meses')
 			cy.contains('button', /enviar solicitud/i)
 				.should('be.visible')
 				.click()
 			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains('El valor es requerido').should('be.visible')
+		})
+
+		it('submitting with invalid RFC date/check digit and CLABE checksum shows errors', () => {
+			cy.login(applicantWithCompany.email)
+			cy.visit('/dashboard/applications/new')
+			cy.get('input[name="salaryAtApplication"]').type('100000')
+			cy.get('input[name="payrollNumber"]').type('12345')
+			cy.get('input[name="rfc"]').type('ABCD991332ABC')
+			cy.get('input[name="clabe"]').type('032180000118359718')
+			cy.get('input[name="streetAndNumber"]').type('Av. Siempre Viva 742')
+			cy.get('input[name="city"]').type('Monterrey')
+			cy.selectRadix('label:Estado', 'Nuevo León')
+			cy.get('input[name="postalCode"]').type('6400')
+			cy.get('input[name="phoneNumber"]').type('8112345678')
+			cy.contains('button', /enviar solicitud/i)
+				.should('be.visible')
+				.click()
+			cy.url().should('include', '/dashboard/applications/new')
+			cy.contains(/RFC no es válido/i).should('be.visible')
+			cy.contains(/CLABE no es válida/i).should('be.visible')
+			cy.contains(/código postal.*5/i).should('be.visible')
 		})
 	})
 
@@ -206,16 +216,24 @@ describe('Dashboard Applications', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
 
-			cy.selectRadix('label:Plazo', 'Mensual - 12 meses')
 			cy.get('input[name="salaryAtApplication"]').type('100000')
-			cy.get('input[name="creditAmount"]').type('25000')
+			cy.get('input[name="payrollNumber"]').type('EMP-001')
+			cy.get('input[name="rfc"]').type('GODE561231GR8')
+			cy.get('input[name="clabe"]').type('032180000118359719')
+			cy.get('input[name="streetAndNumber"]').type('Av. Revolucion 123')
+			cy.get('input[name="interiorNumber"]').type('1206 Torre 4')
+			cy.get('input[name="city"]').type('Monterrey')
+			cy.selectRadix('label:Estado', 'Nuevo León')
+			cy.get('input[name="postalCode"]').type('64000')
+			cy.get('input[name="phoneNumber"]').type('8112345678')
 			cy.contains('button', /enviar solicitud/i)
 				.should('be.visible')
 				.click()
 
 			cy.url().should('include', '/dashboard/applications')
 			cy.get('main').should('be.visible')
-			cy.contains('25,000').should('be.visible')
+			cy.contains(/nueva|pendiente/i).should('be.visible')
+			cy.contains(/por definir/i).should('be.visible')
 		})
 	})
 
@@ -239,7 +257,7 @@ describe('Dashboard Applications', () => {
 				.click()
 			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(
-				/mis solicitudes de crédito|completa los datos para solicitar|plazo|monto solicitado/i,
+				/mis solicitudes de crédito|completa los datos para solicitar|salario|rfc|clabe/i,
 			).should('be.visible')
 		})
 

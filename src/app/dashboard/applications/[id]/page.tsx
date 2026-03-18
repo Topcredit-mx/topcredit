@@ -195,7 +195,9 @@ export default async function DashboardApplicationDetailPage({
 								{t('detail-amount')}
 							</p>
 							<p className="mt-2 font-semibold text-lg">
-								{formatCurrencyMxn(application.creditAmount)}
+								{application.creditAmount
+									? formatCurrencyMxn(application.creditAmount)
+									: t('detail-value-pending')}
 							</p>
 						</CardContent>
 					</Card>
@@ -207,7 +209,9 @@ export default async function DashboardApplicationDetailPage({
 								{t('detail-term')}
 							</p>
 							<p className="mt-2 font-semibold text-lg">
-								{formatApplicationTerm(application.termOffering, t)}
+								{application.termOffering
+									? formatApplicationTerm(application.termOffering, t)
+									: t('detail-value-pending')}
 							</p>
 						</CardContent>
 					</Card>

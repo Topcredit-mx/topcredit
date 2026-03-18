@@ -204,14 +204,27 @@ export const applications = pgTable('applications', {
 	applicantId: integer('applicant_id')
 		.notNull()
 		.references(() => users.id, { onDelete: 'cascade' }),
-	termOfferingId: integer('term_offering_id')
+	companyId: integer('company_id')
 		.notNull()
-		.references(() => termOfferings.id),
-	creditAmount: numeric('credit_amount', { precision: 12, scale: 2 }).notNull(),
+		.references(() => companies.id, { onDelete: 'cascade' }),
+	termOfferingId: integer('term_offering_id').references(
+		() => termOfferings.id,
+	),
+	creditAmount: numeric('credit_amount', { precision: 12, scale: 2 }),
 	salaryAtApplication: numeric('salary_at_application', {
 		precision: 12,
 		scale: 2,
 	}).notNull(),
+	payrollNumber: text('payroll_number'),
+	rfc: text('rfc'),
+	clabe: text('clabe'),
+	streetAndNumber: text('street_and_number'),
+	interiorNumber: text('interior_number'),
+	city: text('city'),
+	state: text('state'),
+	country: text('country'),
+	postalCode: text('postal_code'),
+	phoneNumber: text('phone_number'),
 	status: applicationStatusEnum('status').notNull(),
 	denialReason: text('denial_reason'),
 	createdAt: timestamp('created_at', { withTimezone: true })
@@ -289,6 +302,10 @@ export const applicationsRelations = relations(
 		applicant: one(users, {
 			fields: [applications.applicantId],
 			references: [users.id],
+		}),
+		company: one(companies, {
+			fields: [applications.companyId],
+			references: [companies.id],
 		}),
 		termOffering: one(termOfferings, {
 			fields: [applications.termOfferingId],

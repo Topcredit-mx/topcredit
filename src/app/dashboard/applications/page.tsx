@@ -76,7 +76,9 @@ export default async function ApplicationsListPage() {
 												)}
 											</td>
 											<td className="px-4 py-3">
-												{formatCurrencyMxn(app.creditAmount)}
+												{app.creditAmount
+													? formatCurrencyMxn(app.creditAmount)
+													: t('detail-value-pending')}
 											</td>
 											<td className="px-4 py-3 text-gray-600">
 												<FormattedDate value={app.createdAt.toISOString()} />

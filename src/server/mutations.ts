@@ -165,14 +165,12 @@ async function setDocumentStatus(
 		columns: { id: true, applicationId: true, status: true },
 		with: {
 			application: {
-				columns: { id: true, applicantId: true, status: true },
-				with: { termOffering: { columns: { companyId: true } } },
+				columns: { id: true, applicantId: true, companyId: true, status: true },
 			},
 		},
 	})
-	if (!doc?.application?.termOffering)
-		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
-	const companyId = doc.application.termOffering.companyId
+	if (!doc?.application) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	const companyId = doc.application.companyId
 	requireAbility(
 		ability,
 		'update',
@@ -233,24 +231,17 @@ export async function updateApplicationStatus(
 		columns: {
 			id: true,
 			applicantId: true,
+			companyId: true,
 			status: true,
-			termOfferingId: true,
-		},
-		with: {
-			termOffering: {
-				columns: { companyId: true },
-			},
 		},
 	})
 
-	if (!app?.termOffering)
-		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	if (!app) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
 
-	const companyId = app.termOffering.companyId
 	const appSubject = subject('Application', {
 		id: app.id,
 		applicantId: app.applicantId,
-		companyId,
+		companyId: app.companyId,
 		status: app.status,
 	})
 
@@ -288,7 +279,11 @@ export async function updateApplicationStatus(
 		},
 	})
 	const applicantEmail = updated?.applicant?.email
-	if (applicantEmail && updated?.termOffering?.term) {
+	if (
+		applicantEmail &&
+		updated?.termOffering?.term &&
+		updated.creditAmount != null
+	) {
 		const term = updated.termOffering.term
 		const termLabel =
 			term.durationType === 'monthly'

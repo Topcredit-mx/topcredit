@@ -177,9 +177,11 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 	// Applications
 	for (const app of seedApplications) {
 		const applicantId = userIdByEmail.get(app.applicantEmail)
+		const companyId = companyIdByDomain.get(app.companyDomain)
 		const offeringKey = `${app.companyDomain}-${app.durationType}-${app.duration}`
 		const termOfferingId = termOfferingByKey.get(offeringKey)
-		if (applicantId == null || termOfferingId == null) continue
+		if (applicantId == null || companyId == null || termOfferingId == null)
+			continue
 		const existing = await db.query.applications.findFirst({
 			where: and(
 				eq(applications.applicantId, applicantId),
@@ -191,6 +193,7 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 		if (!existing) {
 			await db.insert(applications).values({
 				applicantId,
+				companyId,
 				termOfferingId,
 				creditAmount: app.creditAmount,
 				salaryAtApplication: app.salaryAtApplication,

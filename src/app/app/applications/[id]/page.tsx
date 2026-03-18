@@ -74,7 +74,7 @@ export default async function AppApplicationDetailPage({
 	const appSubject = subject('Application', {
 		id: application.id,
 		applicantId: application.applicantId,
-		companyId: application.termOffering.companyId,
+		companyId: application.companyId,
 		status: application.status,
 	})
 	const canPreAuthorize = ability.can('setStatusPreAuthorized', appSubject)
@@ -106,10 +106,16 @@ export default async function AppApplicationDetailPage({
 							{t('applications-detail-amount')}
 						</p>
 						<p className="mt-1.5 font-semibold text-lg">
-							{formatCurrencyMxn(application.creditAmount)}{' '}
-							<span className="font-normal text-muted-foreground text-sm">
-								MXN
-							</span>
+							{application.creditAmount ? (
+								<>
+									{formatCurrencyMxn(application.creditAmount)}{' '}
+									<span className="font-normal text-muted-foreground text-sm">
+										MXN
+									</span>
+								</>
+							) : (
+								t('applications-detail-value-pending')
+							)}
 						</p>
 					</CardContent>
 				</Card>
@@ -120,7 +126,9 @@ export default async function AppApplicationDetailPage({
 							{t('applications-detail-term')}
 						</p>
 						<p className="mt-1.5 font-medium">
-							{formatApplicationTerm(application.termOffering, t)}
+							{application.termOffering
+								? formatApplicationTerm(application.termOffering, t)
+								: t('applications-detail-value-pending')}
 						</p>
 					</CardContent>
 				</Card>
