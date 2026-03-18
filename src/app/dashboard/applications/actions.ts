@@ -189,7 +189,12 @@ export async function uploadApplicationDocumentAction(
 
 		const app = await db.query.applications.findFirst({
 			where: (a, { eq }) => eq(a.id, data.applicationId),
-			columns: { id: true, applicantId: true, termOfferingId: true },
+			columns: {
+				id: true,
+				applicantId: true,
+				status: true,
+				termOfferingId: true,
+			},
 			with: {
 				termOffering: { columns: { companyId: true } },
 			},
@@ -242,6 +247,27 @@ export async function uploadApplicationDocumentAction(
 			storageKey: storedPathname,
 			fileName,
 		})
+
+		if (app.status === 'invalid-documentation') {
+			const remainingRejectedDocument =
+				await db.query.applicationDocuments.findFirst({
+					where: and(
+						eq(applicationDocuments.applicationId, data.applicationId),
+						eq(applicationDocuments.status, 'rejected'),
+					),
+					columns: { id: true },
+				})
+
+			if (!remainingRejectedDocument) {
+				await db
+					.update(applications)
+					.set({
+						status: 'pending',
+						updatedAt: new Date(),
+					})
+					.where(eq(applications.id, data.applicationId))
+			}
+		}
 
 		revalidatePath('/dashboard/applications')
 		revalidatePath(`/dashboard/applications/${data.applicationId}`)
