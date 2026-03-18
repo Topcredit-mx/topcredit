@@ -19,6 +19,7 @@ export const rolesEnum = pgEnum('roles', [
 	'applicant',
 	'agent',
 	'requests',
+	'pre-authorizations',
 	'admin',
 ])
 
@@ -199,41 +200,50 @@ export const termOfferings = pgTable(
 	(table) => [unique().on(table.companyId, table.termId)],
 )
 
-export const applications = pgTable('applications', {
-	id: serial('id').primaryKey(),
-	applicantId: integer('applicant_id')
-		.notNull()
-		.references(() => users.id, { onDelete: 'cascade' }),
-	companyId: integer('company_id')
-		.notNull()
-		.references(() => companies.id, { onDelete: 'cascade' }),
-	termOfferingId: integer('term_offering_id').references(
-		() => termOfferings.id,
-	),
-	creditAmount: numeric('credit_amount', { precision: 12, scale: 2 }),
-	salaryAtApplication: numeric('salary_at_application', {
-		precision: 12,
-		scale: 2,
-	}).notNull(),
-	payrollNumber: text('payroll_number'),
-	rfc: text('rfc'),
-	clabe: text('clabe'),
-	streetAndNumber: text('street_and_number'),
-	interiorNumber: text('interior_number'),
-	city: text('city'),
-	state: text('state'),
-	country: text('country'),
-	postalCode: text('postal_code'),
-	phoneNumber: text('phone_number'),
-	status: applicationStatusEnum('status').notNull(),
-	denialReason: text('denial_reason'),
-	createdAt: timestamp('created_at', { withTimezone: true })
-		.defaultNow()
-		.notNull(),
-	updatedAt: timestamp('updated_at', { withTimezone: true })
-		.defaultNow()
-		.notNull(),
-})
+export const applications = pgTable(
+	'applications',
+	{
+		id: serial('id').primaryKey(),
+		applicantId: integer('applicant_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		companyId: integer('company_id')
+			.notNull()
+			.references(() => companies.id, { onDelete: 'cascade' }),
+		termOfferingId: integer('term_offering_id').references(
+			() => termOfferings.id,
+		),
+		creditAmount: numeric('credit_amount', { precision: 12, scale: 2 }),
+		salaryAtApplication: numeric('salary_at_application', {
+			precision: 12,
+			scale: 2,
+		}).notNull(),
+		payrollNumber: text('payroll_number'),
+		rfc: text('rfc'),
+		clabe: text('clabe'),
+		streetAndNumber: text('street_and_number'),
+		interiorNumber: text('interior_number'),
+		city: text('city'),
+		state: text('state'),
+		country: text('country'),
+		postalCode: text('postal_code'),
+		phoneNumber: text('phone_number'),
+		status: applicationStatusEnum('status').notNull(),
+		denialReason: text('denial_reason'),
+		createdAt: timestamp('created_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		check(
+			'applications_financial_terms_required_for_late_statuses_check',
+			sql`(${table.status} NOT IN ('pre-authorized', 'authorized') OR (${table.termOfferingId} IS NOT NULL AND ${table.creditAmount} IS NOT NULL))`,
+		),
+	],
+)
 
 export const applicationDocuments = pgTable(
 	'application_documents',

@@ -12,6 +12,12 @@ export const agentForReview = {
 	roles: ['agent', 'requests'] as const,
 }
 
+export const preAuthAgentForReview = {
+	name: 'Preauth Review',
+	email: 'preauth.review@example.com',
+	roles: ['agent', 'pre-authorizations'] as const,
+}
+
 export const adminForReview = {
 	name: 'Admin Review',
 	email: 'admin.review@example.com',
@@ -43,6 +49,12 @@ export const applicantA4 = {
 export const applicantA5 = {
 	name: 'Applicant A5',
 	email: 'applicant.a5@reviewcompany.com',
+	roles: ['applicant'] as const,
+}
+
+export const applicantPreAuth = {
+	name: 'Applicant Preauth',
+	email: 'applicant.preauth@reviewcompany.com',
 	roles: ['applicant'] as const,
 }
 
@@ -124,6 +136,7 @@ export const allReviewApplicants = [
 	applicantA3,
 	applicantA4,
 	applicantA5,
+	applicantPreAuth,
 	applicantForReviewB,
 	applicantForReviewC,
 	applicantForReviewD,
@@ -174,6 +187,13 @@ export const reviewApplicationConfigs = [
 		companyDomain: companyForReview.domain,
 		creditAmount: '45000',
 		salaryAtApplication: '40000',
+	},
+	{
+		applicantEmail: applicantPreAuth.email,
+		companyDomain: companyForReview.domain,
+		creditAmount: null,
+		salaryAtApplication: '40000',
+		status: 'approved' as const,
 	},
 	{
 		applicantEmail: applicantForReviewB.email,

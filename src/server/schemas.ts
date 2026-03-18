@@ -142,6 +142,18 @@ export type UpdateApplicationStatusInput = z.infer<
 	typeof updateApplicationStatusSchema
 >
 
+export const preAuthorizeApplicationSchema = z.object({
+	applicationId: z.coerce
+		.number()
+		.int()
+		.positive(ValidationCode.APPLICATION_INVALID),
+	termOfferingId: z.coerce
+		.number()
+		.int()
+		.positive(ValidationCode.APPLICATION_TERM_REQUIRED),
+	creditAmount: positiveNumericString,
+})
+
 export const documentTypeSchema = z.enum(DOCUMENT_TYPE_VALUES, {
 	message: ValidationCode.DOCUMENT_TYPE_INVALID,
 })

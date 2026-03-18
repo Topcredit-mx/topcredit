@@ -1,6 +1,7 @@
 import type { SeedDashboardApplicationsResult } from '../../../../cypress/tasks'
 import {
 	applicantB,
+	applicantInactiveCompany,
 	applicantNoCompany,
 	applicantNoRate,
 	applicantNoTerms,
@@ -86,24 +87,41 @@ describe('Dashboard Applications', () => {
 		})
 	})
 
-	describe('Company not ready – no rate', () => {
+	describe('Active company without rate', () => {
 		beforeEach(() => {
 			cy.login(applicantNoRate.email)
 			cy.visit('/dashboard/applications/new')
 		})
 
-		it('applicant whose company has no borrowingCapacityRate is redirected to unauthorized', () => {
-			cy.url().should('include', '/unauthorized')
+		it('applicant can still open the new application page', () => {
+			cy.url().should('include', '/dashboard/applications/new')
+			cy.contains(
+				/mis solicitudes de crédito|completa los datos para solicitar|salario|rfc|clabe/i,
+			).should('be.visible')
 		})
 	})
 
-	describe('Company not ready – no terms', () => {
+	describe('Active company without terms', () => {
 		beforeEach(() => {
 			cy.login(applicantNoTerms.email)
 			cy.visit('/dashboard/applications/new')
 		})
 
-		it('applicant whose company has no enabled term offerings is redirected to unauthorized', () => {
+		it('applicant can still open the new application page', () => {
+			cy.url().should('include', '/dashboard/applications/new')
+			cy.contains(
+				/mis solicitudes de crédito|completa los datos para solicitar|salario|rfc|clabe/i,
+			).should('be.visible')
+		})
+	})
+
+	describe('Inactive company', () => {
+		beforeEach(() => {
+			cy.login(applicantInactiveCompany.email)
+			cy.visit('/dashboard/applications/new')
+		})
+
+		it('applicant whose company is inactive is redirected to unauthorized', () => {
 			cy.url().should('include', '/unauthorized')
 		})
 	})

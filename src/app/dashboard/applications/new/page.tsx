@@ -1,13 +1,9 @@
 import { Card } from '~/components/ui/card'
 import { getAbility, requireAbility } from '~/server/auth/ability'
-import { getRequiredApplicantUser } from '~/server/auth/session'
 import { ApplicationForm } from './application-form'
 
 export default async function NewApplicationPage() {
-	const [{ ability }] = await Promise.all([
-		getAbility(),
-		getRequiredApplicantUser(),
-	])
+	const { ability } = await getAbility()
 	requireAbility(ability, 'create', 'Application')
 
 	return (

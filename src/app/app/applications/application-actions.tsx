@@ -26,15 +26,17 @@ const initialState = { error: '' }
 export function ApplicationActions({
 	applicationId,
 	canApprove,
-	canMarkInvalidDocumentation,
-	canPreAuthorize,
 	canAuthorize,
+	canDeny,
+	canSetInvalidDocumentation,
+	hasRejectedDocuments,
 }: {
 	applicationId: number
 	canApprove: boolean
-	canMarkInvalidDocumentation: boolean
-	canPreAuthorize: boolean
 	canAuthorize: boolean
+	canDeny: boolean
+	canSetInvalidDocumentation: boolean
+	hasRejectedDocuments: boolean
 }) {
 	const t = useTranslations('app')
 	const resolveError = useResolveValidationError()
@@ -103,18 +105,6 @@ export function ApplicationActions({
 								{t('applications-action-approve')}
 							</DropdownMenuItem>
 						)}
-						{canPreAuthorize && (
-							<DropdownMenuItem
-								onSelect={(e) => {
-									e.preventDefault()
-									submitImmediateStatus('pre-authorized')
-								}}
-								disabled={pending || pendingReason}
-							>
-								<CheckCircle2 className="size-4" />
-								{t('applications-action-pre-authorize')}
-							</DropdownMenuItem>
-						)}
 						{canAuthorize && (
 							<DropdownMenuItem
 								onSelect={(e) => {
@@ -127,39 +117,41 @@ export function ApplicationActions({
 								{t('applications-action-authorize')}
 							</DropdownMenuItem>
 						)}
-						<DropdownMenuItem
-							variant="destructive"
-							onSelect={(e) => {
-								e.preventDefault()
-								setDialogOpen(true)
-							}}
-							disabled={pending || pendingReason}
-						>
-							<XCircle className="size-4" />
-							{t('applications-action-reject')}
-						</DropdownMenuItem>
-						<DropdownMenuItem
-							onSelect={(e) => {
-								e.preventDefault()
-								if (!canMarkInvalidDocumentation) return
-								submitImmediateStatus('invalid-documentation')
-							}}
-							disabled={
-								pending || pendingReason || !canMarkInvalidDocumentation
-							}
-							aria-disabled={
-								pending || pendingReason || !canMarkInvalidDocumentation
-							}
-							title={
-								!canMarkInvalidDocumentation
-									? t('applications-action-invalid-docs-disabled-hint')
-									: undefined
-							}
-							data-application-action="invalid-docs"
-						>
-							<FileWarning className="size-4" />
-							{t('applications-action-invalid-docs')}
-						</DropdownMenuItem>
+						{canDeny && (
+							<DropdownMenuItem
+								variant="destructive"
+								onSelect={(e) => {
+									e.preventDefault()
+									setDialogOpen(true)
+								}}
+								disabled={pending || pendingReason}
+							>
+								<XCircle className="size-4" />
+								{t('applications-action-reject')}
+							</DropdownMenuItem>
+						)}
+						{canSetInvalidDocumentation && (
+							<DropdownMenuItem
+								onSelect={(e) => {
+									e.preventDefault()
+									if (!hasRejectedDocuments) return
+									submitImmediateStatus('invalid-documentation')
+								}}
+								disabled={pending || pendingReason || !hasRejectedDocuments}
+								aria-disabled={
+									pending || pendingReason || !hasRejectedDocuments
+								}
+								title={
+									!hasRejectedDocuments
+										? t('applications-action-invalid-docs-disabled-hint')
+										: undefined
+								}
+								data-application-action="invalid-docs"
+							>
+								<FileWarning className="size-4" />
+								{t('applications-action-invalid-docs')}
+							</DropdownMenuItem>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 

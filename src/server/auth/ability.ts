@@ -65,6 +65,7 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 	const isAdmin = ctx.roles.includes('admin')
 	const isAgent = ctx.roles.includes('agent')
 	const isRequests = ctx.roles.includes('requests')
+	const isPreAuthorizations = ctx.roles.includes('pre-authorizations')
 	const isApplicant = ctx.roles.includes('applicant')
 	const hasCompanyAssignments = ctx.assignedCompanyIds.length > 0
 
@@ -83,12 +84,13 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 	if (isAdmin) {
 		can('manage', 'all')
 		can('setStatusApproved', 'Application', { status: 'pending' })
-		can('setStatusDenied', 'Application', { status: 'pending' })
+		can('setStatusDenied', 'Application', {
+			status: { $in: ['pending', 'approved', 'pre-authorized'] },
+		})
 		can('setStatusInvalidDocumentation', 'Application', { status: 'pending' })
-		can('setStatusPreAuthorized', 'Application')
-		can('setStatusAuthorized', 'Application')
+		can('setStatusPreAuthorized', 'Application', { status: 'approved' })
+		can('setStatusAuthorized', 'Application', { status: 'pre-authorized' })
 		cannot('setStatusApproved', 'Application', { status: { $ne: 'pending' } })
-		cannot('setStatusDenied', 'Application', { status: { $ne: 'pending' } })
 		cannot('setStatusInvalidDocumentation', 'Application', {
 			status: { $ne: 'pending' },
 		})
@@ -120,6 +122,22 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		})
 	}
 
+	if (isPreAuthorizations && hasCompanyAssignments) {
+		can('read', 'Company', { id: { $in: ctx.assignedCompanyIds } })
+		can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
+		can('update', 'Application', {
+			companyId: { $in: ctx.assignedCompanyIds },
+		})
+		can('setStatusPreAuthorized', 'Application', {
+			companyId: { $in: ctx.assignedCompanyIds },
+			status: 'approved',
+		})
+		can('setStatusDenied', 'Application', {
+			companyId: { $in: ctx.assignedCompanyIds },
+			status: 'approved',
+		})
+	}
+
 	return build()
 }
 
@@ -138,7 +156,9 @@ export const getAbility = cache(async (): Promise<AbilityResult> => {
 	const isAdmin = roles.includes('admin')
 	const assignedCompanyIds: number[] = isAdmin
 		? []
-		: roles.includes('agent') || roles.includes('requests')
+		: roles.includes('agent') ||
+				roles.includes('requests') ||
+				roles.includes('pre-authorizations')
 			? (await getUserCompanyAssignments(userId)).map((c) => c.id)
 			: []
 

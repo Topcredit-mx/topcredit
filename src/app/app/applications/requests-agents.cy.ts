@@ -13,9 +13,11 @@ import {
 	applicantA5,
 	applicantForReview,
 	applicantForReviewD,
+	preAuthAgentForReview,
 } from './applications-review.fixtures'
 
 const agentEmail = agentForReview.email
+const preAuthAgentEmail = preAuthAgentForReview.email
 const applicantEmail = applicantForReview.email
 
 describe('Requests agents', () => {
@@ -262,7 +264,7 @@ describe('Requests agents', () => {
 		})
 
 		it('picking a company from switcher filters the list', () => {
-			cy.get('table tbody tr').should('have.length', 6)
+			cy.get('table tbody tr').should('have.length', 7)
 			cy.get('[data-slot="sidebar"]')
 				.find('[data-slot="dropdown-menu-trigger"]')
 				.first()
@@ -295,7 +297,7 @@ describe('Requests agents', () => {
 			cy.visit('/app')
 			cy.setCookie('selected_company_id', String(seed.companyDId))
 			cy.visit('/app/applications')
-			cy.get('table tbody tr').should('have.length', 6)
+			cy.get('table tbody tr').should('have.length', 7)
 			cy.contains('inactivecompany.com').should('not.exist')
 			cy.get('[data-slot="sidebar"]')
 				.find('[data-slot="dropdown-menu-trigger"]')
@@ -323,6 +325,32 @@ describe('Requests agents', () => {
 			cy.visit('/app/applications')
 			cy.contains('inactivecompany.com').should('not.exist')
 			cy.get('table').should('not.contain', applicantForReviewD.name)
+		})
+	})
+
+	describe('Pre-authorizations agent', () => {
+		beforeEach(() => {
+			cy.login(preAuthAgentEmail)
+			cy.setCookie('selected_company_id', String(seed.companyId))
+		})
+
+		it('can assign amount and term before pre-authorizing an approved application', () => {
+			cy.visit(`/app/applications/${seed.preAuthApplicationId}`)
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.contains(/aprobada/i).should('be.visible')
+			cy.contains(/por definir/i).should('exist')
+			cy.contains('Monto y plazo').should('be.visible')
+
+			cy.get('input[name="creditAmount"]').clear().type('18000')
+			cy.selectRadix('label:Plazo', '12 meses')
+			cy.contains('button', /pre-autorizar/i)
+				.should('be.visible')
+				.click()
+
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.contains(/preautorizado/i).should('be.visible')
+			cy.contains('18,000').should('exist')
+			cy.contains('12 meses').should('exist')
 		})
 	})
 })

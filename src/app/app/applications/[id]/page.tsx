@@ -28,11 +28,13 @@ import type { ApplicationStatus } from '~/server/db/schema'
 import {
 	getApplicationDocuments,
 	getApplicationForReview,
+	getTermOfferingsForCompany,
 } from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
 import { ApplicationDocumentRow } from '../application-document-row'
 import { formatApplicationTerm } from '../constants'
+import { PreAuthorizeApplicationForm } from '../pre-authorize-application-form'
 
 function statusBadgeVariant(
 	status: ApplicationStatus,
@@ -77,9 +79,25 @@ export default async function AppApplicationDetailPage({
 		companyId: application.companyId,
 		status: application.status,
 	})
+	const hasRejectedDocuments = documentList.some((d) => d.status === 'rejected')
 	const canPreAuthorize = ability.can('setStatusPreAuthorized', appSubject)
 	const canAuthorize = ability.can('setStatusAuthorized', appSubject)
 	const canApprove = ability.can('setStatusApproved', appSubject)
+	const canDeny = ability.can('setStatusDenied', appSubject)
+	const canSetInvalidDocumentation = ability.can(
+		'setStatusInvalidDocumentation',
+		appSubject,
+	)
+	const showActionControls =
+		canApprove ||
+		canAuthorize ||
+		canDeny ||
+		canSetInvalidDocumentation ||
+		canPreAuthorize
+	const termOfferings =
+		canPreAuthorize && application.status === 'approved'
+			? await getTermOfferingsForCompany(application.companyId)
+			: []
 
 	return (
 		<div className="container mx-auto max-w-4xl py-6">
@@ -163,18 +181,26 @@ export default async function AppApplicationDetailPage({
 							{application.applicant.email}
 						</p>
 					</div>
-					{canTransition && (
+					{(canTransition || canPreAuthorize) && showActionControls && (
 						<CardAction>
-							<ApplicationActions
-								applicationId={application.id}
-								canApprove={canApprove}
-								canMarkInvalidDocumentation={
-									documentList.length > 0 &&
-									documentList.some((d) => d.status === 'rejected')
-								}
-								canPreAuthorize={canPreAuthorize}
-								canAuthorize={canAuthorize}
-							/>
+							<div className="space-y-3">
+								{canPreAuthorize && application.status === 'approved' ? (
+									<PreAuthorizeApplicationForm
+										applicationId={application.id}
+										initialCreditAmount={application.creditAmount}
+										initialTermOfferingId={application.termOfferingId}
+										termOfferings={termOfferings}
+									/>
+								) : null}
+								<ApplicationActions
+									applicationId={application.id}
+									canApprove={canApprove}
+									canAuthorize={canAuthorize}
+									canDeny={canDeny}
+									canSetInvalidDocumentation={canSetInvalidDocumentation}
+									hasRejectedDocuments={hasRejectedDocuments}
+								/>
+							</div>
 						</CardAction>
 					)}
 				</CardHeader>

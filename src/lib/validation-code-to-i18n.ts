@@ -179,6 +179,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'app',
 		key: 'applications-error-transition',
 	},
+	[ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED]: {
+		namespace: 'app',
+		key: 'applications-financial-terms-required',
+	},
 	[ValidationCode.APPLICATIONS_REQUESTS_CANNOT_PREAUTH_OR_AUTH]: {
 		namespace: 'app',
 		key: 'applications-requests-cannot-preauth-or-auth',

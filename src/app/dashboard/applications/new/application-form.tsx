@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useActionState, useId, useState } from 'react'
 import { createApplicationAction } from '~/app/dashboard/applications/actions'
@@ -34,7 +35,7 @@ export function ApplicationForm() {
 
 	const [clabeValue, setClabeValue] = useState<string>('')
 	const [stateValue, setStateValue] = useState<string>('')
-	const [countryValue, setCountryValue] = useState<string>(t('country-mexico'))
+	const countryValue = t('country-mexico')
 	const detectedBankName = getClabeInstitutionName(clabeValue)
 
 	const salaryId = useId()
@@ -217,10 +218,7 @@ export function ApplicationForm() {
 					<FieldLabel htmlFor={countryId}>
 						{t('label-country')} <span className="text-destructive">*</span>
 					</FieldLabel>
-					<Select
-						value={countryValue || undefined}
-						onValueChange={setCountryValue}
-					>
+					<Select defaultValue={countryValue}>
 						<SelectTrigger
 							id={countryId}
 							aria-required="true"
@@ -281,7 +279,7 @@ export function ApplicationForm() {
 					{pending ? tCommon('save') : t('submit')}
 				</Button>
 				<Button type="button" variant="outline" asChild>
-					<a href="/dashboard/applications">{tCommon('cancel')}</a>
+					<Link href="/dashboard/applications">{tCommon('cancel')}</Link>
 				</Button>
 			</div>
 		</form>

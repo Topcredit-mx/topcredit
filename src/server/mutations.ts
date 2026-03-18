@@ -2,8 +2,11 @@
 
 import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-import { statusRequiresReason } from '~/lib/application-rules'
+import {
+	canTransitionToApplicationStatus,
+	statusRequiresFinancialTerms,
+	statusRequiresReason,
+} from '~/lib/application-rules'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { ValidationCode } from '~/lib/validation-codes'
 import {
@@ -19,12 +22,14 @@ import {
 	applicationDocuments,
 	applications,
 	companies,
+	termOfferings,
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
 import { sendApplicationStatusEvent } from '~/server/email'
 import {
 	approveApplicationDocumentSchema,
+	preAuthorizeApplicationSchema,
 	rejectApplicationDocumentSchema,
 	updateApplicationStatusSchema,
 } from '~/server/schemas'
@@ -220,54 +225,28 @@ export async function rejectApplicationDocument(
 	})
 }
 
-export async function updateApplicationStatus(
-	applicationId: number,
-	payload: { status: ApplicationStatus; reason?: string },
-): Promise<{ error?: string }> {
-	const { ability } = await getAbility()
+type ApplicationStatusContext = {
+	id: number
+	applicantId: number
+	companyId: number
+	status: ApplicationStatus
+	termOfferingId: number | null
+	creditAmount: string | null
+}
 
-	const app = await db.query.applications.findFirst({
-		where: (a, { eq }) => eq(a.id, applicationId),
-		columns: {
-			id: true,
-			applicantId: true,
-			companyId: true,
-			status: true,
-		},
-	})
-
-	if (!app) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
-
-	const appSubject = subject('Application', {
+function toApplicationSubject(app: ApplicationStatusContext) {
+	return subject('Application', {
 		id: app.id,
 		applicantId: app.applicantId,
 		companyId: app.companyId,
 		status: app.status,
 	})
+}
 
-	const parsed = updateApplicationStatusSchema.safeParse(payload)
-	if (!parsed.success) {
-		const msg = parsed.error.issues[0]?.message
-		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
-	}
-	const data = parsed.data
-
-	const action = getActionForApplicationStatus(data.status)
-	if (!action) redirect('/unauthorized')
-
-	requireAbility(ability, action, appSubject)
-
-	await db
-		.update(applications)
-		.set({
-			status: data.status,
-			denialReason: statusRequiresReason(data.status)
-				? (data.reason?.trim() ?? null)
-				: null,
-			updatedAt: new Date(),
-		})
-		.where(eq(applications.id, applicationId))
-
+async function sendApplicationStatusEmail(
+	applicationId: number,
+	status: ApplicationStatus,
+): Promise<void> {
 	const updated = await db.query.applications.findFirst({
 		where: (a, { eq }) => eq(a.id, applicationId),
 		columns: { creditAmount: true, denialReason: true },
@@ -291,12 +270,138 @@ export async function updateApplicationStatus(
 				: `${term.duration} quincenas`
 		const creditAmountFormatted = formatCurrencyMxn(updated.creditAmount)
 		await sendApplicationStatusEvent(applicantEmail, {
-			status: data.status,
+			status,
 			creditAmountFormatted,
 			termLabel,
 			reason: updated.denialReason ?? undefined,
 		})
 	}
+}
+
+export async function preAuthorizeApplication(
+	payload: unknown,
+): Promise<{ error?: string }> {
+	const { ability } = await getAbility()
+
+	const parsed = preAuthorizeApplicationSchema.safeParse(payload)
+	if (!parsed.success) {
+		const msg = parsed.error.issues[0]?.message
+		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+
+	const data = parsed.data
+	const app = await db.query.applications.findFirst({
+		where: (a, { eq }) => eq(a.id, data.applicationId),
+		columns: {
+			id: true,
+			applicantId: true,
+			companyId: true,
+			status: true,
+			termOfferingId: true,
+			creditAmount: true,
+		},
+	})
+
+	if (!app) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	if (!canTransitionToApplicationStatus(app.status, 'pre-authorized')) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	if (!ability.can('setStatusPreAuthorized', toApplicationSubject(app))) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	const offering = await db.query.termOfferings.findFirst({
+		where: and(
+			eq(termOfferings.id, data.termOfferingId),
+			eq(termOfferings.companyId, app.companyId),
+			eq(termOfferings.disabled, false),
+		),
+		columns: { id: true },
+	})
+	if (!offering) {
+		return { error: ValidationCode.DASHBOARD_APPLICATION_TERM_NOT_AVAILABLE }
+	}
+
+	const creditAmount = Number.parseFloat(data.creditAmount)
+	await db
+		.update(applications)
+		.set({
+			termOfferingId: data.termOfferingId,
+			creditAmount: String(creditAmount.toFixed(2)),
+			status: 'pre-authorized',
+			denialReason: null,
+			updatedAt: new Date(),
+		})
+		.where(eq(applications.id, data.applicationId))
+
+	await sendApplicationStatusEmail(data.applicationId, 'pre-authorized')
+
+	revalidatePath('/app/applications')
+	revalidatePath(`/app/applications/${data.applicationId}`)
+	revalidatePath('/dashboard/applications')
+	revalidatePath(`/dashboard/applications/${data.applicationId}`)
+	return {}
+}
+
+export async function updateApplicationStatus(
+	applicationId: number,
+	payload: { status: ApplicationStatus; reason?: string },
+): Promise<{ error?: string }> {
+	const { ability } = await getAbility()
+
+	const app = await db.query.applications.findFirst({
+		where: (a, { eq }) => eq(a.id, applicationId),
+		columns: {
+			id: true,
+			applicantId: true,
+			companyId: true,
+			status: true,
+			termOfferingId: true,
+			creditAmount: true,
+		},
+	})
+
+	if (!app) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+
+	const parsed = updateApplicationStatusSchema.safeParse(payload)
+	if (!parsed.success) {
+		const msg = parsed.error.issues[0]?.message
+		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+	const data = parsed.data
+
+	const action = getActionForApplicationStatus(data.status)
+	if (!action) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	if (!canTransitionToApplicationStatus(app.status, data.status)) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	if (statusRequiresFinancialTerms(data.status)) {
+		if (app.termOfferingId == null || app.creditAmount == null) {
+			return { error: ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED }
+		}
+	}
+
+	if (!ability.can(action, toApplicationSubject(app))) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	await db
+		.update(applications)
+		.set({
+			status: data.status,
+			denialReason: statusRequiresReason(data.status)
+				? (data.reason?.trim() ?? null)
+				: null,
+			updatedAt: new Date(),
+		})
+		.where(eq(applications.id, applicationId))
+
+	await sendApplicationStatusEmail(applicationId, data.status)
 
 	revalidatePath('/app/applications')
 	revalidatePath(`/app/applications/${applicationId}`)

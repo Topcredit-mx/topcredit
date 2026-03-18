@@ -13,7 +13,13 @@ import {
 } from './seed.fixtures'
 
 function isRole(s: string): s is Role {
-	return s === 'applicant' || s === 'agent' || s === 'requests' || s === 'admin'
+	return (
+		s === 'applicant' ||
+		s === 'agent' ||
+		s === 'requests' ||
+		s === 'pre-authorizations' ||
+		s === 'admin'
+	)
 }
 
 const {
@@ -66,10 +72,12 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 		const existingRoles = await db.query.userRoles.findMany({
 			where: eq(userRoles.userId, user.id),
 		})
-		const toAdd = u.roles.filter(
-			(role): role is Role =>
-				isRole(role) && !existingRoles.some((r) => r.role === role),
-		)
+		const toAdd: Role[] = []
+		for (const role of u.roles) {
+			if (isRole(role) && !existingRoles.some((r) => r.role === role)) {
+				toAdd.push(role)
+			}
+		}
 		if (toAdd.length > 0) {
 			await db
 				.insert(userRoles)

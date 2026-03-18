@@ -14,8 +14,10 @@ import {
 	applicantA4,
 	applicantA5,
 	applicantForReviewB,
+	applicantPreAuth,
 	companyForReview,
 	companyForReviewD,
+	preAuthAgentForReview,
 	reviewApplicationConfigs,
 } from '~/app/app/applications/applications-review.fixtures'
 import {
@@ -38,10 +40,12 @@ import {
 } from '~/app/app/users/users.fixtures'
 import {
 	applicantB,
+	applicantInactiveCompany,
 	applicantNoCompany,
 	applicantNoRate,
 	applicantNoTerms,
 	applicantWithCompany,
+	companyInactive,
 	companyNoRate,
 	companyNoTerms,
 	companyWithTerms,
@@ -662,10 +666,16 @@ export const seedDashboardApplications =
 			applicantWithCompany,
 			applicantB,
 			applicantNoCompany,
+			applicantInactiveCompany,
 			applicantNoRate,
 			applicantNoTerms,
 		]
-		const allCompanies = [companyWithTerms, companyNoRate, companyNoTerms]
+		const allCompanies = [
+			companyWithTerms,
+			companyInactive,
+			companyNoRate,
+			companyNoTerms,
+		]
 
 		await Promise.all(
 			allApplicants.map((u) =>
@@ -762,10 +772,16 @@ export const cleanupDashboardApplications = async (
 		applicantWithCompany,
 		applicantB,
 		applicantNoCompany,
+		applicantInactiveCompany,
 		applicantNoRate,
 		applicantNoTerms,
 	]
-	const allCompanies = [companyWithTerms, companyNoRate, companyNoTerms]
+	const allCompanies = [
+		companyWithTerms,
+		companyInactive,
+		companyNoRate,
+		companyNoTerms,
+	]
 	await Promise.all(
 		allApplicants.map((u) => db.delete(users).where(eq(users.email, u.email))),
 	)
@@ -1216,6 +1232,8 @@ export type SeedApplicationsReviewResult = {
 	applicantA4ApplicationId: number
 	/** Application with creditAmount 45,000 (applicantA5) – use for list-reflects-status E2E. */
 	applicantA5ApplicationId: number
+	/** Approved application with pending financial terms for pre-authorization E2E. */
+	preAuthApplicationId: number
 }
 
 /** Company domains from other E2E specs. Remove their applications at seed start so the review list count is predictable (no leak from dashboard etc.). */
@@ -1245,6 +1263,7 @@ export const seedApplicationsReview =
 
 		const allUserFixtures = [
 			agentForReview,
+			preAuthAgentForReview,
 			adminForReview,
 			...allReviewApplicants,
 		]
@@ -1306,7 +1325,8 @@ export const seedApplicationsReview =
 			return row
 		}
 
-		const agent = findUser(agentForReview.email)
+		const requestsAgent = findUser(agentForReview.email)
+		const preAuthAgent = findUser(preAuthAgentForReview.email)
 
 		const [, offerings] = await Promise.all([
 			db.insert(userRoles).values(
@@ -1328,10 +1348,12 @@ export const seedApplicationsReview =
 				)
 				.returning(),
 			db.insert(userCompanies).values(
-				agentCompanyDomains.map((domain) => ({
-					userId: agent.id,
-					companyId: findCompany(domain).id,
-				})),
+				[requestsAgent, preAuthAgent].flatMap((user) =>
+					agentCompanyDomains.map((domain) => ({
+						userId: user.id,
+						companyId: findCompany(domain).id,
+					})),
+				),
 			),
 		])
 
@@ -1348,10 +1370,13 @@ export const seedApplicationsReview =
 				reviewApplicationConfigs.map((cfg) => ({
 					applicantId: findUser(cfg.applicantEmail).id,
 					companyId: findCompany(cfg.companyDomain).id,
-					termOfferingId: findOffering(cfg.companyDomain).id,
+					termOfferingId:
+						cfg.creditAmount == null
+							? null
+							: findOffering(cfg.companyDomain).id,
 					creditAmount: cfg.creditAmount,
 					salaryAtApplication: cfg.salaryAtApplication,
-					status: 'pending' as const,
+					status: cfg.status ?? ('pending' as const),
 				})),
 			)
 			.returning()
@@ -1376,6 +1401,12 @@ export const seedApplicationsReview =
 		const applicantA5App = apps[applicantA5AppIdx]
 		if (applicantA5AppIdx < 0 || !applicantA5App)
 			throw new Error('Seed: applicant A5 application not found')
+		const preAuthAppIdx = reviewApplicationConfigs.findIndex(
+			(cfg) => cfg.applicantEmail === applicantPreAuth.email,
+		)
+		const preAuthApp = apps[preAuthAppIdx]
+		if (preAuthAppIdx < 0 || !preAuthApp)
+			throw new Error('Seed: pre-auth application not found')
 
 		return {
 			companyId: findCompany(companyForReview.domain).id,
@@ -1385,6 +1416,7 @@ export const seedApplicationsReview =
 			applicationId: firstApp.id,
 			applicantA4ApplicationId: applicantA4App.id,
 			applicantA5ApplicationId: applicantA5App.id,
+			preAuthApplicationId: preAuthApp.id,
 		}
 	}
 
@@ -1399,6 +1431,7 @@ export const cleanupApplicationsReview = async (
 	await deleteBlobsForTerm(db, params.termId)
 	const allUserFixtures = [
 		agentForReview,
+		preAuthAgentForReview,
 		adminForReview,
 		...allReviewApplicants,
 	]
