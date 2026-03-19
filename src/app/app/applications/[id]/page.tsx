@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { ApplicationStatusHistoryCard } from '~/components/application-status-history'
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
@@ -108,6 +109,7 @@ export default async function AppApplicationDetailPage({
 				<Badge
 					variant={statusBadgeVariant(application.status)}
 					className="shrink-0"
+					data-current-application-status={application.status}
 				>
 					{t(APPLICATION_STATUS_KEYS[application.status])}
 				</Badge>
@@ -282,6 +284,16 @@ export default async function AppApplicationDetailPage({
 					)}
 				</CardContent>
 			</Card>
+
+			<ApplicationStatusHistoryCard
+				title={t('applications-history-title')}
+				description={t('applications-history-description')}
+				emptyMessage={t('applications-history-empty')}
+				setByLabel={t('applications-history-set-by')}
+				systemLabel={t('applications-history-system')}
+				items={application.statusHistory}
+				getStatusLabel={(status) => t(APPLICATION_STATUS_KEYS[status])}
+			/>
 		</div>
 	)
 }

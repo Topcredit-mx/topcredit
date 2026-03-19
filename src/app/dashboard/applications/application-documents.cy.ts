@@ -103,10 +103,24 @@ describe('Dashboard Application Documents', () => {
 				})
 
 				cy.visit(`/dashboard/applications/${app.id}`)
-				cy.contains(/documentación inválida/i).should('be.visible')
+				cy.get(
+					'[data-current-application-status="invalid-documentation"]',
+				).should('be.visible')
+				cy.get('[data-application-status-history-title]')
+					.should('be.visible')
+					.and('contain', 'Historial de estado')
 				cy.contains(/motivo de rechazo/i).should('be.visible')
 				cy.contains(/firma incompleta/i).should('be.visible')
 				cy.contains(/recibo ilegible/i).should('be.visible')
+				cy.get('[data-application-status-history]').within(() => {
+					cy.get('[data-status-history-item]')
+						.eq(0)
+						.should(
+							'have.attr',
+							'data-status-history-status',
+							'invalid-documentation',
+						)
+				})
 				cy.get('input[name="file"]')
 					.first()
 					.selectFile('cypress/fixtures/sample-document.webp', { force: true })
@@ -134,8 +148,22 @@ describe('Dashboard Application Documents', () => {
 				cy.wait('@uploadSecondDoc')
 
 				cy.visit(`/dashboard/applications/${app.id}`)
-				cy.contains(/pendiente/i).should('be.visible')
+				cy.get('[data-current-application-status="pending"]').should(
+					'be.visible',
+				)
 				cy.contains(/motivo de rechazo:/i).should('not.exist')
+				cy.get('[data-application-status-history]').within(() => {
+					cy.get('[data-status-history-item]')
+						.eq(0)
+						.should('have.attr', 'data-status-history-status', 'pending')
+					cy.get('[data-status-history-item]')
+						.eq(1)
+						.should(
+							'have.attr',
+							'data-status-history-status',
+							'invalid-documentation',
+						)
+				})
 			})
 		})
 

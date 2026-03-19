@@ -9,18 +9,18 @@ import {
 } from '~/lib/application-rules'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { ValidationCode } from '~/lib/validation-codes'
+import { updateApplicationWithStatusHistory } from '~/server/application-status-history'
 import {
 	getAbility,
 	getActionForApplicationStatus,
 	requireAbility,
 	subject,
 } from '~/server/auth/ability'
-import type { Role } from '~/server/auth/session'
+import { getRequiredUser, type Role } from '~/server/auth/session'
 import { db } from '~/server/db'
 import type { ApplicationStatus } from '~/server/db/schema'
 import {
 	applicationDocuments,
-	applications,
 	companies,
 	termOfferings,
 	userCompanies,
@@ -282,6 +282,7 @@ export async function preAuthorizeApplication(
 	payload: unknown,
 ): Promise<{ error?: string }> {
 	const { ability } = await getAbility()
+	const user = await getRequiredUser()
 
 	const parsed = preAuthorizeApplicationSchema.safeParse(payload)
 	if (!parsed.success) {
@@ -324,16 +325,14 @@ export async function preAuthorizeApplication(
 	}
 
 	const creditAmount = Number.parseFloat(data.creditAmount)
-	await db
-		.update(applications)
-		.set({
-			termOfferingId: data.termOfferingId,
-			creditAmount: String(creditAmount.toFixed(2)),
-			status: 'pre-authorized',
-			denialReason: null,
-			updatedAt: new Date(),
-		})
-		.where(eq(applications.id, data.applicationId))
+	await updateApplicationWithStatusHistory({
+		applicationId: data.applicationId,
+		status: 'pre-authorized',
+		setByUserId: user.id,
+		termOfferingId: data.termOfferingId,
+		creditAmount: String(creditAmount.toFixed(2)),
+		denialReason: null,
+	})
 
 	await sendApplicationStatusEmail(data.applicationId, 'pre-authorized')
 
@@ -349,6 +348,7 @@ export async function updateApplicationStatus(
 	payload: { status: ApplicationStatus; reason?: string },
 ): Promise<{ error?: string }> {
 	const { ability } = await getAbility()
+	const user = await getRequiredUser()
 
 	const app = await db.query.applications.findFirst({
 		where: (a, { eq }) => eq(a.id, applicationId),
@@ -390,16 +390,14 @@ export async function updateApplicationStatus(
 		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
 	}
 
-	await db
-		.update(applications)
-		.set({
-			status: data.status,
-			denialReason: statusRequiresReason(data.status)
-				? (data.reason?.trim() ?? null)
-				: null,
-			updatedAt: new Date(),
-		})
-		.where(eq(applications.id, applicationId))
+	await updateApplicationWithStatusHistory({
+		applicationId,
+		status: data.status,
+		setByUserId: user.id,
+		denialReason: statusRequiresReason(data.status)
+			? (data.reason?.trim() ?? null)
+			: null,
+	})
 
 	await sendApplicationStatusEmail(applicationId, data.status)
 

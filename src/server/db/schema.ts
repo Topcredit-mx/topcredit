@@ -245,6 +245,29 @@ export const applications = pgTable(
 	],
 )
 
+export const applicationStatusHistory = pgTable(
+	'application_status_history',
+	{
+		id: serial('id').primaryKey(),
+		applicationId: integer('application_id')
+			.notNull()
+			.references(() => applications.id, { onDelete: 'cascade' }),
+		status: applicationStatusEnum('status').notNull(),
+		setByUserId: integer('set_by_user_id').references(() => users.id, {
+			onDelete: 'set null',
+		}),
+		createdAt: timestamp('created_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index('application_status_history_application_id_created_at_idx').on(
+			table.applicationId,
+			table.createdAt,
+		),
+	],
+)
+
 export const applicationDocuments = pgTable(
 	'application_documents',
 	{
@@ -280,6 +303,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	roles: many(userRoles),
 	companies: many(userCompanies),
 	applications: many(applications),
+	applicationStatusHistory: many(applicationStatusHistory),
 }))
 
 export const companiesRelations = relations(companies, ({ many }) => ({
@@ -322,6 +346,21 @@ export const applicationsRelations = relations(
 			references: [termOfferings.id],
 		}),
 		documents: many(applicationDocuments),
+		statusHistory: many(applicationStatusHistory),
+	}),
+)
+
+export const applicationStatusHistoryRelations = relations(
+	applicationStatusHistory,
+	({ one }) => ({
+		application: one(applications, {
+			fields: [applicationStatusHistory.applicationId],
+			references: [applications.id],
+		}),
+		setByUser: one(users, {
+			fields: [applicationStatusHistory.setByUserId],
+			references: [users.id],
+		}),
 	}),
 )
 

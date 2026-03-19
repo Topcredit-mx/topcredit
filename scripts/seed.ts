@@ -3,6 +3,7 @@ import { neon } from '@neondatabase/serverless'
 import { and, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import type { Role } from '../src/server/auth/session'
+import type { ApplicationStatus } from '../src/server/db/schema'
 import * as schema from '../src/server/db/schema'
 import {
 	seedApplications,
@@ -30,6 +31,7 @@ const {
 	terms,
 	termOfferings,
 	applications,
+	applicationStatusHistory,
 	applicationDocuments,
 } = schema
 
@@ -41,6 +43,54 @@ export function getDb() {
 	}
 	const sql = neon(databaseUrl)
 	return drizzle({ client: sql, schema })
+}
+
+function getDefaultSeedStatusHistory(
+	status: ApplicationStatus,
+	setByUserId: number | null,
+): ReadonlyArray<{ status: ApplicationStatus; setByUserId: number | null }> {
+	switch (status) {
+		case 'new':
+			return [{ status: 'new', setByUserId }]
+		case 'pending':
+			return [
+				{ status: 'new', setByUserId },
+				{ status: 'pending', setByUserId },
+			]
+		case 'approved':
+			return [
+				{ status: 'new', setByUserId },
+				{ status: 'pending', setByUserId },
+				{ status: 'approved', setByUserId },
+			]
+		case 'invalid-documentation':
+			return [
+				{ status: 'new', setByUserId },
+				{ status: 'pending', setByUserId },
+				{ status: 'invalid-documentation', setByUserId },
+			]
+		case 'pre-authorized':
+			return [
+				{ status: 'new', setByUserId },
+				{ status: 'pending', setByUserId },
+				{ status: 'approved', setByUserId },
+				{ status: 'pre-authorized', setByUserId },
+			]
+		case 'authorized':
+			return [
+				{ status: 'new', setByUserId },
+				{ status: 'pending', setByUserId },
+				{ status: 'approved', setByUserId },
+				{ status: 'pre-authorized', setByUserId },
+				{ status: 'authorized', setByUserId },
+			]
+		case 'denied':
+			return [
+				{ status: 'new', setByUserId },
+				{ status: 'pending', setByUserId },
+				{ status: 'denied', setByUserId },
+			]
+	}
 }
 
 export async function seedDatabase(db: ReturnType<typeof getDb>) {
@@ -199,15 +249,45 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 			columns: { id: true },
 		})
 		if (!existing) {
-			await db.insert(applications).values({
-				applicantId,
-				companyId,
-				termOfferingId,
-				creditAmount: app.creditAmount,
-				salaryAtApplication: app.salaryAtApplication,
-				status: app.status,
-				denialReason: app.denialReason ?? null,
-			})
+			const timeline =
+				app.statusHistory?.map((status) => ({
+					status,
+					setByUserId: applicantId,
+				})) ?? getDefaultSeedStatusHistory(app.status, applicantId)
+			const lastTimelineStatus = timeline[timeline.length - 1]?.status
+			if (lastTimelineStatus !== app.status) {
+				console.error(
+					`❌ Seed history must end with current status for ${app.applicantEmail}`,
+				)
+				process.exit(1)
+			}
+			const timelineBaseTime = new Date()
+			const [createdApplication] = await db
+				.insert(applications)
+				.values({
+					applicantId,
+					companyId,
+					termOfferingId,
+					creditAmount: app.creditAmount,
+					salaryAtApplication: app.salaryAtApplication,
+					status: app.status,
+					denialReason: app.denialReason ?? null,
+				})
+				.returning()
+
+			if (!createdApplication) {
+				console.error(`❌ Failed to create application: ${app.applicantEmail}`)
+				process.exit(1)
+			}
+
+			await db.insert(applicationStatusHistory).values(
+				timeline.map((entry, index) => ({
+					applicationId: createdApplication.id,
+					status: entry.status,
+					setByUserId: entry.setByUserId,
+					createdAt: new Date(timelineBaseTime.getTime() + index * 60_000),
+				})),
+			)
 			console.log(
 				`  ✓ Created application: ${app.applicantEmail} ${app.status} (${app.creditAmount})`,
 			)

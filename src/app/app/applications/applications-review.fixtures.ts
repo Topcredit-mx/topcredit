@@ -4,6 +4,8 @@
  * Single source of truth — the batch seed task in cypress/tasks imports from here.
  */
 
+import type { ApplicationStatus } from '~/server/db/schema'
+
 // ── Users ───────────────────────────────────────────────────────────────
 
 export const agentForReview = {
@@ -157,7 +159,21 @@ export const agentCompanyDomains = [
 ]
 
 /** One entry per application to seed. */
-export const reviewApplicationConfigs = [
+type ReviewApplicationStatusHistoryStep = {
+	status: ApplicationStatus
+	actorEmail: string | null
+}
+
+type ReviewApplicationConfig = {
+	applicantEmail: string
+	companyDomain: string
+	creditAmount: string | null
+	salaryAtApplication: string
+	status?: ApplicationStatus
+	statusHistory?: readonly ReviewApplicationStatusHistoryStep[]
+}
+
+export const reviewApplicationConfigs: readonly ReviewApplicationConfig[] = [
 	{
 		applicantEmail: applicantForReview.email,
 		companyDomain: companyForReview.domain,
@@ -195,6 +211,11 @@ export const reviewApplicationConfigs = [
 		creditAmount: null,
 		salaryAtApplication: '40000',
 		status: 'approved' as const,
+		statusHistory: [
+			{ status: 'new', actorEmail: applicantPreAuth.email },
+			{ status: 'pending', actorEmail: applicantPreAuth.email },
+			{ status: 'approved', actorEmail: agentForReview.email },
+		],
 	},
 	{
 		applicantEmail: applicantForReviewB.email,
@@ -214,4 +235,4 @@ export const reviewApplicationConfigs = [
 		creditAmount: '5000',
 		salaryAtApplication: '40000',
 	},
-]
+] as const

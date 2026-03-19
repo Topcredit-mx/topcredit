@@ -3,8 +3,15 @@
 import { and, eq, gte, notInArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { INACTIVE_APPLICATION_STATUSES } from '~/lib/application-rules'
+import {
+	canTransitionToApplicationStatus,
+	INACTIVE_APPLICATION_STATUSES,
+} from '~/lib/application-rules'
 import { ValidationCode } from '~/lib/validation-codes'
+import {
+	createApplicationWithStatusHistory,
+	updateApplicationWithStatusHistory,
+} from '~/server/application-status-history'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -105,23 +112,27 @@ export async function createApplicationAction(
 			}
 		}
 
-		await db.insert(applications).values({
-			applicantId: user.id,
-			companyId: company.id,
-			termOfferingId: null,
-			creditAmount: null,
-			salaryAtApplication: String(salary.toFixed(2)),
-			payrollNumber: data.payrollNumber,
-			rfc: data.rfc,
-			clabe: data.clabe,
-			streetAndNumber: data.streetAndNumber,
-			interiorNumber: data.interiorNumber?.trim() || null,
-			city: data.city,
-			state: data.state,
-			country: data.country,
-			postalCode: data.postalCode,
-			phoneNumber: data.phoneNumber,
-			status: 'new',
+		await createApplicationWithStatusHistory({
+			values: {
+				applicantId: user.id,
+				companyId: company.id,
+				termOfferingId: null,
+				creditAmount: null,
+				salaryAtApplication: String(salary.toFixed(2)),
+				payrollNumber: data.payrollNumber,
+				rfc: data.rfc,
+				clabe: data.clabe,
+				streetAndNumber: data.streetAndNumber,
+				interiorNumber: data.interiorNumber?.trim() || null,
+				city: data.city,
+				state: data.state,
+				country: data.country,
+				postalCode: data.postalCode,
+				phoneNumber: data.phoneNumber,
+				status: 'new',
+				denialReason: null,
+			},
+			setByUserId: user.id,
 		})
 
 		await sendApplicationSubmittedEvent(email, {
@@ -141,7 +152,7 @@ export async function uploadApplicationDocumentAction(
 	_prevState: UploadDocumentFormState,
 	formData: FormData,
 ): Promise<UploadDocumentFormState> {
-	await getRequiredApplicantUser()
+	const user = await getRequiredApplicantUser()
 	const { ability } = await getAbility()
 
 	const file = formData.get('file')
@@ -237,14 +248,16 @@ export async function uploadApplicationDocumentAction(
 					columns: { id: true },
 				})
 
-			if (!remainingRejectedDocument) {
-				await db
-					.update(applications)
-					.set({
-						status: 'pending',
-						updatedAt: new Date(),
-					})
-					.where(eq(applications.id, data.applicationId))
+			if (
+				!remainingRejectedDocument &&
+				canTransitionToApplicationStatus(app.status, 'pending')
+			) {
+				await updateApplicationWithStatusHistory({
+					applicationId: data.applicationId,
+					status: 'pending',
+					setByUserId: user.id,
+					denialReason: null,
+				})
 			}
 		}
 

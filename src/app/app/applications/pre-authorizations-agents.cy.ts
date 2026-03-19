@@ -32,7 +32,22 @@ describe('Pre-authorizations agents', () => {
 	it('can assign amount and term before pre-authorizing an approved application', () => {
 		cy.visit(`/app/applications/${seed.preAuthApplicationId}`)
 		cy.contains(/detalle de solicitud/i).should('be.visible')
-		cy.contains(/aprobada/i).should('be.visible')
+		cy.get('[data-current-application-status="approved"]').should('be.visible')
+		cy.get('[data-application-status-history-title]')
+			.should('be.visible')
+			.and('contain', 'Historial de estado')
+		cy.get('[data-application-status-history]').within(() => {
+			cy.get('[data-status-history-item]').should('have.length', 3)
+			cy.get('[data-status-history-item]')
+				.eq(0)
+				.should('have.attr', 'data-status-history-status', 'approved')
+			cy.get('[data-status-history-item]')
+				.eq(1)
+				.should('have.attr', 'data-status-history-status', 'pending')
+			cy.get('[data-status-history-item]')
+				.eq(2)
+				.should('have.attr', 'data-status-history-status', 'new')
+		})
 		cy.contains(/por definir/i).should('exist')
 		cy.contains('button', /acciones/i)
 			.should('be.visible')
@@ -55,7 +70,17 @@ describe('Pre-authorizations agents', () => {
 			.click()
 
 		cy.contains(/detalle de solicitud/i).should('be.visible')
-		cy.contains(/preautorizado/i).should('be.visible')
+		cy.get('[data-current-application-status="pre-authorized"]').should(
+			'be.visible',
+		)
+		cy.get('[data-application-status-history]').within(() => {
+			cy.get('[data-status-history-item]')
+				.eq(0)
+				.should('have.attr', 'data-status-history-status', 'pre-authorized')
+			cy.get('[data-status-history-item]')
+				.eq(1)
+				.should('have.attr', 'data-status-history-status', 'approved')
+		})
 		cy.contains('18,000').should('exist')
 		cy.contains('12 meses').should('exist')
 	})

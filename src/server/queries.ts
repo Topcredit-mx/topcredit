@@ -9,6 +9,7 @@ import type {
 } from '~/server/db/schema'
 import {
 	applicationDocuments,
+	applicationStatusHistory,
 	applications,
 	companies,
 	termOfferings,
@@ -364,6 +365,52 @@ export type ApplicationListItem = {
 	updatedAt: Date
 }
 
+export type ApplicationStatusHistoryItem = {
+	id: number
+	status: ApplicationStatus
+	createdAt: Date
+	setByUser: {
+		id: number
+		name: string | null
+		email: string | null
+	} | null
+}
+
+async function getApplicationStatusHistoryList(
+	applicationId: number,
+): Promise<ApplicationStatusHistoryItem[]> {
+	const rows = await db
+		.select({
+			id: applicationStatusHistory.id,
+			status: applicationStatusHistory.status,
+			createdAt: applicationStatusHistory.createdAt,
+			setByUserId: users.id,
+			setByUserName: users.name,
+			setByUserEmail: users.email,
+		})
+		.from(applicationStatusHistory)
+		.leftJoin(users, eq(applicationStatusHistory.setByUserId, users.id))
+		.where(eq(applicationStatusHistory.applicationId, applicationId))
+		.orderBy(
+			desc(applicationStatusHistory.createdAt),
+			desc(applicationStatusHistory.id),
+		)
+
+	return rows.map((row) => ({
+		id: row.id,
+		status: row.status,
+		createdAt: row.createdAt,
+		setByUser:
+			row.setByUserId != null
+				? {
+						id: row.setByUserId,
+						name: row.setByUserName,
+						email: row.setByUserEmail,
+					}
+				: null,
+	}))
+}
+
 export async function getApplicationsByApplicantId(
 	userId: number,
 ): Promise<ApplicationListItem[]> {
@@ -404,6 +451,7 @@ export type ApplicationDetailForApplicant = {
 	denialReason: string | null
 	createdAt: Date
 	updatedAt: Date
+	statusHistory: ApplicationStatusHistoryItem[]
 	termOffering: {
 		durationType: 'bi-monthly' | 'monthly'
 		duration: number
@@ -444,6 +492,7 @@ export async function getApplicationByApplicantId(
 
 	const row = rows[0]
 	if (!row) return null
+	const statusHistory = await getApplicationStatusHistoryList(applicationId)
 
 	return {
 		id: row.id,
@@ -452,6 +501,7 @@ export async function getApplicationByApplicantId(
 		denialReason: row.denialReason,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
+		statusHistory,
 		termOffering:
 			row.durationType && row.duration != null
 				? {
@@ -547,6 +597,10 @@ export type ApplicationForReview = {
 	} | null
 }
 
+export type ApplicationForReviewDetail = ApplicationForReview & {
+	statusHistory: ApplicationStatusHistoryItem[]
+}
+
 export async function getApplicationsForReview(params: {
 	scope: CompanyScope
 	statusFilter?: ApplicationStatus[]
@@ -639,7 +693,7 @@ export async function getApplicationsForReview(params: {
 export async function getApplicationForReview(
 	applicationId: number,
 	scope: CompanyScope,
-): Promise<ApplicationForReview | null> {
+): Promise<ApplicationForReviewDetail | null> {
 	let companyCondition: SQL
 	if (scope.type === 'single') {
 		companyCondition = eq(applications.companyId, scope.companyId)
@@ -685,6 +739,7 @@ export async function getApplicationForReview(
 
 	const row = rows[0]
 	if (!row) return null
+	const statusHistory = await getApplicationStatusHistoryList(applicationId)
 
 	return {
 		id: row.id,
@@ -698,6 +753,7 @@ export async function getApplicationForReview(
 		denialReason: row.denialReason,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
+		statusHistory,
 		applicant: {
 			id: row.applicantId,
 			name: row.applicantName,

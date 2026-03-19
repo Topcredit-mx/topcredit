@@ -88,6 +88,10 @@ export function canTransitionToApplicationStatus(
 	currentStatus: ApplicationStatus,
 	nextStatus: ApplicationStatus,
 ): boolean {
+	if (nextStatus === 'pending') {
+		return currentStatus === 'invalid-documentation'
+	}
+
 	if (nextStatus === 'approved' || nextStatus === 'invalid-documentation') {
 		return currentStatus === 'new' || currentStatus === 'pending'
 	}

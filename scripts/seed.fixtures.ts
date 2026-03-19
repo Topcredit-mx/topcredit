@@ -75,6 +75,7 @@ export const userCompanyAssignments: Record<string, readonly string[]> = {
 export const applicationStatusEnum = [
 	'new',
 	'pending',
+	'approved',
 	'invalid-documentation',
 	'pre-authorized',
 	'authorized',
@@ -93,6 +94,7 @@ export const seedApplications: ReadonlyArray<{
 	salaryAtApplication: string
 	status: SeedApplicationStatus
 	denialReason?: string
+	statusHistory?: readonly SeedApplicationStatus[]
 }> = [
 	{
 		applicantEmail: 'applicant@example.com',
@@ -111,6 +113,7 @@ export const seedApplications: ReadonlyArray<{
 		creditAmount: '8000.00',
 		salaryAtApplication: '28000.00',
 		status: 'pending',
+		statusHistory: ['new', 'pending'],
 	},
 	{
 		applicantEmail: 'applicant@example.com',
@@ -120,5 +123,12 @@ export const seedApplications: ReadonlyArray<{
 		creditAmount: '12000.00',
 		salaryAtApplication: '32000.00',
 		status: 'authorized',
+		statusHistory: [
+			'new',
+			'pending',
+			'approved',
+			'pre-authorized',
+			'authorized',
+		],
 	},
 ]

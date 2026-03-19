@@ -28,6 +28,14 @@ test('allows requests review transitions from both new and pending', () => {
 	assert.equal(canTransitionToApplicationStatus('approved', 'approved'), false)
 })
 
+test('allows returning to pending after invalid documentation is corrected', () => {
+	assert.equal(
+		canTransitionToApplicationStatus('invalid-documentation', 'pending'),
+		true,
+	)
+	assert.equal(canTransitionToApplicationStatus('denied', 'pending'), false)
+})
+
 test('allows pre-authorization only from approved', () => {
 	assert.equal(
 		canTransitionToApplicationStatus('approved', 'pre-authorized'),
