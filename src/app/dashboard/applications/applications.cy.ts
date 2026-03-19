@@ -244,14 +244,85 @@ describe('Dashboard Applications', () => {
 			cy.selectRadix('label:Estado', 'Nuevo León')
 			cy.get('input[name="postalCode"]').type('64000')
 			cy.get('input[name="phoneNumber"]').type('8112345678')
+
+			cy.get('input[name="authorizationFile"]').selectFile(
+				'cypress/fixtures/sample-document.webp',
+				{ force: true },
+			)
+			cy.get('input[name="contractFile"]').selectFile(
+				'cypress/fixtures/sample-document.webp',
+				{ force: true },
+			)
+			cy.get('input[name="payrollReceiptFile"]').selectFile(
+				'cypress/fixtures/sample-document.webp',
+				{ force: true },
+			)
+
+			cy.intercept('POST', '**/dashboard/applications/*').as(
+				'submitApplication',
+			)
 			cy.contains('button', /enviar solicitud/i)
 				.should('be.visible')
 				.click()
+
+			cy.wait('@submitApplication')
 
 			cy.url().should('include', '/dashboard/applications')
 			cy.get('main').should('be.visible')
 			cy.contains(/nueva/i).should('be.visible')
 			cy.contains(/por definir/i).should('be.visible')
+		})
+
+		it('shows validation errors when required documents are missing', () => {
+			cy.task('deleteApplicationsByApplicantId', seed.applicantId)
+			cy.login(applicantWithCompany.email)
+			cy.visit('/dashboard/applications/new')
+
+			cy.get('input[name="salaryAtApplication"]').type('100000')
+			cy.get('input[name="payrollNumber"]').type('EMP-001')
+			cy.get('input[name="rfc"]').type('GODE561231GR8')
+			cy.get('input[name="clabe"]').type('032180000118359719')
+			cy.get('input[name="streetAndNumber"]').type('Av. Revolucion 123')
+			cy.get('input[name="interiorNumber"]').type('1206 Torre 4')
+			cy.get('input[name="city"]').type('Monterrey')
+			cy.selectRadix('label:Estado', 'Nuevo León')
+			cy.get('input[name="postalCode"]').type('64000')
+			cy.get('input[name="phoneNumber"]').type('8112345678')
+
+			cy.intercept('POST', '**/dashboard/applications/*').as(
+				'submitApplication',
+			)
+			cy.contains('button', /enviar solicitud/i)
+				.should('be.visible')
+				.click()
+			cy.wait('@submitApplication')
+
+			cy.url().should('include', '/dashboard/applications/new')
+
+			cy.get('input[name="authorizationFile"]')
+				.closest('[data-slot="field"]')
+				.within(() => {
+					cy.contains(
+						'[data-slot="field-error"]',
+						/Selecciona un archivo válido\./i,
+					).should('be.visible')
+				})
+			cy.get('input[name="contractFile"]')
+				.closest('[data-slot="field"]')
+				.within(() => {
+					cy.contains(
+						'[data-slot="field-error"]',
+						/Selecciona un archivo válido\./i,
+					).should('be.visible')
+				})
+			cy.get('input[name="payrollReceiptFile"]')
+				.closest('[data-slot="field"]')
+				.within(() => {
+					cy.contains(
+						'[data-slot="field-error"]',
+						/Selecciona un archivo válido\./i,
+					).should('be.visible')
+				})
 		})
 	})
 

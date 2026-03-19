@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useActionState, useId, useState } from 'react'
-import { createApplicationAction } from '~/app/dashboard/applications/actions'
+import { createApplicationWithInitialDocumentsAction } from '~/app/dashboard/applications/actions'
 import { Button } from '~/components/ui/button'
 import {
 	Field,
@@ -19,6 +19,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '~/components/ui/select'
+import {
+	APPLICATION_DOCUMENT_ACCEPT,
+	REQUIRED_INITIAL_DOCUMENTS,
+	type RequiredInitialDocumentFieldName,
+} from '~/lib/application-document-intake'
+import { DASHBOARD_DOCUMENT_TYPE_KEYS } from '~/lib/i18n-keys'
 import { getClabeInstitutionName } from '~/lib/mexico-identifiers'
 import { MEXICAN_STATE_VALUES } from '~/lib/mexico-states'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
@@ -28,10 +34,13 @@ export function ApplicationForm() {
 	const tCommon = useTranslations('common')
 	const resolveError = useResolveValidationError()
 
-	const [state, action, pending] = useActionState(createApplicationAction, {
-		errors: undefined,
-		message: undefined,
-	})
+	const [state, action, pending] = useActionState(
+		createApplicationWithInitialDocumentsAction,
+		{
+			errors: undefined,
+			message: undefined,
+		},
+	)
 
 	const [clabeValue, setClabeValue] = useState<string>('')
 	const [stateValue, setStateValue] = useState<string>('')
@@ -49,6 +58,15 @@ export function ApplicationForm() {
 	const countryId = useId()
 	const postalCodeId = useId()
 	const phoneId = useId()
+	const authorizationFileId = useId()
+	const contractFileId = useId()
+	const payrollReceiptFileId = useId()
+
+	const inputIdByFieldName: Record<RequiredInitialDocumentFieldName, string> = {
+		authorizationFile: authorizationFileId,
+		contractFile: contractFileId,
+		payrollReceiptFile: payrollReceiptFileId,
+	}
 
 	return (
 		<form action={action} className="space-y-6" noValidate>
@@ -272,6 +290,44 @@ export function ApplicationForm() {
 						<FieldError message={resolveError(state.errors.phoneNumber)} />
 					)}
 				</Field>
+
+				<div className="space-y-2 pt-2">
+					<p className="font-medium">{t('initial-documents-title')}</p>
+					<p className="text-muted-foreground text-sm">
+						{t('initial-documents-description')}
+					</p>
+					<FieldDescription aria-live="polite">
+						{t('upload-panel-formats')}
+					</FieldDescription>
+					<FieldDescription aria-live="polite">
+						{t('upload-panel-max-size')}
+					</FieldDescription>
+				</div>
+
+				{REQUIRED_INITIAL_DOCUMENTS.map(({ documentType, fieldName }) => {
+					const inputId = inputIdByFieldName[fieldName]
+					const error = state.errors?.[fieldName]
+
+					return (
+						<Field key={fieldName} data-invalid={!!error}>
+							<FieldLabel htmlFor={inputId}>
+								{t(DASHBOARD_DOCUMENT_TYPE_KEYS[documentType])}{' '}
+								<span className="text-destructive">*</span>
+							</FieldLabel>
+							<div className="rounded-2xl border border-dashed bg-background p-3">
+								<input
+									id={inputId}
+									type="file"
+									name={fieldName}
+									accept={APPLICATION_DOCUMENT_ACCEPT}
+									className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs file:border-0 file:bg-transparent file:font-medium file:text-foreground file:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+									aria-invalid={!!error}
+								/>
+							</div>
+							{error && <FieldError message={resolveError(error)} />}
+						</Field>
+					)
+				})}
 			</div>
 
 			<div className="flex gap-2">

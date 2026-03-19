@@ -309,6 +309,8 @@
 			"term-fortnights": "quincenas",
 			"documents-title": "Documentos",
 			"documents-description": "Tus archivos se muestran como tarjetas para que identifiques rápido cuáles están listos, en revisión o necesitan corrección.",
+			"initial-documents-title": "Documentos requeridos",
+			"initial-documents-description": "Para enviar tu solicitud, sube los 3 documentos requeridos.",
 			"documents-empty": "No hay documentos cargados.",
 			"document-type-authorization": "Autorización",
 			"document-type-contract": "Contrato",
