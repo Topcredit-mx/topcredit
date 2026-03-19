@@ -21,6 +21,12 @@ const applicantEmail = applicantForReview.email
 describe('Requests agents', () => {
 	let seed: SeedApplicationsReviewResult
 
+	function openApplicationActions() {
+		cy.contains('button', /^acciones$/i)
+			.should('be.visible')
+			.click()
+	}
+
 	before(() => {
 		cy.task<SeedApplicationsReviewResult>('seedApplicationsReview').then(
 			(result) => {
@@ -91,13 +97,7 @@ describe('Requests agents', () => {
 					cy.get('a[aria-label="Revisar solicitud"]').should('exist').click()
 				})
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains('h2', /solicitante/i)
-				.closest('[data-slot="card-header"]')
-				.within(() => {
-					cy.contains('button', /acciones/i)
-						.should('be.visible')
-						.click()
-				})
+			openApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/rechazar/i)
 				.should('be.visible')
@@ -120,13 +120,7 @@ describe('Requests agents', () => {
 					cy.get('a[aria-label="Revisar solicitud"]').should('exist').click()
 				})
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains('h2', /solicitante/i)
-				.closest('[data-slot="card-header"]')
-				.within(() => {
-					cy.contains('button', /acciones/i)
-						.should('be.visible')
-						.click()
-				})
+			openApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/rechazar/i)
 				.should('be.visible')
@@ -147,13 +141,7 @@ describe('Requests agents', () => {
 		it('requests agent sees only approve, reject and invalid-docs in actions menu', () => {
 			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains('h2', /solicitante/i)
-				.closest('[data-slot="card-header"]')
-				.within(() => {
-					cy.contains('button', /acciones/i)
-						.should('be.visible')
-						.click()
-				})
+			openApplicationActions()
 			cy.get('[role="menu"]').within(() => {
 				cy.get('[role="menuitem"]').should('have.length', 3)
 				cy.contains('[role="menuitem"]', /aprobar/i).should('be.visible')
@@ -191,13 +179,7 @@ describe('Requests agents', () => {
 			cy.contains('li', 'e2e-40k-invalid.pdf').within(() => {
 				cy.get('[role="img"][aria-label*="Rechazado"]').should('be.visible')
 			})
-			cy.contains('h2', /solicitante/i)
-				.closest('[data-slot="card-header"]')
-				.within(() => {
-					cy.contains('button', /acciones/i)
-						.should('be.visible')
-						.click()
-				})
+			openApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/documentación inválida/i)
 				.should('be.visible')
@@ -211,13 +193,7 @@ describe('Requests agents', () => {
 			cy.visit(`/app/applications/${seed.applicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/nueva/i).should('be.visible')
-			cy.contains('h2', /solicitante/i)
-				.closest('[data-slot="card-header"]')
-				.within(() => {
-					cy.contains('button', /acciones/i)
-						.should('be.visible')
-						.click()
-				})
+			openApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/aprobar/i)
 				.should('be.visible')
@@ -231,13 +207,7 @@ describe('Requests agents', () => {
 			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/pendiente/i).should('be.visible')
-			cy.contains('h2', /solicitante/i)
-				.closest('[data-slot="card-header"]')
-				.within(() => {
-					cy.contains('button', /acciones/i)
-						.should('be.visible')
-						.click()
-				})
+			openApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/aprobar/i)
 				.should('be.visible')
