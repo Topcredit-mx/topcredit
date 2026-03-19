@@ -81,6 +81,16 @@ describe('Requests agents', () => {
 			cy.contains('25,000').should('exist')
 		})
 
+		it('keeps Solicitudes active on application detail routes', () => {
+			cy.visit(`/app/applications/${seed.applicationId}`)
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.get('[data-slot="sidebar"]').within(() => {
+				cy.contains('[data-slot="sidebar-menu-button"]', /^solicitudes$/i)
+					.should('be.visible')
+					.and('have.attr', 'data-active', 'true')
+			})
+		})
+
 		it('filter by status with no results shows empty state', () => {
 			cy.visit('/app/applications?status=authorized')
 			cy.get('main').should('be.visible')
