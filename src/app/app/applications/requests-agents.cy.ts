@@ -22,7 +22,7 @@ describe('Requests agents', () => {
 	let seed: SeedApplicationsReviewResult
 
 	function openApplicationActions() {
-		cy.contains('button', /^acciones$/i)
+		cy.contains('button', /acciones/i)
 			.should('be.visible')
 			.click()
 	}
