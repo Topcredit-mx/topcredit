@@ -79,6 +79,26 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'dashboard.applications',
 		key: 'application-value-positive',
 	},
+	[ValidationCode.APPLICATION_RFC_LENGTH]: {
+		namespace: 'dashboard.applications',
+		key: 'application-rfc-length',
+	},
+	[ValidationCode.APPLICATION_RFC_INVALID]: {
+		namespace: 'dashboard.applications',
+		key: 'application-rfc-invalid',
+	},
+	[ValidationCode.APPLICATION_CLABE_LENGTH]: {
+		namespace: 'dashboard.applications',
+		key: 'application-clabe-length',
+	},
+	[ValidationCode.APPLICATION_CLABE_INVALID]: {
+		namespace: 'dashboard.applications',
+		key: 'application-clabe-invalid',
+	},
+	[ValidationCode.APPLICATION_POSTAL_CODE_LENGTH]: {
+		namespace: 'dashboard.applications',
+		key: 'application-postal-code-length',
+	},
 	[ValidationCode.APPLICATION_INVALID]: {
 		namespace: 'dashboard.applications',
 		key: 'application-invalid',
@@ -158,6 +178,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 	[ValidationCode.APPLICATIONS_ERROR_TRANSITION]: {
 		namespace: 'app',
 		key: 'applications-error-transition',
+	},
+	[ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED]: {
+		namespace: 'app',
+		key: 'applications-financial-terms-required',
 	},
 	[ValidationCode.APPLICATIONS_REQUESTS_CANNOT_PREAUTH_OR_AUTH]: {
 		namespace: 'app',

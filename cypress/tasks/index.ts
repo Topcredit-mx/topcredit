@@ -14,8 +14,10 @@ import {
 	applicantA4,
 	applicantA5,
 	applicantForReviewB,
+	applicantPreAuth,
 	companyForReview,
 	companyForReviewD,
+	preAuthAgentForReview,
 	reviewApplicationConfigs,
 } from '~/app/app/applications/applications-review.fixtures'
 import {
@@ -38,12 +40,14 @@ import {
 } from '~/app/app/users/users.fixtures'
 import {
 	applicantB,
+	applicantInactiveCompany,
 	applicantNoCompany,
-	applicantNoRate,
-	applicantNoTerms,
 	applicantWithCompany,
-	companyNoRate,
-	companyNoTerms,
+	applicantWithCompanyWithoutCapacityRate,
+	applicantWithCompanyWithoutTermOfferings,
+	companyInactive,
+	companyWithoutCapacityRate,
+	companyWithoutTermOfferings,
 	companyWithTerms,
 } from '~/app/dashboard/applications/applications.fixtures'
 import {
@@ -52,8 +56,10 @@ import {
 	noRoleUser as loginNoRoleUser,
 } from '~/app/login/login.fixtures'
 import type { Role } from '~/server/auth/session'
+import type { ApplicationStatus } from '~/server/db/schema'
 import {
 	applicationDocuments,
+	applicationStatusHistory,
 	applications,
 	companies,
 	termOfferings,
@@ -483,6 +489,79 @@ export const getUserIdByEmail = async (
 	return user?.id ?? null
 }
 
+type SeedStatusHistoryStep = {
+	status: ApplicationStatus
+	setByUserId: number | null
+}
+
+function getDefaultSeedStatusHistory(
+	finalStatus: ApplicationStatus,
+	defaultActorUserId: number | null,
+): readonly SeedStatusHistoryStep[] {
+	switch (finalStatus) {
+		case 'new':
+			return [{ status: 'new', setByUserId: defaultActorUserId }]
+		case 'pending':
+			return [
+				{ status: 'new', setByUserId: defaultActorUserId },
+				{ status: 'pending', setByUserId: defaultActorUserId },
+			]
+		case 'approved':
+			return [
+				{ status: 'new', setByUserId: defaultActorUserId },
+				{ status: 'pending', setByUserId: defaultActorUserId },
+				{ status: 'approved', setByUserId: defaultActorUserId },
+			]
+		case 'invalid-documentation':
+			return [
+				{ status: 'new', setByUserId: defaultActorUserId },
+				{ status: 'pending', setByUserId: defaultActorUserId },
+				{
+					status: 'invalid-documentation',
+					setByUserId: defaultActorUserId,
+				},
+			]
+		case 'pre-authorized':
+			return [
+				{ status: 'new', setByUserId: defaultActorUserId },
+				{ status: 'pending', setByUserId: defaultActorUserId },
+				{ status: 'approved', setByUserId: defaultActorUserId },
+				{ status: 'pre-authorized', setByUserId: defaultActorUserId },
+			]
+		case 'authorized':
+			return [
+				{ status: 'new', setByUserId: defaultActorUserId },
+				{ status: 'pending', setByUserId: defaultActorUserId },
+				{ status: 'approved', setByUserId: defaultActorUserId },
+				{ status: 'pre-authorized', setByUserId: defaultActorUserId },
+				{ status: 'authorized', setByUserId: defaultActorUserId },
+			]
+		case 'denied':
+			return [
+				{ status: 'new', setByUserId: defaultActorUserId },
+				{ status: 'pending', setByUserId: defaultActorUserId },
+				{ status: 'denied', setByUserId: defaultActorUserId },
+			]
+	}
+}
+
+function createOrderedSeedStatusHistory(options: {
+	finalStatus: ApplicationStatus
+	defaultActorUserId: number | null
+	steps?: readonly SeedStatusHistoryStep[]
+}): SeedStatusHistoryStep[] {
+	const steps =
+		options.steps ??
+		getDefaultSeedStatusHistory(options.finalStatus, options.defaultActorUserId)
+	const lastStep = steps[steps.length - 1]
+
+	if (!lastStep || lastStep.status !== options.finalStatus) {
+		throw new Error('Seed status history must end with the current status')
+	}
+
+	return [...steps]
+}
+
 // ---- Composite tasks ----
 
 export type ResetApplicantApplicationTaskParams = {
@@ -490,6 +569,7 @@ export type ResetApplicantApplicationTaskParams = {
 	termOfferingId: number
 	creditAmount: string
 	salaryAtApplication: string
+	statusHistory?: readonly ApplicationStatus[]
 	status?:
 		| 'new'
 		| 'pending'
@@ -503,6 +583,12 @@ export const resetApplicantApplication = async (
 	params: ResetApplicantApplicationTaskParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	const finalStatus = params.status ?? 'new'
+	const offering = await db.query.termOfferings.findFirst({
+		where: eq(termOfferings.id, params.termOfferingId),
+		columns: { companyId: true },
+	})
+	if (!offering) throw new Error('Failed to find term offering')
 	// Delete blobs for applications we're about to remove (so they don't persist in storage)
 	if (process.env.BLOB_READ_WRITE_TOKEN) {
 		const appsToRemove = await db
@@ -522,17 +608,39 @@ export const resetApplicantApplication = async (
 	await db
 		.delete(applications)
 		.where(eq(applications.applicantId, params.applicantId))
+
+	const baseTime = new Date()
+	const timeline = createOrderedSeedStatusHistory({
+		finalStatus,
+		defaultActorUserId: params.applicantId,
+		steps: params.statusHistory?.map((status) => ({
+			status,
+			setByUserId: params.applicantId,
+		})),
+	})
+
 	const [app] = await db
 		.insert(applications)
 		.values({
 			applicantId: params.applicantId,
+			companyId: offering.companyId,
 			termOfferingId: params.termOfferingId,
 			creditAmount: params.creditAmount,
 			salaryAtApplication: params.salaryAtApplication,
-			status: params.status ?? 'new',
+			status: finalStatus,
 		})
 		.returning()
 	if (!app) throw new Error('Failed to create application')
+
+	await db.insert(applicationStatusHistory).values(
+		timeline.map((entry, index) => ({
+			applicationId: app.id,
+			status: entry.status,
+			setByUserId: entry.setByUserId,
+			createdAt: new Date(baseTime.getTime() + index * 60_000),
+		})),
+	)
+
 	return app
 }
 
@@ -610,13 +718,29 @@ export const seedLoginFlow = async (): Promise<SeedLoginFlowResult> => {
 
 	if (!offering) throw new Error('Seed: offering not created')
 
-	await db.insert(applications).values({
-		applicantId: applicant.id,
-		termOfferingId: offering.id,
-		creditAmount: '10000',
-		salaryAtApplication: '100000',
-		status: 'new',
-	})
+	const loginHistoryBaseTime = new Date()
+	const [loginApplication] = await db
+		.insert(applications)
+		.values({
+			applicantId: applicant.id,
+			companyId: company.id,
+			termOfferingId: offering.id,
+			creditAmount: '10000',
+			salaryAtApplication: '100000',
+			status: 'new',
+		})
+		.returning()
+
+	if (!loginApplication) throw new Error('Seed: login application not created')
+
+	await db.insert(applicationStatusHistory).values([
+		{
+			applicationId: loginApplication.id,
+			status: 'new',
+			setByUserId: applicant.id,
+			createdAt: loginHistoryBaseTime,
+		},
+	])
 
 	return {
 		applicantId: applicant.id,
@@ -655,10 +779,16 @@ export const seedDashboardApplications =
 			applicantWithCompany,
 			applicantB,
 			applicantNoCompany,
-			applicantNoRate,
-			applicantNoTerms,
+			applicantInactiveCompany,
+			applicantWithCompanyWithoutCapacityRate,
+			applicantWithCompanyWithoutTermOfferings,
 		]
-		const allCompanies = [companyWithTerms, companyNoRate, companyNoTerms]
+		const allCompanies = [
+			companyWithTerms,
+			companyInactive,
+			companyWithoutCapacityRate,
+			companyWithoutTermOfferings,
+		]
 
 		await Promise.all(
 			allApplicants.map((u) =>
@@ -755,10 +885,16 @@ export const cleanupDashboardApplications = async (
 		applicantWithCompany,
 		applicantB,
 		applicantNoCompany,
-		applicantNoRate,
-		applicantNoTerms,
+		applicantInactiveCompany,
+		applicantWithCompanyWithoutCapacityRate,
+		applicantWithCompanyWithoutTermOfferings,
 	]
-	const allCompanies = [companyWithTerms, companyNoRate, companyNoTerms]
+	const allCompanies = [
+		companyWithTerms,
+		companyInactive,
+		companyWithoutCapacityRate,
+		companyWithoutTermOfferings,
+	]
 	await Promise.all(
 		allApplicants.map((u) => db.delete(users).where(eq(users.email, u.email))),
 	)
@@ -1209,6 +1345,8 @@ export type SeedApplicationsReviewResult = {
 	applicantA4ApplicationId: number
 	/** Application with creditAmount 45,000 (applicantA5) – use for list-reflects-status E2E. */
 	applicantA5ApplicationId: number
+	/** Approved application with pending financial terms for pre-authorization E2E. */
+	preAuthApplicationId: number
 }
 
 /** Company domains from other E2E specs. Remove their applications at seed start so the review list count is predictable (no leak from dashboard etc.). */
@@ -1238,6 +1376,7 @@ export const seedApplicationsReview =
 
 		const allUserFixtures = [
 			agentForReview,
+			preAuthAgentForReview,
 			adminForReview,
 			...allReviewApplicants,
 		]
@@ -1299,7 +1438,8 @@ export const seedApplicationsReview =
 			return row
 		}
 
-		const agent = findUser(agentForReview.email)
+		const requestsAgent = findUser(agentForReview.email)
+		const preAuthAgent = findUser(preAuthAgentForReview.email)
 
 		const [, offerings] = await Promise.all([
 			db.insert(userRoles).values(
@@ -1321,10 +1461,12 @@ export const seedApplicationsReview =
 				)
 				.returning(),
 			db.insert(userCompanies).values(
-				agentCompanyDomains.map((domain) => ({
-					userId: agent.id,
-					companyId: findCompany(domain).id,
-				})),
+				[requestsAgent, preAuthAgent].flatMap((user) =>
+					agentCompanyDomains.map((domain) => ({
+						userId: user.id,
+						companyId: findCompany(domain).id,
+					})),
+				),
 			),
 		])
 
@@ -1335,18 +1477,61 @@ export const seedApplicationsReview =
 			return row
 		}
 
-		const apps = await db
-			.insert(applications)
-			.values(
-				reviewApplicationConfigs.map((cfg) => ({
-					applicantId: findUser(cfg.applicantEmail).id,
-					termOfferingId: findOffering(cfg.companyDomain).id,
+		const preparedApplications = reviewApplicationConfigs.map((cfg, index) => {
+			const applicant = findUser(cfg.applicantEmail)
+			const finalStatus = cfg.status ?? 'pending'
+			const baseTime = new Date(
+				now.getTime() - (reviewApplicationConfigs.length - index) * 10 * 60_000,
+			)
+			const timeline = createOrderedSeedStatusHistory({
+				finalStatus,
+				defaultActorUserId: applicant.id,
+				steps: cfg.statusHistory?.map((step) => ({
+					status: step.status,
+					setByUserId:
+						step.actorEmail == null ? null : findUser(step.actorEmail).id,
+				})),
+			})
+
+			return {
+				insertValues: {
+					applicantId: applicant.id,
+					companyId: findCompany(cfg.companyDomain).id,
+					termOfferingId:
+						cfg.creditAmount == null
+							? null
+							: findOffering(cfg.companyDomain).id,
 					creditAmount: cfg.creditAmount,
 					salaryAtApplication: cfg.salaryAtApplication,
-					status: 'pending' as const,
-				})),
-			)
+					status: finalStatus,
+				},
+				baseTime,
+				timeline,
+			}
+		})
+
+		const apps = await db
+			.insert(applications)
+			.values(preparedApplications.map((item) => item.insertValues))
 			.returning()
+
+		await db.insert(applicationStatusHistory).values(
+			apps.flatMap((app, index) => {
+				const prepared = preparedApplications[index]
+				if (!prepared) {
+					throw new Error('Seed: missing prepared application timeline')
+				}
+
+				return prepared.timeline.map((entry, entryIndex) => ({
+					applicationId: app.id,
+					status: entry.status,
+					setByUserId: entry.setByUserId,
+					createdAt: new Date(
+						prepared.baseTime.getTime() + entryIndex * 60_000,
+					),
+				}))
+			}),
+		)
 
 		const companyBAppIdx = reviewApplicationConfigs.findIndex(
 			(cfg) => cfg.applicantEmail === applicantForReviewB.email,
@@ -1368,6 +1553,12 @@ export const seedApplicationsReview =
 		const applicantA5App = apps[applicantA5AppIdx]
 		if (applicantA5AppIdx < 0 || !applicantA5App)
 			throw new Error('Seed: applicant A5 application not found')
+		const preAuthAppIdx = reviewApplicationConfigs.findIndex(
+			(cfg) => cfg.applicantEmail === applicantPreAuth.email,
+		)
+		const preAuthApp = apps[preAuthAppIdx]
+		if (preAuthAppIdx < 0 || !preAuthApp)
+			throw new Error('Seed: pre-auth application not found')
 
 		return {
 			companyId: findCompany(companyForReview.domain).id,
@@ -1377,6 +1568,7 @@ export const seedApplicationsReview =
 			applicationId: firstApp.id,
 			applicantA4ApplicationId: applicantA4App.id,
 			applicantA5ApplicationId: applicantA5App.id,
+			preAuthApplicationId: preAuthApp.id,
 		}
 	}
 
@@ -1391,6 +1583,7 @@ export const cleanupApplicationsReview = async (
 	await deleteBlobsForTerm(db, params.termId)
 	const allUserFixtures = [
 		agentForReview,
+		preAuthAgentForReview,
 		adminForReview,
 		...allReviewApplicants,
 	]

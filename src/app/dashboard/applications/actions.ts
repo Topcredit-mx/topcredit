@@ -3,9 +3,15 @@
 import { and, eq, gte, notInArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { INACTIVE_APPLICATION_STATUSES } from '~/lib/application-rules'
-import { formatCurrencyMxn } from '~/lib/utils'
+import {
+	canTransitionToApplicationStatus,
+	INACTIVE_APPLICATION_STATUSES,
+} from '~/lib/application-rules'
 import { ValidationCode } from '~/lib/validation-codes'
+import {
+	createApplicationWithStatusHistory,
+	updateApplicationWithStatusHistory,
+} from '~/server/application-status-history'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -13,10 +19,7 @@ import { applicationDocuments, applications } from '~/server/db/schema'
 import { sendApplicationSubmittedEvent } from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import { detectAllowedMime } from '~/server/file-validation'
-import {
-	getCompanyByEmailDomain,
-	getTermOfferingsForCompany,
-} from '~/server/queries'
+import { getCompanyByEmailDomain } from '~/server/queries'
 import {
 	createApplicationSchema,
 	uploadApplicationDocumentSchema,
@@ -36,6 +39,7 @@ const APPLICATION_DOCUMENT_ALLOWED_TYPES = new Set<string>([
 	'image/webp',
 ])
 const APPLICATION_DOCUMENT_FILE_NAME_MAX_LENGTH = 255
+const PENDING_APPLICATION_SUMMARY = 'Por definir'
 
 export type ApplicationFormState = {
 	errors?: Record<string, string>
@@ -62,52 +66,31 @@ export async function createApplicationAction(
 		return { message: ValidationCode.DASHBOARD_APPLICATION_EMAIL_DOMAIN }
 	}
 
-	const borrowingCapacityRate = company.borrowingCapacityRate
-	if (!borrowingCapacityRate || Number(borrowingCapacityRate) <= 0) {
-		return { message: ValidationCode.DASHBOARD_APPLICATION_COMPANY_NO_RATE }
-	}
-
-	const offerings = await getTermOfferingsForCompany(company.id)
-	if (offerings.length === 0) {
-		return { message: ValidationCode.DASHBOARD_APPLICATION_COMPANY_NO_TERMS }
-	}
-
 	try {
 		const data = createApplicationSchema.parse({
-			termOfferingId: formData.get('termOfferingId'),
-			creditAmount: formData.get('creditAmount'),
 			salaryAtApplication: formData.get('salaryAtApplication'),
+			payrollNumber: formData.get('payrollNumber'),
+			rfc: formData.get('rfc'),
+			clabe: formData.get('clabe'),
+			streetAndNumber: formData.get('streetAndNumber'),
+			interiorNumber: formData.get('interiorNumber'),
+			city: formData.get('city'),
+			state: formData.get('state'),
+			country: formData.get('country'),
+			postalCode: formData.get('postalCode'),
+			phoneNumber: formData.get('phoneNumber'),
 		})
 
-		const offering = offerings.find((o) => o.id === data.termOfferingId)
-		if (!offering || offering.disabled) {
-			return {
-				errors: {
-					termOfferingId:
-						ValidationCode.DASHBOARD_APPLICATION_TERM_NOT_AVAILABLE,
-				},
-			}
-		}
-
 		const salary = Number.parseFloat(String(data.salaryAtApplication))
-		const rate = Number.parseFloat(String(borrowingCapacityRate))
-		const maxLoanAmount = salary * rate
-		const amount = Number.parseFloat(String(data.creditAmount))
-		if (amount > maxLoanAmount) {
-			return {
-				errors: {
-					creditAmount: `El monto no puede superar el máximo permitido (${formatCurrencyMxn(maxLoanAmount)}).`,
-				},
-			}
-		}
 
 		const sixtySecondsAgo = new Date(Date.now() - 60_000)
 		const duplicate = await db.query.applications.findFirst({
 			where: and(
 				eq(applications.applicantId, user.id),
-				eq(applications.termOfferingId, data.termOfferingId),
-				eq(applications.creditAmount, String(amount.toFixed(2))),
+				eq(applications.companyId, company.id),
 				eq(applications.salaryAtApplication, String(salary.toFixed(2))),
+				eq(applications.rfc, data.rfc),
+				eq(applications.payrollNumber, data.payrollNumber),
 				gte(applications.createdAt, sixtySecondsAgo),
 			),
 			columns: { id: true },
@@ -129,22 +112,32 @@ export async function createApplicationAction(
 			}
 		}
 
-		await db.insert(applications).values({
-			applicantId: user.id,
-			termOfferingId: data.termOfferingId,
-			creditAmount: String(amount.toFixed(2)),
-			salaryAtApplication: String(salary.toFixed(2)),
-			status: 'new',
+		await createApplicationWithStatusHistory({
+			values: {
+				applicantId: user.id,
+				companyId: company.id,
+				termOfferingId: null,
+				creditAmount: null,
+				salaryAtApplication: String(salary.toFixed(2)),
+				payrollNumber: data.payrollNumber,
+				rfc: data.rfc,
+				clabe: data.clabe,
+				streetAndNumber: data.streetAndNumber,
+				interiorNumber: data.interiorNumber?.trim() || null,
+				city: data.city,
+				state: data.state,
+				country: data.country,
+				postalCode: data.postalCode,
+				phoneNumber: data.phoneNumber,
+				status: 'new',
+				denialReason: null,
+			},
+			setByUserId: user.id,
 		})
 
-		const termLabel =
-			offering.durationType === 'monthly'
-				? `${offering.duration} meses`
-				: `${offering.duration} quincenas`
-		const creditAmountFormatted = formatCurrencyMxn(amount)
 		await sendApplicationSubmittedEvent(email, {
-			creditAmountFormatted,
-			termLabel,
+			creditAmountFormatted: PENDING_APPLICATION_SUMMARY,
+			termLabel: PENDING_APPLICATION_SUMMARY,
 		})
 
 		revalidatePath('/dashboard/applications')
@@ -159,7 +152,7 @@ export async function uploadApplicationDocumentAction(
 	_prevState: UploadDocumentFormState,
 	formData: FormData,
 ): Promise<UploadDocumentFormState> {
-	await getRequiredApplicantUser()
+	const user = await getRequiredApplicantUser()
 	const { ability } = await getAbility()
 
 	const file = formData.get('file')
@@ -192,15 +185,12 @@ export async function uploadApplicationDocumentAction(
 			columns: {
 				id: true,
 				applicantId: true,
+				companyId: true,
 				status: true,
-				termOfferingId: true,
-			},
-			with: {
-				termOffering: { columns: { companyId: true } },
 			},
 		})
 
-		if (!app?.termOffering) {
+		if (!app) {
 			return { message: ValidationCode.DASHBOARD_APPLICATION_NOT_FOUND }
 		}
 
@@ -210,7 +200,7 @@ export async function uploadApplicationDocumentAction(
 			subject('Application', {
 				id: app.id,
 				applicantId: app.applicantId,
-				companyId: app.termOffering.companyId,
+				companyId: app.companyId,
 			}),
 		)
 
@@ -258,14 +248,16 @@ export async function uploadApplicationDocumentAction(
 					columns: { id: true },
 				})
 
-			if (!remainingRejectedDocument) {
-				await db
-					.update(applications)
-					.set({
-						status: 'pending',
-						updatedAt: new Date(),
-					})
-					.where(eq(applications.id, data.applicationId))
+			if (
+				!remainingRejectedDocument &&
+				canTransitionToApplicationStatus(app.status, 'pending')
+			) {
+				await updateApplicationWithStatusHistory({
+					applicationId: data.applicationId,
+					status: 'pending',
+					setByUserId: user.id,
+					denialReason: null,
+				})
 			}
 		}
 

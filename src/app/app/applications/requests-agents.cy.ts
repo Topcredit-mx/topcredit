@@ -10,7 +10,7 @@
 import type { SeedApplicationsReviewResult } from '../../../../cypress/tasks'
 import {
 	agentForReview,
-	applicantA5,
+	applicantA3,
 	applicantForReview,
 	applicantForReviewD,
 } from './applications-review.fixtures'
@@ -20,6 +20,12 @@ const applicantEmail = applicantForReview.email
 
 describe('Requests agents', () => {
 	let seed: SeedApplicationsReviewResult
+
+	function openApplicationActions() {
+		cy.contains('button', /acciones/i)
+			.should('be.visible')
+			.click()
+	}
 
 	before(() => {
 		cy.task<SeedApplicationsReviewResult>('seedApplicationsReview').then(
@@ -54,6 +60,13 @@ describe('Requests agents', () => {
 			cy.contains(applicantForReview.name).should('exist')
 		})
 
+		it('shows both new and pending applications in the requests queue', () => {
+			cy.visit('/app/applications')
+			cy.get('table').should('be.visible')
+			cy.contains(/nueva/i).should('be.visible')
+			cy.contains(/pendiente/i).should('be.visible')
+		})
+
 		it('opens application detail and shows data', () => {
 			cy.visit('/app/applications')
 			cy.get('table').should('be.visible')
@@ -66,6 +79,16 @@ describe('Requests agents', () => {
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(applicantEmail).should('be.visible')
 			cy.contains('25,000').should('exist')
+		})
+
+		it('keeps Solicitudes active on application detail routes', () => {
+			cy.visit(`/app/applications/${seed.applicationId}`)
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.get('[data-slot="sidebar"]').within(() => {
+				cy.contains('[data-slot="sidebar-menu-button"]', /^solicitudes$/i)
+					.should('be.visible')
+					.and('have.attr', 'data-active', 'true')
+			})
 		})
 
 		it('filter by status with no results shows empty state', () => {
@@ -84,13 +107,7 @@ describe('Requests agents', () => {
 					cy.get('a[aria-label="Revisar solicitud"]').should('exist').click()
 				})
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains('h2', /solicitante/i)
-				.closest('[data-slot="card-header"]')
-				.within(() => {
-					cy.contains('button', /acciones/i)
-						.should('be.visible')
-						.click()
-				})
+			openApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/rechazar/i)
 				.should('be.visible')
@@ -113,13 +130,7 @@ describe('Requests agents', () => {
 					cy.get('a[aria-label="Revisar solicitud"]').should('exist').click()
 				})
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains('h2', /solicitante/i)
-				.closest('[data-slot="card-header"]')
-				.within(() => {
-					cy.contains('button', /acciones/i)
-						.should('be.visible')
-						.click()
-				})
+			openApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/rechazar/i)
 				.should('be.visible')
@@ -140,13 +151,7 @@ describe('Requests agents', () => {
 		it('requests agent sees only approve, reject and invalid-docs in actions menu', () => {
 			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains('h2', /solicitante/i)
-				.closest('[data-slot="card-header"]')
-				.within(() => {
-					cy.contains('button', /acciones/i)
-						.should('be.visible')
-						.click()
-				})
+			openApplicationActions()
 			cy.get('[role="menu"]').within(() => {
 				cy.get('[role="menuitem"]').should('have.length', 3)
 				cy.contains('[role="menuitem"]', /aprobar/i).should('be.visible')
@@ -184,13 +189,7 @@ describe('Requests agents', () => {
 			cy.contains('li', 'e2e-40k-invalid.pdf').within(() => {
 				cy.get('[role="img"][aria-label*="Rechazado"]').should('be.visible')
 			})
-			cy.contains('h2', /solicitante/i)
-				.closest('[data-slot="card-header"]')
-				.within(() => {
-					cy.contains('button', /acciones/i)
-						.should('be.visible')
-						.click()
-				})
+			openApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/documentación inválida/i)
 				.should('be.visible')
@@ -200,22 +199,29 @@ describe('Requests agents', () => {
 			cy.contains('Documentación inválida').should('be.visible')
 		})
 
-		it('changes status from pending to approved when agent clicks Aprobar', () => {
+		it('changes status from new to approved when agent clicks Aprobar', () => {
 			cy.visit(`/app/applications/${seed.applicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains(/pendiente/i).should('be.visible')
-			cy.contains('h2', /solicitante/i)
-				.closest('[data-slot="card-header"]')
-				.within(() => {
-					cy.contains('button', /acciones/i)
-						.should('be.visible')
-						.click()
-				})
+			cy.contains(/nueva/i).should('be.visible')
+			openApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/aprobar/i)
 				.should('be.visible')
 				.click()
 			// Action redirects to same URL (reload); wait for new page then new state
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.contains(/aprobada/i).should('be.visible')
+		})
+
+		it('changes status from pending to approved on re-review', () => {
+			cy.visit(`/app/applications/${seed.applicantA5ApplicationId}`)
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.contains(/pendiente/i).should('be.visible')
+			openApplicationActions()
+			cy.get('[role="menuitem"]')
+				.contains(/aprobar/i)
+				.should('be.visible')
+				.click()
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/aprobada/i).should('be.visible')
 		})
@@ -226,7 +232,7 @@ describe('Requests agents', () => {
 			cy.selectRadix('status', 'Pendiente')
 			cy.url().should('include', 'status=pending')
 			cy.get('table tbody tr').should('have.length.at.least', 1)
-			cy.contains(applicantA5.name).should('exist')
+			cy.contains(applicantA3.name).should('exist')
 		})
 
 		it('invalid application id shows not found', () => {
@@ -262,7 +268,7 @@ describe('Requests agents', () => {
 		})
 
 		it('picking a company from switcher filters the list', () => {
-			cy.get('table tbody tr').should('have.length', 6)
+			cy.get('table tbody tr').should('have.length', 7)
 			cy.get('[data-slot="sidebar"]')
 				.find('[data-slot="dropdown-menu-trigger"]')
 				.first()
@@ -295,7 +301,7 @@ describe('Requests agents', () => {
 			cy.visit('/app')
 			cy.setCookie('selected_company_id', String(seed.companyDId))
 			cy.visit('/app/applications')
-			cy.get('table tbody tr').should('have.length', 6)
+			cy.get('table tbody tr').should('have.length', 7)
 			cy.contains('inactivecompany.com').should('not.exist')
 			cy.get('[data-slot="sidebar"]')
 				.find('[data-slot="dropdown-menu-trigger"]')

@@ -1,6 +1,12 @@
 'use client'
 
-import { CheckCircle2, ChevronDown, FileWarning, XCircle } from 'lucide-react'
+import {
+	Banknote,
+	CheckCircle2,
+	ChevronDown,
+	FileWarning,
+	XCircle,
+} from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useActionState, useRef, useState } from 'react'
 import {
@@ -20,21 +26,35 @@ import {
 	useResolveValidationError,
 } from '~/lib/validation-code-to-i18n'
 import { ApplicationReasonDialog } from './application-reason-dialog'
+import {
+	PreAuthorizeApplicationDialog,
+	type TermOfferingOption,
+} from './pre-authorize-application-form'
 
 const initialState = { error: '' }
 
 export function ApplicationActions({
 	applicationId,
 	canApprove,
-	canMarkInvalidDocumentation,
-	canPreAuthorize,
 	canAuthorize,
+	canPreAuthorize,
+	canDeny,
+	canSetInvalidDocumentation,
+	hasRejectedDocuments,
+	preAuthorizeDialogProps,
 }: {
 	applicationId: number
 	canApprove: boolean
-	canMarkInvalidDocumentation: boolean
-	canPreAuthorize: boolean
 	canAuthorize: boolean
+	canPreAuthorize: boolean
+	canDeny: boolean
+	canSetInvalidDocumentation: boolean
+	hasRejectedDocuments: boolean
+	preAuthorizeDialogProps?: {
+		initialCreditAmount: string | null
+		initialTermOfferingId: number | null
+		termOfferings: TermOfferingOption[]
+	}
 }) {
 	const t = useTranslations('app')
 	const resolveError = useResolveValidationError()
@@ -47,6 +67,7 @@ export function ApplicationActions({
 		initialState,
 	)
 	const [dialogOpen, setDialogOpen] = useState(false)
+	const [preAuthorizeDialogOpen, setPreAuthorizeDialogOpen] = useState(false)
 	const immediateFormRef = useRef<HTMLFormElement>(null)
 	const statusInputRef = useRef<HTMLInputElement>(null)
 
@@ -103,18 +124,6 @@ export function ApplicationActions({
 								{t('applications-action-approve')}
 							</DropdownMenuItem>
 						)}
-						{canPreAuthorize && (
-							<DropdownMenuItem
-								onSelect={(e) => {
-									e.preventDefault()
-									submitImmediateStatus('pre-authorized')
-								}}
-								disabled={pending || pendingReason}
-							>
-								<CheckCircle2 className="size-4" />
-								{t('applications-action-pre-authorize')}
-							</DropdownMenuItem>
-						)}
 						{canAuthorize && (
 							<DropdownMenuItem
 								onSelect={(e) => {
@@ -127,39 +136,53 @@ export function ApplicationActions({
 								{t('applications-action-authorize')}
 							</DropdownMenuItem>
 						)}
-						<DropdownMenuItem
-							variant="destructive"
-							onSelect={(e) => {
-								e.preventDefault()
-								setDialogOpen(true)
-							}}
-							disabled={pending || pendingReason}
-						>
-							<XCircle className="size-4" />
-							{t('applications-action-reject')}
-						</DropdownMenuItem>
-						<DropdownMenuItem
-							onSelect={(e) => {
-								e.preventDefault()
-								if (!canMarkInvalidDocumentation) return
-								submitImmediateStatus('invalid-documentation')
-							}}
-							disabled={
-								pending || pendingReason || !canMarkInvalidDocumentation
-							}
-							aria-disabled={
-								pending || pendingReason || !canMarkInvalidDocumentation
-							}
-							title={
-								!canMarkInvalidDocumentation
-									? t('applications-action-invalid-docs-disabled-hint')
-									: undefined
-							}
-							data-application-action="invalid-docs"
-						>
-							<FileWarning className="size-4" />
-							{t('applications-action-invalid-docs')}
-						</DropdownMenuItem>
+						{canPreAuthorize && preAuthorizeDialogProps ? (
+							<DropdownMenuItem
+								onSelect={(e) => {
+									e.preventDefault()
+									setPreAuthorizeDialogOpen(true)
+								}}
+								disabled={pending || pendingReason}
+							>
+								<Banknote className="size-4" />
+								{t('applications-action-pre-authorize')}
+							</DropdownMenuItem>
+						) : null}
+						{canDeny && (
+							<DropdownMenuItem
+								variant="destructive"
+								onSelect={(e) => {
+									e.preventDefault()
+									setDialogOpen(true)
+								}}
+								disabled={pending || pendingReason}
+							>
+								<XCircle className="size-4" />
+								{t('applications-action-reject')}
+							</DropdownMenuItem>
+						)}
+						{canSetInvalidDocumentation && (
+							<DropdownMenuItem
+								onSelect={(e) => {
+									e.preventDefault()
+									if (!hasRejectedDocuments) return
+									submitImmediateStatus('invalid-documentation')
+								}}
+								disabled={pending || pendingReason || !hasRejectedDocuments}
+								aria-disabled={
+									pending || pendingReason || !hasRejectedDocuments
+								}
+								title={
+									!hasRejectedDocuments
+										? t('applications-action-invalid-docs-disabled-hint')
+										: undefined
+								}
+								data-application-action="invalid-docs"
+							>
+								<FileWarning className="size-4" />
+								{t('applications-action-invalid-docs')}
+							</DropdownMenuItem>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 
@@ -173,6 +196,18 @@ export function ApplicationActions({
 					onClose={() => setDialogOpen(false)}
 					translateError={resolveError}
 				/>
+				{preAuthorizeDialogProps ? (
+					<PreAuthorizeApplicationDialog
+						open={preAuthorizeDialogOpen}
+						onOpenChange={setPreAuthorizeDialogOpen}
+						applicationId={applicationId}
+						initialCreditAmount={preAuthorizeDialogProps.initialCreditAmount}
+						initialTermOfferingId={
+							preAuthorizeDialogProps.initialTermOfferingId
+						}
+						termOfferings={preAuthorizeDialogProps.termOfferings}
+					/>
+				) : null}
 			</div>
 		</div>
 	)

@@ -2,7 +2,12 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from './config'
 
-export type Role = 'applicant' | 'agent' | 'requests' | 'admin'
+export type Role =
+	| 'applicant'
+	| 'agent'
+	| 'requests'
+	| 'pre-authorizations'
+	| 'admin'
 
 export async function requireAuth() {
 	const session = await getServerSession(authOptions)

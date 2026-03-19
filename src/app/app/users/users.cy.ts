@@ -51,6 +51,7 @@ describe('Admin Users', () => {
 			cy.contains('th', /nombre/i).should('exist')
 			cy.contains('th', /email/i).should('exist')
 			cy.contains('th', /solicitudes/i).should('exist')
+			cy.contains('th', /preautorizaciones/i).should('exist')
 			cy.contains('th', /admin/i).should('exist')
 			cy.contains('th', /fecha de creación/i).should('exist')
 			cy.get('table').within(() => {
@@ -63,9 +64,9 @@ describe('Admin Users', () => {
 			cy.contains(users.bob.name).should('exist')
 		})
 
-		it('displays checkboxes for requests and admin roles', () => {
+		it('displays checkboxes for requests, pre-authorizations and admin roles', () => {
 			cy.findTableRow(users.jane.name).within(() => {
-				cy.get('button[role="checkbox"]').should('have.length', 2)
+				cy.get('button[role="checkbox"]').should('have.length', 3)
 			})
 		})
 	})
@@ -136,6 +137,9 @@ describe('Admin Users', () => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Solicitudes role"]',
 				).should('have.attr', 'data-state', 'checked')
+				cy.get(
+					'button[role="checkbox"][aria-label="Toggle Preautorizaciones role"]',
+				).should('have.attr', 'data-state', 'unchecked')
 			})
 		})
 	})
@@ -266,6 +270,15 @@ describe('Admin Users', () => {
 	})
 
 	describe('Company Assignments', () => {
+		function openCompanyAssignmentsDialog() {
+			cy.findTableRow(agentOnlyUser.name)
+				.scrollIntoView()
+				.find('button[aria-label="Asignar empresas"]')
+				.scrollIntoView()
+				.should('be.visible')
+				.click()
+		}
+
 		beforeEach(() => {
 			cy.login(adminUser.email)
 		})
@@ -299,10 +312,7 @@ describe('Admin Users', () => {
 			cy.visit('/app/users')
 			cy.get('table').should('be.visible')
 
-			cy.findTableRow(agentOnlyUser.name)
-				.find('button[aria-label="Asignar empresas"]')
-				.should('be.visible')
-				.click()
+			openCompanyAssignmentsDialog()
 
 			cy.get('[role="dialog"]').should('be.visible')
 			cy.contains('Asignar Empresas').should('be.visible')
@@ -312,10 +322,7 @@ describe('Admin Users', () => {
 			cy.visit('/app/users')
 			cy.get('table').should('be.visible')
 
-			cy.findTableRow(agentOnlyUser.name)
-				.find('button[aria-label="Asignar empresas"]')
-				.should('be.visible')
-				.click()
+			openCompanyAssignmentsDialog()
 
 			cy.get('[role="dialog"]').within(() => {
 				for (const company of companyList) {
@@ -328,10 +335,7 @@ describe('Admin Users', () => {
 			cy.visit('/app/users')
 			cy.get('table').should('be.visible')
 
-			cy.findTableRow(agentOnlyUser.name)
-				.find('button[aria-label="Asignar empresas"]')
-				.should('be.visible')
-				.click()
+			openCompanyAssignmentsDialog()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()
@@ -347,10 +351,7 @@ describe('Admin Users', () => {
 			cy.visit('/app/users')
 			cy.get('table').should('be.visible')
 
-			cy.findTableRow(agentOnlyUser.name)
-				.find('button[aria-label="Asignar empresas"]')
-				.should('be.visible')
-				.click()
+			openCompanyAssignmentsDialog()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()
@@ -372,12 +373,10 @@ describe('Admin Users', () => {
 			cy.visit('/app/users')
 			cy.get('table').should('be.visible')
 
-			cy.findTableRow(agentOnlyUser.name)
-				.find('button[aria-label="Asignar empresas"]')
-				.should('be.visible')
-				.click()
+			openCompanyAssignmentsDialog()
 
 			cy.get('[role="dialog"]').within(() => {
+				cy.contains(companies.acme.name).should('exist')
 				cy.contains('label', companies.acme.name)
 					.parent()
 					.find('button[role="checkbox"]')
@@ -396,10 +395,7 @@ describe('Admin Users', () => {
 			cy.visit('/app/users')
 			cy.get('table').should('be.visible')
 
-			cy.findTableRow(agentOnlyUser.name)
-				.find('button[aria-label="Asignar empresas"]')
-				.should('be.visible')
-				.click()
+			openCompanyAssignmentsDialog()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains(companies.acme.name).should('exist')
@@ -422,10 +418,7 @@ describe('Admin Users', () => {
 			cy.visit('/app/users')
 			cy.get('table').should('be.visible')
 
-			cy.findTableRow(agentOnlyUser.name)
-				.find('button[aria-label="Asignar empresas"]')
-				.should('be.visible')
-				.click()
+			openCompanyAssignmentsDialog()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()
@@ -449,10 +442,7 @@ describe('Admin Users', () => {
 			cy.visit('/app/users')
 			cy.get('table').should('be.visible')
 
-			cy.findTableRow(agentOnlyUser.name)
-				.find('button[aria-label="Asignar empresas"]')
-				.should('be.visible')
-				.click()
+			openCompanyAssignmentsDialog()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()
@@ -475,14 +465,7 @@ describe('Admin Users', () => {
 			cy.visit('/app/users')
 			cy.get('table').should('be.visible')
 
-			cy.findTableRow(agentOnlyUser.name).within(() => {
-				cy.contains(companies.acme.name).should('exist')
-			})
-
-			cy.findTableRow(agentOnlyUser.name)
-				.find('button[aria-label="Asignar empresas"]')
-				.should('be.visible')
-				.click()
+			openCompanyAssignmentsDialog()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()
@@ -509,14 +492,7 @@ describe('Admin Users', () => {
 			cy.visit('/app/users')
 			cy.get('table').should('be.visible')
 
-			cy.findTableRow(agentOnlyUser.name).within(() => {
-				cy.contains(companies.acme.name).should('exist')
-			})
-
-			cy.findTableRow(agentOnlyUser.name)
-				.find('button[aria-label="Asignar empresas"]')
-				.should('be.visible')
-				.click()
+			openCompanyAssignmentsDialog()
 
 			cy.get('[role="dialog"]').within(() => {
 				cy.contains('label', companies.acme.name).click()

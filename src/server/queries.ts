@@ -9,6 +9,7 @@ import type {
 } from '~/server/db/schema'
 import {
 	applicationDocuments,
+	applicationStatusHistory,
 	applications,
 	companies,
 	termOfferings,
@@ -355,13 +356,59 @@ export async function getCompanyByEmailDomain(
 export type ApplicationListItem = {
 	id: number
 	applicantId: number
-	termOfferingId: number
-	creditAmount: string
+	termOfferingId: number | null
+	creditAmount: string | null
 	salaryAtApplication: string
 	status: ApplicationStatus
 	denialReason: string | null
 	createdAt: Date
 	updatedAt: Date
+}
+
+export type ApplicationStatusHistoryItem = {
+	id: number
+	status: ApplicationStatus
+	createdAt: Date
+	setByUser: {
+		id: number
+		name: string | null
+		email: string | null
+	} | null
+}
+
+async function getApplicationStatusHistoryList(
+	applicationId: number,
+): Promise<ApplicationStatusHistoryItem[]> {
+	const rows = await db
+		.select({
+			id: applicationStatusHistory.id,
+			status: applicationStatusHistory.status,
+			createdAt: applicationStatusHistory.createdAt,
+			setByUserId: users.id,
+			setByUserName: users.name,
+			setByUserEmail: users.email,
+		})
+		.from(applicationStatusHistory)
+		.leftJoin(users, eq(applicationStatusHistory.setByUserId, users.id))
+		.where(eq(applicationStatusHistory.applicationId, applicationId))
+		.orderBy(
+			desc(applicationStatusHistory.createdAt),
+			desc(applicationStatusHistory.id),
+		)
+
+	return rows.map((row) => ({
+		id: row.id,
+		status: row.status,
+		createdAt: row.createdAt,
+		setByUser:
+			row.setByUserId != null
+				? {
+						id: row.setByUserId,
+						name: row.setByUserName,
+						email: row.setByUserEmail,
+					}
+				: null,
+	}))
 }
 
 export async function getApplicationsByApplicantId(
@@ -400,14 +447,15 @@ export async function getApplicationsByApplicantId(
 export type ApplicationDetailForApplicant = {
 	id: number
 	status: ApplicationStatus
-	creditAmount: string
+	creditAmount: string | null
 	denialReason: string | null
 	createdAt: Date
 	updatedAt: Date
+	statusHistory: ApplicationStatusHistoryItem[]
 	termOffering: {
 		durationType: 'bi-monthly' | 'monthly'
 		duration: number
-	}
+	} | null
 }
 
 export async function getApplicationByApplicantId(
@@ -433,8 +481,8 @@ export async function getApplicationByApplicantId(
 			duration: terms.duration,
 		})
 		.from(applications)
-		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
-		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.leftJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.leftJoin(terms, eq(termOfferings.termId, terms.id))
 		.where(
 			and(
 				eq(applications.id, applicationId),
@@ -444,6 +492,7 @@ export async function getApplicationByApplicantId(
 
 	const row = rows[0]
 	if (!row) return null
+	const statusHistory = await getApplicationStatusHistoryList(applicationId)
 
 	return {
 		id: row.id,
@@ -452,10 +501,14 @@ export async function getApplicationByApplicantId(
 		denialReason: row.denialReason,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
-		termOffering: {
-			durationType: row.durationType,
-			duration: row.duration,
-		},
+		statusHistory,
+		termOffering:
+			row.durationType && row.duration != null
+				? {
+						durationType: row.durationType,
+						duration: row.duration,
+					}
+				: null,
 	}
 }
 
@@ -478,11 +531,10 @@ export async function getApplicationDocuments(
 
 	const app = await db.query.applications.findFirst({
 		where: (a, { eq }) => eq(a.id, applicationId),
-		columns: { id: true, applicantId: true },
-		with: { termOffering: { columns: { companyId: true } } },
+		columns: { id: true, applicantId: true, companyId: true },
 	})
 
-	if (!app?.termOffering) return []
+	if (!app) return []
 
 	const { ability } = await getAbility()
 	requireAbility(
@@ -491,7 +543,7 @@ export async function getApplicationDocuments(
 		subject('Application', {
 			id: app.id,
 			applicantId: app.applicantId,
-			companyId: app.termOffering.companyId,
+			companyId: app.companyId,
 		}),
 	)
 
@@ -526,10 +578,10 @@ export async function getApplicationDocuments(
 export type ApplicationForReview = {
 	id: number
 	applicantId: number
-	termOfferingId: number
+	termOfferingId: number | null
 	companyId: number
 	companyDomain: string
-	creditAmount: string
+	creditAmount: string | null
 	salaryAtApplication: string
 	status: ApplicationStatus
 	denialReason: string | null
@@ -542,7 +594,11 @@ export type ApplicationForReview = {
 		termId: number
 		durationType: 'bi-monthly' | 'monthly'
 		duration: number
-	}
+	} | null
+}
+
+export type ApplicationForReviewDetail = ApplicationForReview & {
+	statusHistory: ApplicationStatusHistoryItem[]
 }
 
 export async function getApplicationsForReview(params: {
@@ -553,12 +609,12 @@ export async function getApplicationsForReview(params: {
 
 	let companyCondition: SQL
 	if (scope.type === 'single') {
-		companyCondition = eq(termOfferings.companyId, scope.companyId)
+		companyCondition = eq(applications.companyId, scope.companyId)
 	} else if (scope.type === 'multi') {
 		if (scope.companyIds.length === 0) {
 			return []
 		}
-		companyCondition = inArray(termOfferings.companyId, scope.companyIds)
+		companyCondition = inArray(applications.companyId, scope.companyIds)
 	} else {
 		companyCondition = sql`1=1`
 	}
@@ -567,7 +623,7 @@ export async function getApplicationsForReview(params: {
 			id: applications.id,
 			applicantId: applications.applicantId,
 			termOfferingId: applications.termOfferingId,
-			companyId: termOfferings.companyId,
+			companyId: applications.companyId,
 			companyDomain: companies.domain,
 			creditAmount: applications.creditAmount,
 			salaryAtApplication: applications.salaryAtApplication,
@@ -583,9 +639,9 @@ export async function getApplicationsForReview(params: {
 			termId: termOfferings.termId,
 		})
 		.from(applications)
-		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
-		.innerJoin(companies, eq(termOfferings.companyId, companies.id))
-		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.innerJoin(companies, eq(applications.companyId, companies.id))
+		.leftJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.leftJoin(terms, eq(termOfferings.termId, terms.id))
 		.innerJoin(users, eq(applications.applicantId, users.id))
 		.where(
 			and(
@@ -615,13 +671,19 @@ export async function getApplicationsForReview(params: {
 			name: row.applicantName,
 			email: row.applicantEmail,
 		},
-		termOffering: {
-			id: row.toId,
-			companyId: row.companyId,
-			termId: row.termId,
-			durationType: row.durationType,
-			duration: row.duration,
-		},
+		termOffering:
+			row.toId != null &&
+			row.termId != null &&
+			row.durationType != null &&
+			row.duration != null
+				? {
+						id: row.toId,
+						companyId: row.companyId,
+						termId: row.termId,
+						durationType: row.durationType,
+						duration: row.duration,
+					}
+				: null,
 	}))
 }
 
@@ -631,13 +693,13 @@ export async function getApplicationsForReview(params: {
 export async function getApplicationForReview(
 	applicationId: number,
 	scope: CompanyScope,
-): Promise<ApplicationForReview | null> {
+): Promise<ApplicationForReviewDetail | null> {
 	let companyCondition: SQL
 	if (scope.type === 'single') {
-		companyCondition = eq(termOfferings.companyId, scope.companyId)
+		companyCondition = eq(applications.companyId, scope.companyId)
 	} else if (scope.type === 'multi') {
 		if (scope.companyIds.length === 0) return null
-		companyCondition = inArray(termOfferings.companyId, scope.companyIds)
+		companyCondition = inArray(applications.companyId, scope.companyIds)
 	} else {
 		companyCondition = sql`1=1`
 	}
@@ -647,7 +709,7 @@ export async function getApplicationForReview(
 			id: applications.id,
 			applicantId: applications.applicantId,
 			termOfferingId: applications.termOfferingId,
-			companyId: termOfferings.companyId,
+			companyId: applications.companyId,
 			companyDomain: companies.domain,
 			creditAmount: applications.creditAmount,
 			salaryAtApplication: applications.salaryAtApplication,
@@ -663,9 +725,9 @@ export async function getApplicationForReview(
 			termId: termOfferings.termId,
 		})
 		.from(applications)
-		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
-		.innerJoin(companies, eq(termOfferings.companyId, companies.id))
-		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.innerJoin(companies, eq(applications.companyId, companies.id))
+		.leftJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.leftJoin(terms, eq(termOfferings.termId, terms.id))
 		.innerJoin(users, eq(applications.applicantId, users.id))
 		.where(
 			and(
@@ -677,6 +739,7 @@ export async function getApplicationForReview(
 
 	const row = rows[0]
 	if (!row) return null
+	const statusHistory = await getApplicationStatusHistoryList(applicationId)
 
 	return {
 		id: row.id,
@@ -690,18 +753,25 @@ export async function getApplicationForReview(
 		denialReason: row.denialReason,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
+		statusHistory,
 		applicant: {
 			id: row.applicantId,
 			name: row.applicantName,
 			email: row.applicantEmail,
 		},
-		termOffering: {
-			id: row.toId,
-			companyId: row.companyId,
-			termId: row.termId,
-			durationType: row.durationType,
-			duration: row.duration,
-		},
+		termOffering:
+			row.toId != null &&
+			row.termId != null &&
+			row.durationType != null &&
+			row.duration != null
+				? {
+						id: row.toId,
+						companyId: row.companyId,
+						termId: row.termId,
+						durationType: row.durationType,
+						duration: row.duration,
+					}
+				: null,
 	}
 }
 

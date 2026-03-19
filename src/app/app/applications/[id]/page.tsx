@@ -11,15 +11,10 @@ import {
 } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { ApplicationStatusHistoryCard } from '~/components/application-status-history'
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
-import {
-	Card,
-	CardAction,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from '~/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { canTransitionApplicationFrom } from '~/lib/application-rules'
 import { APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import { formatCurrencyMxn } from '~/lib/utils'
@@ -28,6 +23,7 @@ import type { ApplicationStatus } from '~/server/db/schema'
 import {
 	getApplicationDocuments,
 	getApplicationForReview,
+	getTermOfferingsForCompany,
 } from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
@@ -49,6 +45,12 @@ function statusBadgeVariant(
 			return 'secondary'
 	}
 }
+
+const DETAIL_CARD_CLASS = 'gap-3 py-4'
+const DETAIL_CARD_HEADER_CLASS = 'gap-2 px-4 [.border-b]:pb-4'
+const DETAIL_CARD_CONTENT_CLASS = 'px-4'
+const DETAIL_STAT_CARD_CLASS = 'gap-2 py-3'
+const DETAIL_STAT_CONTENT_CLASS = 'px-4 py-0'
 
 export default async function AppApplicationDetailPage({
 	params,
@@ -74,103 +76,78 @@ export default async function AppApplicationDetailPage({
 	const appSubject = subject('Application', {
 		id: application.id,
 		applicantId: application.applicantId,
-		companyId: application.termOffering.companyId,
+		companyId: application.companyId,
 		status: application.status,
 	})
+	const hasRejectedDocuments = documentList.some((d) => d.status === 'rejected')
 	const canPreAuthorize = ability.can('setStatusPreAuthorized', appSubject)
 	const canAuthorize = ability.can('setStatusAuthorized', appSubject)
 	const canApprove = ability.can('setStatusApproved', appSubject)
+	const canDeny = ability.can('setStatusDenied', appSubject)
+	const canSetInvalidDocumentation = ability.can(
+		'setStatusInvalidDocumentation',
+		appSubject,
+	)
+	const showActionControls =
+		canApprove ||
+		canAuthorize ||
+		canDeny ||
+		canSetInvalidDocumentation ||
+		canPreAuthorize
+	const termOfferings =
+		canPreAuthorize && application.status === 'approved'
+			? await getTermOfferingsForCompany(application.companyId)
+			: []
 
 	return (
-		<div className="container mx-auto max-w-4xl py-6">
-			{/* Stat cards row - key data at a glance */}
-			<div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-				<Card className="py-4">
-					<CardContent className="px-4 py-0">
-						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
-							<FileText className="size-3.5" aria-hidden />
-							{t('applications-detail-status')}
-						</p>
-						<Badge
-							variant={statusBadgeVariant(application.status)}
-							className="mt-1.5"
-						>
-							{t(APPLICATION_STATUS_KEYS[application.status])}
-						</Badge>
-					</CardContent>
-				</Card>
-				<Card className="py-4">
-					<CardContent className="px-4 py-0">
-						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
-							<Banknote className="size-3.5" aria-hidden />
-							{t('applications-detail-amount')}
-						</p>
-						<p className="mt-1.5 font-semibold text-lg">
-							{formatCurrencyMxn(application.creditAmount)}{' '}
-							<span className="font-normal text-muted-foreground text-sm">
-								MXN
-							</span>
-						</p>
-					</CardContent>
-				</Card>
-				<Card className="py-4">
-					<CardContent className="px-4 py-0">
-						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
-							<CalendarClock className="size-3.5" aria-hidden />
-							{t('applications-detail-term')}
-						</p>
-						<p className="mt-1.5 font-medium">
-							{formatApplicationTerm(application.termOffering, t)}
-						</p>
-					</CardContent>
-				</Card>
-				<Card className="py-4">
-					<CardContent className="px-4 py-0">
-						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
-							<Wallet className="size-3.5" aria-hidden />
-							{t('applications-detail-salary')}
-						</p>
-						<p className="mt-1.5 font-medium">
-							{formatCurrencyMxn(application.salaryAtApplication)}{' '}
-							<span className="text-muted-foreground text-sm">MXN</span>
-						</p>
-					</CardContent>
-				</Card>
+		<div className="mx-auto grid max-w-4xl gap-3 px-1 py-1 sm:px-1.5 sm:py-1.5">
+			<div className="-mb-1 flex items-center gap-2">
+				<span className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+					<FileText className="size-3.5" aria-hidden />
+					{t('applications-detail-status')}
+				</span>
+				<Badge
+					variant={statusBadgeVariant(application.status)}
+					className="shrink-0"
+					data-current-application-status={application.status}
+				>
+					{t(APPLICATION_STATUS_KEYS[application.status])}
+				</Badge>
 			</div>
 
-			{/* Main overview card: applicant + actions */}
-			<Card className="mb-6">
-				<CardHeader className="flex-row flex-wrap items-start justify-between gap-4 border-b">
-					<div>
+			{/* Main overview card: applicant + key data */}
+			<Card className={DETAIL_CARD_CLASS}>
+				<CardHeader
+					className={`grid gap-4 border-b ${DETAIL_CARD_HEADER_CLASS} md:grid-cols-[minmax(0,1fr)_auto] md:items-start`}
+				>
+					<div className="space-y-1">
 						<CardTitle asChild className="flex items-center gap-2 text-base">
 							<h2>
 								<User className="size-4 text-muted-foreground" aria-hidden />
 								{t('applications-detail-applicant')}
 							</h2>
 						</CardTitle>
-						<p className="mt-1 text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-sm">
 							{application.applicant.name}
 						</p>
 						<p className="text-muted-foreground text-sm">
 							{application.applicant.email}
 						</p>
 					</div>
-					{canTransition && (
-						<CardAction>
-							<ApplicationActions
-								applicationId={application.id}
-								canApprove={canApprove}
-								canMarkInvalidDocumentation={
-									documentList.length > 0 &&
-									documentList.some((d) => d.status === 'rejected')
-								}
-								canPreAuthorize={canPreAuthorize}
-								canAuthorize={canAuthorize}
-							/>
-						</CardAction>
-					)}
+					<div className="grid gap-3 md:justify-items-start">
+						<div>
+							<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+								<Wallet className="size-3.5" aria-hidden />
+								{t('applications-detail-salary')}
+							</p>
+							<p className="mt-1.5 whitespace-nowrap font-medium">
+								{formatCurrencyMxn(application.salaryAtApplication)}{' '}
+								<span className="text-muted-foreground text-sm">MXN</span>
+							</p>
+						</div>
+					</div>
 				</CardHeader>
-				<CardContent className="space-y-4 pt-6">
+				<CardContent className={`space-y-3 pt-2 ${DETAIL_CARD_CONTENT_CLASS}`}>
 					{application.denialReason ? (
 						<div>
 							<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
@@ -182,31 +159,92 @@ export default async function AppApplicationDetailPage({
 							</p>
 						</div>
 					) : null}
-					<div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-muted-foreground text-xs">
-						<span className="flex items-center gap-1.5">
-							<CalendarDays className="size-3.5 shrink-0" aria-hidden />
-							{t('applications-detail-created')}:{' '}
-							<FormattedDate
-								value={application.createdAt.toISOString()}
-								format="datetime"
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+						<div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-muted-foreground text-xs">
+							<span className="flex items-center gap-1.5">
+								<CalendarDays className="size-3.5 shrink-0" aria-hidden />
+								{t('applications-detail-created')}:{' '}
+								<FormattedDate
+									value={application.createdAt.toISOString()}
+									format="datetime-short"
+								/>
+							</span>
+							<span className="h-3 w-px shrink-0 bg-border" aria-hidden />
+							<span className="flex items-center gap-1.5">
+								<Clock className="size-3.5 shrink-0" aria-hidden />
+								{t('applications-detail-updated')}:{' '}
+								<FormattedDate
+									value={application.updatedAt.toISOString()}
+									format="datetime-short"
+								/>
+							</span>
+						</div>
+						{(canTransition || canPreAuthorize) && showActionControls ? (
+							<ApplicationActions
+								applicationId={application.id}
+								canApprove={canApprove}
+								canAuthorize={canAuthorize}
+								canPreAuthorize={
+									canPreAuthorize && application.status === 'approved'
+								}
+								canDeny={canDeny}
+								canSetInvalidDocumentation={canSetInvalidDocumentation}
+								hasRejectedDocuments={hasRejectedDocuments}
+								preAuthorizeDialogProps={
+									canPreAuthorize && application.status === 'approved'
+										? {
+												initialCreditAmount: application.creditAmount,
+												initialTermOfferingId: application.termOfferingId,
+												termOfferings,
+											}
+										: undefined
+								}
 							/>
-						</span>
-						<span className="h-3 w-px shrink-0 bg-border" aria-hidden />
-						<span className="flex items-center gap-1.5">
-							<Clock className="size-3.5 shrink-0" aria-hidden />
-							{t('applications-detail-updated')}:{' '}
-							<FormattedDate
-								value={application.updatedAt.toISOString()}
-								format="datetime"
-							/>
-						</span>
+						) : null}
 					</div>
 				</CardContent>
 			</Card>
 
+			{/* Term and amount cards */}
+			<div className="grid gap-3 sm:grid-cols-2">
+				<Card className={DETAIL_STAT_CARD_CLASS}>
+					<CardContent className={DETAIL_STAT_CONTENT_CLASS}>
+						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+							<CalendarClock className="size-3.5" aria-hidden />
+							{t('applications-detail-term')}
+						</p>
+						<p className="mt-1.5 font-medium">
+							{application.termOffering
+								? formatApplicationTerm(application.termOffering, t)
+								: t('applications-detail-value-pending')}
+						</p>
+					</CardContent>
+				</Card>
+				<Card className={DETAIL_STAT_CARD_CLASS}>
+					<CardContent className={DETAIL_STAT_CONTENT_CLASS}>
+						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+							<Banknote className="size-3.5" aria-hidden />
+							{t('applications-detail-amount')}
+						</p>
+						<p className="mt-1.5 font-semibold text-lg">
+							{application.creditAmount ? (
+								<>
+									{formatCurrencyMxn(application.creditAmount)}{' '}
+									<span className="font-normal text-muted-foreground text-sm">
+										MXN
+									</span>
+								</>
+							) : (
+								t('applications-detail-value-pending')
+							)}
+						</p>
+					</CardContent>
+				</Card>
+			</div>
+
 			{/* Documents */}
-			<Card>
-				<CardHeader className="border-b">
+			<Card className={DETAIL_CARD_CLASS}>
+				<CardHeader className={`border-b ${DETAIL_CARD_HEADER_CLASS}`}>
 					<CardTitle asChild className="flex items-center gap-2 text-base">
 						<h2>
 							<FolderOpen
@@ -217,7 +255,7 @@ export default async function AppApplicationDetailPage({
 						</h2>
 					</CardTitle>
 				</CardHeader>
-				<CardContent className="pt-6">
+				<CardContent className={`pt-4 ${DETAIL_CARD_CONTENT_CLASS}`}>
 					{documentList.length > 0 ? (
 						<ul className="space-y-3">
 							{documentList.map((doc) => (
@@ -234,7 +272,7 @@ export default async function AppApplicationDetailPage({
 							))}
 						</ul>
 					) : (
-						<div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-12 text-center">
+						<div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-8 text-center">
 							<FileText
 								className="size-10 text-muted-foreground/60"
 								aria-hidden
@@ -246,6 +284,16 @@ export default async function AppApplicationDetailPage({
 					)}
 				</CardContent>
 			</Card>
+
+			<ApplicationStatusHistoryCard
+				title={t('applications-history-title')}
+				description={t('applications-history-description')}
+				emptyMessage={t('applications-history-empty')}
+				setByLabel={t('applications-history-set-by')}
+				systemLabel={t('applications-history-system')}
+				items={application.statusHistory}
+				getStatusLabel={(status) => t(APPLICATION_STATUS_KEYS[status])}
+			/>
 		</div>
 	)
 }

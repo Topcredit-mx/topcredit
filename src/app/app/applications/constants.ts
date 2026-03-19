@@ -1,10 +1,8 @@
-import type { ApplicationForReview } from '~/server/queries'
-
 /** Minimal term shape for formatting (durationType + duration). */
-export type TermOfferingForFormat = Pick<
-	ApplicationForReview['termOffering'],
-	'durationType' | 'duration'
->
+export type TermOfferingForFormat = {
+	durationType: 'monthly' | 'bi-monthly'
+	duration: number
+}
 
 type AppTermKey = 'applications-term-months' | 'applications-term-fortnights'
 

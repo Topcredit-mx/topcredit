@@ -3,7 +3,6 @@
 import { ChevronRight, type LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useCallback } from 'react'
 
 import {
 	Collapsible,
@@ -34,6 +33,29 @@ export interface NavItem {
 	items?: NavSubItem[]
 }
 
+function normalizePath(path: string) {
+	if (path === '/') {
+		return path
+	}
+
+	return path.endsWith('/') ? path.slice(0, -1) : path
+}
+
+function isPathActive(pathname: string, itemUrl: string) {
+	const currentPath = normalizePath(pathname)
+	const targetPath = normalizePath(itemUrl)
+
+	if (currentPath === targetPath) {
+		return true
+	}
+
+	if (targetPath === '/app') {
+		return false
+	}
+
+	return currentPath.startsWith(`${targetPath}/`)
+}
+
 export function NavMain({
 	items,
 	disabled = false,
@@ -45,17 +67,6 @@ export function NavMain({
 }) {
 	const pathname = usePathname()
 
-	const isAnySubItemActive = useCallback(
-		(subItems?: NavSubItem[]) => {
-			if (!subItems) return false
-			return subItems.some(
-				(subItem) =>
-					pathname === subItem.url || pathname.startsWith(`${subItem.url}/`),
-			)
-		},
-		[pathname],
-	)
-
 	return (
 		<SidebarGroup>
 			<SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
@@ -65,7 +76,9 @@ export function NavMain({
 						<Collapsible
 							key={item.title}
 							asChild
-							defaultOpen={isAnySubItemActive(item.items)}
+							defaultOpen={item.items.some((subItem) =>
+								isPathActive(pathname, subItem.url),
+							)}
 							className="group/collapsible"
 						>
 							<SidebarMenuItem>
@@ -83,7 +96,7 @@ export function NavMain({
 												{disabled ? (
 													<SidebarMenuSubButton
 														asChild
-														isActive={pathname === subItem.url}
+														isActive={isPathActive(pathname, subItem.url)}
 														aria-disabled
 														className="pointer-events-none opacity-50"
 													>
@@ -92,7 +105,7 @@ export function NavMain({
 												) : (
 													<SidebarMenuSubButton
 														asChild
-														isActive={pathname === subItem.url}
+														isActive={isPathActive(pathname, subItem.url)}
 													>
 														<Link href={subItem.url}>{subItem.title}</Link>
 													</SidebarMenuSubButton>
@@ -109,7 +122,7 @@ export function NavMain({
 								<SidebarMenuButton
 									tooltip={item.title}
 									disabled
-									isActive={pathname === item.url}
+									isActive={isPathActive(pathname, item.url)}
 								>
 									{item.icon && <item.icon />}
 									<span>{item.title}</span>
@@ -118,7 +131,7 @@ export function NavMain({
 								<SidebarMenuButton
 									tooltip={item.title}
 									asChild
-									isActive={pathname === item.url}
+									isActive={isPathActive(pathname, item.url)}
 								>
 									<Link href={item.url}>
 										{item.icon && <item.icon />}

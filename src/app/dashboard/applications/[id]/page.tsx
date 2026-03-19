@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { ApplicationStatusHistoryCard } from '~/components/application-status-history'
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -149,6 +150,7 @@ export default async function DashboardApplicationDetailPage({
 						</div>
 						<Badge
 							className={getApplicationStatusBadgeClass(application.status)}
+							data-current-application-status={application.status}
 						>
 							{t(DASHBOARD_APPLICATION_STATUS_KEYS[application.status])}
 						</Badge>
@@ -195,7 +197,9 @@ export default async function DashboardApplicationDetailPage({
 								{t('detail-amount')}
 							</p>
 							<p className="mt-2 font-semibold text-lg">
-								{formatCurrencyMxn(application.creditAmount)}
+								{application.creditAmount
+									? formatCurrencyMxn(application.creditAmount)
+									: t('detail-value-pending')}
 							</p>
 						</CardContent>
 					</Card>
@@ -207,7 +211,9 @@ export default async function DashboardApplicationDetailPage({
 								{t('detail-term')}
 							</p>
 							<p className="mt-2 font-semibold text-lg">
-								{formatApplicationTerm(application.termOffering, t)}
+								{application.termOffering
+									? formatApplicationTerm(application.termOffering, t)
+									: t('detail-value-pending')}
 							</p>
 						</CardContent>
 					</Card>
@@ -347,6 +353,18 @@ export default async function DashboardApplicationDetailPage({
 					</div>
 				</CardContent>
 			</Card>
+
+			<ApplicationStatusHistoryCard
+				title={t('history-title')}
+				description={t('history-description')}
+				emptyMessage={t('history-empty')}
+				setByLabel={t('history-set-by')}
+				systemLabel={t('history-system')}
+				items={application.statusHistory}
+				getStatusLabel={(status) =>
+					t(DASHBOARD_APPLICATION_STATUS_KEYS[status])
+				}
+			/>
 		</main>
 	)
 }

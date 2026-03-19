@@ -4,12 +4,20 @@
  * Single source of truth — the batch seed task in cypress/tasks imports from here.
  */
 
+import type { ApplicationStatus } from '~/server/db/schema'
+
 // ── Users ───────────────────────────────────────────────────────────────
 
 export const agentForReview = {
 	name: 'Agent Review',
 	email: 'agent.review@example.com',
 	roles: ['agent', 'requests'] as const,
+}
+
+export const preAuthAgentForReview = {
+	name: 'Preauth Review',
+	email: 'preauth.review@example.com',
+	roles: ['agent', 'pre-authorizations'] as const,
 }
 
 export const adminForReview = {
@@ -43,6 +51,12 @@ export const applicantA4 = {
 export const applicantA5 = {
 	name: 'Applicant A5',
 	email: 'applicant.a5@reviewcompany.com',
+	roles: ['applicant'] as const,
+}
+
+export const applicantPreAuth = {
+	name: 'Applicant Preauth',
+	email: 'applicant.preauth@reviewcompany.com',
 	roles: ['applicant'] as const,
 }
 
@@ -124,6 +138,7 @@ export const allReviewApplicants = [
 	applicantA3,
 	applicantA4,
 	applicantA5,
+	applicantPreAuth,
 	applicantForReviewB,
 	applicantForReviewC,
 	applicantForReviewD,
@@ -144,12 +159,27 @@ export const agentCompanyDomains = [
 ]
 
 /** One entry per application to seed. */
-export const reviewApplicationConfigs = [
+type ReviewApplicationStatusHistoryStep = {
+	status: ApplicationStatus
+	actorEmail: string | null
+}
+
+type ReviewApplicationConfig = {
+	applicantEmail: string
+	companyDomain: string
+	creditAmount: string | null
+	salaryAtApplication: string
+	status?: ApplicationStatus
+	statusHistory?: readonly ReviewApplicationStatusHistoryStep[]
+}
+
+export const reviewApplicationConfigs: readonly ReviewApplicationConfig[] = [
 	{
 		applicantEmail: applicantForReview.email,
 		companyDomain: companyForReview.domain,
 		creditAmount: '25000',
 		salaryAtApplication: '40000',
+		status: 'new' as const,
 	},
 	{
 		applicantEmail: applicantA2.email,
@@ -176,6 +206,18 @@ export const reviewApplicationConfigs = [
 		salaryAtApplication: '40000',
 	},
 	{
+		applicantEmail: applicantPreAuth.email,
+		companyDomain: companyForReview.domain,
+		creditAmount: null,
+		salaryAtApplication: '40000',
+		status: 'approved' as const,
+		statusHistory: [
+			{ status: 'new', actorEmail: applicantPreAuth.email },
+			{ status: 'pending', actorEmail: applicantPreAuth.email },
+			{ status: 'approved', actorEmail: agentForReview.email },
+		],
+	},
+	{
 		applicantEmail: applicantForReviewB.email,
 		companyDomain: companyForReviewB.domain,
 		creditAmount: '15000',
@@ -193,4 +235,4 @@ export const reviewApplicationConfigs = [
 		creditAmount: '5000',
 		salaryAtApplication: '40000',
 	},
-]
+] as const

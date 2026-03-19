@@ -22,15 +22,12 @@ export async function getApplicationDocumentStream(
 		columns: { storageKey: true, fileName: true },
 		with: {
 			application: {
-				columns: { id: true, applicantId: true, termOfferingId: true },
-				with: {
-					termOffering: { columns: { companyId: true } },
-				},
+				columns: { id: true, applicantId: true, companyId: true },
 			},
 		},
 	})
 
-	if (!doc?.application?.termOffering) return null
+	if (!doc?.application) return null
 
 	const { ability } = await getAbility()
 	requireAbility(
@@ -39,7 +36,7 @@ export async function getApplicationDocumentStream(
 		subject('Application', {
 			id: doc.application.id,
 			applicantId: doc.application.applicantId,
-			companyId: doc.application.termOffering.companyId,
+			companyId: doc.application.companyId,
 		}),
 	)
 

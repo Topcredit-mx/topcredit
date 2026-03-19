@@ -9,6 +9,7 @@ import {
 import { ValidationCode } from '~/lib/validation-codes'
 import {
 	approveApplicationDocument,
+	preAuthorizeApplication,
 	rejectApplicationDocument,
 	updateApplicationStatus,
 } from '~/server/mutations'
@@ -40,6 +41,27 @@ export async function rejectDocumentAction(
 		rejectionReason: formData.get('rejectionReason'),
 	})
 	return result.error != null ? { error: result.error } : {}
+}
+
+/** Form action for assigning amount + term and moving to pre-authorized. */
+export async function preAuthorizeApplicationFormAction(
+	_prevState: { error?: string },
+	formData: FormData,
+): Promise<{ error?: string }> {
+	const applicationId = Number(formData.get('applicationId'))
+	const result = await preAuthorizeApplication({
+		applicationId,
+		termOfferingId: formData.get('termOfferingId'),
+		creditAmount: formData.get('creditAmount'),
+	})
+	if (result.error) {
+		return { error: result.error }
+	}
+	revalidatePath('/app/applications')
+	revalidatePath(`/app/applications/${applicationId}`)
+	revalidatePath('/dashboard/applications')
+	revalidatePath(`/dashboard/applications/${applicationId}`)
+	redirect(`/app/applications/${applicationId}`)
 }
 
 /** Form action for useActionState: immediate status updates (no reason). Returns { error } on failure; redirects on success. */
