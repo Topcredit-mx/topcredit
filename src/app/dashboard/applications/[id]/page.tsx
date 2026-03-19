@@ -354,17 +354,19 @@ export default async function DashboardApplicationDetailPage({
 				</CardContent>
 			</Card>
 
-			<ApplicationStatusHistoryCard
-				title={t('history-title')}
-				description={t('history-description')}
-				emptyMessage={t('history-empty')}
-				setByLabel={t('history-set-by')}
-				systemLabel={t('history-system')}
-				items={application.statusHistory}
-				getStatusLabel={(status) =>
-					t(DASHBOARD_APPLICATION_STATUS_KEYS[status])
-				}
-			/>
+			<div className="mt-6">
+				<ApplicationStatusHistoryCard
+					title={t('history-title')}
+					description={t('history-description')}
+					emptyMessage={t('history-empty')}
+					setByLabel={t('history-set-by')}
+					systemLabel={t('history-system')}
+					items={application.statusHistory}
+					getStatusLabel={(status) =>
+						t(DASHBOARD_APPLICATION_STATUS_KEYS[status])
+					}
+				/>
+			</div>
 		</main>
 	)
 }

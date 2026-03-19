@@ -234,6 +234,10 @@ describe('Dashboard Applications', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
 
+			cy.contains(/Autorización.*máx\.\s*2 meses de antigüedad/i).should(
+				'be.visible',
+			)
+
 			cy.get('input[name="salaryAtApplication"]').type('100000')
 			cy.get('input[name="payrollNumber"]').type('EMP-001')
 			cy.get('input[name="rfc"]').type('GODE561231GR8')
@@ -277,6 +281,10 @@ describe('Dashboard Applications', () => {
 			cy.task('deleteApplicationsByApplicantId', seed.applicantId)
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
+
+			cy.contains(/Contrato.*máx\.\s*2 meses de antigüedad/i).should(
+				'be.visible',
+			)
 
 			cy.get('input[name="salaryAtApplication"]').type('100000')
 			cy.get('input[name="payrollNumber"]').type('EMP-001')

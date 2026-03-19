@@ -28,6 +28,7 @@ import { DASHBOARD_DOCUMENT_TYPE_KEYS } from '~/lib/i18n-keys'
 import { getClabeInstitutionName } from '~/lib/mexico-identifiers'
 import { MEXICAN_STATE_VALUES } from '~/lib/mexico-states'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
+import type messages from '~/messages/es.json'
 
 export function ApplicationForm() {
 	const t = useTranslations('dashboard.applications')
@@ -66,6 +67,18 @@ export function ApplicationForm() {
 		authorizationFile: authorizationFileId,
 		contractFile: contractFileId,
 		payrollReceiptFile: payrollReceiptFileId,
+	}
+
+	type DashboardApplicationsKey =
+		keyof (typeof messages)['dashboard']['applications']
+
+	const initialDocFreshnessKeyByDocumentType: Record<
+		(typeof REQUIRED_INITIAL_DOCUMENTS)[number]['documentType'],
+		DashboardApplicationsKey
+	> = {
+		authorization: 'initial-documents-freshness-authorization',
+		contract: 'initial-documents-freshness-contract',
+		'payroll-receipt': 'initial-documents-freshness-payroll-receipt',
 	}
 
 	return (
@@ -324,6 +337,9 @@ export function ApplicationForm() {
 									aria-invalid={!!error}
 								/>
 							</div>
+							<FieldDescription aria-live="polite">
+								{t(initialDocFreshnessKeyByDocumentType[documentType])}
+							</FieldDescription>
 							{error && <FieldError message={resolveError(error)} />}
 						</Field>
 					)

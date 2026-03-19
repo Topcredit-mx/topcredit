@@ -637,7 +637,11 @@ export const resetApplicantApplication = async (
 			applicationId: app.id,
 			status: entry.status,
 			setByUserId: entry.setByUserId,
-			createdAt: new Date(baseTime.getTime() + index * 60_000),
+			// Seed in the past so "latest" history items are ordered by `createdAt`
+			// and so newly inserted history during the test is always more recent.
+			createdAt: new Date(
+				baseTime.getTime() - (timeline.length - 1 - index) * 60_000,
+			),
 		})),
 	)
 
