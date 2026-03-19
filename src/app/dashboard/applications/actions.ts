@@ -4,6 +4,10 @@ import { and, eq, gte, notInArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
+	APPLICATION_DOCUMENT_ALLOWED_MIME_VALUES,
+	APPLICATION_DOCUMENT_MAX_BYTES,
+} from '~/lib/application-document-intake'
+import {
 	canTransitionToApplicationStatus,
 	INACTIVE_APPLICATION_STATUSES,
 } from '~/lib/application-rules'
@@ -12,6 +16,11 @@ import {
 	createApplicationWithStatusHistory,
 	updateApplicationWithStatusHistory,
 } from '~/server/application-status-history'
+import {
+	cleanupApplicationWithUploadedBlobs,
+	uploadAndInsertApplicationDocumentRow,
+	validateRequiredInitialDocuments,
+} from '~/server/applications/initial-intake-helpers'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -24,21 +33,11 @@ import {
 	createApplicationSchema,
 	uploadApplicationDocumentSchema,
 } from '~/server/schemas'
-import {
-	APPLICATION_DOCUMENTS_PREFIX,
-	deleteBlob,
-	isBlobStorageKey,
-	uploadBlob,
-} from '~/server/storage'
+import { deleteBlob, isBlobStorageKey } from '~/server/storage'
 
-const APPLICATION_DOCUMENT_MAX_BYTES = 15 * 1024 * 1024 // 15 MB
-const APPLICATION_DOCUMENT_ALLOWED_TYPES = new Set<string>([
-	'application/pdf',
-	'image/jpeg',
-	'image/png',
-	'image/webp',
-])
-const APPLICATION_DOCUMENT_FILE_NAME_MAX_LENGTH = 255
+const APPLICATION_DOCUMENT_ALLOWED_TYPES = new Set<string>(
+	APPLICATION_DOCUMENT_ALLOWED_MIME_VALUES,
+)
 const PENDING_APPLICATION_SUMMARY = 'Por definir'
 
 export type ApplicationFormState = {
@@ -52,7 +51,7 @@ export type UploadDocumentFormState = {
 	success?: boolean
 }
 
-export async function createApplicationAction(
+export async function createApplicationWithInitialDocumentsAction(
 	_prevState: ApplicationFormState,
 	formData: FormData,
 ): Promise<ApplicationFormState> {
@@ -67,7 +66,7 @@ export async function createApplicationAction(
 	}
 
 	try {
-		const data = createApplicationSchema.parse({
+		const applicationData = createApplicationSchema.parse({
 			salaryAtApplication: formData.get('salaryAtApplication'),
 			payrollNumber: formData.get('payrollNumber'),
 			rfc: formData.get('rfc'),
@@ -81,16 +80,18 @@ export async function createApplicationAction(
 			phoneNumber: formData.get('phoneNumber'),
 		})
 
-		const salary = Number.parseFloat(String(data.salaryAtApplication))
-
+		const salary = Number.parseFloat(
+			String(applicationData.salaryAtApplication),
+		)
 		const sixtySecondsAgo = new Date(Date.now() - 60_000)
+
 		const duplicate = await db.query.applications.findFirst({
 			where: and(
 				eq(applications.applicantId, user.id),
 				eq(applications.companyId, company.id),
 				eq(applications.salaryAtApplication, String(salary.toFixed(2))),
-				eq(applications.rfc, data.rfc),
-				eq(applications.payrollNumber, data.payrollNumber),
+				eq(applications.rfc, applicationData.rfc),
+				eq(applications.payrollNumber, applicationData.payrollNumber),
 				gte(applications.createdAt, sixtySecondsAgo),
 			),
 			columns: { id: true },
@@ -112,28 +113,63 @@ export async function createApplicationAction(
 			}
 		}
 
-		await createApplicationWithStatusHistory({
+		const validated = await validateRequiredInitialDocuments(formData)
+		if ('errors' in validated) {
+			return { errors: validated.errors }
+		}
+
+		const createdApplication = await createApplicationWithStatusHistory({
 			values: {
 				applicantId: user.id,
 				companyId: company.id,
 				termOfferingId: null,
 				creditAmount: null,
 				salaryAtApplication: String(salary.toFixed(2)),
-				payrollNumber: data.payrollNumber,
-				rfc: data.rfc,
-				clabe: data.clabe,
-				streetAndNumber: data.streetAndNumber,
-				interiorNumber: data.interiorNumber?.trim() || null,
-				city: data.city,
-				state: data.state,
-				country: data.country,
-				postalCode: data.postalCode,
-				phoneNumber: data.phoneNumber,
+				payrollNumber: applicationData.payrollNumber,
+				rfc: applicationData.rfc,
+				clabe: applicationData.clabe,
+				streetAndNumber: applicationData.streetAndNumber,
+				interiorNumber: applicationData.interiorNumber?.trim() || null,
+				city: applicationData.city,
+				state: applicationData.state,
+				country: applicationData.country,
+				postalCode: applicationData.postalCode,
+				phoneNumber: applicationData.phoneNumber,
 				status: 'new',
 				denialReason: null,
 			},
 			setByUserId: user.id,
 		})
+
+		const uploadedBlobKeys: string[] = []
+
+		try {
+			requireAbility(
+				ability,
+				'uploadDocument',
+				subject('Application', {
+					id: createdApplication.id,
+					applicantId: createdApplication.applicantId,
+					companyId: createdApplication.companyId,
+				}),
+			)
+
+			for (const doc of validated.documents) {
+				const { storedPathname } = await uploadAndInsertApplicationDocumentRow({
+					applicationId: createdApplication.id,
+					documentType: doc.documentType,
+					file: doc.file,
+					mime: doc.mime,
+				})
+				uploadedBlobKeys.push(storedPathname)
+			}
+		} catch (uploadError) {
+			await cleanupApplicationWithUploadedBlobs({
+				applicationId: createdApplication.id,
+				uploadedBlobKeys,
+			})
+			return fromErrorToFormState(uploadError)
+		}
 
 		await sendApplicationSubmittedEvent(email, {
 			creditAmountFormatted: PENDING_APPLICATION_SUMMARY,
@@ -141,6 +177,7 @@ export async function createApplicationAction(
 		})
 
 		revalidatePath('/dashboard/applications')
+		revalidatePath('/dashboard/applications/new')
 	} catch (error) {
 		return fromErrorToFormState(error)
 	}
@@ -221,21 +258,11 @@ export async function uploadApplicationDocumentAction(
 				.where(eq(applicationDocuments.id, existing.id))
 		}
 
-		const rawName =
-			file.name.replace(/\0/g, '').replace(/[/\\]/g, '_').trim() || 'document'
-		const fileName = rawName.slice(0, APPLICATION_DOCUMENT_FILE_NAME_MAX_LENGTH)
-		const pathname = `${APPLICATION_DOCUMENTS_PREFIX}${data.applicationId}/${data.documentType}/${fileName}`
-
-		const { pathname: storedPathname } = await uploadBlob(pathname, file, {
-			contentType: detected.mime,
-		})
-
-		await db.insert(applicationDocuments).values({
+		await uploadAndInsertApplicationDocumentRow({
 			applicationId: data.applicationId,
 			documentType: data.documentType,
-			status: 'pending',
-			storageKey: storedPathname,
-			fileName,
+			file,
+			mime: detected.mime,
 		})
 
 		if (app.status === 'invalid-documentation') {
