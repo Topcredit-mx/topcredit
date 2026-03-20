@@ -448,10 +448,29 @@ export type ApplicationDetailForApplicant = {
 	id: number
 	status: ApplicationStatus
 	creditAmount: string | null
+	salaryAtApplication: string
+	payrollNumber: string | null
+	rfc: string | null
+	clabe: string | null
+	streetAndNumber: string | null
+	interiorNumber: string | null
+	city: string | null
+	state: string | null
+	country: string | null
+	postalCode: string | null
+	phoneNumber: string | null
 	denialReason: string | null
 	createdAt: Date
 	updatedAt: Date
 	statusHistory: ApplicationStatusHistoryItem[]
+	applicant: {
+		name: string
+		email: string
+	}
+	company: {
+		name: string
+		domain: string
+	}
 	termOffering: {
 		durationType: 'bi-monthly' | 'monthly'
 		duration: number
@@ -474,13 +493,30 @@ export async function getApplicationByApplicantId(
 			id: applications.id,
 			status: applications.status,
 			creditAmount: applications.creditAmount,
+			salaryAtApplication: applications.salaryAtApplication,
+			payrollNumber: applications.payrollNumber,
+			rfc: applications.rfc,
+			clabe: applications.clabe,
+			streetAndNumber: applications.streetAndNumber,
+			interiorNumber: applications.interiorNumber,
+			city: applications.city,
+			state: applications.state,
+			country: applications.country,
+			postalCode: applications.postalCode,
+			phoneNumber: applications.phoneNumber,
 			denialReason: applications.denialReason,
 			createdAt: applications.createdAt,
 			updatedAt: applications.updatedAt,
 			durationType: terms.durationType,
 			duration: terms.duration,
+			applicantName: users.name,
+			applicantEmail: users.email,
+			companyName: companies.name,
+			companyDomain: companies.domain,
 		})
 		.from(applications)
+		.innerJoin(users, eq(applications.applicantId, users.id))
+		.innerJoin(companies, eq(applications.companyId, companies.id))
 		.leftJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
 		.leftJoin(terms, eq(termOfferings.termId, terms.id))
 		.where(
@@ -498,10 +534,29 @@ export async function getApplicationByApplicantId(
 		id: row.id,
 		status: row.status,
 		creditAmount: row.creditAmount,
+		salaryAtApplication: row.salaryAtApplication,
+		payrollNumber: row.payrollNumber,
+		rfc: row.rfc,
+		clabe: row.clabe,
+		streetAndNumber: row.streetAndNumber,
+		interiorNumber: row.interiorNumber,
+		city: row.city,
+		state: row.state,
+		country: row.country,
+		postalCode: row.postalCode,
+		phoneNumber: row.phoneNumber,
 		denialReason: row.denialReason,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 		statusHistory,
+		applicant: {
+			name: row.applicantName,
+			email: row.applicantEmail,
+		},
+		company: {
+			name: row.companyName,
+			domain: row.companyDomain,
+		},
 		termOffering:
 			row.durationType && row.duration != null
 				? {

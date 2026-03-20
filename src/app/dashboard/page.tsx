@@ -17,6 +17,7 @@ import { ApplicantPageFooter } from '~/components/app/applicant-page-footer'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { isActiveApplicationStatus } from '~/lib/application-rules'
+import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -62,7 +63,7 @@ function applicationBadgeSurfaceClass(status: ApplicationStatus): string {
 	if (status === 'invalid-documentation') {
 		return 'bg-amber-100 text-amber-950'
 	}
-	return 'bg-sky-100 text-[#003178]'
+	return 'bg-sky-100 text-brand'
 }
 
 function applicationInProgressBadgeLabel(
@@ -81,20 +82,11 @@ function applicationInProgressBadgeLabel(
 	}
 }
 
-/** Inline gradient: Tailwind arbitrary `bg-[linear-gradient(...)]` can be dropped by merge/build; without it the hero stays white and `text-white` copy disappears. */
+/** Inline gradient uses CSS variables so it stays in sync with `@theme` brand tokens. */
 const HERO_SURFACE_STYLE = {
-	backgroundImage: 'linear-gradient(135deg, #003178 0%, #0d47a1 100%)',
+	backgroundImage:
+		'linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%)',
 } as const
-
-const SURFACE_CARD =
-	'overflow-hidden rounded-3xl border-0 bg-white py-6 shadow-[0_4px_20px_rgba(25,28,30,0.05),0_14px_44px_rgba(25,28,30,0.08)]'
-
-/** Editorial loan row: white tile, soft shadow, light-blue icon well (English mock). */
-const PORTFOLIO_ROW_SURFACE =
-	'rounded-2xl border border-slate-100/90 bg-white p-5 shadow-[0_4px_24px_rgba(25,28,30,0.045),0_1px_3px_rgba(25,28,30,0.04)]'
-
-const PORTFOLIO_ICON_WELL =
-	'flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#e3eef9] text-[#003178]'
 
 const DASHBOARD_SECTION_TITLE_CLASS =
 	'font-bold text-2xl text-[#191c1e] tracking-tight sm:text-[1.65rem]'
@@ -166,7 +158,7 @@ export default async function DashboardPage() {
 		<div className="mx-auto max-w-7xl space-y-12 pt-4 pb-12 sm:space-y-16 sm:pt-8 sm:pb-16">
 			<div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
 				<div className="min-w-0 space-y-2">
-					<h1 className="font-semibold text-3xl text-[#003178] tracking-tight sm:text-4xl">
+					<h1 className="font-semibold text-3xl text-brand tracking-tight sm:text-4xl">
 						{tDashboard('executive-overview')}
 					</h1>
 					<p className="max-w-2xl text-base/7 text-slate-600">
@@ -178,7 +170,7 @@ export default async function DashboardPage() {
 						type="button"
 						variant="ghost"
 						size="icon"
-						className="size-10 rounded-full text-[#003178]"
+						className="size-10 rounded-full text-brand"
 						aria-label={tDashboard('notifications-aria')}
 					>
 						<Bell className="size-5" />
@@ -195,7 +187,7 @@ export default async function DashboardPage() {
 					<span>
 						{tDashboard('verify-email')}{' '}
 						<Link
-							href="/settings/security"
+							href="/dashboard/settings/security"
 							className="font-medium underline underline-offset-2"
 						>
 							{tCommon('settings')}
@@ -233,7 +225,7 @@ export default async function DashboardPage() {
 				<Card
 					aria-labelledby="dashboard-applications-in-progress-heading"
 					className={cn(
-						SURFACE_CARD,
+						shell.dashboardHeroCard,
 						'flex flex-col gap-6 px-6 sm:px-8 lg:col-span-2',
 					)}
 					role="region"
@@ -241,7 +233,7 @@ export default async function DashboardPage() {
 					<div>
 						<h2
 							id="dashboard-applications-in-progress-heading"
-							className="font-bold text-[#003178] text-xl tracking-tight sm:text-2xl"
+							className="font-bold text-brand text-xl tracking-tight sm:text-2xl"
 						>
 							{tDashboard('applications-in-progress-title')}
 						</h2>
@@ -254,10 +246,7 @@ export default async function DashboardPage() {
 							<p className="text-slate-600 text-sm">
 								{tDashboard('applications-in-progress-empty')}
 							</p>
-							<Button
-								asChild
-								className="mt-4 rounded-xl bg-[#003178] font-semibold text-white hover:bg-[#002a63]"
-							>
+							<Button asChild variant="brand" className="mt-4 rounded-xl">
 								<Link href="/dashboard/applications/new">
 									{tDashboard('applications-in-progress-new-application')}
 								</Link>
@@ -284,7 +273,7 @@ export default async function DashboardPage() {
 											<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-5">
 												<div className="flex min-w-0 flex-1 items-center gap-4">
 													<div
-														className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-[#003178] shadow-sm"
+														className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-brand shadow-sm"
 														aria-hidden
 													>
 														<Icon className="size-5" />
@@ -311,7 +300,7 @@ export default async function DashboardPage() {
 														<div
 															className={cn(
 																'h-2.5 rounded-full transition-[width]',
-																barComplete ? 'bg-emerald-500' : 'bg-[#003178]',
+																barComplete ? 'bg-emerald-500' : 'bg-brand',
 															)}
 															style={{ width: `${pct}%` }}
 														/>
@@ -351,7 +340,10 @@ export default async function DashboardPage() {
 						</h2>
 						<Link
 							href="/dashboard/applications"
-							className="inline-flex items-center gap-1.5 font-semibold text-[#003178] text-sm hover:underline"
+							className={cn(
+								'inline-flex items-center gap-1.5 text-sm',
+								shell.textLinkStrong,
+							)}
 						>
 							{tDashboard('view-detailed-ledger')}
 							<ExternalLink className="size-3.5" aria-hidden />
@@ -360,10 +352,10 @@ export default async function DashboardPage() {
 					<div className="space-y-4">
 						{PORTFOLIO_DEMO_LOANS.map(
 							({ id, Icon, titleKey, metaKey, amount }) => (
-								<div key={id} className={PORTFOLIO_ROW_SURFACE}>
+								<div key={id} className={shell.portfolioRow}>
 									<div className="flex items-center justify-between gap-4">
 										<div className="flex min-w-0 items-center gap-4">
-											<div className={PORTFOLIO_ICON_WELL} aria-hidden>
+											<div className={shell.portfolioIconWell} aria-hidden>
 												<Icon className="size-5" />
 											</div>
 											<div className="min-w-0">
@@ -407,7 +399,7 @@ export default async function DashboardPage() {
 									className="flex min-h-14 min-w-13 shrink-0 flex-col items-center justify-center rounded-xl bg-white px-2 py-2 shadow-[0_2px_10px_rgba(25,28,30,0.06)]"
 									aria-hidden
 								>
-									<span className="font-semibold text-[#003178] text-[10px] uppercase tracking-[0.14em]">
+									<span className="font-semibold text-[10px] text-brand uppercase tracking-[0.14em]">
 										{tDashboard('activity-demo-month-oct')}
 									</span>
 									<span className="mt-0.5 font-bold text-[#191c1e] text-lg tabular-nums leading-none">
@@ -425,8 +417,8 @@ export default async function DashboardPage() {
 							</li>
 						))}
 					</ul>
-					<div className="mt-1 rounded-2xl border border-white/60 bg-white p-5 shadow-[0_4px_20px_rgba(25,28,30,0.05)]">
-						<p className="font-semibold text-[#003178]">
+					<div className="mt-1 rounded-2xl border border-white/60 bg-white p-5 shadow-elevated">
+						<p className="font-semibold text-brand">
 							{tDashboard('pro-tip-title')}
 						</p>
 						<p className="mt-2 text-slate-600 text-sm leading-relaxed">

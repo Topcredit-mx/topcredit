@@ -1,7 +1,7 @@
-import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
 import { ApplicantPageFooter } from '~/components/app/applicant-page-footer'
+import { ShellBackLink } from '~/components/ui/shell-back-link'
 import { getAbility, requireAbility } from '~/server/auth/ability'
 import { ApplicationForm } from './application-form'
 
@@ -14,12 +14,9 @@ export default async function NewApplicationPage() {
 	return (
 		<main className="mx-auto w-full max-w-5xl pb-8">
 			<header className="mb-8">
-				<Link
-					href="/dashboard"
-					className="mb-4 inline-flex font-semibold text-[#003178] text-[10px] uppercase tracking-[0.14em] hover:underline"
-				>
+				<ShellBackLink href="/dashboard">
 					← {t('back-to-dashboard')}
-				</Link>
+				</ShellBackLink>
 				<h1 className="font-semibold text-3xl text-slate-900 tracking-tight">
 					{t('form-page-title')}
 				</h1>

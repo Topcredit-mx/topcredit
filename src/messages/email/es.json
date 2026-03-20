@@ -11,13 +11,13 @@
 	},
 	"applicationSubmitted": {
 		"subject": "Tu solicitud de crédito fue recibida - Topcredit",
-		"textBody": "Recibimos tu solicitud de crédito.\n\nResumen: Monto {creditAmountFormatted}, Plazo {termLabel}.\n\nPróximos pasos: Te notificaremos cuando haya un cambio de estado (pre-autorización, autorización o si necesitamos más datos). Puedes consultar el estado en tu panel en Topcredit.",
+		"textBody": "Recibimos tu solicitud de crédito.\n\nEl monto y el plazo del crédito los definirá la institución al revisar tu expediente.\n\nResumen: Monto del crédito: {creditAmountFormatted}. Plazo del crédito: {termLabel}.\n\nPróximos pasos: Te notificaremos cuando haya un cambio de estado (pre-autorización, autorización o si necesitamos más datos). Puedes consultar el estado en tu panel en Topcredit.",
 		"heading": "Solicitud recibida en Topcredit",
 		"greeting": "Hola",
-		"body": "Recibimos tu solicitud de crédito correctamente.",
+		"body": "Recibimos tu solicitud de crédito correctamente. El monto y el plazo del crédito los definirá la institución al revisar tu expediente.",
 		"labelSummary": "Resumen:",
-		"labelAmount": "Monto",
-		"labelTerm": "Plazo",
+		"labelAmount": "Monto del crédito",
+		"labelTerm": "Plazo del crédito",
 		"nextStepsTitle": "Próximos pasos:",
 		"nextStepsBody": "Tu solicitud será revisada. Te notificaremos por correo cuando haya un cambio de estado (pre-autorización, autorización o si necesitamos más datos o documentación). Puedes consultar el estado en cualquier momento desde tu panel en Topcredit.",
 		"footer": "Si no realizaste esta solicitud, contacta a soporte de inmediato."
@@ -30,7 +30,7 @@
 			"denied": "Actualización de tu solicitud de crédito - Topcredit",
 			"invalid-documentation": "Tu solicitud requiere documentación - Topcredit"
 		},
-		"textBody": "Tu solicitud de crédito ({creditAmountFormatted}, {termLabel}) ha sido actualizada a: {statusLabel}.",
+		"textBody": "Tu solicitud de crédito — Monto del crédito: {creditAmountFormatted}, plazo: {termLabel} — ha sido actualizada a: {statusLabel}.",
 		"reasonPrefix": "Motivo:",
 		"statusLabel": {
 			"pre-authorized": "¡Pre-autorizado!",
@@ -49,8 +49,8 @@
 		"greeting": "Hola",
 		"bodyIntro": "Te informamos que el estado de tu solicitud de crédito ha sido actualizado.",
 		"labelSummary": "Resumen:",
-		"labelAmount": "Monto",
-		"labelTerm": "Plazo",
+		"labelAmount": "Monto del crédito",
+		"labelTerm": "Plazo del crédito",
 		"labelStatus": "Estado",
 		"reasonLabel": "Motivo / detalle:",
 		"footer": "Puedes ver el detalle de tu solicitud en tu panel de Topcredit."

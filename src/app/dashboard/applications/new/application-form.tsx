@@ -29,14 +29,14 @@ import {
 import { DASHBOARD_DOCUMENT_TYPE_KEYS } from '~/lib/i18n-keys'
 import { getClabeInstitutionName } from '~/lib/mexico-identifiers'
 import { MEXICAN_STATE_VALUES } from '~/lib/mexico-states'
+import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type messages from '~/messages/es.json'
 
 const formLabelClass =
 	'text-[11px] font-semibold text-slate-500 uppercase tracking-wide'
-const formInputClass =
-	'h-11 rounded-lg border-0 bg-slate-100 shadow-none focus-visible:ring-2 focus-visible:ring-[#003178]/25 focus-visible:ring-offset-0'
+const formInputClass = shell.inputOnMuted
 /** Match `Input` height: `SelectTrigger` defaults to `data-[size=default]:h-9`, which overrides plain `h-11` unless we set the same variant. */
 const formSelectTriggerClass = cn(
 	formInputClass,
@@ -392,7 +392,7 @@ export function ApplicationForm() {
 							<Field key={fieldName} data-invalid={!!error}>
 								<div className="flex flex-col items-center rounded-xl border border-slate-300 border-dashed bg-white px-4 py-6 text-center shadow-sm">
 									<div
-										className="mb-3 flex size-12 shrink-0 items-center justify-center rounded-full bg-sky-100/90 text-[#003178]"
+										className="mb-3 flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"
 										aria-hidden
 									>
 										<FileText className="size-6" />
@@ -421,7 +421,7 @@ export function ApplicationForm() {
 									<Button
 										type="button"
 										variant="secondary"
-										className="mt-4 rounded-lg bg-slate-200/80 font-medium text-[#003178] text-xs hover:bg-slate-200"
+										className="mt-4 rounded-lg bg-slate-200/80 font-medium text-brand text-xs hover:bg-slate-200"
 										onClick={() => {
 											triggerFilePick(fieldName)
 										}}
@@ -450,16 +450,13 @@ export function ApplicationForm() {
 					<span>
 						{t('agreement-lead')}{' '}
 						<Link
-							href="/settings/security"
-							className="font-medium text-[#003178] underline underline-offset-2"
+							href="/dashboard/settings/security"
+							className={shell.textLink}
 						>
 							{t('agreement-terms')}
 						</Link>{' '}
 						{t('agreement-mid')}{' '}
-						<Link
-							href="/settings/profile"
-							className="font-medium text-[#003178] underline underline-offset-2"
-						>
+						<Link href="/dashboard/settings/profile" className={shell.textLink}>
 							{t('agreement-privacy')}
 						</Link>
 						{t('agreement-trail')}
@@ -470,14 +467,15 @@ export function ApplicationForm() {
 					<Button
 						type="button"
 						variant="ghost"
-						className="font-semibold text-[#003178] hover:bg-[#003178]/10 hover:text-[#003178]"
+						className={shell.controlGhostBrand}
 					>
 						{t('save-draft')}
 					</Button>
 					<Button
 						type="submit"
+						variant="brand"
 						disabled={pending}
-						className="h-11 rounded-lg bg-[#003178] px-8 font-semibold text-white hover:bg-[#002a62] disabled:opacity-60"
+						className="h-11 px-8 disabled:opacity-60"
 					>
 						{pending ? t('submit-apply-pending') : t('submit-apply')}
 					</Button>

@@ -27,19 +27,16 @@ export async function ApplicantPageFooter({
 				className="flex flex-wrap gap-x-6 gap-y-2 text-slate-500 text-sm"
 				aria-label={tDashboard('footer-nav-aria')}
 			>
-				<Link href="/settings/profile" className="hover:text-[#003178]">
+				<Link href="/dashboard/settings/profile" className="hover:text-brand">
 					{tDashboard('footer-privacy')}
 				</Link>
-				<Link href="/settings/security" className="hover:text-[#003178]">
+				<Link href="/dashboard/settings/security" className="hover:text-brand">
 					{tDashboard('footer-terms')}
 				</Link>
-				<Link href="/settings" className="hover:text-[#003178]">
+				<Link href="/dashboard/settings" className="hover:text-brand">
 					{tDashboard('footer-help')}
 				</Link>
-				<Link
-					href="/dashboard/applications/new"
-					className="hover:text-[#003178]"
-				>
+				<Link href="/dashboard/applications/new" className="hover:text-brand">
 					{tDashboard('footer-contact')}
 				</Link>
 			</nav>

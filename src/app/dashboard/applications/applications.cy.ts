@@ -365,6 +365,7 @@ describe('Dashboard Applications', () => {
 			cy.get('a[href="/dashboard/applications/new"]').should('be.visible')
 			cy.get('a[href="/dashboard/applications"]').should('be.visible')
 			cy.get('a[href="/dashboard/loans"]').should('be.visible')
+			cy.get('a[href="/dashboard/settings"]').should('be.visible')
 		})
 
 		it('applicant can open Mis préstamos placeholder page', () => {
@@ -412,7 +413,7 @@ describe('Dashboard Applications', () => {
 					.click()
 				cy.url().should('include', `/dashboard/applications/${app.id}`)
 				cy.contains('10,000').should('be.visible')
-				cy.contains(/detalle de solicitud|estado|monto solicitado/i).should(
+				cy.contains(/detalle de solicitud|estado|monto del crédito/i).should(
 					'be.visible',
 				)
 			})

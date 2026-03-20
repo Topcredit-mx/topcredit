@@ -14,7 +14,7 @@ export default async function SettingsSecurityPage() {
 	const backupCodesCount = countValidBackupCodes(user.totpBackupCodes)
 
 	return (
-		<div className="space-y-6">
+		<div>
 			<SecurityForm
 				user={{
 					email: user.email,

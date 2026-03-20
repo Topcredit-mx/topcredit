@@ -1,14 +1,18 @@
 import { getTranslations } from 'next-intl/server'
+
 import { SettingsNav } from '~/components/settings-nav'
 
-export default async function SettingsLayout({
+const APPLICANT_SETTINGS_BASE = '/dashboard/settings'
+
+export default async function DashboardSettingsLayout({
 	children,
 }: {
 	children: React.ReactNode
 }) {
 	const t = await getTranslations('settings')
+
 	return (
-		<div className="container mx-auto max-w-5xl px-4 py-8">
+		<div className="mx-auto w-full max-w-5xl pb-12">
 			<div className="flex flex-col gap-8">
 				<div>
 					<h1 className="font-semibold text-3xl text-slate-900 tracking-tight">
@@ -19,7 +23,7 @@ export default async function SettingsLayout({
 					</p>
 				</div>
 				<div className="flex flex-col gap-6">
-					<SettingsNav />
+					<SettingsNav basePath={APPLICANT_SETTINGS_BASE} />
 					{children}
 				</div>
 			</div>

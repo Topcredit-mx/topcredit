@@ -6,13 +6,8 @@ import { useState } from 'react'
 import { EmailChangeModal } from '~/components/email-change-modal'
 import { TotpSettingsCard } from '~/components/totp-settings-card'
 import { Button } from '~/components/ui/button'
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from '~/components/ui/card'
+import { SectionCard } from '~/components/ui/section-card'
+import { cn } from '~/lib/utils'
 
 interface SecurityFormProps {
 	user: {
@@ -43,24 +38,29 @@ export function SecurityForm({ user }: SecurityFormProps) {
 	}
 
 	return (
-		<div className="space-y-6">
-			<Card>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<Mail className="h-5 w-5" />
-						{t('email-card-title')}
-					</CardTitle>
-					<CardDescription>{t('email-card-description')}</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<div className="flex items-center justify-between">
-						<div className="space-y-1">
-							<p className="font-medium">{currentEmail}</p>
+		<div className="space-y-8">
+			<SectionCard
+				icon={Mail}
+				title={t('email-card-title')}
+				description={t('email-card-description')}
+			>
+				<div className="space-y-5">
+					<div
+						className={cn(
+							'flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between',
+							!emailVerified && 'border-slate-100 border-b pb-5',
+						)}
+					>
+						<div className="min-w-0 space-y-2">
+							<p className="font-medium text-slate-900">{currentEmail}</p>
 							<div className="flex items-center gap-2 text-sm">
 								{emailVerified ? (
 									<>
-										<CheckCircle2 className="h-4 w-4 text-green-600" />
-										<span className="text-green-600">
+										<CheckCircle2
+											className="size-4 shrink-0 text-emerald-600"
+											aria-hidden
+										/>
+										<span className="text-emerald-800">
 											{t('verified-at', {
 												date: formatDate(emailVerified) ?? '',
 											})}
@@ -68,25 +68,32 @@ export function SecurityForm({ user }: SecurityFormProps) {
 									</>
 								) : (
 									<>
-										<XCircle className="h-4 w-4 text-orange-600" />
-										<span className="text-orange-600">{t('not-verified')}</span>
+										<XCircle
+											className="size-4 shrink-0 text-amber-600"
+											aria-hidden
+										/>
+										<span className="text-amber-800">{t('not-verified')}</span>
 									</>
 								)}
 							</div>
 						</div>
-						<Button variant="outline" onClick={() => setShowEmailModal(true)}>
+						<Button
+							variant="outline"
+							className="h-10 shrink-0 rounded-lg border-slate-200"
+							onClick={() => setShowEmailModal(true)}
+						>
 							{t('change-email')}
 						</Button>
 					</div>
-					{!emailVerified && (
-						<div className="rounded-md bg-orange-50 p-3">
-							<p className="text-orange-800 text-sm">
+					{!emailVerified ? (
+						<div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-amber-950 text-sm">
+							<p>
 								<strong>{t('action-required')}</strong> {t('verify-prompt')}
 							</p>
 						</div>
-					)}
-				</CardContent>
-			</Card>
+					) : null}
+				</div>
+			</SectionCard>
 
 			<TotpSettingsCard
 				user={{

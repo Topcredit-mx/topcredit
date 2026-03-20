@@ -12,6 +12,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:migrate:if-pending": "tsx scripts/migrate-if-pending.ts",
 		"db:nuke": "tsx scripts/nuke.ts",
+		"db:nuke:migrate": "tsx scripts/nuke.ts && pnpm db:migrate",
 		"db:seed": "tsx scripts/seed.ts",
 		"db:studio": "drizzle-kit studio",
 		"cy:open": "cypress open",

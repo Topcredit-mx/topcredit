@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import type * as React from 'react'
 
 import { Card, CardContent, CardHeader } from '~/components/ui/card'
+import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
 
 type SectionTitleRowProps = {
@@ -24,22 +25,19 @@ export function SectionTitleRow({
 	return (
 		<div className={cn('flex flex-row items-center gap-3', className)}>
 			{Icon ? (
-				<div
-					className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#003178]/10 text-[#003178]"
-					aria-hidden
-				>
+				<div className={shell.iconChip} aria-hidden>
 					<Icon className="size-5" />
 				</div>
 			) : null}
 			<div className="min-w-0 flex-1 space-y-1">
 				<h2
 					id={headingId}
-					className="font-semibold text-[#003178] text-lg leading-snug"
+					className="font-semibold text-brand text-lg leading-snug"
 				>
 					{title}
 				</h2>
 				{description ? (
-					<div className="text-muted-foreground text-sm leading-snug">
+					<div className="text-slate-600 text-sm leading-snug">
 						{description}
 					</div>
 				) : null}
@@ -66,7 +64,8 @@ export function SectionCard({
 	return (
 		<Card
 			className={cn(
-				'gap-0 overflow-hidden border border-slate-200/80 bg-white py-0 shadow-[0_4px_20px_rgba(25,28,30,0.05)]',
+				shell.elevatedCard,
+				'gap-0 overflow-hidden py-0',
 				className,
 			)}
 		>
