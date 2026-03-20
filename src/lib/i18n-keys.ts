@@ -6,40 +6,40 @@ import type messages from '~/messages/es.json'
 import type { Role } from '~/server/auth/session'
 import type { DocumentStatus, DocumentType } from '~/server/db/schema'
 
-/** App namespace: document type → message key */
-export const APP_DOCUMENT_TYPE_KEYS: Record<
+/** Equipo namespace: document type → message key */
+export const EQUIPO_DOCUMENT_TYPE_KEYS: Record<
 	DocumentType,
-	keyof (typeof messages)['app']
+	keyof (typeof messages)['equipo']
 > = {
 	authorization: 'applications-document-type-authorization',
 	contract: 'applications-document-type-contract',
 	'payroll-receipt': 'applications-document-type-payroll-receipt',
 }
 
-/** Dashboard.applications: document type → message key */
-export const DASHBOARD_DOCUMENT_TYPE_KEYS: Record<
+/** Cuenta.applications: document type → message key */
+export const CUENTA_DOCUMENT_TYPE_KEYS: Record<
 	DocumentType,
-	keyof (typeof messages)['dashboard']['applications']
+	keyof (typeof messages)['cuenta']['applications']
 > = {
 	authorization: 'document-type-authorization',
 	contract: 'document-type-contract',
 	'payroll-receipt': 'document-type-payroll-receipt',
 }
 
-/** App namespace: document status → message key */
-export const APP_DOCUMENT_STATUS_KEYS: Record<
+/** Equipo namespace: document status → message key */
+export const EQUIPO_DOCUMENT_STATUS_KEYS: Record<
 	DocumentStatus,
-	keyof (typeof messages)['app']
+	keyof (typeof messages)['equipo']
 > = {
 	pending: 'applications-document-status-pending',
 	approved: 'applications-document-status-approved',
 	rejected: 'applications-document-status-rejected',
 }
 
-/** Dashboard.applications: document status → message key */
-export const DASHBOARD_DOCUMENT_STATUS_KEYS: Record<
+/** Cuenta.applications: document status → message key */
+export const CUENTA_DOCUMENT_STATUS_KEYS: Record<
 	'pending' | 'approved' | 'rejected',
-	keyof (typeof messages)['dashboard']['applications']
+	keyof (typeof messages)['cuenta']['applications']
 > = {
 	pending: 'document-status-pending',
 	approved: 'document-status-approved',
@@ -58,14 +58,14 @@ export const PROFILE_ROLE_KEYS: Record<
 	admin: 'role-admin',
 }
 
-/** Type guard: string is a valid app document type (for API data) */
+/** Type guard: string is a valid document type (for API data) */
 export function isDocumentType(s: string): s is DocumentType {
-	return s in APP_DOCUMENT_TYPE_KEYS
+	return s in EQUIPO_DOCUMENT_TYPE_KEYS
 }
 
 /** Type guard: string is a valid document status */
 export function isDocumentStatus(
 	s: string,
-): s is keyof typeof DASHBOARD_DOCUMENT_STATUS_KEYS {
-	return s in DASHBOARD_DOCUMENT_STATUS_KEYS
+): s is keyof typeof CUENTA_DOCUMENT_STATUS_KEYS {
+	return s in CUENTA_DOCUMENT_STATUS_KEYS
 }

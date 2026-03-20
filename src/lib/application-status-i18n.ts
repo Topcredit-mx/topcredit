@@ -1,7 +1,7 @@
 import type { ApplicationStatus } from '~/server/db/schema'
 
-/** App namespace status message keys (use with useTranslations('app')). */
-const APP_STATUS_KEYS = [
+/** Equipo namespace status keys (use with useTranslations('equipo')). */
+const EQUIPO_STATUS_KEYS = [
 	'applications-status-new',
 	'applications-status-pending',
 	'applications-status-approved',
@@ -11,8 +11,8 @@ const APP_STATUS_KEYS = [
 	'applications-status-denied',
 ] as const
 
-/** Dashboard.applications status message keys (use with useTranslations('dashboard.applications')). */
-const DASHBOARD_STATUS_KEYS = [
+/** Cuenta.applications status keys (use with useTranslations('cuenta.applications')). */
+const CUENTA_STATUS_KEYS = [
 	'status-new',
 	'status-pending',
 	'status-approved',
@@ -22,10 +22,10 @@ const DASHBOARD_STATUS_KEYS = [
 	'status-denied',
 ] as const
 
-/** i18n keys for app namespace (use with useTranslations('app')). */
-export const APPLICATION_STATUS_KEYS: Record<
+/** i18n keys for equipo namespace (agent application list / detail). */
+export const EQUIPO_APPLICATION_STATUS_KEYS: Record<
 	ApplicationStatus,
-	(typeof APP_STATUS_KEYS)[number]
+	(typeof EQUIPO_STATUS_KEYS)[number]
 > = {
 	new: 'applications-status-new',
 	pending: 'applications-status-pending',
@@ -36,10 +36,10 @@ export const APPLICATION_STATUS_KEYS: Record<
 	denied: 'applications-status-denied',
 }
 
-/** i18n keys for dashboard.applications namespace (use with useTranslations('dashboard.applications')). */
-export const DASHBOARD_APPLICATION_STATUS_KEYS: Record<
+/** i18n keys for cuenta.applications (applicant flows). */
+export const CUENTA_APPLICATION_STATUS_KEYS: Record<
 	ApplicationStatus,
-	(typeof DASHBOARD_STATUS_KEYS)[number]
+	(typeof CUENTA_STATUS_KEYS)[number]
 > = {
 	new: 'status-new',
 	pending: 'status-pending',

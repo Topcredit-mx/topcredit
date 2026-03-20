@@ -1,5 +1,13 @@
+import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
+import {
+	authInlineLinkClass,
+	authPageSubtitleClass,
+	authPageTitleClass,
+} from '~/components/auth/auth-form-styles'
+import { AuthPageShell } from '~/components/auth/auth-page-shell'
 import { VerifyTotpForm } from '~/components/verify-totp-form'
+import { cn } from '~/lib/utils'
 
 export default async function VerifyTotpPage({
 	searchParams,
@@ -10,23 +18,25 @@ export default async function VerifyTotpPage({
 
 	if (!email || Array.isArray(email)) {
 		const t = await getTranslations('errors')
+		const tAuth = await getTranslations('auth')
 		return (
-			<div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-				<div className="w-full max-w-sm text-center">
-					<h1 className="mb-4 font-bold text-2xl text-destructive">
+			<AuthPageShell>
+				<div className="flex flex-col items-center gap-4 text-center">
+					<h1 className={cn(authPageTitleClass, 'text-destructive')}>
 						{t('title')}
 					</h1>
-					<p className="text-muted-foreground">{t('email-required')}</p>
+					<p className={authPageSubtitleClass}>{t('email-required')}</p>
+					<Link href="/login" className={authInlineLinkClass}>
+						{tAuth('login')}
+					</Link>
 				</div>
-			</div>
+			</AuthPageShell>
 		)
 	}
 
 	return (
-		<div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-			<div className="w-full max-w-sm">
-				<VerifyTotpForm email={email} />
-			</div>
-		</div>
+		<AuthPageShell>
+			<VerifyTotpForm email={email} />
+		</AuthPageShell>
 	)
 }

@@ -1,119 +1,104 @@
 'use client'
 
-import { GalleryVerticalEnd } from 'lucide-react'
+import { Shield } from 'lucide-react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { type ComponentProps, useState } from 'react'
+import {
+	authInlineLinkClass,
+	authOtpSlotClass,
+	authPageSubtitleClass,
+	authPageTitleClass,
+} from '~/components/auth/auth-form-styles'
+import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import {
 	InputOTP,
 	InputOTPGroup,
 	InputOTPSlot,
 } from '~/components/ui/input-otp'
+import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
 
 export function VerifyTotpForm({
 	className,
 	email,
 	...props
-}: React.ComponentProps<'div'> & { email: string }) {
+}: ComponentProps<'div'> & { email: string }) {
 	const t = useTranslations('verify-totp')
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [value, setValue] = useState('')
 
-	const handleTotpComplete = async (value: string) => {
-		if (value.length !== 6) return
+	const handleTotpComplete = async (code: string) => {
+		if (code.length !== 6) return
 
 		setLoading(true)
 		setError(null)
 
 		const result = await signIn('totp', {
 			email,
-			totp: value,
+			totp: code,
 			callbackUrl: '/',
+			redirect: false,
 		})
 
-		if (!result?.ok) {
+		if (result?.error) {
 			setError(t('invalid-code'))
 			setValue('')
-			setLoading(false)
+		} else if (result?.ok) {
+			window.location.href = result.url || '/'
 		}
+
+		setLoading(false)
 	}
 
+	const backupHref = `/verify-backup-code?email=${encodeURIComponent(email)}`
+
 	return (
-		<div className={cn('flex flex-col gap-6', className)} {...props}>
-			<div className="flex flex-col items-center text-center">
-				<div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent">
-					<GalleryVerticalEnd className="h-8 w-8" />
+		<div className={cn('flex flex-col gap-5', className)} {...props}>
+			<div className="flex flex-col items-center gap-3 text-center">
+				<div className={shell.iconChip} aria-hidden>
+					<Shield className="size-5" />
 				</div>
-				<h1 className="font-bold text-2xl">{t('title')}</h1>
-				<p className="text-balance text-muted-foreground">{t('description')}</p>
-				<div className="rounded-lg bg-muted p-3 text-sm">
-					<strong>{t('email-label')}</strong> {email}
-				</div>
+				<h1 className={authPageTitleClass}>{t('title')}</h1>
+				<p className={authPageSubtitleClass}>{t('description')}</p>
+				<p className="max-w-full truncate text-slate-500 text-xs" title={email}>
+					<span className="font-medium text-slate-600">{t('email-label')}</span>{' '}
+					<span className="text-slate-500">{email}</span>
+				</p>
 			</div>
 
-			{error && (
-				<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-					{error}
-				</div>
-			)}
-
-			<div className="flex flex-col items-center gap-6">
+			<div className="flex flex-col items-center gap-3">
 				<InputOTP
 					maxLength={6}
 					value={value}
-					onChange={(value) => setValue(value)}
+					onChange={(next) => setValue(next)}
 					onComplete={handleTotpComplete}
 					disabled={loading}
 					containerClassName="gap-3"
 				>
 					<InputOTPGroup className="gap-2">
-						<InputOTPSlot
-							index={0}
-							className="h-12 w-12 rounded-lg border-2 text-lg"
-						/>
-						<InputOTPSlot
-							index={1}
-							className="h-12 w-12 rounded-lg border-2 text-lg"
-						/>
-						<InputOTPSlot
-							index={2}
-							className="h-12 w-12 rounded-lg border-2 text-lg"
-						/>
-						<InputOTPSlot
-							index={3}
-							className="h-12 w-12 rounded-lg border-2 text-lg"
-						/>
-						<InputOTPSlot
-							index={4}
-							className="h-12 w-12 rounded-lg border-2 text-lg"
-						/>
-						<InputOTPSlot
-							index={5}
-							className="h-12 w-12 rounded-lg border-2 text-lg"
-						/>
+						{[0, 1, 2, 3, 4, 5].map((i) => (
+							<InputOTPSlot key={i} index={i} className={authOtpSlotClass} />
+						))}
 					</InputOTPGroup>
 				</InputOTP>
-				<p className="text-center text-muted-foreground text-sm">
-					{loading
-						? 'Verificando...'
-						: 'Ingresa el código de tu aplicación autenticadora'}
-				</p>
+				<AuthInlineError
+					message={error}
+					loading={loading}
+					loadingLabel={t('verifying')}
+					className="max-w-sm self-center px-2"
+					minHeightClass="min-h-5"
+				/>
 			</div>
 
-			<div className="text-center">
-				<p className="text-muted-foreground text-sm">
-					¿Problemas para acceder?{' '}
-					<Link
-						href={`/verify-backup-code?email=${encodeURIComponent(email)}`}
-						className="font-medium text-primary underline underline-offset-4"
-					>
-						Usar código de respaldo
-					</Link>
-				</p>
-			</div>
+			<p className="text-balance text-center text-slate-600 text-sm leading-relaxed">
+				{t('backup-prompt')}{' '}
+				<Link href={backupHref} className={authInlineLinkClass}>
+					{t('backup-link')}
+				</Link>
+			</p>
 		</div>
 	)
 }

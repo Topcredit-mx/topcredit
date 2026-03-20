@@ -65,7 +65,8 @@ export function SectionCard({
 		<Card
 			className={cn(
 				shell.elevatedCard,
-				'gap-0 overflow-hidden py-0',
+				/* Avoid overflow-hidden: it can clip nested flex text (e.g. TOTP status) and break visibility checks. */
+				'gap-0 py-0',
 				className,
 			)}
 		>

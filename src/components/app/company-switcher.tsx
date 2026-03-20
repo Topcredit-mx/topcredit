@@ -1,9 +1,9 @@
 'use client'
 
-import { Building2, ChevronsUpDown, LayoutDashboard } from 'lucide-react'
+import { Building2, ChevronsUpDown, LayoutGrid } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { setSelectedCompanyId } from '~/app/app/actions'
+import { setSelectedCompanyId } from '~/app/equipo/(main)/actions'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -89,7 +89,7 @@ export function CompanySwitcher({
 						className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted font-medium text-muted-foreground text-xs"
 						aria-hidden
 					>
-						<LayoutDashboard className="size-4" />
+						<LayoutGrid className="size-4" />
 					</div>
 					<span className="truncate">{noSelectionLabel}</span>
 				</DropdownMenuItem>

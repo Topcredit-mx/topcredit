@@ -17,9 +17,8 @@ const footerLinks = {
 		{ name: 'Estatus de solicitud', href: '/status' },
 	],
 	legal: [
-		{ name: 'Términos y condiciones', href: '/terminos' },
-		{ name: 'Política de privacidad', href: '/privacidad' },
-		{ name: 'Aviso de privacidad', href: '/aviso-privacidad' },
+		{ name: 'Términos de servicio', href: '/terms' },
+		{ name: 'Política de privacidad', href: '/privacy' },
 		{ name: 'CONDUSEF', href: 'https://www.condusef.gob.mx' },
 	],
 }
@@ -52,28 +51,30 @@ const contactInfo = [
 ]
 
 export function Footer() {
+	const year = new Date().getFullYear()
+
 	return (
-		<footer className="bg-gray-900">
-			{/* CTA Section */}
-			<div className="border-gray-800 border-b">
+		<footer className="bg-slate-900 text-slate-300">
+			<div className="border-slate-800 border-b">
 				<div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
 					<div className="text-center">
-						<h2 className="font-bold text-3xl text-white sm:text-4xl">
+						<h2 className="font-semibold text-3xl text-white sm:text-4xl">
 							¿Listo para obtener tu crédito?
 						</h2>
-						<p className="mx-auto mt-4 max-w-2xl text-gray-300 text-lg">
+						<p className="mx-auto mt-4 max-w-2xl text-lg text-slate-400">
 							Únete a miles de empleados que ya confían en TopCredit para sus
 							necesidades financieras.
 						</p>
 						<div className="mt-8">
 							<Button
 								asChild
+								variant="brand"
 								size="lg"
-								className="group h-12 bg-blue-600 px-8 text-base hover:bg-blue-700"
+								className="group h-12 px-8 text-base"
 							>
 								<Link href="/signup">
 									Solicitar crédito ahora
-									<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+									<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
 								</Link>
 							</Button>
 						</div>
@@ -81,10 +82,8 @@ export function Footer() {
 				</div>
 			</div>
 
-			{/* Main Footer */}
 			<div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
 				<div className="grid gap-8 lg:grid-cols-4">
-					{/* Company Info */}
 					<div className="lg:col-span-1">
 						<div className="flex items-center">
 							<Image
@@ -95,28 +94,26 @@ export function Footer() {
 								className="h-8 w-auto brightness-0 invert"
 							/>
 						</div>
-						<p className="mt-4 text-gray-400 text-sm leading-relaxed">
+						<p className="mt-4 text-slate-400 text-sm leading-relaxed">
 							La plataforma de crédito confiable para empleados de empresas
 							afiliadas. Proceso digital, tasas preferenciales y aprobación
 							rápida.
 						</p>
 
-						{/* Contact Info */}
 						<div className="mt-6 space-y-3">
 							{contactInfo.map((item) => (
 								<a
 									key={item.label}
 									href={item.href}
-									className="flex items-center text-gray-400 text-sm transition-colors hover:text-white"
+									className="flex items-center gap-3 text-slate-400 text-sm transition-colors hover:text-white"
 								>
-									<item.icon className="mr-3 h-4 w-4" />
+									<item.icon className="size-4 shrink-0" aria-hidden />
 									<span>{item.value}</span>
 								</a>
 							))}
 						</div>
 					</div>
 
-					{/* Links */}
 					<div className="grid gap-8 sm:grid-cols-3 lg:col-span-3">
 						<div>
 							<h3 className="font-semibold text-white">Producto</h3>
@@ -125,7 +122,7 @@ export function Footer() {
 									<li key={link.name}>
 										<Link
 											href={link.href}
-											className="text-gray-400 text-sm transition-colors hover:text-white"
+											className="text-slate-400 text-sm transition-colors hover:text-brand-soft"
 										>
 											{link.name}
 										</Link>
@@ -141,7 +138,7 @@ export function Footer() {
 									<li key={link.name}>
 										<Link
 											href={link.href}
-											className="text-gray-400 text-sm transition-colors hover:text-white"
+											className="text-slate-400 text-sm transition-colors hover:text-brand-soft"
 										>
 											{link.name}
 										</Link>
@@ -157,11 +154,13 @@ export function Footer() {
 									<li key={link.name}>
 										<Link
 											href={link.href}
-											className="text-gray-400 text-sm transition-colors hover:text-white"
-											{...(link.href.startsWith('http') && {
-												target: '_blank',
-												rel: 'noopener noreferrer',
-											})}
+											className="text-slate-400 text-sm transition-colors hover:text-brand-soft"
+											{...(link.href.startsWith('http')
+												? {
+														target: '_blank',
+														rel: 'noopener noreferrer',
+													}
+												: {})}
 										>
 											{link.name}
 										</Link>
@@ -172,17 +171,14 @@ export function Footer() {
 					</div>
 				</div>
 
-				{/* Bottom Bar */}
-				<div className="mt-12 border-gray-800 border-t pt-8">
-					<div className="flex flex-col items-center justify-between sm:flex-row">
-						<p className="text-gray-400 text-sm">
-							© 2024 TopCredit. Todos los derechos reservados.
+				<div className="mt-12 border-slate-800 border-t pt-8">
+					<div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+						<p className="text-slate-400 text-sm">
+							© {year} TopCredit. Todos los derechos reservados.
 						</p>
-						<div className="mt-4 flex space-x-6 sm:mt-0">
-							<span className="text-gray-400 text-xs">
-								Regulado por CNBV • Protegido por IPAB
-							</span>
-						</div>
+						<p className="text-slate-500 text-xs">
+							Regulado por CNBV • Protegido por IPAB
+						</p>
 					</div>
 				</div>
 			</div>

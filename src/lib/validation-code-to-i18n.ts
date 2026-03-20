@@ -11,15 +11,14 @@ import {
 } from './validation-codes'
 
 type AdminKey = keyof (typeof messages)['admin']
-type DashboardApplicationsKey =
-	keyof (typeof messages)['dashboard']['applications']
-type AppKey = keyof (typeof messages)['app']
+type CuentaApplicationsKey = keyof (typeof messages)['cuenta']['applications']
+type EquipoKey = keyof (typeof messages)['equipo']
 type AuthKey = keyof (typeof messages)['auth']
 
 type CodeMapping =
 	| { namespace: 'admin'; key: AdminKey }
-	| { namespace: 'dashboard.applications'; key: DashboardApplicationsKey }
-	| { namespace: 'app'; key: AppKey }
+	| { namespace: 'cuenta.applications'; key: CuentaApplicationsKey }
+	| { namespace: 'equipo'; key: EquipoKey }
 	| { namespace: 'auth'; key: AuthKey }
 
 const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
@@ -68,123 +67,123 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		key: 'company-frequency',
 	},
 	[ValidationCode.APPLICATION_TERM_REQUIRED]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'application-term-required',
 	},
 	[ValidationCode.APPLICATION_VALUE_REQUIRED]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'application-value-required',
 	},
 	[ValidationCode.APPLICATION_VALUE_POSITIVE]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'application-value-positive',
 	},
 	[ValidationCode.APPLICATION_RFC_LENGTH]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'application-rfc-length',
 	},
 	[ValidationCode.APPLICATION_RFC_INVALID]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'application-rfc-invalid',
 	},
 	[ValidationCode.APPLICATION_CLABE_LENGTH]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'application-clabe-length',
 	},
 	[ValidationCode.APPLICATION_CLABE_INVALID]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'application-clabe-invalid',
 	},
 	[ValidationCode.APPLICATION_POSTAL_CODE_LENGTH]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'application-postal-code-length',
 	},
 	[ValidationCode.APPLICATION_INVALID]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'application-invalid',
 	},
 	[ValidationCode.DOCUMENT_TYPE_INVALID]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'document-type-invalid',
 	},
 	[ValidationCode.DOCUMENT_STATUS_INVALID]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'document-status-invalid',
 	},
-	[ValidationCode.DASHBOARD_APPLICATION_EMAIL_DOMAIN]: {
-		namespace: 'dashboard.applications',
+	[ValidationCode.CUENTA_APPLICATION_EMAIL_DOMAIN]: {
+		namespace: 'cuenta.applications',
 		key: 'error-email-domain',
 	},
-	[ValidationCode.DASHBOARD_APPLICATION_COMPANY_NO_RATE]: {
-		namespace: 'dashboard.applications',
+	[ValidationCode.CUENTA_APPLICATION_COMPANY_NO_RATE]: {
+		namespace: 'cuenta.applications',
 		key: 'error-company-no-rate',
 	},
-	[ValidationCode.DASHBOARD_APPLICATION_COMPANY_NO_TERMS]: {
-		namespace: 'dashboard.applications',
+	[ValidationCode.CUENTA_APPLICATION_COMPANY_NO_TERMS]: {
+		namespace: 'cuenta.applications',
 		key: 'error-company-no-terms',
 	},
-	[ValidationCode.DASHBOARD_APPLICATION_TERM_NOT_AVAILABLE]: {
-		namespace: 'dashboard.applications',
+	[ValidationCode.CUENTA_APPLICATION_TERM_NOT_AVAILABLE]: {
+		namespace: 'cuenta.applications',
 		key: 'term-not-available',
 	},
-	[ValidationCode.DASHBOARD_APPLICATION_DUPLICATE_WAIT]: {
-		namespace: 'dashboard.applications',
+	[ValidationCode.CUENTA_APPLICATION_DUPLICATE_WAIT]: {
+		namespace: 'cuenta.applications',
 		key: 'duplicate-application-wait',
 	},
-	[ValidationCode.DASHBOARD_APPLICATION_EXISTING_ACTIVE]: {
-		namespace: 'dashboard.applications',
+	[ValidationCode.CUENTA_APPLICATION_EXISTING_ACTIVE]: {
+		namespace: 'cuenta.applications',
 		key: 'existing-active-application',
 	},
-	[ValidationCode.DASHBOARD_APPLICATION_NOT_FOUND]: {
-		namespace: 'dashboard.applications',
+	[ValidationCode.CUENTA_APPLICATION_NOT_FOUND]: {
+		namespace: 'cuenta.applications',
 		key: 'application-not-found',
 	},
-	[ValidationCode.DASHBOARD_APPLICATION_FILE_REQUIRED]: {
-		namespace: 'dashboard.applications',
+	[ValidationCode.CUENTA_APPLICATION_FILE_REQUIRED]: {
+		namespace: 'cuenta.applications',
 		key: 'file-required',
 	},
-	[ValidationCode.DASHBOARD_APPLICATION_FILE_MAX_SIZE]: {
-		namespace: 'dashboard.applications',
+	[ValidationCode.CUENTA_APPLICATION_FILE_MAX_SIZE]: {
+		namespace: 'cuenta.applications',
 		key: 'file-max-size',
 	},
 	[ValidationCode.FILE_TYPE_UNKNOWN]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'file-type-unknown',
 	},
 	[ValidationCode.FILE_TYPE_NOT_ALLOWED]: {
-		namespace: 'dashboard.applications',
+		namespace: 'cuenta.applications',
 		key: 'file-type-not-allowed',
 	},
 	[ValidationCode.APPLICATIONS_DOCUMENT_INVALID]: {
-		namespace: 'app',
+		namespace: 'equipo',
 		key: 'applications-document-invalid',
 	},
 	[ValidationCode.APPLICATIONS_DOCUMENT_REJECTION_REASON_REQUIRED]: {
-		namespace: 'app',
+		namespace: 'equipo',
 		key: 'applications-document-rejection-reason-required',
 	},
 	[ValidationCode.APPLICATIONS_ERROR_GENERIC]: {
-		namespace: 'app',
+		namespace: 'equipo',
 		key: 'applications-error-generic',
 	},
 	[ValidationCode.APPLICATIONS_REASON_REQUIRED]: {
-		namespace: 'app',
+		namespace: 'equipo',
 		key: 'applications-reason-required',
 	},
 	[ValidationCode.APPLICATIONS_NOT_FOUND]: {
-		namespace: 'app',
+		namespace: 'equipo',
 		key: 'applications-not-found',
 	},
 	[ValidationCode.APPLICATIONS_ERROR_TRANSITION]: {
-		namespace: 'app',
+		namespace: 'equipo',
 		key: 'applications-error-transition',
 	},
 	[ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED]: {
-		namespace: 'app',
+		namespace: 'equipo',
 		key: 'applications-financial-terms-required',
 	},
 	[ValidationCode.APPLICATIONS_REQUESTS_CANNOT_PREAUTH_OR_AUTH]: {
-		namespace: 'app',
+		namespace: 'equipo',
 		key: 'applications-requests-cannot-preauth-or-auth',
 	},
 	[ValidationCode.AUTH_EMAIL_NAME_REQUIRED]: {
@@ -270,16 +269,16 @@ export function getResolvedError(
  */
 export function useResolveValidationError(): (code: string) => string {
 	const tAdmin = useTranslations('admin')
-	const tDashboardApps = useTranslations('dashboard.applications')
-	const tApp = useTranslations('app')
+	const tCuentaApplications = useTranslations('cuenta.applications')
+	const tEquipo = useTranslations('equipo')
 	const tAuth = useTranslations('auth')
 
 	return (code: string) => {
 		if (!isValidationCode(code)) return code
 		const { namespace, key } = CODE_TO_I18N[code]
 		if (namespace === 'admin') return tAdmin(key)
-		if (namespace === 'dashboard.applications') return tDashboardApps(key)
+		if (namespace === 'cuenta.applications') return tCuentaApplications(key)
 		if (namespace === 'auth') return tAuth(key)
-		return tApp(key)
+		return tEquipo(key)
 	}
 }

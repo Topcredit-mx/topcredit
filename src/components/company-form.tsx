@@ -5,7 +5,8 @@ import { useActionState, useId, useState } from 'react'
 import {
 	createCompanyAction,
 	updateCompanyAction,
-} from '~/app/app/companies/actions'
+} from '~/app/equipo/(main)/companies/actions'
+import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import {
@@ -96,12 +97,14 @@ export function CompanyForm({ company }: CompanyFormProps) {
 			<input type="hidden" name="active" value={active ? 'on' : 'off'} />
 
 			{/* General error display (only if no field-specific errors) */}
-			{state.message && !state.errors && (
-				<FieldError
-					message={resolveError(state.message)}
-					className="rounded-md bg-destructive/15 p-3"
-				/>
-			)}
+			<AuthInlineError
+				message={
+					state.message && !state.errors ? resolveError(state.message) : null
+				}
+				align="start"
+				className="px-0"
+				minHeightClass="min-h-5"
+			/>
 
 			<Field>
 				<FieldLabel htmlFor={nameId}>

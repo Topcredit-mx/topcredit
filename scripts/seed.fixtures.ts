@@ -16,6 +16,11 @@ export const seedUsers = [
 		email: 'applicant@example.com',
 		roles: ['applicant'] satisfies readonly Role[],
 	},
+	{
+		name: 'Applicant Invalid Docs',
+		email: 'applicant-invalid@example.com',
+		roles: ['applicant'] satisfies readonly Role[],
+	},
 ] as const
 
 export const seedCompanies = [
@@ -130,5 +135,14 @@ export const seedApplications: ReadonlyArray<{
 			'pre-authorized',
 			'authorized',
 		],
+	},
+	{
+		applicantEmail: 'applicant-invalid@example.com',
+		companyDomain: 'example.com',
+		durationType: 'monthly',
+		duration: 12,
+		creditAmount: '9500.00',
+		salaryAtApplication: '30000.00',
+		status: 'invalid-documentation',
 	},
 ]

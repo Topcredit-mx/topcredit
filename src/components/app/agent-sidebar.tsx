@@ -34,29 +34,37 @@ export function AgentSidebar({
 	companies,
 	selectedCompanyId,
 }: AgentSidebarProps) {
-	const t = useTranslations('app')
+	const t = useTranslations('equipo')
 	const isAdmin = user.roles?.includes('admin')
 	const disableNav = !isAdmin && companies.length === 0
 
 	const navigationItems: NavItem[] = isAdmin
 		? [
-				{ title: t('nav-dashboard'), url: '/app', icon: Home },
-				{ title: t('nav-users'), url: '/app/users', icon: Users },
-				{ title: t('nav-companies'), url: '/app/companies', icon: Building2 },
+				{ title: t('nav-home'), url: '/equipo', icon: Home },
+				{ title: t('nav-users'), url: '/equipo/users', icon: Users },
+				{
+					title: t('nav-companies'),
+					url: '/equipo/companies',
+					icon: Building2,
+				},
 				{
 					title: t('nav-data'),
-					url: '/app/data',
+					url: '/equipo/data',
 					icon: FileText,
 					items: [
-						{ title: t('nav-requests'), url: '/app/applications' },
-						{ title: t('nav-credits'), url: '/app/credits' },
+						{ title: t('nav-requests'), url: '/equipo/applications' },
+						{ title: t('nav-credits'), url: '/equipo/credits' },
 					],
 				},
-				{ title: t('nav-payments'), url: '/app/payments', icon: CreditCard },
+				{ title: t('nav-payments'), url: '/equipo/payments', icon: CreditCard },
 			]
 		: [
-				{ title: t('nav-dashboard'), url: '/app', icon: Home },
-				{ title: t('nav-requests'), url: '/app/applications', icon: FileText },
+				{ title: t('nav-home'), url: '/equipo', icon: Home },
+				{
+					title: t('nav-requests'),
+					url: '/equipo/applications',
+					icon: FileText,
+				},
 			]
 
 	return (
@@ -72,7 +80,7 @@ export function AgentSidebar({
 							/>
 						) : (
 							<SidebarMenuButton size="lg" asChild>
-								<Link href="/app">
+								<Link href="/equipo">
 									<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
 										<Building2 className="size-4" />
 									</div>

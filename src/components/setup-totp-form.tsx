@@ -1,22 +1,18 @@
 'use client'
 
-import { Check, Copy, Download, GalleryVerticalEnd } from 'lucide-react'
+import { Building2, Check, Copy, Download } from 'lucide-react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { type ComponentProps, useState } from 'react'
+import { authOtpSlotClass } from '~/components/auth/auth-form-styles'
+import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from '~/components/ui/card'
 import {
 	InputOTP,
 	InputOTPGroup,
 	InputOTPSlot,
 } from '~/components/ui/input-otp'
+import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
 import { initiateTotpSetup, verifyTotpSetup } from '~/server/auth/actions'
 
@@ -27,13 +23,11 @@ interface TotpSetupData {
 	manualEntryKey: string
 }
 
-// Removed unused interface
-
 export function SetupTotpForm({
 	className,
 	email,
 	...props
-}: React.ComponentProps<'div'> & { email: string }) {
+}: ComponentProps<'div'> & { email: string }) {
 	const t = useTranslations('setup-totp')
 	const tCommon = useTranslations('common')
 	const [currentStep, setCurrentStep] = useState<SetupStep>('generate')
@@ -43,6 +37,7 @@ export function SetupTotpForm({
 	const [backupCodes, setBackupCodes] = useState<string[]>([])
 	const [verificationToken, setVerificationToken] = useState('')
 	const [copiedCodes, setCopiedCodes] = useState(false)
+	const [copiedManualSecret, setCopiedManualSecret] = useState(false)
 
 	const handleGenerateSecret = async () => {
 		setLoading(true)
@@ -76,6 +71,13 @@ export function SetupTotpForm({
 		}
 	}
 
+	const copyManualSecret = async () => {
+		if (!totpData) return
+		await navigator.clipboard.writeText(totpData.manualEntryKey)
+		setCopiedManualSecret(true)
+		setTimeout(() => setCopiedManualSecret(false), 2000)
+	}
+
 	const copyBackupCodes = async () => {
 		const codesText = backupCodes.join('\n')
 		await navigator.clipboard.writeText(codesText)
@@ -95,182 +97,201 @@ export function SetupTotpForm({
 	}
 
 	return (
-		<div className={cn('flex flex-col gap-6', className)} {...props}>
-			<div className="flex flex-col items-center text-center">
-				<div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent">
-					<GalleryVerticalEnd className="h-8 w-8" />
+		<div className={cn('flex flex-col gap-8', className)} {...props}>
+			<div className="flex flex-col items-center gap-4 text-center">
+				<div className={shell.iconChip} aria-hidden>
+					<Building2 className="size-5" />
 				</div>
-				<h1 className="font-bold text-2xl">{t('title')}</h1>
-				<p className="text-balance text-muted-foreground">{t('description')}</p>
+				<h1 className="font-semibold text-2xl text-slate-900 tracking-tight sm:text-3xl">
+					{t('title')}
+				</h1>
+				<p className="max-w-sm text-pretty text-slate-600 text-sm leading-relaxed">
+					{t('description')}
+				</p>
 			</div>
 
-			{error && (
-				<div className="rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-					{error}
+			<AuthInlineError
+				message={error}
+				className="px-0"
+				minHeightClass="min-h-5"
+			/>
+
+			{currentStep === 'generate' ? (
+				<div className="space-y-4 border-slate-100 border-t pt-6">
+					<h2 className="font-semibold text-slate-900">{t('step1-title')}</h2>
+					<p className="text-slate-600 text-sm leading-relaxed">
+						{t('step1-description')}
+					</p>
+					<Button
+						type="button"
+						onClick={handleGenerateSecret}
+						disabled={loading}
+						variant="brand"
+						className="h-11 w-full font-semibold"
+					>
+						{loading ? t('generating') : t('generate')}
+					</Button>
 				</div>
-			)}
+			) : null}
 
-			{/* Step 1: Generate Secret */}
-			{currentStep === 'generate' && (
-				<Card>
-					<CardHeader>
-						<CardTitle>{t('step1-title')}</CardTitle>
-						<CardDescription>{t('step1-description')}</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<Button
-							onClick={handleGenerateSecret}
-							disabled={loading}
-							className="w-full"
-						>
-							{loading ? t('generating') : t('generate')}
-						</Button>
-					</CardContent>
-				</Card>
-			)}
-
-			{/* Step 2: Scan QR Code */}
-			{currentStep === 'scan' && totpData && (
-				<Card>
-					<CardHeader>
-						<CardTitle>{t('step2-title')}</CardTitle>
-						<CardDescription>{t('step2-description')}</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="flex justify-center">
-							<Image
-								src={totpData.qrCodeUrl}
-								alt={t('qr-alt')}
-								width={200}
-								height={200}
-								className="rounded-lg border"
-							/>
-						</div>
-						<div className="text-center">
-							<p className="mb-2 text-muted-foreground text-sm">
-								{t('manual-entry')}
-							</p>
-							<code className="rounded bg-muted px-2 py-1 font-mono text-sm">
+			{currentStep === 'scan' && totpData ? (
+				<div className="space-y-4 border-slate-100 border-t pt-6">
+					<div>
+						<h2 className="font-semibold text-slate-900">{t('step2-title')}</h2>
+						<p className="mt-1 text-slate-600 text-sm leading-relaxed">
+							{t('step2-description')}
+						</p>
+					</div>
+					<div className="flex justify-center">
+						<Image
+							src={totpData.qrCodeUrl}
+							alt={t('qr-alt')}
+							width={200}
+							height={200}
+							className="rounded-xl border border-slate-200 shadow-sm"
+						/>
+					</div>
+					<div className="w-full min-w-0">
+						<p className="mb-2 text-slate-600 text-sm sm:text-center">
+							{t('manual-entry')}
+						</p>
+						<div className="flex min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+							<code
+								className="min-w-0 flex-1 truncate px-3 py-2.5 text-left font-mono text-slate-900 text-sm"
+								title={totpData.manualEntryKey}
+							>
 								{totpData.manualEntryKey}
 							</code>
-						</div>
-						<Button onClick={() => setCurrentStep('verify')} className="w-full">
-							{t('added-account')}
-						</Button>
-					</CardContent>
-				</Card>
-			)}
-
-			{/* Step 3: Verify Setup */}
-			{currentStep === 'verify' && (
-				<Card>
-					<CardHeader>
-						<CardTitle>{t('step3-title')}</CardTitle>
-						<CardDescription>{t('step3-description')}</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-6">
-						<div className="flex flex-col items-center gap-4">
-							<InputOTP
-								maxLength={6}
-								value={verificationToken}
-								onChange={(value) => setVerificationToken(value)}
-								onComplete={handleVerifySetup}
-								disabled={loading}
-								containerClassName="gap-3"
-							>
-								<InputOTPGroup className="gap-2">
-									<InputOTPSlot
-										index={0}
-										className="h-12 w-12 rounded-lg border-2 text-lg"
-									/>
-									<InputOTPSlot
-										index={1}
-										className="h-12 w-12 rounded-lg border-2 text-lg"
-									/>
-									<InputOTPSlot
-										index={2}
-										className="h-12 w-12 rounded-lg border-2 text-lg"
-									/>
-									<InputOTPSlot
-										index={3}
-										className="h-12 w-12 rounded-lg border-2 text-lg"
-									/>
-									<InputOTPSlot
-										index={4}
-										className="h-12 w-12 rounded-lg border-2 text-lg"
-									/>
-									<InputOTPSlot
-										index={5}
-										className="h-12 w-12 rounded-lg border-2 text-lg"
-									/>
-								</InputOTPGroup>
-							</InputOTP>
-							<p className="text-center text-muted-foreground text-sm">
-								{t('verify-hint')}
-							</p>
-						</div>
-					</CardContent>
-				</Card>
-			)}
-
-			{/* Step 4: Backup Codes */}
-			{currentStep === 'backup-codes' && backupCodes.length > 0 && (
-				<Card>
-					<CardHeader>
-						<CardTitle>{t('step4-title')}</CardTitle>
-						<CardDescription>{t('step4-description')}</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-4 font-mono text-sm">
-							{backupCodes.map((code) => (
-								<div key={code} className="text-center">
-									{code}
-								</div>
-							))}
-						</div>
-
-						<div className="flex gap-2">
 							<Button
-								onClick={copyBackupCodes}
-								variant="outline"
-								className="flex-1"
-								disabled={copiedCodes}
+								type="button"
+								variant="ghost"
+								size="sm"
+								onClick={copyManualSecret}
+								aria-label={
+									copiedManualSecret ? tCommon('copied') : tCommon('copy')
+								}
+								className="h-auto shrink-0 rounded-none border-slate-200 border-l px-3 py-2 font-semibold text-brand hover:bg-brand/10"
 							>
-								{copiedCodes ? (
+								{copiedManualSecret ? (
 									<>
-										<Check className="mr-2 h-4 w-4" />
-										{tCommon('copied')}
+										<Check className="size-4 sm:mr-1.5" aria-hidden />
+										<span className="hidden sm:inline">
+											{tCommon('copied')}
+										</span>
 									</>
 								) : (
 									<>
-										<Copy className="mr-2 h-4 w-4" />
-										{t('copy-codes')}
+										<Copy className="size-4 sm:mr-1.5" aria-hidden />
+										<span className="hidden sm:inline">{tCommon('copy')}</span>
 									</>
 								)}
 							</Button>
-							<Button
-								onClick={downloadBackupCodes}
-								variant="outline"
-								className="flex-1"
-							>
-								<Download className="mr-2 h-4 w-4" />
-								{tCommon('download')}
-							</Button>
 						</div>
+					</div>
+					<Button
+						type="button"
+						onClick={() => setCurrentStep('verify')}
+						variant="brand"
+						className="h-11 w-full font-semibold"
+					>
+						{t('added-account')}
+					</Button>
+				</div>
+			) : null}
 
-						<div className="text-center">
-							<Button
-								className="w-full"
-								onClick={() => {
-									window.location.href = '/'
-								}}
-							>
-								{t('complete')}
-							</Button>
-						</div>
-					</CardContent>
-				</Card>
-			)}
+			{currentStep === 'verify' ? (
+				<div className="space-y-6 border-slate-100 border-t pt-6">
+					<div>
+						<h2 className="font-semibold text-slate-900">{t('step3-title')}</h2>
+						<p className="mt-1 text-slate-600 text-sm leading-relaxed">
+							{t('step3-description')}
+						</p>
+					</div>
+					<div className="flex flex-col items-center gap-4">
+						<InputOTP
+							maxLength={6}
+							value={verificationToken}
+							onChange={(value) => setVerificationToken(value)}
+							onComplete={handleVerifySetup}
+							disabled={loading}
+							containerClassName="gap-3"
+						>
+							<InputOTPGroup className="gap-2">
+								{[0, 1, 2, 3, 4, 5].map((i) => (
+									<InputOTPSlot
+										key={i}
+										index={i}
+										className={authOtpSlotClass}
+									/>
+								))}
+							</InputOTPGroup>
+						</InputOTP>
+						<p className="text-center text-slate-500 text-sm">
+							{t('verify-hint')}
+						</p>
+					</div>
+				</div>
+			) : null}
+
+			{currentStep === 'backup-codes' && backupCodes.length > 0 ? (
+				<div className="space-y-4 border-slate-100 border-t pt-6">
+					<div>
+						<h2 className="font-semibold text-slate-900">{t('step4-title')}</h2>
+						<p className="mt-1 text-slate-600 text-sm leading-relaxed">
+							{t('step4-description')}
+						</p>
+					</div>
+					<div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-50/80 p-4 font-mono text-sm">
+						{backupCodes.map((code) => (
+							<div key={code} className="text-center text-slate-900">
+								{code}
+							</div>
+						))}
+					</div>
+
+					<div className="flex flex-col gap-2 sm:flex-row">
+						<Button
+							type="button"
+							onClick={copyBackupCodes}
+							variant="outline"
+							className="h-11 flex-1 border-slate-200 font-semibold"
+							disabled={copiedCodes}
+						>
+							{copiedCodes ? (
+								<>
+									<Check className="mr-2 size-4" aria-hidden />
+									{tCommon('copied')}
+								</>
+							) : (
+								<>
+									<Copy className="mr-2 size-4" aria-hidden />
+									{t('copy-codes')}
+								</>
+							)}
+						</Button>
+						<Button
+							type="button"
+							onClick={downloadBackupCodes}
+							variant="outline"
+							className="h-11 flex-1 border-slate-200 font-semibold"
+						>
+							<Download className="mr-2 size-4" aria-hidden />
+							{tCommon('download')}
+						</Button>
+					</div>
+
+					<Button
+						type="button"
+						variant="brand"
+						className="h-11 w-full font-semibold"
+						onClick={() => {
+							window.location.href = '/'
+						}}
+					>
+						{t('complete')}
+					</Button>
+				</div>
+			) : null}
 		</div>
 	)
 }
