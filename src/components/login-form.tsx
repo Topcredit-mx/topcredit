@@ -11,8 +11,9 @@ import {
 	authPageSubtitleClass,
 	authPageTitleClass,
 } from '~/components/auth/auth-form-styles'
+import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
-import { Field, FieldError, FieldLabel } from '~/components/ui/field'
+import { Field, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
 import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
@@ -61,9 +62,11 @@ export function LoginForm({ className, ...props }: ComponentProps<'div'>) {
 						autoComplete="email"
 						className={authInputClass}
 					/>
-					{state.message ? (
-						<FieldError message={resolveError(state.message)} />
-					) : null}
+					<AuthInlineError
+						message={state.message ? resolveError(state.message) : null}
+						align="start"
+						className="px-0"
+					/>
 				</Field>
 				<Button
 					type="submit"

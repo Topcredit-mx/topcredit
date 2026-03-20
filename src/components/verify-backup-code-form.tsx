@@ -11,6 +11,7 @@ import {
 	authPageSubtitleClass,
 	authPageTitleClass,
 } from '~/components/auth/auth-form-styles'
+import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import { Field, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
@@ -95,11 +96,7 @@ export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
 						/>
 					</Field>
 
-					{error ? (
-						<p className="text-center text-red-700 text-sm" role="alert">
-							{error}
-						</p>
-					) : null}
+					<AuthInlineError message={error || null} className="px-0" />
 
 					<Button
 						type="submit"

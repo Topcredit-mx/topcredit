@@ -4,10 +4,10 @@ import { AlertTriangle, Download, Key, Shield, ShieldCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import { SectionCard } from '~/components/ui/section-card'
 import { shell } from '~/lib/shell'
-import { cn } from '~/lib/utils'
 import { disableTotpSetup, generateNewBackupCodes } from '~/server/auth/users'
 
 interface TotpSettingsCardProps {
@@ -102,18 +102,11 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 			description={t('card-description')}
 		>
 			<div className="space-y-5">
-				{error ? (
-					<div
-						className={cn(
-							shell.alertErrorSurface,
-							'flex items-center gap-2 bg-red-50/80 p-3 text-sm',
-						)}
-						role="alert"
-					>
-						<AlertTriangle className="size-4 shrink-0" aria-hidden />
-						{error}
-					</div>
-				) : null}
+				<AuthInlineError
+					message={error || null}
+					align="start"
+					className="px-0"
+				/>
 
 				<div
 					className={

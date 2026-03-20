@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useActionState, useId, useRef, useState } from 'react'
 import { createApplicationWithInitialDocumentsAction } from '~/app/dashboard/applications/actions'
+import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import {
 	Field,
@@ -122,12 +123,14 @@ export function ApplicationForm() {
 			<input type="hidden" name="state" value={stateValue} />
 			<input type="hidden" name="country" value={countryValue} />
 
-			{state.message && !state.errors && (
-				<FieldError
-					message={resolveError(state.message)}
-					className="rounded-md bg-destructive/15 p-3"
-				/>
-			)}
+			<AuthInlineError
+				message={
+					state.message && !state.errors ? resolveError(state.message) : null
+				}
+				align="start"
+				className="px-0"
+				minHeightClass="min-h-5"
+			/>
 
 			<SectionCard icon={Wallet} title={t('section-personal-financial')}>
 				<div className="grid gap-5 md:grid-cols-2">

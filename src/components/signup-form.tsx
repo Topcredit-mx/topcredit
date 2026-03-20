@@ -11,6 +11,7 @@ import {
 	authPageSubtitleClass,
 	authPageTitleClass,
 } from '~/components/auth/auth-form-styles'
+import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import { Field, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
@@ -77,13 +78,11 @@ export function SignupForm({ className, ...props }: ComponentProps<'div'>) {
 						className={authInputClass}
 					/>
 				</Field>
-				{state.message ? (
-					<div className={cn(shell.alertErrorSurface, 'p-3')} role="alert">
-						<p className="text-pretty text-red-900 text-sm leading-relaxed">
-							{resolveError(state.message)}
-						</p>
-					</div>
-				) : null}
+				<AuthInlineError
+					message={state.message ? resolveError(state.message) : null}
+					align="start"
+					className="px-0"
+				/>
 				<Button
 					type="submit"
 					variant="brand"

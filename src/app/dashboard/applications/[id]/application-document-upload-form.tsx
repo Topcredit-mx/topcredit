@@ -4,6 +4,7 @@ import { Upload } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import { uploadApplicationDocumentAction } from '~/app/dashboard/applications/actions'
+import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import {
@@ -145,12 +146,15 @@ export function ApplicationDocumentUploadForm({
 					<input type="hidden" name="applicationId" value={applicationId} />
 					<input type="hidden" name="documentType" value={documentType} />
 
-					{state.message && !state.errors ? (
-						<FieldError
-							message={resolveError(state.message)}
-							className={cn(shell.alertErrorSurface, 'p-3')}
-						/>
-					) : null}
+					<AuthInlineError
+						message={
+							state.message && !state.errors
+								? resolveError(state.message)
+								: null
+						}
+						align="start"
+						className="px-0"
+					/>
 
 					{fixedDocumentType ? null : (
 						<Field data-invalid={!!state.errors?.documentType}>

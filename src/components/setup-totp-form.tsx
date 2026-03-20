@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { type ComponentProps, useState } from 'react'
 import { authOtpSlotClass } from '~/components/auth/auth-form-styles'
+import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import {
 	InputOTP,
@@ -109,14 +110,11 @@ export function SetupTotpForm({
 				</p>
 			</div>
 
-			{error ? (
-				<div
-					className={cn(shell.alertErrorSurface, 'p-3 text-center text-sm')}
-					role="alert"
-				>
-					{error}
-				</div>
-			) : null}
+			<AuthInlineError
+				message={error}
+				className="px-0"
+				minHeightClass="min-h-5"
+			/>
 
 			{currentStep === 'generate' ? (
 				<div className="space-y-4 border-slate-100 border-t pt-6">

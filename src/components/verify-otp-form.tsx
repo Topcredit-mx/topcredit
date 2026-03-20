@@ -13,6 +13,10 @@ import {
 	authPageTitleClass,
 } from '~/components/auth/auth-form-styles'
 import {
+	AuthInlineError,
+	AuthInlineMessage,
+} from '~/components/auth/auth-inline-message'
+import {
 	InputOTP,
 	InputOTPGroup,
 	InputOTPSlot,
@@ -95,7 +99,7 @@ export function VerifyOTPForm({
 			</div>
 
 			<form onSubmit={handleSubmit} className="flex flex-col gap-8">
-				<div className="flex flex-col items-center gap-6">
+				<div className="flex flex-col items-center gap-3">
 					<InputOTP
 						maxLength={6}
 						value={value}
@@ -111,16 +115,13 @@ export function VerifyOTPForm({
 						</InputOTPGroup>
 					</InputOTP>
 
-					{error ? (
-						<p className="text-center text-red-700 text-sm" role="alert">
-							{error}
-						</p>
-					) : null}
-					{loading ? (
-						<p className="text-center text-slate-500 text-sm">
-							{t('validating')}
-						</p>
-					) : null}
+					<AuthInlineError
+						message={error}
+						loading={loading}
+						loadingLabel={t('validating')}
+						className="max-w-sm self-center px-2"
+						minHeightClass="min-h-5"
+					/>
 				</div>
 
 				<div className="flex flex-col items-center gap-3">
@@ -138,16 +139,11 @@ export function VerifyOTPForm({
 					>
 						{resendLoading ? t('resending') : t('resend')}
 					</button>
-					{resendMessage ? (
-						<p
-							className={cn(
-								'text-center text-sm',
-								resendSuccess ? 'text-emerald-700' : 'text-red-700',
-							)}
-						>
-							{resolveError(resendMessage)}
-						</p>
-					) : null}
+					<AuthInlineMessage
+						message={resendMessage ? resolveError(resendMessage) : null}
+						tone={resendSuccess === true ? 'success' : 'destructive'}
+						className="max-w-sm self-center px-2"
+					/>
 				</div>
 
 				<p className="text-balance text-center text-slate-600 text-sm leading-relaxed">

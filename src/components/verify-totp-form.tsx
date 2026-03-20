@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertCircle, Shield } from 'lucide-react'
+import { Shield } from 'lucide-react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
@@ -11,6 +11,7 @@ import {
 	authPageSubtitleClass,
 	authPageTitleClass,
 } from '~/components/auth/auth-form-styles'
+import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import {
 	InputOTP,
 	InputOTPGroup,
@@ -68,26 +69,6 @@ export function VerifyTotpForm({
 				</p>
 			</div>
 
-			{/* Single-line slot: inline copy only, no panel (keeps height stable). */}
-			<div
-				className="flex min-h-4 w-full max-w-sm justify-center self-center px-2"
-				aria-live="polite"
-			>
-				{error ? (
-					<span
-						role="alert"
-						className="inline-flex max-w-full items-center gap-1.5 text-destructive text-xs leading-none"
-					>
-						<AlertCircle
-							className="size-3.5 shrink-0"
-							strokeWidth={2}
-							aria-hidden
-						/>
-						<span className="min-w-0 translate-y-px text-balance">{error}</span>
-					</span>
-				) : null}
-			</div>
-
 			<div className="flex flex-col items-center gap-3">
 				<InputOTP
 					maxLength={6}
@@ -103,13 +84,13 @@ export function VerifyTotpForm({
 						))}
 					</InputOTPGroup>
 				</InputOTP>
-				<div className="flex min-h-5 items-center justify-center">
-					{loading ? (
-						<p className="text-center text-slate-500 text-xs">
-							{t('verifying')}
-						</p>
-					) : null}
-				</div>
+				<AuthInlineError
+					message={error}
+					loading={loading}
+					loadingLabel={t('verifying')}
+					className="max-w-sm self-center px-2"
+					minHeightClass="min-h-5"
+				/>
 			</div>
 
 			<p className="text-balance text-center text-slate-600 text-sm leading-relaxed">
