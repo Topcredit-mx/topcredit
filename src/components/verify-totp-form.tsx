@@ -1,6 +1,6 @@
 'use client'
 
-import { Shield } from 'lucide-react'
+import { AlertCircle, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
@@ -8,6 +8,8 @@ import { type ComponentProps, useState } from 'react'
 import {
 	authInlineLinkClass,
 	authOtpSlotClass,
+	authPageSubtitleClass,
+	authPageTitleClass,
 } from '~/components/auth/auth-form-styles'
 import {
 	InputOTP,
@@ -37,47 +39,56 @@ export function VerifyTotpForm({
 			email,
 			totp: code,
 			callbackUrl: '/',
+			redirect: false,
 		})
 
-		if (!result?.ok) {
+		if (result?.error) {
 			setError(t('invalid-code'))
 			setValue('')
-			setLoading(false)
+		} else if (result?.ok) {
+			window.location.href = result.url || '/'
 		}
+
+		setLoading(false)
 	}
 
 	const backupHref = `/verify-backup-code?email=${encodeURIComponent(email)}`
 
 	return (
-		<div className={cn('flex flex-col gap-8', className)} {...props}>
-			<div className="flex flex-col items-center gap-4 text-center">
+		<div className={cn('flex flex-col gap-5', className)} {...props}>
+			<div className="flex flex-col items-center gap-3 text-center">
 				<div className={shell.iconChip} aria-hidden>
 					<Shield className="size-5" />
 				</div>
-				<h1 className="font-semibold text-2xl text-slate-900 tracking-tight sm:text-3xl">
-					{t('title')}
-				</h1>
-				<p className="max-w-sm text-pretty text-slate-600 text-sm leading-relaxed">
-					{t('description')}
+				<h1 className={authPageTitleClass}>{t('title')}</h1>
+				<p className={authPageSubtitleClass}>{t('description')}</p>
+				<p className="max-w-full truncate text-slate-500 text-xs" title={email}>
+					<span className="font-medium text-slate-600">{t('email-label')}</span>{' '}
+					<span className="text-slate-500">{email}</span>
 				</p>
-				<div className="w-full max-w-sm rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-left text-sm">
-					<span className="font-semibold text-slate-700">
-						{t('email-label')}
-					</span>{' '}
-					<span className="wrap-break-word text-slate-600">{email}</span>
-				</div>
 			</div>
 
-			{error ? (
-				<div
-					className={cn(shell.alertErrorSurface, 'p-3 text-center text-sm')}
-					role="alert"
-				>
-					{error}
-				</div>
-			) : null}
+			{/* Single-line slot: inline copy only, no panel (keeps height stable). */}
+			<div
+				className="flex min-h-4 w-full max-w-sm justify-center self-center px-2"
+				aria-live="polite"
+			>
+				{error ? (
+					<span
+						role="alert"
+						className="inline-flex max-w-full items-center gap-1.5 text-destructive text-xs leading-none"
+					>
+						<AlertCircle
+							className="size-3.5 shrink-0"
+							strokeWidth={2}
+							aria-hidden
+						/>
+						<span className="min-w-0 translate-y-px text-balance">{error}</span>
+					</span>
+				) : null}
+			</div>
 
-			<div className="flex flex-col items-center gap-6">
+			<div className="flex flex-col items-center gap-3">
 				<InputOTP
 					maxLength={6}
 					value={value}
@@ -92,9 +103,13 @@ export function VerifyTotpForm({
 						))}
 					</InputOTPGroup>
 				</InputOTP>
-				<p className="text-center text-slate-500 text-sm">
-					{loading ? t('verifying') : t('otp-hint')}
-				</p>
+				<div className="flex min-h-5 items-center justify-center">
+					{loading ? (
+						<p className="text-center text-slate-500 text-xs">
+							{t('verifying')}
+						</p>
+					) : null}
+				</div>
 			</div>
 
 			<p className="text-balance text-center text-slate-600 text-sm leading-relaxed">

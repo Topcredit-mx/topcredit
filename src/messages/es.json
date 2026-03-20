@@ -612,7 +612,6 @@
 		"email-label": "Email:",
 		"invalid-code": "Código de verificación inválido",
 		"verifying": "Verificando...",
-		"otp-hint": "Ingresa el código de tu aplicación autenticadora",
 		"backup-prompt": "¿Problemas para acceder?",
 		"backup-link": "Usar código de respaldo"
 	},
