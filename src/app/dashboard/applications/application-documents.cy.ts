@@ -31,7 +31,7 @@ describe('Dashboard Application Documents', () => {
 			cy.login(applicantWithCompany.email)
 		})
 
-		it('shows documents section with empty state and upload form', () => {
+		it('shows three document slots with not-uploaded state and per-slot upload', () => {
 			cy.task('resetApplicantApplication', {
 				applicantId: seed.applicantId,
 				termOfferingId: seed.termOfferingId,
@@ -44,23 +44,26 @@ describe('Dashboard Application Documents', () => {
 				cy.contains('h2', /documentos/i)
 					.scrollIntoView()
 					.should('be.visible')
-				cy.contains(/no hay documentos cargados/i)
-					.scrollIntoView()
-					.should('be.visible')
-				cy.contains(/sube un documento actualizado/i)
-					.scrollIntoView()
-					.should('be.visible')
-				cy.contains(/haz clic para elegir el documento/i)
-					.scrollIntoView()
-					.should('be.visible')
-				cy.get('input[name="file"]').should('not.exist')
-				cy.contains('button', /sube un documento actualizado/i)
-					.scrollIntoView()
-					.should('be.visible')
-					.click()
-				cy.contains('label', /tipo de documento/i).should('be.visible')
-				cy.get('input[name="file"]').should('exist')
-				cy.contains('button', /subir/i).should('be.visible')
+				cy.get('[data-document-slot="authorization"]').within(() => {
+					cy.contains(/autorización/i).should('be.visible')
+					cy.contains(/sin cargar/i).should('be.visible')
+				})
+				cy.get('[data-document-slot="contract"]').within(() => {
+					cy.contains(/contrato/i).should('be.visible')
+					cy.contains(/sin cargar/i).should('be.visible')
+				})
+				cy.get('[data-document-slot="payroll-receipt"]').within(() => {
+					cy.contains(/recibo de nómina/i).should('be.visible')
+					cy.contains(/sin cargar/i).should('be.visible')
+				})
+				cy.get('[data-document-slot="authorization"]').within(() => {
+					cy.contains('button', /examinar archivos/i).should('be.visible')
+					cy.get('input[name="file"]')
+						.should('exist')
+						.and('have.class', 'sr-only')
+				})
+				cy.contains('label', /tipo de documento/i).should('not.exist')
+				cy.contains('button', /^subir$/i).should('not.exist')
 			})
 		})
 
@@ -141,16 +144,10 @@ describe('Dashboard Application Documents', () => {
 								'invalid-documentation',
 							)
 					})
-				cy.get('input[name="file"]')
-					.first()
-					.selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.intercept('POST', '**/dashboard/applications/*').as('uploadFirstDoc')
-				// Viewport was scrolled to history/rejections above; first card’s submit can sit off-screen.
-				cy.contains('button', /actualizar archivo/i)
-					.first()
-					.scrollIntoView()
-					.should('be.visible')
-					.click()
+				cy.get(
+					'[data-document-slot="authorization"] input[name="file"]',
+				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadFirstDoc')
 
 				cy.visit(`/dashboard/applications/${app.id}`)
@@ -161,17 +158,12 @@ describe('Dashboard Application Documents', () => {
 				cy.contains(/recibo ilegible/i)
 					.scrollIntoView()
 					.should('be.visible')
-				cy.get('input[name="file"]')
-					.first()
-					.selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.intercept('POST', '**/dashboard/applications/*').as(
 					'uploadSecondDoc',
 				)
-				cy.contains('button', /actualizar archivo/i)
-					.first()
-					.scrollIntoView()
-					.should('be.visible')
-					.click()
+				cy.get(
+					'[data-document-slot="payroll-receipt"] input[name="file"]',
+				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadSecondDoc')
 
 				cy.visit(`/dashboard/applications/${app.id}`)
@@ -207,17 +199,10 @@ describe('Dashboard Application Documents', () => {
 				cy.contains('h2', /documentos/i)
 					.scrollIntoView()
 					.should('be.visible')
-				cy.contains('button', /sube un documento actualizado/i)
-					.scrollIntoView()
-					.should('be.visible')
-					.click()
-				cy.selectRadix('label:Tipo de documento', 'Recibo de nómina')
-				cy.get('input[name="file"]').selectFile(
-					'cypress/fixtures/sample-document.webp',
-					{ force: true },
-				)
 				cy.intercept('POST', '**/dashboard/applications/*').as('uploadDoc')
-				cy.contains('button', /subir/i).should('be.visible').click()
+				cy.get(
+					'[data-document-slot="payroll-receipt"] input[name="file"]',
+				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadDoc')
 				// List is server-rendered; revalidatePath runs after action but page does not auto-refresh. Reload to see new document.
 				cy.visit(`/dashboard/applications/${app.id}`)
@@ -245,15 +230,16 @@ describe('Dashboard Application Documents', () => {
 				salaryAtApplication: '100000',
 			}).then((app) => {
 				cy.visit(`/dashboard/applications/${app.id}`)
-				cy.contains('button', /sube un documento actualizado/i)
-					.scrollIntoView()
-					.should('be.visible')
-					.click()
-				cy.selectRadix('label:Tipo de documento', 'Autorización')
-				cy.contains('button', /subir/i)
-					.scrollIntoView()
-					.should('be.visible')
-					.click()
+				cy.get(
+					'[data-document-slot="authorization"] input[name="file"]',
+				).selectFile(
+					{
+						contents: Cypress.Buffer.from([]),
+						fileName: 'empty.pdf',
+						mimeType: 'application/pdf',
+					},
+					{ force: true },
+				)
 				cy.contains('Selecciona un archivo válido.')
 					.scrollIntoView()
 					.should('be.visible')
@@ -272,17 +258,10 @@ describe('Dashboard Application Documents', () => {
 				cy.contains('h2', /documentos/i)
 					.scrollIntoView()
 					.should('be.visible')
-				cy.contains('button', /sube un documento actualizado/i)
-					.scrollIntoView()
-					.should('be.visible')
-					.click()
-				cy.selectRadix('label:Tipo de documento', 'Recibo de nómina')
-				cy.get('input[name="file"]').selectFile(
-					'cypress/fixtures/sample-document.webp',
-					{ force: true },
-				)
 				cy.intercept('POST', '**/dashboard/applications/*').as('uploadDoc')
-				cy.contains('button', /subir/i).should('be.visible').click()
+				cy.get(
+					'[data-document-slot="payroll-receipt"] input[name="file"]',
+				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadDoc')
 				cy.visit(`/dashboard/applications/${app.id}`)
 				cy.contains('sample-document.webp')

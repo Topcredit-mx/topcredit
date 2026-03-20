@@ -21,6 +21,7 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from '~/components/ui/sidebar'
+import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
 
 interface ApplicantSidebarProps {
@@ -111,7 +112,10 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 	return (
 		<Sidebar
 			collapsible="none"
-			sheetContentClassName="border-0 bg-[#f7f9fb] text-foreground"
+			sheetContentClassName={cn(
+				'border-0 text-foreground',
+				shell.applicantCanvas,
+			)}
 			className="border-r-0 bg-transparent px-2 py-4 text-foreground md:px-3 md:py-6"
 		>
 			<SidebarHeader className="p-2 pb-5">
@@ -144,7 +148,7 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 											'ring-0 ring-offset-0 focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-2',
 											active
 												? 'rounded-xl bg-white font-semibold text-brand shadow-nav-active'
-												: 'rounded-xl text-slate-600 hover:bg-black/4 hover:text-[#191c1e]',
+												: 'rounded-xl text-slate-600 hover:bg-slate-200/60 hover:text-slate-900',
 										)}
 									>
 										<item.icon

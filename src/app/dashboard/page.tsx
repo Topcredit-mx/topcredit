@@ -88,9 +88,6 @@ const HERO_SURFACE_STYLE = {
 		'linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%)',
 } as const
 
-const DASHBOARD_SECTION_TITLE_CLASS =
-	'font-bold text-2xl text-[#191c1e] tracking-tight sm:text-[1.65rem]'
-
 const PORTFOLIO_DEMO_LOANS = [
 	{
 		id: 'auto',
@@ -199,10 +196,10 @@ export default async function DashboardPage() {
 
 			<section className="grid gap-8 lg:grid-cols-[1.35fr_1fr_1fr]">
 				<Card
-					className="gap-5 overflow-hidden rounded-3xl border-0 p-7 text-white shadow-[0_4px_24px_rgba(25,28,30,0.08),0_18px_50px_rgba(0,49,120,0.25)]"
+					className="gap-5 overflow-hidden rounded-3xl border-0 p-7 text-white shadow-hero"
 					style={HERO_SURFACE_STYLE}
 				>
-					<div className="w-fit self-start rounded-full bg-[#69ff87] px-3 py-1 font-semibold text-[#002108] text-xs uppercase tracking-wide">
+					<div className="w-fit self-start rounded-full bg-emerald-400 px-3 py-1 font-semibold text-emerald-950 text-xs uppercase tracking-wide">
 						{tDashboard('hero-pre-approved')}
 					</div>
 					<h2 className="mt-4 font-semibold text-4xl text-white leading-tight">
@@ -213,7 +210,7 @@ export default async function DashboardPage() {
 					</p>
 					<Button
 						asChild
-						className="mt-8 h-12 rounded-xl border-0 bg-[#69ff87] font-semibold text-[#002108] hover:bg-[#50f471]"
+						className="mt-8 h-12 rounded-xl border-0 bg-emerald-400 font-semibold text-emerald-950 hover:bg-emerald-500"
 					>
 						<Link href="/dashboard/applications/new">
 							{tDashboard('request-now')}{' '}
@@ -279,7 +276,7 @@ export default async function DashboardPage() {
 														<Icon className="size-5" />
 													</div>
 													<div className="min-w-0">
-														<p className="font-semibold text-[#191c1e]">
+														<p className="font-semibold text-slate-900">
 															{tDashboard(
 																'applications-in-progress-row-title',
 																{ id: app.id },
@@ -334,7 +331,7 @@ export default async function DashboardPage() {
 					<div className="flex flex-wrap items-end justify-between gap-3">
 						<h2
 							id="dashboard-loan-portfolio-heading"
-							className={DASHBOARD_SECTION_TITLE_CLASS}
+							className={shell.dashboardSectionTitle}
 						>
 							{tDashboard('loan-portfolio-title')}
 						</h2>
@@ -359,7 +356,7 @@ export default async function DashboardPage() {
 												<Icon className="size-5" />
 											</div>
 											<div className="min-w-0">
-												<p className="font-semibold text-[#191c1e] text-base">
+												<p className="font-semibold text-base text-slate-900">
 													{tDashboard(titleKey)}
 												</p>
 												<p className="mt-0.5 text-slate-500 text-sm leading-snug">
@@ -368,7 +365,7 @@ export default async function DashboardPage() {
 											</div>
 										</div>
 										<div className="shrink-0 text-right">
-											<p className="font-bold text-[#191c1e] text-xl tracking-tight sm:text-2xl">
+											<p className="font-semibold text-slate-900 text-xl tracking-tight sm:text-2xl">
 												{formatCurrencyMxn(amount)}
 											</p>
 											<p className="mt-1 text-[10px] text-slate-500 uppercase leading-none tracking-[0.14em]">
@@ -383,12 +380,12 @@ export default async function DashboardPage() {
 				</section>
 
 				<section
-					className="flex flex-col gap-6 rounded-3xl bg-[#e8ecf1] p-6 sm:gap-7 sm:p-8"
+					className="flex flex-col gap-6 rounded-3xl border border-slate-200/60 bg-slate-100/80 p-6 sm:gap-7 sm:p-8"
 					aria-labelledby="dashboard-upcoming-activity-heading"
 				>
 					<h2
 						id="dashboard-upcoming-activity-heading"
-						className={DASHBOARD_SECTION_TITLE_CLASS}
+						className={shell.dashboardSectionTitle}
 					>
 						{tDashboard('upcoming-activity-title')}
 					</h2>
@@ -396,18 +393,18 @@ export default async function DashboardPage() {
 						{ACTIVITY_DEMO_ROWS.map((row) => (
 							<li key={row.day} className="flex gap-4">
 								<div
-									className="flex min-h-14 min-w-13 shrink-0 flex-col items-center justify-center rounded-xl bg-white px-2 py-2 shadow-[0_2px_10px_rgba(25,28,30,0.06)]"
+									className="flex min-h-14 min-w-13 shrink-0 flex-col items-center justify-center rounded-xl border border-slate-100/90 bg-white px-2 py-2 shadow-sm"
 									aria-hidden
 								>
 									<span className="font-semibold text-[10px] text-brand uppercase tracking-[0.14em]">
 										{tDashboard('activity-demo-month-oct')}
 									</span>
-									<span className="mt-0.5 font-bold text-[#191c1e] text-lg tabular-nums leading-none">
+									<span className="mt-0.5 font-semibold text-lg text-slate-900 tabular-nums leading-none">
 										{row.day}
 									</span>
 								</div>
 								<div className="min-w-0 pt-0.5">
-									<p className="font-semibold text-[#191c1e]">
+									<p className="font-semibold text-slate-900">
 										{tDashboard(row.titleKey)}
 									</p>
 									<p className="mt-1 text-slate-600 text-sm leading-snug">
@@ -417,7 +414,7 @@ export default async function DashboardPage() {
 							</li>
 						))}
 					</ul>
-					<div className="mt-1 rounded-2xl border border-white/60 bg-white p-5 shadow-elevated">
+					<div className="mt-1 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-elevated">
 						<p className="font-semibold text-brand">
 							{tDashboard('pro-tip-title')}
 						</p>

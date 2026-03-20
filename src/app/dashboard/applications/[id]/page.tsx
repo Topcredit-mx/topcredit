@@ -2,7 +2,6 @@ import {
 	AlertCircle,
 	Banknote,
 	CalendarClock,
-	CheckCircle2,
 	Clock,
 	FileText,
 	FolderOpen,
@@ -16,9 +15,9 @@ import { ApplicantPageFooter } from '~/components/app/applicant-page-footer'
 import { ApplicationStatusHistoryCard } from '~/components/application-status-history'
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
-import { Button } from '~/components/ui/button'
 import { SectionCard } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
+import { REQUIRED_INITIAL_DOCUMENTS } from '~/lib/application-document-intake'
 import { DASHBOARD_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import {
 	DASHBOARD_DOCUMENT_STATUS_KEYS,
@@ -29,17 +28,40 @@ import {
 import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
-import {
-	type ApplicationStatus,
-	DOCUMENT_TYPE_VALUES,
-	type DocumentStatus,
+import type {
+	ApplicationStatus,
+	DocumentStatus,
+	DocumentType,
 } from '~/server/db/schema'
 import {
+	type ApplicationDocumentForList,
 	getApplicationByApplicantId,
 	getApplicationDocuments,
 } from '~/server/queries'
 import { formatApplicationTerm } from '../constants'
 import { ApplicationDocumentUploadForm } from './application-document-upload-form'
+
+const DOCUMENT_DETAIL_FRESHNESS_KEYS = {
+	authorization: 'initial-documents-freshness-authorization',
+	contract: 'initial-documents-freshness-contract',
+	'payroll-receipt': 'initial-documents-freshness-payroll-receipt',
+} as const satisfies Record<DocumentType, string>
+
+function findLatestDocumentForType(
+	documents: ApplicationDocumentForList[],
+	type: DocumentType,
+): ApplicationDocumentForList | undefined {
+	for (const doc of documents) {
+		if (doc.documentType === type) {
+			return doc
+		}
+	}
+	return undefined
+}
+
+function getDocumentNotUploadedBadgeClass(): string {
+	return 'border-transparent bg-slate-100 text-slate-800'
+}
 
 function trimmedNonEmpty(value: string | null | undefined): string | undefined {
 	if (value == null) return undefined
@@ -90,24 +112,14 @@ function getDocumentStatusBadgeClass(status: DocumentStatus): string {
 	return 'border-transparent bg-amber-500 text-black'
 }
 
-function getDocumentCardClass(status: DocumentStatus): string {
+function getDocumentDetailTileSurfaceClass(status: DocumentStatus): string {
 	if (status === 'rejected') {
-		return 'border-destructive/25 bg-destructive/[0.06]'
+		return 'border-destructive/25 bg-destructive/[0.03]'
 	}
 	if (status === 'approved') {
-		return 'border-emerald-200 bg-emerald-50/70'
+		return 'border-emerald-200/80 bg-emerald-50/40'
 	}
-	return 'border-amber-200 bg-amber-50/70'
-}
-
-function getDocumentStatusIcon(status: DocumentStatus) {
-	if (status === 'rejected') {
-		return <AlertCircle className="size-5 text-destructive" aria-hidden />
-	}
-	if (status === 'approved') {
-		return <CheckCircle2 className="size-5 text-emerald-600" aria-hidden />
-	}
-	return <Clock className="size-5 text-amber-600" aria-hidden />
+	return 'border-slate-200 bg-white'
 }
 
 export default async function DashboardApplicationDetailPage({
@@ -131,28 +143,7 @@ export default async function DashboardApplicationDetailPage({
 	const rejectedDocumentsCount = documentList.filter(
 		(document) => document.status === 'rejected',
 	).length
-	const uploadedDocumentTypes = new Set<string>(
-		documentList.map((document) => document.documentType),
-	)
 	const t = await getTranslations('dashboard.applications')
-	const sortedDocumentList = [...documentList].sort((left, right) => {
-		const leftKey = isDocumentType(left.documentType)
-			? DASHBOARD_DOCUMENT_TYPE_KEYS[left.documentType]
-			: 'document-type-invalid'
-		const rightKey = isDocumentType(right.documentType)
-			? DASHBOARD_DOCUMENT_TYPE_KEYS[right.documentType]
-			: 'document-type-invalid'
-
-		return t(leftKey).localeCompare(t(rightKey), 'es')
-	})
-	const missingDocumentTypes = DOCUMENT_TYPE_VALUES.filter(
-		(type) => !uploadedDocumentTypes.has(type),
-	).sort((left, right) =>
-		t(DASHBOARD_DOCUMENT_TYPE_KEYS[left]).localeCompare(
-			t(DASHBOARD_DOCUMENT_TYPE_KEYS[right]),
-			'es',
-		),
-	)
 
 	return (
 		<main className="mx-auto w-full max-w-5xl pb-8">
@@ -358,105 +349,124 @@ export default async function DashboardApplicationDetailPage({
 				title={t('documents-title')}
 				description={t('documents-description')}
 			>
-				{/* `[&>*]:min-w-0` avoids grid min-width:auto clipping flex children (filenames, empty copy). */}
-				<div className="grid gap-4 sm:grid-cols-2 sm:*:min-w-0">
-					{sortedDocumentList.length > 0 ? (
-						sortedDocumentList.map((doc) => {
-							const documentTypeKey = isDocumentType(doc.documentType)
-								? DASHBOARD_DOCUMENT_TYPE_KEYS[doc.documentType]
-								: 'document-type-invalid'
-							const documentStatusKey = isDocumentStatus(doc.status)
-								? DASHBOARD_DOCUMENT_STATUS_KEYS[doc.status]
-								: 'document-status-invalid'
+				<div className="grid items-start gap-5 sm:*:min-w-0 md:grid-cols-3">
+					{REQUIRED_INITIAL_DOCUMENTS.map(({ documentType }) => {
+						const doc = findLatestDocumentForType(documentList, documentType)
+						const documentTypeKey = DASHBOARD_DOCUMENT_TYPE_KEYS[documentType]
+						const freshnessKey = DOCUMENT_DETAIL_FRESHNESS_KEYS[documentType]
 
+						if (doc == null) {
 							return (
 								<div
-									key={doc.id}
-									className={cn(
-										'min-w-0 overflow-hidden rounded-2xl border shadow-sm transition-colors',
-										getDocumentCardClass(doc.status),
-									)}
+									key={documentType}
+									data-document-slot={documentType}
+									className={cn(shell.applicantDocumentUploadTile, 'py-3')}
 								>
-									<div className="flex items-start justify-between gap-3 border-slate-200/80 border-b px-4 py-4">
-										<div className="flex min-w-0 items-center gap-3">
-											<div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-slate-100 bg-white shadow-sm">
-												{getDocumentStatusIcon(doc.status)}
-											</div>
-											<div className="min-w-0">
-												<p className="font-medium text-slate-900 text-sm">
-													{t(documentTypeKey)}
-												</p>
-												<p className="truncate text-slate-500 text-xs">
-													{doc.fileName}
-												</p>
-											</div>
-										</div>
-										<Badge className={getDocumentStatusBadgeClass(doc.status)}>
-											{t(documentStatusKey)}
+									<div
+										className={shell.applicantDocumentTileIconWell}
+										aria-hidden
+									>
+										<FileText className="size-6" />
+									</div>
+									<div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
+										<p className="max-w-full text-center font-semibold text-slate-900 text-sm leading-snug">
+											{t(documentTypeKey)}
+										</p>
+										<Badge className={getDocumentNotUploadedBadgeClass()}>
+											{t('document-status-not-uploaded')}
 										</Badge>
 									</div>
+									<p className="mt-1 text-center text-muted-foreground text-xs leading-relaxed">
+										{t(freshnessKey)}
+									</p>
+									<ApplicationDocumentUploadForm
+										applicationId={applicationId}
+										fixedDocumentType={documentType}
+										pickFileButtonLabel={t('browse-files')}
+										embedInTileChrome
+									/>
+								</div>
+							)
+						}
 
-									<div className="space-y-4 p-4">
-										{doc.status === 'rejected' && doc.rejectionReason ? (
-											<div className="space-y-1">
-												<p className="text-slate-500 text-xs">
+						const documentStatusKey = isDocumentStatus(doc.status)
+							? DASHBOARD_DOCUMENT_STATUS_KEYS[doc.status]
+							: 'document-status-invalid'
+
+						return (
+							<div
+								key={`${documentType}-${doc.id}`}
+								data-document-slot={documentType}
+								className={cn(
+									shell.applicantDocumentStatusTileBase,
+									getDocumentDetailTileSurfaceClass(doc.status),
+								)}
+							>
+								<div
+									className={shell.applicantDocumentTileIconWell}
+									aria-hidden
+								>
+									<FileText className="size-6" />
+								</div>
+								<div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
+									<p className="max-w-full text-center font-semibold text-slate-900 text-sm leading-snug">
+										{t(
+											isDocumentType(doc.documentType)
+												? DASHBOARD_DOCUMENT_TYPE_KEYS[doc.documentType]
+												: 'document-type-invalid',
+										)}
+									</p>
+									<Badge
+										className={cn(
+											'shrink-0',
+											getDocumentStatusBadgeClass(doc.status),
+										)}
+									>
+										{t(documentStatusKey)}
+									</Badge>
+								</div>
+								{doc.hasBlobContent ? (
+									<a
+										href={doc.url}
+										target="_blank"
+										rel="noopener noreferrer"
+										className={cn(
+											'mt-1 block max-w-full truncate text-xs leading-relaxed',
+											shell.textLinkStrong,
+										)}
+										aria-label={`${t('document-link')}: ${doc.fileName}`}
+									>
+										{doc.fileName}
+									</a>
+								) : (
+									<p className="mt-1 max-w-full truncate text-muted-foreground text-xs leading-relaxed">
+										{doc.fileName}
+									</p>
+								)}
+
+								{doc.status === 'rejected' ? (
+									<div className="mt-3 w-full space-y-3">
+										{doc.rejectionReason ? (
+											<div className="rounded-lg border border-destructive/20 bg-destructive/[0.04] px-3 py-2 text-left">
+												<p className="text-destructive text-xs">
 													{t('document-rejection-reason-label')}
 												</p>
-												<p className="text-slate-800 text-sm">
+												<p className="mt-1 text-slate-800 text-sm leading-snug">
 													{doc.rejectionReason}
 												</p>
 											</div>
 										) : null}
-
-										{doc.status === 'rejected' ? (
-											<ApplicationDocumentUploadForm
-												applicationId={applicationId}
-												allowedDocumentTypes={[doc.documentType]}
-												fixedDocumentType={doc.documentType}
-												triggerTitle={`${t('document-reupload-title')}: ${t(documentTypeKey)}`}
-												triggerDescription={t('document-reupload-description')}
-												triggerButtonLabel={t('document-reupload-submit')}
-												compact
-											/>
-										) : null}
-
-										{doc.hasBlobContent ? (
-											<Button variant="outline" className="w-full" asChild>
-												<a
-													href={doc.url}
-													target="_blank"
-													rel="noopener noreferrer"
-												>
-													{t('document-link')}
-												</a>
-											</Button>
-										) : null}
+										<ApplicationDocumentUploadForm
+											applicationId={applicationId}
+											fixedDocumentType={doc.documentType}
+											pickFileButtonLabel={t('document-reupload-submit')}
+											compact
+										/>
 									</div>
-								</div>
-							)
-						})
-					) : (
-						<div className="flex min-h-56 min-w-0 flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 border-dashed bg-slate-50/50 px-6 py-10 text-center">
-							<div className="flex size-14 items-center justify-center rounded-2xl border border-slate-100 bg-white shadow-sm">
-								<FileText className="size-7 text-slate-400" aria-hidden />
+								) : null}
 							</div>
-							<p className="font-medium text-slate-900">
-								{t('documents-title')}
-							</p>
-							<p className="max-w-sm text-slate-600 text-sm">
-								{t('documents-empty')}
-							</p>
-						</div>
-					)}
-
-					{missingDocumentTypes.length > 0 ? (
-						<ApplicationDocumentUploadForm
-							applicationId={applicationId}
-							allowedDocumentTypes={missingDocumentTypes}
-							triggerTitle={t('upload-panel-title')}
-							triggerDescription={t('upload-panel-collapsed-description')}
-						/>
-					) : null}
+						)
+					})}
 				</div>
 			</SectionCard>
 

@@ -393,9 +393,9 @@ export function ApplicationForm() {
 
 						return (
 							<Field key={fieldName} data-invalid={!!error}>
-								<div className="flex flex-col items-center rounded-xl border border-slate-300 border-dashed bg-white px-4 py-6 text-center shadow-sm">
+								<div className={shell.applicantDocumentUploadTile}>
 									<div
-										className="mb-3 flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"
+										className={shell.applicantDocumentTileIconWell}
 										aria-hidden
 									>
 										<FileText className="size-6" />
@@ -424,7 +424,10 @@ export function ApplicationForm() {
 									<Button
 										type="button"
 										variant="secondary"
-										className="mt-4 rounded-lg bg-slate-200/80 font-medium text-brand text-xs hover:bg-slate-200"
+										className={cn(
+											shell.applicantDocumentTileActionButton,
+											'mt-4',
+										)}
 										onClick={() => {
 											triggerFilePick(fieldName)
 										}}

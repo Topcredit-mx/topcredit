@@ -5,6 +5,8 @@ import {
 	SidebarProvider,
 	SidebarTrigger,
 } from '~/components/ui/sidebar'
+import { shell } from '~/lib/shell'
+import { cn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
@@ -22,10 +24,17 @@ export default async function DashboardLayout({
 	const emailVerified = dbUser?.emailVerified != null
 
 	return (
-		<SidebarProvider className="h-svh min-h-0 overflow-hidden bg-[#f7f9fb]">
+		<SidebarProvider
+			className={cn('h-svh min-h-0 overflow-hidden', shell.applicantCanvas)}
+		>
 			<ApplicantSidebar user={{ ...user, emailVerified }} />
 			{/* No `overflow-hidden`: it clips hero/card `box-shadow` at the rail seam. Scroll + extra left pad so `overflow-y-auto` doesn’t shear shadows. */}
-			<SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#f7f9fb] md:rounded-xl">
+			<SidebarInset
+				className={cn(
+					'flex min-h-0 min-w-0 flex-1 flex-col md:rounded-xl',
+					shell.applicantCanvas,
+				)}
+			>
 				<header className="shrink-0 px-4 pt-3 pb-2 sm:px-6 md:sr-only">
 					<div className="mx-auto flex max-w-7xl items-center md:hidden">
 						<SidebarTrigger className="size-9 rounded-lg" />

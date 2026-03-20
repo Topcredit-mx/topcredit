@@ -343,6 +343,39 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 		}
 	}
 
+	const invalidDocsApplicantId = userIdByEmail.get(
+		'applicant-invalid@example.com',
+	)
+	if (invalidDocsApplicantId != null) {
+		const invalidApp = await db.query.applications.findFirst({
+			where: and(
+				eq(applications.applicantId, invalidDocsApplicantId),
+				eq(applications.status, 'invalid-documentation'),
+			),
+			columns: { id: true },
+		})
+		if (invalidApp) {
+			const existingInvalidDocs = await db.query.applicationDocuments.findMany({
+				where: eq(applicationDocuments.applicationId, invalidApp.id),
+				columns: { id: true },
+			})
+			if (existingInvalidDocs.length === 0) {
+				await db.insert(applicationDocuments).values({
+					applicationId: invalidApp.id,
+					documentType: 'authorization',
+					status: 'rejected',
+					fileName: 'seed-authorization-rejected.pdf',
+					storageKey: `application-documents/${invalidApp.id}/authorization/seed-authorization-rejected.pdf`,
+					rejectionReason:
+						'Documento ilegible (semilla de desarrollo). Sube una versión más clara.',
+				})
+				console.log(
+					`  ✓ Created rejected application document (invalid-documentation application ${invalidApp.id})`,
+				)
+			}
+		}
+	}
+
 	// Assign companies to users that require them (e.g. requests); admin does not need assignments
 	for (const [userEmail, domains] of Object.entries(userCompanyAssignments)) {
 		const userId = userIdByEmail.get(userEmail)
