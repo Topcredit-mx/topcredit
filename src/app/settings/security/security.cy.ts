@@ -1,5 +1,7 @@
 import { applicantUser } from '../../login/login.fixtures'
 
+const applicantSettingsSecurity = '/dashboard/settings/security'
+
 const totpUser = {
 	name: 'TOTP User',
 	email: 'totp@example.com',
@@ -12,15 +14,15 @@ describe('Settings Security', () => {
 		cy.task('seedSecurity')
 	})
 
-	it('redirects to login when accessing /settings/security unauthenticated', () => {
-		cy.visit('/settings/security')
-		cy.url().should('not.include', '/settings')
+	it('redirects to login when accessing applicant settings security unauthenticated', () => {
+		cy.visit(applicantSettingsSecurity)
+		cy.url().should('not.include', '/dashboard/settings')
 	})
 
-	it('shows security content when authenticated', () => {
+	it('shows security content when authenticated (applicant shell)', () => {
 		cy.login(applicantUser.email)
-		cy.visit('/settings/security')
-		cy.url().should('include', '/settings/security')
+		cy.visit(applicantSettingsSecurity)
+		cy.url().should('include', '/dashboard/settings/security')
 		cy.contains('h1', 'Configuración').should('be.visible')
 		cy.contains('Dirección de correo').should('be.visible')
 		cy.contains('Cambiar correo').should('be.visible')
@@ -28,21 +30,21 @@ describe('Settings Security', () => {
 
 	it('displays current email on security page', () => {
 		cy.login(applicantUser.email)
-		cy.visit('/settings/security')
+		cy.visit(applicantSettingsSecurity)
 		cy.contains('p', applicantUser.email).should('be.visible')
 	})
 
 	it('shows TOTP / two-factor section', () => {
 		cy.login(applicantUser.email)
-		cy.visit('/settings/security')
+		cy.visit(applicantSettingsSecurity)
 		cy.contains(/autenticación de dos factores|2FA|TOTP/i).should('be.visible')
 	})
 
 	it('shows TOTP-enabled state when user has TOTP setup', () => {
 		cy.task('enableTotpForUser', totpUser.email)
 		cy.login(totpUser.email)
-		cy.visit('/settings/security')
-		cy.url().should('include', '/settings/security')
+		cy.visit(applicantSettingsSecurity)
+		cy.url().should('include', '/dashboard/settings/security')
 		cy.contains('La autenticación de dos factores está habilitada').should(
 			'be.visible',
 		)
@@ -54,7 +56,7 @@ describe('Settings Security', () => {
 	it('shows unverified state and warning for unverified user', () => {
 		cy.task('resetUser', { ...applicantUser, verified: false })
 		cy.login(applicantUser.email)
-		cy.visit('/settings/security')
+		cy.visit(applicantSettingsSecurity)
 		cy.contains('No verificado').should('be.visible')
 		cy.contains('Acción requerida').should('be.visible')
 	})
@@ -62,7 +64,7 @@ describe('Settings Security', () => {
 	it('shows verified state for verified user', () => {
 		cy.task('resetUser', { ...applicantUser, verified: true })
 		cy.login(applicantUser.email)
-		cy.visit('/settings/security')
+		cy.visit(applicantSettingsSecurity)
 		cy.contains('Verificado el').should('be.visible')
 	})
 })

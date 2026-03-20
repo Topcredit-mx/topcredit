@@ -3,7 +3,7 @@ import { ProfileView } from '~/components/profile-view'
 import { getRequiredUser } from '~/server/auth/session'
 import { getUserByEmail } from '~/server/auth/users'
 
-export default async function SettingsProfilePage() {
+export default async function DashboardSettingsProfilePage() {
 	const sessionUser = await getRequiredUser()
 	if (!sessionUser.email) redirect('/unauthorized')
 

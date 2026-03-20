@@ -1,13 +1,10 @@
 import { History } from 'lucide-react'
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from '~/components/ui/card'
+import { Card, CardContent, CardHeader } from '~/components/ui/card'
+import { SectionTitleRow } from '~/components/ui/section-card'
+import { shell } from '~/lib/shell'
+import { cn } from '~/lib/utils'
 import type { ApplicationStatusHistoryItem } from '~/server/queries'
 
 export function ApplicationStatusHistoryCard({
@@ -28,19 +25,17 @@ export function ApplicationStatusHistoryCard({
 	getStatusLabel: (status: ApplicationStatusHistoryItem['status']) => string
 }) {
 	return (
-		<Card>
-			<CardHeader className="border-b">
-				<CardTitle asChild className="flex items-center gap-2 text-lg">
-					<h2 data-application-status-history-title>
-						<History className="size-5 text-muted-foreground" aria-hidden />
-						{title}
-					</h2>
-				</CardTitle>
-				{description ? <CardDescription>{description}</CardDescription> : null}
+		<Card className={cn(shell.elevatedCard, 'gap-0 overflow-hidden py-0')}>
+			<CardHeader className="border-slate-100 border-b px-6 py-4">
+				<SectionTitleRow
+					icon={History}
+					title={<span data-application-status-history-title>{title}</span>}
+					description={description}
+				/>
 			</CardHeader>
-			<CardContent>
+			<CardContent className="px-6 pt-6 pb-6">
 				{items.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{emptyMessage}</p>
+					<p className="text-slate-600 text-sm">{emptyMessage}</p>
 				) : (
 					<ul className="space-y-3" data-application-status-history>
 						{items.map((item) => {
@@ -53,18 +48,18 @@ export function ApplicationStatusHistoryCard({
 									key={item.id}
 									data-status-history-item
 									data-status-history-status={item.status}
-									className="rounded-lg border border-border/70 bg-background/70 px-4 py-3"
+									className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3"
 								>
 									<div className="flex flex-wrap items-center justify-between gap-3">
 										<div className="flex items-center gap-2">
 											<Badge variant="secondary">
 												{getStatusLabel(item.status)}
 											</Badge>
-											<span className="text-muted-foreground text-sm">
+											<span className="text-slate-600 text-sm">
 												{setByLabel}: {actorLabel}
 											</span>
 										</div>
-										<span className="text-muted-foreground text-xs">
+										<span className="text-slate-500 text-xs">
 											<FormattedDate
 												value={item.createdAt.toISOString()}
 												format="datetime-short"

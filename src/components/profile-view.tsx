@@ -1,15 +1,9 @@
 'use client'
 
-import { CheckCircle2, Shield, User, XCircle } from 'lucide-react'
+import { Shield, User } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Badge } from '~/components/ui/badge'
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from '~/components/ui/card'
+import { SectionCard } from '~/components/ui/section-card'
 import { PROFILE_ROLE_KEYS } from '~/lib/i18n-keys'
 import type { Role } from '~/server/auth/session'
 
@@ -17,87 +11,56 @@ interface ProfileViewProps {
 	user: {
 		name: string
 		email: string
-		/** ISO string or null (serialized from server for Client Component). */
-		emailVerified: string | null
 	}
 	roles: Role[]
 }
 
 export function ProfileView({ user, roles }: ProfileViewProps) {
 	const t = useTranslations('profile')
-	const formatDate = (dateIso: string | null) => {
-		if (!dateIso) return t('never')
-		return new Intl.DateTimeFormat('es-ES', {
-			dateStyle: 'medium',
-			timeStyle: 'short',
-		}).format(new Date(dateIso))
-	}
 
 	return (
-		<>
-			<Card>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<User className="h-5 w-5" />
-						{t('card-title')}
-					</CardTitle>
-					<CardDescription>{t('card-description')}</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<div>
-						<p className="text-muted-foreground text-sm">{t('name')}</p>
-						<p className="font-medium">{user.name}</p>
+		<div className="space-y-8">
+			<SectionCard
+				icon={User}
+				title={t('card-title')}
+				description={t('card-description')}
+			>
+				<div className="space-y-0 divide-y divide-slate-100">
+					<div className="pb-5">
+						<p className="font-semibold text-[11px] text-slate-500 uppercase tracking-wide">
+							{t('name')}
+						</p>
+						<p className="mt-1.5 font-medium text-slate-900">{user.name}</p>
 					</div>
-					<div className="flex items-center gap-2 text-sm">
-						{user.emailVerified ? (
-							<>
-								<CheckCircle2 className="h-4 w-4 text-green-600" />
-								<span className="text-green-600">
-									{t('email-verified-at', {
-										date: formatDate(user.emailVerified),
-									})}
-								</span>
-							</>
-						) : (
-							<>
-								<XCircle className="h-4 w-4 text-orange-600" />
-								<span className="text-orange-600">
-									{t('email-not-verified')}
-								</span>
-							</>
-						)}
+					<div className="pt-5">
+						<p className="font-semibold text-[11px] text-slate-500 uppercase tracking-wide">
+							{t('email')}
+						</p>
+						<p className="mt-1.5 font-medium text-slate-900">{user.email}</p>
 					</div>
-					<div>
-						<p className="text-muted-foreground text-sm">{t('email')}</p>
-						<p className="font-medium">{user.email}</p>
-					</div>
-				</CardContent>
-			</Card>
+				</div>
+			</SectionCard>
 
-			<Card>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<Shield className="h-5 w-5" />
-						{t('roles-title')}
-					</CardTitle>
-					<CardDescription>{t('roles-description')}</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div className="flex flex-wrap gap-2">
-						{roles.length === 0 ? (
-							<span className="text-muted-foreground text-sm">
-								{t('no-roles')}
-							</span>
-						) : (
-							roles.map((role) => (
-								<Badge key={role} variant="secondary">
-									{t(PROFILE_ROLE_KEYS[role])}
-								</Badge>
-							))
-						)}
-					</div>
-				</CardContent>
-			</Card>
-		</>
+			<SectionCard
+				icon={Shield}
+				title={t('roles-title')}
+				description={t('roles-description')}
+			>
+				<div className="flex flex-wrap gap-2">
+					{roles.length === 0 ? (
+						<span className="text-slate-600 text-sm">{t('no-roles')}</span>
+					) : (
+						roles.map((role) => (
+							<Badge
+								key={role}
+								className="border-transparent bg-slate-100 font-medium text-slate-800"
+							>
+								{t(PROFILE_ROLE_KEYS[role])}
+							</Badge>
+						))
+					)}
+				</div>
+			</SectionCard>
+		</div>
 	)
 }

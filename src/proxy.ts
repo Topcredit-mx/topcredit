@@ -38,6 +38,15 @@ const withAuthMiddleware = withAuth(
 		const roles: Role[] = token?.roles ?? []
 		const isAgent = roles.includes('agent')
 
+		// Applicants: settings live under /dashboard/settings (same shell as rest of portal).
+		if (roles.includes('applicant') && path.startsWith('/settings')) {
+			const suffix =
+				path === '/settings' ? '/profile' : path.slice('/settings'.length)
+			return NextResponse.redirect(
+				new URL(`/dashboard/settings${suffix}`, req.url),
+			)
+		}
+
 		// No roles: allow /settings so user can see their state; block /app and /dashboard
 		if (roles.length === 0) {
 			if (path.startsWith('/app') || path.startsWith('/dashboard')) {

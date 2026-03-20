@@ -5,13 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '~/components/ui/button'
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from '~/components/ui/card'
+import { SectionCard } from '~/components/ui/section-card'
+import { shell } from '~/lib/shell'
 import { disableTotpSetup, generateNewBackupCodes } from '~/server/auth/users'
 
 interface TotpSettingsCardProps {
@@ -100,45 +95,59 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 	}
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle className="flex items-center gap-2">
-					<Shield className="h-5 w-5" />
-					{t('card-title')}
-				</CardTitle>
-				<CardDescription>{t('card-description')}</CardDescription>
-			</CardHeader>
-			<CardContent className="space-y-4">
-				{error && (
-					<div className="flex items-center gap-2 rounded-md bg-destructive/15 p-3 text-destructive text-sm">
-						<AlertTriangle className="h-4 w-4" />
+		<SectionCard
+			icon={Shield}
+			title={t('card-title')}
+			description={t('card-description')}
+		>
+			<div className="space-y-5">
+				{error ? (
+					<div
+						className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50/80 p-3 text-red-900 text-sm"
+						role="alert"
+					>
+						<AlertTriangle className="size-4 shrink-0" aria-hidden />
 						{error}
 					</div>
-				)}
+				) : null}
 
-				<div className="flex items-center justify-between rounded-lg border p-4">
-					<div className="flex items-center gap-3">
+				<div
+					className={
+						user.totpEnabled
+							? 'flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between'
+							: 'flex flex-col gap-4 rounded-xl border border-slate-200 border-dashed bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between'
+					}
+				>
+					<div className="flex min-w-0 items-center gap-3">
 						{user.totpEnabled ? (
-							<ShieldCheck className="h-5 w-5 text-green-600" />
+							<div
+								className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700"
+								aria-hidden
+							>
+								<ShieldCheck className="size-5" />
+							</div>
 						) : (
-							<Key className="h-5 w-5 text-muted-foreground" />
+							<div className={shell.iconChip} aria-hidden>
+								<Key className="size-5" />
+							</div>
 						)}
-						<div>
-							<p className="font-medium">
+						<div className="min-w-0">
+							<p className="font-medium text-slate-900">
 								{user.totpEnabled ? t('enabled') : t('disabled')}
 							</p>
-							<p className="text-muted-foreground text-sm">
+							<p className="text-slate-600 text-sm">
 								{user.totpEnabled
 									? t('backup-codes-left', { count: user.backupCodesCount })
 									: t('secure-account')}
 							</p>
 						</div>
 					</div>
-					<div className="flex gap-2">
+					<div className="flex shrink-0 flex-wrap gap-2">
 						{user.totpEnabled ? (
 							<>
 								<Button
 									variant="outline"
+									className="h-9 rounded-lg border-slate-200"
 									onClick={handleGenerateNewBackupCodes}
 									disabled={isLoading}
 									size="sm"
@@ -150,15 +159,18 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 									onClick={handleDisableTotp}
 									disabled={isLoading}
 									size="sm"
+									className="h-9 rounded-lg"
 								>
 									{t('disable')}
 								</Button>
 							</>
 						) : (
 							<Button
+								variant="brand"
 								onClick={() => router.push('/setup-totp')}
 								disabled={isLoading}
 								size="sm"
+								className="h-9 px-3"
 							>
 								{t('enable-totp')}
 							</Button>
@@ -166,32 +178,37 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 					</div>
 				</div>
 
-				{newBackupCodes && (
-					<div className="space-y-4 rounded-lg border bg-muted/50 p-4">
+				{newBackupCodes ? (
+					<div className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/50 p-4">
 						<div className="flex items-center gap-2">
-							<AlertTriangle className="h-4 w-4 text-orange-600" />
-							<p className="font-medium text-sm">{t('new-codes-title')}</p>
+							<AlertTriangle
+								className="size-4 shrink-0 text-amber-700"
+								aria-hidden
+							/>
+							<p className="font-medium text-amber-950 text-sm">
+								{t('new-codes-title')}
+							</p>
 						</div>
-						<p className="text-muted-foreground text-sm">
+						<p className="text-slate-700 text-sm">
 							{t('new-codes-description')}
 						</p>
 						<div className="grid grid-cols-2 gap-2 font-mono text-sm">
-							{newBackupCodes.map((code) => (
+							{newBackupCodes.map((code, index) => (
 								<div
 									key={code}
-									className="flex items-center justify-between rounded bg-background p-2"
+									className="flex items-center justify-between rounded-lg border border-slate-200/80 bg-white px-2 py-2"
 								>
-									<span>{newBackupCodes.indexOf(code) + 1}.</span>
-									<span className="font-bold">{code}</span>
+									<span className="text-slate-500">{index + 1}.</span>
+									<span className="font-bold text-slate-900">{code}</span>
 								</div>
 							))}
 						</div>
-						<div className="flex gap-2">
+						<div className="flex flex-wrap gap-2">
 							<Button
 								variant="outline"
 								size="sm"
 								onClick={copyBackupCodes}
-								className="flex items-center gap-2"
+								className="h-9 rounded-lg border-slate-200"
 							>
 								{t('copy-all')}
 							</Button>
@@ -199,15 +216,15 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 								variant="outline"
 								size="sm"
 								onClick={downloadBackupCodes}
-								className="flex items-center gap-2"
+								className="h-9 gap-2 rounded-lg border-slate-200"
 							>
-								<Download className="h-4 w-4" />
+								<Download className="size-4" aria-hidden />
 								{tCommon('download')}
 							</Button>
 						</div>
 					</div>
-				)}
-			</CardContent>
-		</Card>
+				) : null}
+			</div>
+		</SectionCard>
 	)
 }

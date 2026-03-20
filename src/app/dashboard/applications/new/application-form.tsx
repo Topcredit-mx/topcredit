@@ -1,8 +1,9 @@
 'use client'
 
+import { FileStack, FileText, MapPin, ShieldCheck, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { useActionState, useId, useState } from 'react'
+import { useActionState, useId, useRef, useState } from 'react'
 import { createApplicationWithInitialDocumentsAction } from '~/app/dashboard/applications/actions'
 import { Button } from '~/components/ui/button'
 import {
@@ -12,6 +13,7 @@ import {
 	FieldLabel,
 } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
+import { SectionCard, SectionTitleRow } from '~/components/ui/section-card'
 import {
 	Select,
 	SelectContent,
@@ -27,12 +29,22 @@ import {
 import { DASHBOARD_DOCUMENT_TYPE_KEYS } from '~/lib/i18n-keys'
 import { getClabeInstitutionName } from '~/lib/mexico-identifiers'
 import { MEXICAN_STATE_VALUES } from '~/lib/mexico-states'
+import { shell } from '~/lib/shell'
+import { cn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type messages from '~/messages/es.json'
 
+const formLabelClass =
+	'text-[11px] font-semibold text-slate-500 uppercase tracking-wide'
+const formInputClass = shell.inputOnMuted
+/** Match `Input` height: `SelectTrigger` defaults to `data-[size=default]:h-9`, which overrides plain `h-11` unless we set the same variant. */
+const formSelectTriggerClass = cn(
+	formInputClass,
+	'w-full data-[size=default]:h-11 data-[size=sm]:h-11',
+)
+
 export function ApplicationForm() {
 	const t = useTranslations('dashboard.applications')
-	const tCommon = useTranslations('common')
 	const resolveError = useResolveValidationError()
 
 	const [state, action, pending] = useActionState(
@@ -48,6 +60,10 @@ export function ApplicationForm() {
 	const countryValue = t('country-mexico')
 	const detectedBankName = getClabeInstitutionName(clabeValue)
 
+	const fileInputRefs = useRef<
+		Partial<Record<RequiredInitialDocumentFieldName, HTMLInputElement>>
+	>({})
+
 	const salaryId = useId()
 	const payrollId = useId()
 	const rfcId = useId()
@@ -62,6 +78,7 @@ export function ApplicationForm() {
 	const authorizationFileId = useId()
 	const contractFileId = useId()
 	const payrollReceiptFileId = useId()
+	const documentsSectionTitleId = useId()
 
 	const inputIdByFieldName: Record<RequiredInitialDocumentFieldName, string> = {
 		authorizationFile: authorizationFileId,
@@ -81,8 +98,27 @@ export function ApplicationForm() {
 		'payroll-receipt': 'initial-documents-freshness-payroll-receipt',
 	}
 
+	function triggerFilePick(name: RequiredInitialDocumentFieldName) {
+		const el = fileInputRefs.current[name]
+		if (el) {
+			el.click()
+		}
+	}
+
+	function setFileInputElement(
+		name: RequiredInitialDocumentFieldName,
+		el: HTMLInputElement | null,
+	) {
+		const next = fileInputRefs.current
+		if (el) {
+			next[name] = el
+		} else {
+			delete next[name]
+		}
+	}
+
 	return (
-		<form action={action} className="space-y-6" noValidate>
+		<form action={action} className="space-y-8" noValidate>
 			<input type="hidden" name="state" value={stateValue} />
 			<input type="hidden" name="country" value={countryValue} />
 
@@ -93,266 +129,357 @@ export function ApplicationForm() {
 				/>
 			)}
 
-			<div className="space-y-4">
-				<Field data-invalid={!!state.errors?.salaryAtApplication}>
-					<FieldLabel htmlFor={salaryId}>
-						{t('label-salary')} <span className="text-destructive">*</span>
-					</FieldLabel>
-					<Input
-						id={salaryId}
-						name="salaryAtApplication"
-						type="number"
-						min={1}
-						step="0.01"
-						placeholder={t('placeholder-salary')}
-						aria-required="true"
-						aria-invalid={!!state.errors?.salaryAtApplication}
-					/>
-					{state.errors?.salaryAtApplication && (
-						<FieldError
-							message={resolveError(state.errors.salaryAtApplication)}
+			<SectionCard icon={Wallet} title={t('section-personal-financial')}>
+				<div className="grid gap-5 md:grid-cols-2">
+					<Field data-invalid={!!state.errors?.salaryAtApplication}>
+						<FieldLabel className={formLabelClass} htmlFor={salaryId}>
+							{t('label-salary-at-application-mxn')}{' '}
+							<span className="text-destructive">*</span>
+						</FieldLabel>
+						<div className="relative">
+							<span
+								className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-500 text-sm"
+								aria-hidden
+							>
+								$
+							</span>
+							<Input
+								id={salaryId}
+								name="salaryAtApplication"
+								type="number"
+								min={1}
+								step="0.01"
+								placeholder={t('placeholder-salary')}
+								aria-required="true"
+								aria-invalid={!!state.errors?.salaryAtApplication}
+								className={cn(formInputClass, 'pl-8')}
+							/>
+						</div>
+						{state.errors?.salaryAtApplication && (
+							<FieldError
+								message={resolveError(state.errors.salaryAtApplication)}
+							/>
+						)}
+					</Field>
+
+					<Field data-invalid={!!state.errors?.payrollNumber}>
+						<FieldLabel className={formLabelClass} htmlFor={payrollId}>
+							{t('label-payroll-number')}{' '}
+							<span className="text-destructive">*</span>
+						</FieldLabel>
+						<Input
+							id={payrollId}
+							name="payrollNumber"
+							placeholder={t('placeholder-payroll-number')}
+							aria-required="true"
+							aria-invalid={!!state.errors?.payrollNumber}
+							className={formInputClass}
 						/>
-					)}
-				</Field>
+						{state.errors?.payrollNumber && (
+							<FieldError message={resolveError(state.errors.payrollNumber)} />
+						)}
+					</Field>
 
-				<Field data-invalid={!!state.errors?.payrollNumber}>
-					<FieldLabel htmlFor={payrollId}>
-						{t('label-payroll-number')}{' '}
-						<span className="text-destructive">*</span>
-					</FieldLabel>
-					<Input
-						id={payrollId}
-						name="payrollNumber"
-						placeholder={t('placeholder-payroll-number')}
-						aria-required="true"
-						aria-invalid={!!state.errors?.payrollNumber}
-					/>
-					{state.errors?.payrollNumber && (
-						<FieldError message={resolveError(state.errors.payrollNumber)} />
-					)}
-				</Field>
-
-				<Field data-invalid={!!state.errors?.rfc}>
-					<FieldLabel htmlFor={rfcId}>
-						{t('label-rfc')} <span className="text-destructive">*</span>
-					</FieldLabel>
-					<Input
-						id={rfcId}
-						name="rfc"
-						placeholder={t('placeholder-rfc')}
-						aria-required="true"
-						aria-invalid={!!state.errors?.rfc}
-					/>
-					{state.errors?.rfc && (
-						<FieldError message={resolveError(state.errors.rfc)} />
-					)}
-				</Field>
-
-				<Field data-invalid={!!state.errors?.clabe}>
-					<FieldLabel htmlFor={clabeId}>
-						{t('label-clabe')} <span className="text-destructive">*</span>
-					</FieldLabel>
-					<Input
-						id={clabeId}
-						name="clabe"
-						inputMode="numeric"
-						placeholder={t('placeholder-clabe')}
-						onChange={(event) => setClabeValue(event.currentTarget.value)}
-						aria-required="true"
-						aria-invalid={!!state.errors?.clabe}
-					/>
-					{detectedBankName && (
-						<FieldDescription aria-live="polite">
-							{t('clabe-bank-detected', { bankName: detectedBankName })}
-						</FieldDescription>
-					)}
-					{state.errors?.clabe && (
-						<FieldError message={resolveError(state.errors.clabe)} />
-					)}
-				</Field>
-
-				<Field data-invalid={!!state.errors?.streetAndNumber}>
-					<FieldLabel htmlFor={streetId}>
-						{t('label-street-and-number')}{' '}
-						<span className="text-destructive">*</span>
-					</FieldLabel>
-					<Input
-						id={streetId}
-						name="streetAndNumber"
-						placeholder={t('placeholder-street-and-number')}
-						aria-required="true"
-						aria-invalid={!!state.errors?.streetAndNumber}
-					/>
-					{state.errors?.streetAndNumber && (
-						<FieldError message={resolveError(state.errors.streetAndNumber)} />
-					)}
-				</Field>
-
-				<Field data-invalid={!!state.errors?.interiorNumber}>
-					<FieldLabel htmlFor={interiorId}>
-						{t('label-interior-number')}
-					</FieldLabel>
-					<Input
-						id={interiorId}
-						name="interiorNumber"
-						placeholder={t('placeholder-interior-number')}
-						aria-invalid={!!state.errors?.interiorNumber}
-					/>
-					{state.errors?.interiorNumber && (
-						<FieldError message={resolveError(state.errors.interiorNumber)} />
-					)}
-				</Field>
-
-				<Field data-invalid={!!state.errors?.city}>
-					<FieldLabel htmlFor={cityId}>
-						{t('label-city')} <span className="text-destructive">*</span>
-					</FieldLabel>
-					<Input
-						id={cityId}
-						name="city"
-						placeholder={t('placeholder-city')}
-						aria-required="true"
-						aria-invalid={!!state.errors?.city}
-					/>
-					{state.errors?.city && (
-						<FieldError message={resolveError(state.errors.city)} />
-					)}
-				</Field>
-
-				<Field data-invalid={!!state.errors?.state}>
-					<FieldLabel htmlFor={stateId}>
-						{t('label-state')} <span className="text-destructive">*</span>
-					</FieldLabel>
-					<Select value={stateValue || undefined} onValueChange={setStateValue}>
-						<SelectTrigger
-							id={stateId}
+					<Field data-invalid={!!state.errors?.rfc}>
+						<FieldLabel className={formLabelClass} htmlFor={rfcId}>
+							{t('label-rfc')} <span className="text-destructive">*</span>
+						</FieldLabel>
+						<Input
+							id={rfcId}
+							name="rfc"
+							placeholder={t('placeholder-rfc')}
 							aria-required="true"
-							aria-invalid={!!state.errors?.state}
-							className="w-full"
-						>
-							<SelectValue placeholder={t('placeholder-state')} />
-						</SelectTrigger>
-						<SelectContent>
-							{MEXICAN_STATE_VALUES.map((stateOption) => (
-								<SelectItem key={stateOption} value={stateOption}>
-									{stateOption}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					{state.errors?.state && (
-						<FieldError message={resolveError(state.errors.state)} />
-					)}
-				</Field>
+							aria-invalid={!!state.errors?.rfc}
+							className={formInputClass}
+						/>
+						{state.errors?.rfc && (
+							<FieldError message={resolveError(state.errors.rfc)} />
+						)}
+					</Field>
 
-				<Field data-invalid={!!state.errors?.country}>
-					<FieldLabel htmlFor={countryId}>
-						{t('label-country')} <span className="text-destructive">*</span>
-					</FieldLabel>
-					<Select defaultValue={countryValue}>
-						<SelectTrigger
-							id={countryId}
+					<Field data-invalid={!!state.errors?.clabe}>
+						<FieldLabel className={formLabelClass} htmlFor={clabeId}>
+							{t('label-clabe')} <span className="text-destructive">*</span>
+						</FieldLabel>
+						<Input
+							id={clabeId}
+							name="clabe"
+							inputMode="numeric"
+							placeholder={t('placeholder-clabe')}
+							onChange={(event) => setClabeValue(event.currentTarget.value)}
 							aria-required="true"
-							aria-invalid={!!state.errors?.country}
-							className="w-full"
-						>
-							<SelectValue placeholder={t('placeholder-country')} />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value={t('country-mexico')}>
-								{t('country-mexico')}
-							</SelectItem>
-						</SelectContent>
-					</Select>
-					{state.errors?.country && (
-						<FieldError message={resolveError(state.errors.country)} />
-					)}
-				</Field>
-
-				<Field data-invalid={!!state.errors?.postalCode}>
-					<FieldLabel htmlFor={postalCodeId}>
-						{t('label-postal-code')} <span className="text-destructive">*</span>
-					</FieldLabel>
-					<Input
-						id={postalCodeId}
-						name="postalCode"
-						inputMode="numeric"
-						placeholder={t('placeholder-postal-code')}
-						aria-required="true"
-						aria-invalid={!!state.errors?.postalCode}
-					/>
-					{state.errors?.postalCode && (
-						<FieldError message={resolveError(state.errors.postalCode)} />
-					)}
-				</Field>
-
-				<Field data-invalid={!!state.errors?.phoneNumber}>
-					<FieldLabel htmlFor={phoneId}>
-						{t('label-phone-number')}{' '}
-						<span className="text-destructive">*</span>
-					</FieldLabel>
-					<Input
-						id={phoneId}
-						name="phoneNumber"
-						inputMode="tel"
-						placeholder={t('placeholder-phone-number')}
-						aria-required="true"
-						aria-invalid={!!state.errors?.phoneNumber}
-					/>
-					{state.errors?.phoneNumber && (
-						<FieldError message={resolveError(state.errors.phoneNumber)} />
-					)}
-				</Field>
-
-				<div className="space-y-2 pt-2">
-					<p className="font-medium">{t('initial-documents-title')}</p>
-					<p className="text-muted-foreground text-sm">
-						{t('initial-documents-description')}
-					</p>
-					<FieldDescription aria-live="polite">
-						{t('upload-panel-formats')}
-					</FieldDescription>
-					<FieldDescription aria-live="polite">
-						{t('upload-panel-max-size')}
-					</FieldDescription>
+							aria-invalid={!!state.errors?.clabe}
+							className={formInputClass}
+						/>
+						{detectedBankName && (
+							<FieldDescription aria-live="polite">
+								{t('clabe-bank-detected', { bankName: detectedBankName })}
+							</FieldDescription>
+						)}
+						{state.errors?.clabe && (
+							<FieldError message={resolveError(state.errors.clabe)} />
+						)}
+					</Field>
 				</div>
 
-				{REQUIRED_INITIAL_DOCUMENTS.map(({ documentType, fieldName }) => {
-					const inputId = inputIdByFieldName[fieldName]
-					const error = state.errors?.[fieldName]
+				<div className="mt-5">
+					<Field data-invalid={!!state.errors?.phoneNumber}>
+						<FieldLabel className={formLabelClass} htmlFor={phoneId}>
+							{t('label-phone-number')}{' '}
+							<span className="text-destructive">*</span>
+						</FieldLabel>
+						<Input
+							id={phoneId}
+							name="phoneNumber"
+							inputMode="tel"
+							placeholder={t('placeholder-phone-number')}
+							aria-required="true"
+							aria-invalid={!!state.errors?.phoneNumber}
+							className={formInputClass}
+						/>
+						{state.errors?.phoneNumber && (
+							<FieldError message={resolveError(state.errors.phoneNumber)} />
+						)}
+					</Field>
+				</div>
+			</SectionCard>
 
-					return (
-						<Field key={fieldName} data-invalid={!!error}>
-							<FieldLabel htmlFor={inputId}>
-								{t(DASHBOARD_DOCUMENT_TYPE_KEYS[documentType])}{' '}
-								<span className="text-destructive">*</span>
-							</FieldLabel>
-							<div className="rounded-2xl border border-dashed bg-background p-3">
-								<input
-									id={inputId}
-									type="file"
-									name={fieldName}
-									accept={APPLICATION_DOCUMENT_ACCEPT}
-									className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs file:border-0 file:bg-transparent file:font-medium file:text-foreground file:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
-									aria-invalid={!!error}
-								/>
-							</div>
-							<FieldDescription aria-live="polite">
-								{t(initialDocFreshnessKeyByDocumentType[documentType])}
-							</FieldDescription>
-							{error && <FieldError message={resolveError(error)} />}
-						</Field>
-					)
-				})}
-			</div>
+			<SectionCard icon={MapPin} title={t('section-address')}>
+				<div className="grid gap-5 md:grid-cols-3">
+					<Field
+						className="md:col-span-2"
+						data-invalid={!!state.errors?.streetAndNumber}
+					>
+						<FieldLabel className={formLabelClass} htmlFor={streetId}>
+							{t('label-street-and-number')}{' '}
+							<span className="text-destructive">*</span>
+						</FieldLabel>
+						<Input
+							id={streetId}
+							name="streetAndNumber"
+							placeholder={t('placeholder-street-and-number')}
+							aria-required="true"
+							aria-invalid={!!state.errors?.streetAndNumber}
+							className={formInputClass}
+						/>
+						{state.errors?.streetAndNumber && (
+							<FieldError
+								message={resolveError(state.errors.streetAndNumber)}
+							/>
+						)}
+					</Field>
 
-			<div className="flex gap-2">
-				<Button type="submit" disabled={pending}>
-					{pending ? tCommon('save') : t('submit')}
-				</Button>
-				<Button type="button" variant="outline" asChild>
-					<Link href="/dashboard/applications">{tCommon('cancel')}</Link>
-				</Button>
+					<Field data-invalid={!!state.errors?.interiorNumber}>
+						<FieldLabel className={formLabelClass} htmlFor={interiorId}>
+							{t('label-interior-number')}
+						</FieldLabel>
+						<Input
+							id={interiorId}
+							name="interiorNumber"
+							placeholder={t('placeholder-interior-number')}
+							aria-invalid={!!state.errors?.interiorNumber}
+							className={formInputClass}
+						/>
+						{state.errors?.interiorNumber && (
+							<FieldError message={resolveError(state.errors.interiorNumber)} />
+						)}
+					</Field>
+				</div>
+
+				<div className="mt-5 grid gap-5 md:grid-cols-3">
+					<Field data-invalid={!!state.errors?.city}>
+						<FieldLabel className={formLabelClass} htmlFor={cityId}>
+							{t('label-city')} <span className="text-destructive">*</span>
+						</FieldLabel>
+						<Input
+							id={cityId}
+							name="city"
+							placeholder={t('placeholder-city')}
+							aria-required="true"
+							aria-invalid={!!state.errors?.city}
+							className={formInputClass}
+						/>
+						{state.errors?.city && (
+							<FieldError message={resolveError(state.errors.city)} />
+						)}
+					</Field>
+
+					<Field data-invalid={!!state.errors?.postalCode}>
+						<FieldLabel className={formLabelClass} htmlFor={postalCodeId}>
+							{t('label-postal-code')}{' '}
+							<span className="text-destructive">*</span>
+						</FieldLabel>
+						<Input
+							id={postalCodeId}
+							name="postalCode"
+							inputMode="numeric"
+							placeholder={t('placeholder-postal-code')}
+							aria-required="true"
+							aria-invalid={!!state.errors?.postalCode}
+							className={formInputClass}
+						/>
+						{state.errors?.postalCode && (
+							<FieldError message={resolveError(state.errors.postalCode)} />
+						)}
+					</Field>
+
+					<Field data-invalid={!!state.errors?.state}>
+						<FieldLabel className={formLabelClass} htmlFor={stateId}>
+							{t('label-state')} <span className="text-destructive">*</span>
+						</FieldLabel>
+						<Select
+							value={stateValue || undefined}
+							onValueChange={setStateValue}
+						>
+							<SelectTrigger
+								id={stateId}
+								aria-required="true"
+								aria-invalid={!!state.errors?.state}
+								className={formSelectTriggerClass}
+							>
+								<SelectValue placeholder={t('placeholder-state')} />
+							</SelectTrigger>
+							<SelectContent>
+								{MEXICAN_STATE_VALUES.map((stateOption) => (
+									<SelectItem key={stateOption} value={stateOption}>
+										{stateOption}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						{state.errors?.state && (
+							<FieldError message={resolveError(state.errors.state)} />
+						)}
+					</Field>
+				</div>
+
+				<div className="mt-5">
+					<Field data-invalid={!!state.errors?.country}>
+						<FieldLabel className={formLabelClass} htmlFor={countryId}>
+							{t('label-country')} <span className="text-destructive">*</span>
+						</FieldLabel>
+						<Input
+							id={countryId}
+							readOnly
+							value={countryValue}
+							placeholder={t('placeholder-country')}
+							aria-required="true"
+							aria-invalid={!!state.errors?.country}
+							className={cn(formInputClass, 'cursor-not-allowed opacity-90')}
+						/>
+						{state.errors?.country && (
+							<FieldError message={resolveError(state.errors.country)} />
+						)}
+					</Field>
+				</div>
+			</SectionCard>
+
+			<section aria-labelledby={documentsSectionTitleId} className="space-y-5">
+				<SectionTitleRow
+					headingId={documentsSectionTitleId}
+					icon={FileStack}
+					title={t('section-documents-card')}
+				/>
+
+				<div className="grid gap-5 md:grid-cols-3">
+					{REQUIRED_INITIAL_DOCUMENTS.map(({ documentType, fieldName }) => {
+						const inputId = inputIdByFieldName[fieldName]
+						const error = state.errors?.[fieldName]
+						const freshnessKey =
+							initialDocFreshnessKeyByDocumentType[documentType]
+
+						return (
+							<Field key={fieldName} data-invalid={!!error}>
+								<div className="flex flex-col items-center rounded-xl border border-slate-300 border-dashed bg-white px-4 py-6 text-center shadow-sm">
+									<div
+										className="mb-3 flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"
+										aria-hidden
+									>
+										<FileText className="size-6" />
+									</div>
+									<label
+										htmlFor={inputId}
+										className="cursor-pointer font-semibold text-slate-900 text-sm leading-snug"
+									>
+										{t(DASHBOARD_DOCUMENT_TYPE_KEYS[documentType])}{' '}
+										<span className="text-destructive">*</span>
+									</label>
+									<p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+										{t(freshnessKey)}
+									</p>
+									<input
+										ref={(el) => {
+											setFileInputElement(fieldName, el)
+										}}
+										id={inputId}
+										type="file"
+										name={fieldName}
+										accept={APPLICATION_DOCUMENT_ACCEPT}
+										className="sr-only"
+										aria-invalid={!!error}
+									/>
+									<Button
+										type="button"
+										variant="secondary"
+										className="mt-4 rounded-lg bg-slate-200/80 font-medium text-brand text-xs hover:bg-slate-200"
+										onClick={() => {
+											triggerFilePick(fieldName)
+										}}
+									>
+										{t('browse-files')}
+									</Button>
+									{error ? (
+										<FieldError
+											message={resolveError(error)}
+											className="mt-3 text-center"
+										/>
+									) : null}
+								</div>
+							</Field>
+						)
+					})}
+				</div>
+			</section>
+
+			<div className="flex flex-col gap-6 border-slate-200/80 border-t pt-8 sm:flex-row sm:items-center sm:justify-between">
+				<p className="flex max-w-xl gap-3 text-pretty text-slate-600 text-sm leading-relaxed">
+					<ShieldCheck
+						className="mt-0.5 size-5 shrink-0 text-emerald-600"
+						aria-hidden
+					/>
+					<span>
+						{t('agreement-lead')}{' '}
+						<Link
+							href="/dashboard/settings/security"
+							className={shell.textLink}
+						>
+							{t('agreement-terms')}
+						</Link>{' '}
+						{t('agreement-mid')}{' '}
+						<Link href="/dashboard/settings/profile" className={shell.textLink}>
+							{t('agreement-privacy')}
+						</Link>
+						{t('agreement-trail')}
+					</span>
+				</p>
+
+				<div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
+					<Button
+						type="button"
+						variant="ghost"
+						className={shell.controlGhostBrand}
+					>
+						{t('save-draft')}
+					</Button>
+					<Button
+						type="submit"
+						variant="brand"
+						disabled={pending}
+						className="h-11 px-8 disabled:opacity-60"
+					>
+						{pending ? t('submit-apply-pending') : t('submit-apply')}
+					</Button>
+				</div>
 			</div>
 		</form>
 	)

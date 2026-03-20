@@ -27,6 +27,8 @@ import {
 	useSidebar,
 } from '~/components/ui/sidebar'
 
+const DEFAULT_SETTINGS_BASE = '/settings'
+
 export interface NavUserProps {
 	user: {
 		name?: string | null
@@ -34,9 +36,18 @@ export interface NavUserProps {
 		image?: string | null
 		emailVerified?: boolean
 	}
+	/** Profile / security links; use `/dashboard/settings` in applicant sidebar. */
+	settingsBasePath?: string
 }
 
-export function NavUser({ user }: NavUserProps) {
+export function NavUser({
+	user,
+	settingsBasePath = DEFAULT_SETTINGS_BASE,
+}: NavUserProps) {
+	const settingsBase =
+		settingsBasePath.replace(/\/$/, '') || DEFAULT_SETTINGS_BASE
+	const profileHref = `${settingsBase}/profile`
+	const securityHref = `${settingsBase}/security`
 	const t = useTranslations('app')
 	const tCommon = useTranslations('common')
 	const { isMobile } = useSidebar()
@@ -58,7 +69,7 @@ export function NavUser({ user }: NavUserProps) {
 						<span>
 							{t('email-unverified')}{' '}
 							<Link
-								href="/settings/security"
+								href={securityHref}
 								className="font-medium underline underline-offset-1"
 							>
 								{t('verify')}
@@ -115,7 +126,7 @@ export function NavUser({ user }: NavUserProps) {
 						<DropdownMenuSeparator />
 						<DropdownMenuItem asChild>
 							<Link
-								href="/settings/profile"
+								href={profileHref}
 								className="flex cursor-pointer items-center gap-2"
 							>
 								<User className="size-4" />
@@ -124,7 +135,7 @@ export function NavUser({ user }: NavUserProps) {
 						</DropdownMenuItem>
 						<DropdownMenuItem asChild>
 							<Link
-								href="/settings/security"
+								href={securityHref}
 								className="flex cursor-pointer items-center gap-2"
 							>
 								<KeyRound className="size-4" />

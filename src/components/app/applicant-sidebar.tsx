@@ -1,6 +1,12 @@
 'use client'
 
-import { CircleHelp, FilePlus2, Home, Landmark } from 'lucide-react'
+import {
+	CircleHelp,
+	ClipboardList,
+	FilePlus2,
+	Home,
+	Landmark,
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -41,7 +47,7 @@ function isNewApplicationActive(pathname: string) {
 	return pathname === '/dashboard/applications/new'
 }
 
-function isMyLoansActive(pathname: string) {
+function isMySolicitudesActive(pathname: string) {
 	if (pathname === '/dashboard/applications/new') {
 		return false
 	}
@@ -51,8 +57,12 @@ function isMyLoansActive(pathname: string) {
 	)
 }
 
+function isMyLoansActive(pathname: string) {
+	return pathname === '/dashboard/loans'
+}
+
 function isSupportActive(pathname: string) {
-	return pathname.startsWith('/settings')
+	return pathname.startsWith('/dashboard/settings')
 }
 
 export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
@@ -79,14 +89,20 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 			isActive: isNewApplicationActive,
 		},
 		{
-			title: tDashboard('nav-my-loans'),
+			title: tDashboard('nav-my-solicitudes'),
 			url: '/dashboard/applications',
+			icon: ClipboardList,
+			isActive: isMySolicitudesActive,
+		},
+		{
+			title: tDashboard('nav-my-loans'),
+			url: '/dashboard/loans',
 			icon: Landmark,
 			isActive: isMyLoansActive,
 		},
 		{
 			title: tDashboard('nav-support'),
-			url: '/settings',
+			url: '/dashboard/settings',
 			icon: CircleHelp,
 			isActive: isSupportActive,
 		},
@@ -104,7 +120,7 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 					onClick={closeMobileMenu}
 					className="block px-2 py-1"
 				>
-					<p className="font-semibold text-[#003178] text-lg leading-tight">
+					<p className="font-semibold text-brand text-lg leading-tight">
 						{tApp('brand-name')}
 					</p>
 					<p className="mt-1.5 text-[10px] text-slate-500 uppercase leading-snug tracking-[0.2em]">
@@ -125,16 +141,16 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 										onClick={closeMobileMenu}
 										className={cn(
 											'flex h-11 w-full min-w-0 items-center gap-3 px-3 text-[0.9375rem] outline-none transition-[background-color,box-shadow,color] duration-200',
-											'ring-0 ring-offset-0 focus-visible:ring-2 focus-visible:ring-[#003178]/30 focus-visible:ring-offset-2',
+											'ring-0 ring-offset-0 focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-2',
 											active
-												? 'rounded-xl bg-white font-semibold text-[#003178] shadow-[0_6px_28px_-2px_rgba(25,28,30,0.07),0_2px_8px_-2px_rgba(25,28,30,0.04)]'
+												? 'rounded-xl bg-white font-semibold text-brand shadow-nav-active'
 												: 'rounded-xl text-slate-600 hover:bg-black/4 hover:text-[#191c1e]',
 										)}
 									>
 										<item.icon
 											className={cn(
 												'size-[18px] shrink-0',
-												active ? 'text-[#003178]' : 'text-slate-500',
+												active ? 'text-brand' : 'text-slate-500',
 											)}
 											aria-hidden
 										/>
@@ -147,7 +163,7 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 				</nav>
 			</SidebarContent>
 			<SidebarFooter className="mt-auto p-2 pt-4">
-				<NavUser user={user} />
+				<NavUser user={user} settingsBasePath="/dashboard/settings" />
 			</SidebarFooter>
 		</Sidebar>
 	)
