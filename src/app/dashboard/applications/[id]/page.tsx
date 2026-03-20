@@ -131,7 +131,7 @@ export default async function DashboardApplicationDetailPage({
 
 	return (
 		<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-			<Card className="overflow-hidden border-border/70 bg-gradient-to-br from-card to-muted/30">
+			<Card className="overflow-hidden border-border/70 bg-linear-to-br from-card to-muted/30">
 				<CardHeader className="gap-4 border-b">
 					<div className="flex items-start justify-between gap-4">
 						<div className="space-y-2">
@@ -249,7 +249,8 @@ export default async function DashboardApplicationDetailPage({
 					<CardDescription>{t('documents-description')}</CardDescription>
 				</CardHeader>
 				<CardContent className="pt-6">
-					<div className="grid gap-4 sm:grid-cols-2">
+					{/* `[&>*]:min-w-0` avoids grid min-width:auto clipping flex children (filenames, empty copy). */}
+					<div className="grid gap-4 sm:grid-cols-2 sm:*:min-w-0">
 						{sortedDocumentList.length > 0 ? (
 							sortedDocumentList.map((doc) => {
 								const documentTypeKey = isDocumentType(doc.documentType)
@@ -263,7 +264,7 @@ export default async function DashboardApplicationDetailPage({
 									<div
 										key={doc.id}
 										className={cn(
-											'overflow-hidden rounded-2xl border shadow-sm transition-colors',
+											'min-w-0 overflow-hidden rounded-2xl border shadow-sm transition-colors',
 											getDocumentCardClass(doc.status),
 										)}
 									>
@@ -328,7 +329,7 @@ export default async function DashboardApplicationDetailPage({
 								)
 							})
 						) : (
-							<div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed bg-muted/20 px-6 py-10 text-center">
+							<div className="flex min-h-56 min-w-0 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed bg-muted/20 px-6 py-10 text-center">
 								<div className="flex size-14 items-center justify-center rounded-2xl bg-background shadow-sm">
 									<FileText
 										className="size-7 text-muted-foreground/70"

@@ -160,10 +160,11 @@ describe('Dashboard Applications', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
 			cy.contains('button', /enviar solicitud/i)
+				.scrollIntoView()
 				.should('be.visible')
 				.click()
 			cy.url().should('include', '/dashboard/applications/new')
-			cy.contains('El valor es requerido').should('be.visible')
+			cy.contains('El valor es requerido').scrollIntoView().should('be.visible')
 		})
 
 		it('submitting with invalid RFC date/check digit and CLABE checksum shows errors', () => {
@@ -179,12 +180,19 @@ describe('Dashboard Applications', () => {
 			cy.get('input[name="postalCode"]').type('6400')
 			cy.get('input[name="phoneNumber"]').type('8112345678')
 			cy.contains('button', /enviar solicitud/i)
+				.scrollIntoView()
 				.should('be.visible')
 				.click()
 			cy.url().should('include', '/dashboard/applications/new')
-			cy.contains(/RFC no es válido/i).should('be.visible')
-			cy.contains(/CLABE no es válida/i).should('be.visible')
-			cy.contains(/código postal.*5/i).should('be.visible')
+			cy.contains(/RFC no es válido/i)
+				.scrollIntoView()
+				.should('be.visible')
+			cy.contains(/CLABE no es válida/i)
+				.scrollIntoView()
+				.should('be.visible')
+			cy.contains(/código postal.*5/i)
+				.scrollIntoView()
+				.should('be.visible')
 		})
 	})
 
@@ -234,9 +242,9 @@ describe('Dashboard Applications', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
 
-			cy.contains(/Autorización.*máx\.\s*2 meses de antigüedad/i).should(
-				'be.visible',
-			)
+			cy.contains(/Autorización.*máx\.\s*2 meses de antigüedad/i)
+				.scrollIntoView()
+				.should('be.visible')
 
 			cy.get('input[name="salaryAtApplication"]').type('100000')
 			cy.get('input[name="payrollNumber"]').type('EMP-001')
@@ -266,6 +274,7 @@ describe('Dashboard Applications', () => {
 				'submitApplication',
 			)
 			cy.contains('button', /enviar solicitud/i)
+				.scrollIntoView()
 				.should('be.visible')
 				.click()
 
@@ -282,9 +291,9 @@ describe('Dashboard Applications', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
 
-			cy.contains(/Contrato.*máx\.\s*2 meses de antigüedad/i).should(
-				'be.visible',
-			)
+			cy.contains(/Contrato.*máx\.\s*2 meses de antigüedad/i)
+				.scrollIntoView()
+				.should('be.visible')
 
 			cy.get('input[name="salaryAtApplication"]').type('100000')
 			cy.get('input[name="payrollNumber"]').type('EMP-001')
@@ -301,6 +310,7 @@ describe('Dashboard Applications', () => {
 				'submitApplication',
 			)
 			cy.contains('button', /enviar solicitud/i)
+				.scrollIntoView()
 				.should('be.visible')
 				.click()
 			cy.wait('@submitApplication')
@@ -309,6 +319,7 @@ describe('Dashboard Applications', () => {
 
 			cy.get('input[name="authorizationFile"]')
 				.closest('[data-slot="field"]')
+				.scrollIntoView()
 				.within(() => {
 					cy.contains(
 						'[data-slot="field-error"]',
@@ -317,6 +328,7 @@ describe('Dashboard Applications', () => {
 				})
 			cy.get('input[name="contractFile"]')
 				.closest('[data-slot="field"]')
+				.scrollIntoView()
 				.within(() => {
 					cy.contains(
 						'[data-slot="field-error"]',
@@ -325,6 +337,7 @@ describe('Dashboard Applications', () => {
 				})
 			cy.get('input[name="payrollReceiptFile"]')
 				.closest('[data-slot="field"]')
+				.scrollIntoView()
 				.within(() => {
 					cy.contains(
 						'[data-slot="field-error"]',
