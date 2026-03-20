@@ -48,7 +48,9 @@ describe('Settings Security', () => {
 		cy.contains('La autenticación de dos factores está habilitada').should(
 			'be.visible',
 		)
-		cy.contains(/Te quedan \d+ códigos de respaldo/).should('be.visible')
+		cy.contains(/Te quedan \d+ códigos de respaldo/)
+			.scrollIntoView()
+			.should('be.visible')
 		cy.contains('button', 'Regenerar Códigos').should('be.visible')
 		cy.contains('button', 'Deshabilitar').should('be.visible')
 	})
