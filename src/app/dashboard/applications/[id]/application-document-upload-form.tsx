@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import { uploadApplicationDocumentAction } from '~/app/dashboard/applications/actions'
@@ -14,10 +14,15 @@ import {
 	SelectValue,
 } from '~/components/ui/select'
 import { DASHBOARD_DOCUMENT_TYPE_KEYS } from '~/lib/i18n-keys'
+import { shell } from '~/lib/shell'
+import { cn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { DocumentType } from '~/server/db/schema'
 
 const FILE_INPUT_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp'
+
+const fileInputClassName =
+	'flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-sm shadow-xs file:border-0 file:bg-transparent file:font-medium file:text-foreground file:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/25 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive'
 
 interface ApplicationDocumentUploadFormProps {
 	applicationId: number
@@ -86,26 +91,47 @@ export function ApplicationDocumentUploadForm({
 		<div
 			className={
 				compact
-					? ''
-					: 'min-w-0 overflow-hidden rounded-2xl border border-border/70 bg-muted/20 shadow-sm'
+					? 'min-w-0'
+					: 'min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm'
 			}
 		>
 			{!isOpen ? (
 				<button
 					type="button"
 					onClick={() => setIsOpen(true)}
-					className={
+					className={cn(
+						'w-full text-left transition-colors',
 						compact
-							? 'flex w-full flex-col items-start gap-3 rounded-xl border border-dashed bg-background/70 px-4 py-4 text-left transition-colors hover:bg-background'
-							: 'flex min-h-56 w-full flex-col items-center justify-center gap-4 rounded-2xl border-2 border-muted-foreground/20 border-dashed bg-muted/30 px-6 py-8 text-center transition-colors hover:border-muted-foreground/40 hover:bg-muted/50'
-					}
+							? 'flex flex-col items-start gap-3 rounded-xl border border-slate-200 border-dashed bg-slate-50/50 px-4 py-4 hover:border-slate-300 hover:bg-slate-50'
+							: 'flex min-h-56 flex-col items-center justify-center gap-4 rounded-2xl border-2 border-slate-200 border-dashed bg-slate-50/50 px-6 py-8 text-center hover:border-slate-300 hover:bg-slate-50',
+					)}
 				>
-					<div className="flex size-14 items-center justify-center rounded-full bg-background shadow-sm">
-						<Plus className="size-7 text-muted-foreground" aria-hidden />
+					<div
+						className={cn(
+							'flex shrink-0 items-center justify-center rounded-2xl border border-slate-100 bg-white shadow-sm',
+							compact ? 'size-11' : 'size-14',
+						)}
+						aria-hidden
+					>
+						<Upload
+							className={cn('text-slate-500', compact ? 'size-5' : 'size-7')}
+						/>
 					</div>
 					<div className="space-y-2">
-						<h3 className="font-semibold text-base">{triggerTitle}</h3>
-						<p className="max-w-xs text-muted-foreground text-sm">
+						<h3
+							className={cn(
+								'font-medium text-slate-900',
+								compact ? 'text-sm' : 'text-base',
+							)}
+						>
+							{triggerTitle}
+						</h3>
+						<p
+							className={cn(
+								'text-slate-600 leading-snug',
+								compact ? 'text-xs' : 'max-w-xs text-sm',
+							)}
+						>
 							{triggerDescription}
 						</p>
 					</div>
@@ -113,18 +139,18 @@ export function ApplicationDocumentUploadForm({
 			) : (
 				<form
 					action={action}
-					className={compact ? 'space-y-3' : 'space-y-4 p-5'}
+					className={compact ? 'space-y-3' : 'space-y-4 px-5 py-5'}
 					noValidate
 				>
 					<input type="hidden" name="applicationId" value={applicationId} />
 					<input type="hidden" name="documentType" value={documentType} />
 
-					{state.message && !state.errors && (
+					{state.message && !state.errors ? (
 						<FieldError
 							message={resolveError(state.message)}
-							className="rounded-xl bg-destructive/15 p-3"
+							className={cn(shell.alertErrorSurface, 'p-3')}
 						/>
-					)}
+					) : null}
 
 					{fixedDocumentType ? null : (
 						<Field data-invalid={!!state.errors?.documentType}>
@@ -140,7 +166,7 @@ export function ApplicationDocumentUploadForm({
 									id={documentTypeId}
 									aria-required="true"
 									aria-invalid={!!state.errors?.documentType}
-									className="w-full bg-background"
+									className="w-full border-slate-200 bg-white"
 								>
 									<SelectValue placeholder={t('placeholder-document-type')} />
 								</SelectTrigger>
@@ -152,9 +178,9 @@ export function ApplicationDocumentUploadForm({
 									))}
 								</SelectContent>
 							</Select>
-							{state.errors?.documentType && (
+							{state.errors?.documentType ? (
 								<FieldError message={resolveError(state.errors.documentType)} />
-							)}
+							) : null}
 						</Field>
 					)}
 
@@ -162,14 +188,14 @@ export function ApplicationDocumentUploadForm({
 						<div className="space-y-2">
 							<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
 								<Field data-invalid={!!state.errors?.file} className="flex-1">
-									<div className="rounded-xl border border-dashed bg-background/70 p-3">
+									<div className="rounded-xl border border-slate-200 border-dashed bg-white p-3 shadow-sm">
 										<input
 											ref={fileInputRef}
 											id={fileId}
 											type="file"
 											name="file"
 											accept={FILE_INPUT_ACCEPT}
-											className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs file:border-0 file:bg-transparent file:font-medium file:text-foreground file:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+											className={fileInputClassName}
 											aria-invalid={!!state.errors?.file}
 										/>
 									</div>
@@ -177,6 +203,7 @@ export function ApplicationDocumentUploadForm({
 								<Button
 									type="submit"
 									size="sm"
+									className="shrink-0 rounded-lg font-semibold"
 									disabled={pending || !documentType}
 								>
 									{pending
@@ -184,9 +211,9 @@ export function ApplicationDocumentUploadForm({
 										: (triggerButtonLabel ?? t('submit-upload'))}
 								</Button>
 							</div>
-							{state.errors?.file && (
+							{state.errors?.file ? (
 								<FieldError message={resolveError(state.errors.file)} />
-							)}
+							) : null}
 						</div>
 					) : (
 						<>
@@ -194,28 +221,29 @@ export function ApplicationDocumentUploadForm({
 								<FieldLabel htmlFor={fileId}>
 									{t('label-file')} <span className="text-destructive">*</span>
 								</FieldLabel>
-								<div className="rounded-2xl border border-dashed bg-background p-3">
+								<div className="rounded-xl border border-slate-200 border-dashed bg-white p-4 shadow-sm">
 									<input
 										ref={fileInputRef}
 										id={fileId}
 										type="file"
 										name="file"
 										accept={FILE_INPUT_ACCEPT}
-										className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs file:border-0 file:bg-transparent file:font-medium file:text-foreground file:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+										className={fileInputClassName}
 										aria-invalid={!!state.errors?.file}
 									/>
 								</div>
-								{state.errors?.file && (
+								{state.errors?.file ? (
 									<FieldError message={resolveError(state.errors.file)} />
-								)}
+								) : null}
 							</Field>
 
-							<div className="flex items-center justify-between gap-3">
+							<div className="flex items-center justify-between gap-3 pt-1">
 								{showInlineForm ? null : (
 									<Button
 										type="button"
 										variant="ghost"
 										size="sm"
+										className={shell.controlGhostBrand}
 										onClick={() => setIsOpen(false)}
 										disabled={pending}
 									>
@@ -225,6 +253,7 @@ export function ApplicationDocumentUploadForm({
 								<Button
 									type="submit"
 									size="sm"
+									className="ml-auto rounded-lg font-semibold"
 									disabled={pending || !documentType}
 								>
 									{pending

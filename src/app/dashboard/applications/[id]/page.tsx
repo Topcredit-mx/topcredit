@@ -199,7 +199,7 @@ export default async function DashboardApplicationDetailPage({
 
 				{application.denialReason ? (
 					<div className="border-slate-100 border-b px-6 py-4">
-						<div className="rounded-xl border border-red-200 bg-red-50/60 p-4">
+						<div className={cn(shell.alertErrorSurface, 'bg-red-50/60 p-4')}>
 							<p className="flex items-center gap-2 font-medium text-red-900 text-sm">
 								<AlertCircle className="size-4 text-destructive" aria-hidden />
 								{t('detail-denial-reason')}

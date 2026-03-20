@@ -50,13 +50,13 @@ const steps = [
 
 export function HowItWorksSection() {
 	return (
-		<section className="bg-gray-50 py-16 sm:py-24">
+		<section id="como-funciona" className="py-16 sm:py-24">
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 				<div className="text-center">
-					<h2 className="font-bold text-3xl text-gray-900 tracking-tight sm:text-4xl">
+					<h2 className="font-semibold text-3xl text-slate-900 tracking-tight sm:text-4xl">
 						¿Cómo funciona?
 					</h2>
-					<p className="mx-auto mt-4 max-w-2xl text-gray-600 text-lg">
+					<p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
 						Un proceso simple y transparente diseñado para que obtengas tu
 						crédito de manera rápida y segura.
 					</p>
@@ -66,24 +66,21 @@ export function HowItWorksSection() {
 					<div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
 						{steps.map((step, index) => (
 							<div key={step.number} className="relative">
-								{/* Connection Line */}
-								{index < steps.length - 1 && (
-									<div className="absolute top-16 left-8 hidden h-full w-px bg-gradient-to-b from-blue-200 to-transparent lg:block" />
-								)}
+								{index < steps.length - 1 ? (
+									<div className="absolute top-16 left-8 hidden h-full w-px bg-gradient-to-b from-brand/25 to-transparent lg:block" />
+								) : null}
 
 								<div className="flex">
-									{/* Step Number */}
-									<div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 font-bold text-lg text-white">
+									<div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand font-semibold text-lg text-white shadow-sm">
 										{step.number}
 									</div>
 
-									{/* Content */}
 									<div className="ml-6 flex-1">
-										<h3 className="mb-2 font-semibold text-gray-900 text-xl">
+										<h3 className="mb-2 font-semibold text-slate-900 text-xl">
 											{step.title}
 										</h3>
 
-										<p className="mb-4 text-gray-600 leading-relaxed">
+										<p className="mb-4 text-slate-600 leading-relaxed">
 											{step.description}
 										</p>
 
@@ -91,9 +88,12 @@ export function HowItWorksSection() {
 											{step.details.map((detail) => (
 												<li
 													key={detail}
-													className="flex items-center text-gray-500 text-sm"
+													className="flex items-center gap-2 text-slate-500 text-sm"
 												>
-													<CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+													<CheckCircle
+														className="size-4 shrink-0 text-emerald-600"
+														aria-hidden
+													/>
 													{detail}
 												</li>
 											))}
@@ -105,12 +105,16 @@ export function HowItWorksSection() {
 					</div>
 				</div>
 
-				{/* CTA */}
 				<div className="mt-16 text-center">
-					<Button asChild size="lg" className="group h-12 px-8 text-base">
+					<Button
+						asChild
+						variant="brand"
+						size="lg"
+						className="group h-12 px-8 text-base"
+					>
 						<Link href="/signup">
 							Empezar ahora
-							<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+							<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
 						</Link>
 					</Button>
 				</div>

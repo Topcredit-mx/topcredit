@@ -1,22 +1,41 @@
+import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
+import {
+	authInlineLinkClass,
+	authPageSubtitleClass,
+	authPageTitleClass,
+} from '~/components/auth/auth-form-styles'
+import { AuthPageShell } from '~/components/auth/auth-page-shell'
 import { VerifyOTPForm } from '~/components/verify-otp-form'
+import { cn } from '~/lib/utils'
 
 export default async function VerifyOTPPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-	const t = await getTranslations('errors')
 	const { email } = await searchParams
 	if (!email || Array.isArray(email)) {
-		return <div>{t('invalid-email')}</div>
+		const t = await getTranslations('errors')
+		const tAuth = await getTranslations('auth')
+		return (
+			<AuthPageShell>
+				<div className="flex flex-col items-center gap-4 text-center">
+					<h1 className={cn(authPageTitleClass, 'text-destructive')}>
+						{t('title')}
+					</h1>
+					<p className={authPageSubtitleClass}>{t('invalid-email')}</p>
+					<Link href="/login" className={authInlineLinkClass}>
+						{tAuth('login')}
+					</Link>
+				</div>
+			</AuthPageShell>
+		)
 	}
 
 	return (
-		<div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-			<div className="w-full max-w-sm">
-				<VerifyOTPForm email={email} />
-			</div>
-		</div>
+		<AuthPageShell>
+			<VerifyOTPForm email={email} />
+		</AuthPageShell>
 	)
 }

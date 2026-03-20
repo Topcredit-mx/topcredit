@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { SectionCard } from '~/components/ui/section-card'
 import { shell } from '~/lib/shell'
+import { cn } from '~/lib/utils'
 import { disableTotpSetup, generateNewBackupCodes } from '~/server/auth/users'
 
 interface TotpSettingsCardProps {
@@ -103,7 +104,10 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 			<div className="space-y-5">
 				{error ? (
 					<div
-						className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50/80 p-3 text-red-900 text-sm"
+						className={cn(
+							shell.alertErrorSurface,
+							'flex items-center gap-2 bg-red-50/80 p-3 text-sm',
+						)}
 						role="alert"
 					>
 						<AlertTriangle className="size-4 shrink-0" aria-hidden />

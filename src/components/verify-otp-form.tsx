@@ -1,15 +1,23 @@
 'use client'
 
-import { GalleryVerticalEnd } from 'lucide-react'
+import { Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { type ComponentProps, type FormEvent, useState } from 'react'
+import {
+	authIconChipLinkMotionClass,
+	authInlineLinkClass,
+	authOtpSlotClass,
+	authPageSubtitleClass,
+	authPageTitleClass,
+} from '~/components/auth/auth-form-styles'
 import {
 	InputOTP,
 	InputOTPGroup,
 	InputOTPSlot,
 } from '~/components/ui/input-otp'
+import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import { resendOtp } from '~/server/auth/actions'
@@ -18,7 +26,7 @@ export function VerifyOTPForm({
 	className,
 	email,
 	...props
-}: React.ComponentProps<'div'> & { email: string }) {
+}: ComponentProps<'div'> & { email: string }) {
 	const t = useTranslations('verify-otp')
 	const tAuth = useTranslations('auth')
 	const resolveError = useResolveValidationError()
@@ -29,33 +37,31 @@ export function VerifyOTPForm({
 	const [resendMessage, setResendMessage] = useState<string | null>(null)
 	const [resendSuccess, setResendSuccess] = useState<boolean | null>(null)
 
-	const handleOTPComplete = async (value: string) => {
-		if (value.length !== 6) return
+	const handleOTPComplete = async (code: string) => {
+		if (code.length !== 6) return
 
 		setLoading(true)
 		setError(null)
 
 		const result = await signIn('email-otp', {
 			email,
-			otp: value,
+			otp: code,
 			callbackUrl: '/',
 			redirect: false,
 		})
 
 		if (result?.error) {
 			setError(t('invalid-code'))
-			setValue('') // Clear the OTP input on error
+			setValue('')
 		} else if (result?.ok) {
-			// Success - redirect manually
 			window.location.href = result.url || '/'
 		}
 
 		setLoading(false)
 	}
 
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
-		// This is just a fallback, main submission happens via onComplete
 		if (value.length === 6) {
 			await handleOTPComplete(value)
 		}
@@ -76,105 +82,80 @@ export function VerifyOTPForm({
 
 	return (
 		<div className={cn('flex flex-col gap-8', className)} {...props}>
-			<form onSubmit={handleSubmit}>
-				<div className="flex flex-col gap-8">
-					<div className="flex flex-col items-center gap-4">
-						<Link
-							href="#"
-							className="flex flex-col items-center gap-2 font-medium"
-						>
-							<div className="flex size-8 items-center justify-center rounded-md">
-								<GalleryVerticalEnd className="size-6" />
-							</div>
-							<span className="sr-only">Acme Inc.</span>
-						</Link>
-						<h1 className="font-bold text-2xl">{t('title')}</h1>
-					</div>
-					<div className="flex flex-col gap-8">
-						<div className="flex flex-col items-center gap-6">
-							<p className="text-center text-muted-foreground text-sm leading-relaxed">
-								{t('sent-to', { email })}
-							</p>
-							<InputOTP
-								maxLength={6}
-								value={value}
-								onChange={(value) => setValue(value)}
-								onComplete={handleOTPComplete}
-								disabled={loading}
-								containerClassName="gap-3"
-							>
-								<InputOTPGroup className="gap-2">
-									<InputOTPSlot
-										index={0}
-										className="h-10 w-10 rounded-sm border-2 text-lg"
-									/>
-									<InputOTPSlot
-										index={1}
-										className="h-10 w-10 rounded-sm border-2 text-lg"
-									/>
-									<InputOTPSlot
-										index={2}
-										className="h-10 w-10 rounded-sm border-2 text-lg"
-									/>
-									<InputOTPSlot
-										index={3}
-										className="h-10 w-10 rounded-sm border-2 text-lg"
-									/>
-									<InputOTPSlot
-										index={4}
-										className="h-10 w-10 rounded-sm border-2 text-lg"
-									/>
-									<InputOTPSlot
-										index={5}
-										className="h-10 w-10 rounded-sm border-2 text-lg"
-									/>
-								</InputOTPGroup>
-							</InputOTP>
-							{error && (
-								<p className="text-center text-red-600 text-sm">{error}</p>
-							)}
-							{loading && (
-								<p className="text-center text-muted-foreground text-sm">
-									{t('validating')}
-								</p>
-							)}
-						</div>
+			<div className="flex flex-col items-center gap-4 text-center">
+				<Link
+					href="/"
+					className={cn(shell.iconChip, authIconChipLinkMotionClass)}
+					aria-label="TopCredit"
+				>
+					<Building2 className="size-5" aria-hidden />
+				</Link>
+				<h1 className={authPageTitleClass}>{t('title')}</h1>
+				<p className={authPageSubtitleClass}>{t('sent-to', { email })}</p>
+			</div>
 
-						<div className="flex flex-col items-center gap-3">
-							<Link
-								href="/login"
-								className="flex items-center gap-1 text-blue-500 text-sm hover:underline"
-							>
-								{t('back')}
-							</Link>
-							<button
-								type="button"
-								onClick={handleResend}
-								disabled={resendLoading}
-								className="flex items-center gap-1 text-blue-500 text-sm hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-							>
-								{resendLoading ? t('resending') : t('resend')}
-							</button>
-							{resendMessage && (
-								<p
-									className={cn(
-										'text-center text-sm',
-										resendSuccess ? 'text-green-600' : 'text-red-600',
-									)}
-								>
-									{resolveError(resendMessage)}
-								</p>
-							)}
-						</div>
+			<form onSubmit={handleSubmit} className="flex flex-col gap-8">
+				<div className="flex flex-col items-center gap-6">
+					<InputOTP
+						maxLength={6}
+						value={value}
+						onChange={(next) => setValue(next)}
+						onComplete={handleOTPComplete}
+						disabled={loading}
+						containerClassName="gap-3"
+					>
+						<InputOTPGroup className="gap-2">
+							{[0, 1, 2, 3, 4, 5].map((i) => (
+								<InputOTPSlot key={i} index={i} className={authOtpSlotClass} />
+							))}
+						</InputOTPGroup>
+					</InputOTP>
 
-						<div className="text-center text-muted-foreground text-sm">
-							{tAuth('no-account')}{' '}
-							<Link href="/signup" className="text-blue-500 hover:underline">
-								{tAuth('sign-up-link')}
-							</Link>
-						</div>
-					</div>
+					{error ? (
+						<p className="text-center text-red-700 text-sm" role="alert">
+							{error}
+						</p>
+					) : null}
+					{loading ? (
+						<p className="text-center text-slate-500 text-sm">
+							{t('validating')}
+						</p>
+					) : null}
 				</div>
+
+				<div className="flex flex-col items-center gap-3">
+					<Link href="/login" className={authInlineLinkClass}>
+						{t('back')}
+					</Link>
+					<button
+						type="button"
+						onClick={handleResend}
+						disabled={resendLoading}
+						className={cn(
+							authInlineLinkClass,
+							'cursor-pointer border-none bg-transparent p-0 disabled:cursor-not-allowed disabled:opacity-50',
+						)}
+					>
+						{resendLoading ? t('resending') : t('resend')}
+					</button>
+					{resendMessage ? (
+						<p
+							className={cn(
+								'text-center text-sm',
+								resendSuccess ? 'text-emerald-700' : 'text-red-700',
+							)}
+						>
+							{resolveError(resendMessage)}
+						</p>
+					) : null}
+				</div>
+
+				<p className="text-balance text-center text-slate-600 text-sm leading-relaxed">
+					{tAuth('no-account')}{' '}
+					<Link href="/signup" className={authInlineLinkClass}>
+						{tAuth('sign-up-link')}
+					</Link>
+				</p>
 			</form>
 		</div>
 	)

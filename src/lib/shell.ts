@@ -28,4 +28,9 @@ export const shell = {
 	/** Inputs on neutral wells (e.g. draft flow). */
 	inputOnMuted:
 		'h-11 rounded-lg border-0 bg-slate-100 shadow-none focus-visible:ring-2 focus-visible:ring-brand/25 focus-visible:ring-offset-0',
+	/**
+	 * Destructive alert panel (merge padding, alignment, or `bg-red-50/60` etc. with `cn()`).
+	 */
+	alertErrorSurface:
+		'rounded-xl border border-red-200 bg-red-50/70 text-red-900',
 } as const

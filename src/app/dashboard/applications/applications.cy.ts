@@ -365,7 +365,7 @@ describe('Dashboard Applications', () => {
 			cy.get('a[href="/dashboard/applications/new"]').should('be.visible')
 			cy.get('a[href="/dashboard/applications"]').should('be.visible')
 			cy.get('a[href="/dashboard/loans"]').should('be.visible')
-			cy.get('a[href="/dashboard/settings"]').should('be.visible')
+			cy.get('a[href="/dashboard/support"]').should('be.visible')
 		})
 
 		it('applicant can open Mis préstamos placeholder page', () => {
@@ -373,6 +373,13 @@ describe('Dashboard Applications', () => {
 			cy.url().should('include', '/dashboard/loans')
 			cy.contains(/mis préstamos/i).should('be.visible')
 			cy.contains(/sin préstamos todavía|formalizado/i).should('be.visible')
+		})
+
+		it('applicant can open Soporte (chat preview UI)', () => {
+			cy.visit('/dashboard/support')
+			cy.url().should('include', '/dashboard/support')
+			cy.contains(/asistente topcredit/i).should('be.visible')
+			cy.contains(/preguntas frecuentes/i).should('be.visible')
 		})
 
 		it('Solicitar Ahora goes to new application page', () => {

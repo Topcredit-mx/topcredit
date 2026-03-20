@@ -62,7 +62,7 @@ function isMyLoansActive(pathname: string) {
 }
 
 function isSupportActive(pathname: string) {
-	return pathname.startsWith('/dashboard/settings')
+	return pathname === '/dashboard/support'
 }
 
 export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
@@ -102,7 +102,7 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 		},
 		{
 			title: tDashboard('nav-support'),
-			url: '/dashboard/settings',
+			url: '/dashboard/support',
 			icon: CircleHelp,
 			isActive: isSupportActive,
 		},

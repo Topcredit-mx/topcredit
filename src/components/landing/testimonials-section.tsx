@@ -1,5 +1,8 @@
 import { Quote, Star } from 'lucide-react'
 
+import { shell } from '~/lib/shell'
+import { cn } from '~/lib/utils'
+
 const testimonials = [
 	{
 		name: 'María González',
@@ -29,13 +32,13 @@ const testimonials = [
 
 export function TestimonialsSection() {
 	return (
-		<section className="bg-gray-50 py-16 sm:py-24">
+		<section className="border-slate-100 border-t bg-white py-16 sm:py-24">
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 				<div className="text-center">
-					<h2 className="font-bold text-3xl text-gray-900 tracking-tight sm:text-4xl">
+					<h2 className="font-semibold text-3xl text-slate-900 tracking-tight sm:text-4xl">
 						Lo que dicen nuestros usuarios
 					</h2>
-					<p className="mx-auto mt-4 max-w-2xl text-gray-600 text-lg">
+					<p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
 						Historias reales de empleados que han transformado su situación
 						financiera.
 					</p>
@@ -44,38 +47,39 @@ export function TestimonialsSection() {
 				<div className="mt-16 grid gap-8 lg:grid-cols-3">
 					{testimonials.map((testimonial) => (
 						<div key={testimonial.name} className="relative">
-							<div className="h-full rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200">
-								{/* Quote Icon */}
-								<Quote className="h-8 w-8 text-blue-500" />
+							<div
+								className={cn(
+									shell.elevatedCard,
+									'h-full p-8 transition-shadow hover:shadow-portfolio-row',
+								)}
+							>
+								<Quote className="size-8 text-brand/80" aria-hidden />
 
-								{/* Rating */}
 								<div className="mt-4 flex">
 									{[...Array(testimonial.rating)].map((_, i) => (
 										<Star
 											key={`star-${testimonial.name}-${i}`}
-											className="h-5 w-5 fill-yellow-400 text-yellow-400"
+											className="size-5 fill-amber-400 text-amber-400"
 										/>
 									))}
 								</div>
 
-								{/* Testimonial Text */}
-								<blockquote className="mt-4 text-gray-700 leading-relaxed">
-									"{testimonial.text}"
+								<blockquote className="mt-4 text-slate-700 leading-relaxed">
+									&ldquo;{testimonial.text}&rdquo;
 								</blockquote>
 
-								{/* Author */}
 								<div className="mt-6 flex items-center">
-									<div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-600">
+									<div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand">
 										{testimonial.avatar}
 									</div>
-									<div className="ml-4">
-										<div className="font-semibold text-gray-900">
+									<div className="ml-4 min-w-0">
+										<div className="font-semibold text-slate-900">
 											{testimonial.name}
 										</div>
-										<div className="text-gray-500 text-sm">
+										<div className="text-slate-500 text-sm">
 											{testimonial.role}
 										</div>
-										<div className="text-gray-400 text-xs">
+										<div className="text-slate-400 text-xs">
 											{testimonial.location}
 										</div>
 									</div>
@@ -85,10 +89,12 @@ export function TestimonialsSection() {
 					))}
 				</div>
 
-				{/* Trust Badge */}
 				<div className="mt-16 text-center">
-					<div className="inline-flex items-center rounded-full bg-green-100 px-4 py-2 font-medium text-green-800 text-sm">
-						<Star className="mr-2 h-4 w-4 fill-green-600 text-green-600" />
+					<div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/80 bg-emerald-50/90 px-4 py-2 font-medium text-emerald-900 text-sm">
+						<Star
+							className="size-4 fill-emerald-600 text-emerald-600"
+							aria-hidden
+						/>
 						4.9/5 estrellas basado en 2,847 reseñas
 					</div>
 				</div>

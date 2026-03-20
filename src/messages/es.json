@@ -21,7 +21,8 @@
 		"sign-out": "Cerrar Sesión",
 		"loading": "Cargando...",
 		"download": "Descargar",
-		"copied": "¡Copiado!"
+		"copied": "¡Copiado!",
+		"copy": "Copiar"
 	},
 	"app": {
 		"navigation": "Navegación",
@@ -282,11 +283,36 @@
 		"documents": "Documentos",
 		"help": "Ayuda",
 		"contact": "Contacto",
+		"support": {
+			"back-link": "← Inicio",
+			"page-title": "Soporte",
+			"page-subtitle": "Chatea con nuestro asistente o revisa las preguntas frecuentes. Esta pantalla es una vista previa visual.",
+			"assistant-title": "Asistente TopCredit",
+			"assistant-status": "Vista previa · aún no conectado",
+			"welcome-message": "Hola. Soy el asistente de TopCredit (solo interfaz de demostración). Pronto podrás preguntar por el estado de tu solicitud, documentación y plazos.",
+			"demo-user-message": "¿Cuánto tarda en revisarse mi solicitud?",
+			"demo-assistant-message": "Los tiempos dependen de tu empresa y del tipo de revisión. Como referencia, muchas solicitudes entran en revisión en unos días hábiles. Este texto es solo un ejemplo visual.",
+			"input-placeholder": "Escribe un mensaje…",
+			"send": "Enviar",
+			"input-hint": "Vista previa: el envío aún no está activo.",
+			"faq-title": "Preguntas frecuentes",
+			"faq-q1": "¿Cómo subo un documento nuevo?",
+			"faq-a1": "En Mis solicitudes abre el detalle de tu solicitud y usa la sección Documentos para subir archivos.",
+			"faq-q2": "¿Qué significa «documentación inválida»?",
+			"faq-a2": "Significa que el equipo necesita correcciones en algún documento. Verás el motivo en el detalle y podrás volver a subir lo solicitado.",
+			"faq-q3": "¿Dónde cambio mi correo o la seguridad de mi cuenta?",
+			"faq-a3": "En Configuración: Perfil para tus datos y Seguridad para correo, TOTP y sesión.",
+			"faq-q4": "¿Cómo contacto a una persona?",
+			"faq-a4": "Usa los enlaces del pie del portal o el canal que tu empresa de nómina indique.",
+			"disclaimer": "¿Cuenta y seguridad?",
+			"settings-link": "Ir a configuración"
+		},
 		"loans": {
 			"title": "Mis préstamos",
 			"description": "Consulta aquí tus créditos formalizados, saldos y pagos. Las solicitudes en trámite siguen en Mis solicitudes.",
 			"empty-title": "Sin préstamos todavía",
-			"empty-body": "Cuando un crédito quede formalizado después de tu solicitud, lo verás en esta pantalla."
+			"empty-body": "Cuando un crédito quede formalizado después de tu solicitud, lo verás en esta pantalla.",
+			"empty-applications-cta": "Ir a mis solicitudes"
 		},
 		"applications": {
 			"title": "Mis solicitudes",
@@ -477,6 +503,41 @@
 		"error-otp-invalid": "Código OTP inválido",
 		"error-otp-expired": "El código OTP ha expirado"
 	},
+	"legal": {
+		"back": "Volver al inicio",
+		"terms": {
+			"meta-title": "Términos de Servicio",
+			"badge": "Texto de referencia",
+			"title": "Términos de Servicio",
+			"intro": "Lo siguiente es un borrador genérico solo para maquetar la experiencia. Lo reemplazaremos por los términos legales definitivos cuando estén aprobados.",
+			"s1-title": "Alcance del servicio",
+			"s1-body": "TopCredit ofrece herramientas digitales para que personas vinculadas a empresas afiliadas soliciten y administren productos de crédito, sujetos a las políticas aplicables y a evaluaciones de riesgo.",
+			"s2-title": "Uso aceptable",
+			"s2-body": "Te comprometes a proporcionar información veraz, resguardar tus credenciales y no usar la plataforma para fines ilícitos o que vulneren derechos de terceros.",
+			"s3-title": "Cambios",
+			"s3-body": "Podremos actualizar funciones, requisitos o este documento. Publicaremos la versión vigente aquí y, cuando corresponda, te notificaremos cambios relevantes.",
+			"s4-title": "Contacto",
+			"s4-body": "Para dudas generales utiliza los canales de soporte indicados en la aplicación o los que tu empresa ponga a disposición.",
+			"footer-note": "Este texto no constituye asesoría legal.",
+			"see-privacy": "Política de privacidad"
+		},
+		"privacy": {
+			"meta-title": "Política de Privacidad",
+			"badge": "Texto de referencia",
+			"title": "Política de Privacidad",
+			"intro": "Este aviso es un placeholder. Describe de forma genérica cómo podría tratarse la información; el contenido legal definitivo lo sustituirá más adelante.",
+			"s1-title": "Datos que podemos tratar",
+			"s1-body": "Por ejemplo: identificadores de cuenta, datos de contacto, información que envíes en formularios y registros técnicos necesarios para operar el servicio de forma segura.",
+			"s2-title": "Finalidades",
+			"s2-body": "Operar la plataforma, autenticar usuarios, prevenir fraude, cumplir obligaciones legales y, en su caso, mejorar el producto respetando la normatividad aplicable.",
+			"s3-title": "Conservación y seguridad",
+			"s3-body": "Aplicamos medidas razonables de seguridad y conservamos la información el tiempo necesario para las finalidades descritas y los plazos legales.",
+			"s4-title": "Tus derechos",
+			"s4-body": "Según la ley aplicable podrías solicitar acceso, rectificación, cancelación u oposición. Los detalles y canales oficiales se incluirán en la versión final de este aviso.",
+			"footer-note": "Consulta a un especialista para interpretaciones específicas sobre privacidad.",
+			"see-terms": "Términos de servicio"
+		}
+	},
 	"profile": {
 		"card-title": "Datos del perfil",
 		"card-description": "Información básica de tu cuenta (solo lectura)",
@@ -549,7 +610,11 @@
 		"title": "Verificación de dos factores",
 		"description": "Ingresa el código de 6 dígitos de tu aplicación autenticadora",
 		"email-label": "Email:",
-		"invalid-code": "Código de verificación inválido"
+		"invalid-code": "Código de verificación inválido",
+		"verifying": "Verificando...",
+		"otp-hint": "Ingresa el código de tu aplicación autenticadora",
+		"backup-prompt": "¿Problemas para acceder?",
+		"backup-link": "Usar código de respaldo"
 	},
 	"verify-backup-code": {
 		"page-title": "Recuperación de cuenta",

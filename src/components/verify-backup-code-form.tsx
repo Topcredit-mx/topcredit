@@ -1,13 +1,21 @@
 'use client'
 
+import { KeyRound } from 'lucide-react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
-import { useId, useState } from 'react'
+import { type FormEvent, useId, useState } from 'react'
+import {
+	authInlineLinkClass,
+	authInputClass,
+	authPageSubtitleClass,
+	authPageTitleClass,
+} from '~/components/auth/auth-form-styles'
 import { Button } from '~/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { Field, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
+import { shell } from '~/lib/shell'
+import { cn } from '~/lib/utils'
 
 interface VerifyBackupCodeFormProps {
 	email: string
@@ -20,7 +28,9 @@ export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
 	const [isLoading, setIsLoading] = useState(false)
 	const backupCodeId = useId()
 
-	const handleSubmit = async (e: React.FormEvent) => {
+	const totpHref = `/verify-totp?email=${encodeURIComponent(email)}`
+
+	const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
 		if (!backupCode.trim()) return
 
@@ -44,15 +54,26 @@ export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
 	}
 
 	return (
-		<Card className="w-full max-w-md">
-			<CardHeader>
-				<CardTitle>{t('card-title')}</CardTitle>
-				<p className="text-muted-foreground text-sm">{t('card-description')}</p>
-			</CardHeader>
-			<CardContent>
+		<div className="flex flex-col gap-8">
+			<div className="flex flex-col items-center gap-4 text-center">
+				<div className={shell.iconChip} aria-hidden>
+					<KeyRound className="size-5" />
+				</div>
+				<h1 className={authPageTitleClass}>{t('page-title')}</h1>
+				<p className={authPageSubtitleClass}>{t('page-description')}</p>
+			</div>
+
+			<div className="space-y-6 border-slate-100 border-t pt-6">
+				<div>
+					<h2 className="font-semibold text-slate-900">{t('card-title')}</h2>
+					<p className="mt-1 text-slate-600 text-sm leading-relaxed">
+						{t('card-description')}
+					</p>
+				</div>
+
 				<form onSubmit={handleSubmit} className="space-y-4">
-					<div className="space-y-2">
-						<Label htmlFor={backupCodeId}>{t('label')}</Label>
+					<Field>
+						<FieldLabel htmlFor={backupCodeId}>{t('label')}</FieldLabel>
 						<Input
 							id={backupCodeId}
 							type="text"
@@ -60,31 +81,38 @@ export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
 							value={backupCode}
 							onChange={(e) => setBackupCode(e.target.value)}
 							maxLength={8}
-							className="text-center font-mono text-lg tracking-widest"
+							className={cn(
+								authInputClass,
+								'text-center font-mono text-lg tracking-widest',
+							)}
 							disabled={isLoading}
+							autoComplete="one-time-code"
 							autoFocus
 						/>
-					</div>
+					</Field>
 
-					{error && (
-						<div className="text-center text-red-600 text-sm">{error}</div>
-					)}
+					{error ? (
+						<p className="text-center text-red-700 text-sm" role="alert">
+							{error}
+						</p>
+					) : null}
 
 					<Button
 						type="submit"
-						className="w-full"
+						variant="brand"
+						className="h-11 w-full font-semibold"
 						disabled={!backupCode.trim() || isLoading}
 					>
 						{isLoading ? t('verifying') : t('submit')}
 					</Button>
 				</form>
 
-				<div className="mt-4 text-center">
-					<Button variant="link" className="text-sm" asChild>
-						<Link href="/verify-totp">{t('back-to-totp')}</Link>
-					</Button>
+				<div className="text-center">
+					<Link href={totpHref} className={authInlineLinkClass}>
+						{t('back-to-totp')}
+					</Link>
 				</div>
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	)
 }
