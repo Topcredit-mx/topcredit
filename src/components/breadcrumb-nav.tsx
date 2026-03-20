@@ -13,21 +13,21 @@ import {
 } from '~/components/ui/breadcrumb'
 import {
 	type BreadcrumbSegment,
-	getAppBreadcrumbSegments,
-	getDashboardBreadcrumbSegments,
+	getCuentaBreadcrumbSegments,
+	getEquipoBreadcrumbSegments,
 } from '~/lib/breadcrumb-config'
 
-type BreadcrumbScope = 'dashboard' | 'app'
+type BreadcrumbScope = 'cuenta' | 'equipo'
 
 function getSegments(
 	scope: BreadcrumbScope,
 	pathname: string,
 	params: { id?: string; domain?: string },
 ): BreadcrumbSegment[] {
-	if (scope === 'dashboard') {
-		return getDashboardBreadcrumbSegments(pathname, params)
+	if (scope === 'cuenta') {
+		return getCuentaBreadcrumbSegments(pathname, params)
 	}
-	return getAppBreadcrumbSegments(pathname, params)
+	return getEquipoBreadcrumbSegments(pathname, params)
 }
 
 export function BreadcrumbNav({ scope }: { scope: BreadcrumbScope }) {

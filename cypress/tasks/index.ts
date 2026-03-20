@@ -1,10 +1,18 @@
 import { and, eq, inArray } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import {
-	adminOverviewAdmin,
-	overviewCompanyList,
-} from '~/app/app/(main)/admin-overview-dashboard.fixtures'
-import { agentNoAssignments } from '~/app/app/(main)/agent-no-assignments.fixtures'
+	applicantB,
+	applicantInactiveCompany,
+	applicantNoCompany,
+	applicantWithCompany,
+	applicantWithCompanyWithoutCapacityRate,
+	applicantWithCompanyWithoutTermOfferings,
+	companyInactive,
+	companyWithoutCapacityRate,
+	companyWithoutTermOfferings,
+	companyWithTerms,
+} from '~/app/cuenta/(main)/applications/applications.fixtures'
+import { agentNoAssignments } from '~/app/equipo/(main)/agent-no-assignments.fixtures'
 import {
 	adminForReview,
 	agentCompanyDomains,
@@ -19,37 +27,29 @@ import {
 	companyForReviewD,
 	preAuthAgentForReview,
 	reviewApplicationConfigs,
-} from '~/app/app/(main)/applications/applications-review.fixtures'
+} from '~/app/equipo/(main)/applications/applications-review.fixtures'
 import {
 	adminUser as companiesAdminUser,
 	companyList as companiesCompanyList,
-} from '~/app/app/(main)/companies/companies.fixtures'
+} from '~/app/equipo/(main)/companies/companies.fixtures'
 import {
 	agentWithAssignments,
 	companyAssignedActive,
 	companyAssignedActive2,
 	companyAssignedInactive,
 	switcherCompanyList,
-} from '~/app/app/(main)/company-switcher.fixtures'
+} from '~/app/equipo/(main)/company-switcher.fixtures'
+import {
+	adminOverviewAdmin,
+	overviewCompanyList,
+} from '~/app/equipo/(main)/equipo-admin-overview.fixtures'
 import {
 	agentOnlyUser,
 	applicantOnlyUser,
 	userList,
 	adminUser as usersAdminUser,
 	companyList as usersCompanyList,
-} from '~/app/app/(main)/users/users.fixtures'
-import {
-	applicantB,
-	applicantInactiveCompany,
-	applicantNoCompany,
-	applicantWithCompany,
-	applicantWithCompanyWithoutCapacityRate,
-	applicantWithCompanyWithoutTermOfferings,
-	companyInactive,
-	companyWithoutCapacityRate,
-	companyWithoutTermOfferings,
-	companyWithTerms,
-} from '~/app/dashboard/(main)/applications/applications.fixtures'
+} from '~/app/equipo/(main)/users/users.fixtures'
 import {
 	agentUser as loginAgentUser,
 	applicantUser as loginApplicantUser,
@@ -766,17 +766,17 @@ export const cleanupLoginFlow = async (params: CleanupLoginFlowParams) => {
 	return null
 }
 
-// ---- Seed: Dashboard applications ----
+// ---- Seed: Cuenta applications (applicant E2E) ----
 
-export type SeedDashboardApplicationsResult = {
+export type SeedCuentaApplicationsResult = {
 	applicantId: number
 	applicantBId: number
 	termOfferingId: number
 	termId: number
 }
 
-export const seedDashboardApplications =
-	async (): Promise<SeedDashboardApplicationsResult> => {
+export const seedCuentaApplications =
+	async (): Promise<SeedCuentaApplicationsResult> => {
 		const db = getDb(process.env.DATABASE_URL || '')
 
 		const allApplicants = [
@@ -878,10 +878,10 @@ export const seedDashboardApplications =
 		}
 	}
 
-export type CleanupDashboardApplicationsParams = { termId: number }
+export type CleanupCuentaApplicationsParams = { termId: number }
 
-export const cleanupDashboardApplications = async (
-	params: CleanupDashboardApplicationsParams,
+export const cleanupCuentaApplications = async (
+	params: CleanupCuentaApplicationsParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	await deleteBlobsForTerm(db, params.termId)
@@ -1159,7 +1159,7 @@ export const cleanupAdminCompanies = async () => {
 	return null
 }
 
-// ---- Seed: Admin overview (shared by admin-overview-dashboard.cy.ts and admin-company-switcher.cy.ts) ----
+// ---- Seed: Admin overview (shared by equipo-admin-overview.cy.ts and admin-company-switcher.cy.ts) ----
 
 export const seedAdminOverview = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
@@ -1353,7 +1353,7 @@ export type SeedApplicationsReviewResult = {
 	preAuthApplicationId: number
 }
 
-/** Company domains from other E2E specs. Remove their applications at seed start so the review list count is predictable (no leak from dashboard etc.). */
+/** Company domains from other E2E specs. Remove their applications at seed start so the review list count is predictable (no leak from cuenta applicant seeds etc.). */
 const OTHER_E2E_APPLICATION_DOMAINS = [
 	'example.com',
 	'norate.com',

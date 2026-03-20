@@ -345,7 +345,7 @@ export default function Loading() {
 Wrap slow components in Suspense for streaming:
 
 ```typescript
-// src/app/admin/dashboard/page.tsx
+// src/app/admin/overview/page.tsx
 import { Suspense } from 'react'
 import { StatsCards } from './stats-cards'
 import { RecentActivity } from './recent-activity'
@@ -355,7 +355,7 @@ export default function Page() {
   return (
     <div className="space-y-6">
       {/* Fast content renders immediately */}
-      <h1>Dashboard</h1>
+      <h1>Overview</h1>
       
       {/* Slow queries stream in */}
       <Suspense fallback={<Skeleton className="h-32 w-full" />}>
@@ -386,7 +386,7 @@ export default async function Page() {
     getTournaments(),
   ])
 
-  return <Dashboard groups={groups} tournaments={tournaments} />
+  return <Overview groups={groups} tournaments={tournaments} />
 }
 ```
 

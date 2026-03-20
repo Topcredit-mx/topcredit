@@ -71,7 +71,7 @@ export function HeroSection() {
 								size="lg"
 								className="group h-12 px-8 text-base"
 							>
-								<Link href="/dashboard">
+								<Link href="/cuenta">
 									<Zap className="size-5" />
 									Ir a Mi Cuenta
 									<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />

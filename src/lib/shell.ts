@@ -5,12 +5,14 @@
 export const shell = {
 	elevatedCard:
 		'rounded-xl border border-slate-200/80 bg-white shadow-elevated',
-	dashboardHeroCard:
+	cuentaHeroCard:
 		'overflow-hidden rounded-3xl border-0 bg-white py-6 shadow-hero',
 	/** Applicant layout: sidebar rail, mobile drawer, main inset (matches auth/landing canvas). */
 	applicantCanvas: 'bg-slate-50/80',
-	/** H2-style titles on dashboard light surfaces. */
-	dashboardSectionTitle:
+	/** Max width for cuenta main column — use on every applicant route for alignment. */
+	applicantMainMax: 'mx-auto w-full max-w-5xl',
+	/** H2-style titles on cuenta (applicant) light surfaces. */
+	cuentaSectionTitle:
 		'font-semibold text-2xl text-slate-900 tracking-tight sm:text-[1.65rem]',
 	portfolioRow:
 		'rounded-2xl border border-slate-100/90 bg-white p-5 shadow-portfolio-row',

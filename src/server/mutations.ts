@@ -55,7 +55,7 @@ export async function toggleUserRole(userId: number, role: Role) {
 		})
 	}
 
-	revalidatePath('/app/users')
+	revalidatePath('/equipo/users')
 	return { success: true }
 }
 
@@ -77,7 +77,7 @@ export async function updateUserCompanies(
 		)
 	}
 
-	revalidatePath('/app/users')
+	revalidatePath('/equipo/users')
 	return { success: true }
 }
 
@@ -103,7 +103,7 @@ export async function insertCompany(data: CreateCompanyData): Promise<void> {
 		employeeSalaryFrequency: data.employeeSalaryFrequency,
 		active: data.active ?? true,
 	})
-	revalidatePath('/app/companies')
+	revalidatePath('/equipo/companies')
 }
 
 export type UpdateCompanyData = {
@@ -123,7 +123,7 @@ export async function updateCompanyById(
 		updatedAt: new Date(),
 	}
 	await db.update(companies).set(updateData).where(eq(companies.id, id))
-	revalidatePath('/app/companies')
+	revalidatePath('/equipo/companies')
 }
 
 export async function deleteCompany(id: number) {
@@ -147,7 +147,7 @@ export async function deleteCompany(id: number) {
 			.set({ active: false, updatedAt: new Date() })
 			.where(eq(companies.id, id))
 
-		revalidatePath('/app/companies')
+		revalidatePath('/equipo/companies')
 		return { success: true }
 	} catch (error) {
 		console.error('Error deleting company:', error)
@@ -190,10 +190,10 @@ async function setDocumentStatus(
 		.update(applicationDocuments)
 		.set({ ...updates, updatedAt: new Date() })
 		.where(eq(applicationDocuments.id, documentId))
-	revalidatePath('/app/applications')
-	revalidatePath(`/app/applications/${doc.applicationId}`)
-	revalidatePath('/dashboard/applications')
-	revalidatePath(`/dashboard/applications/${doc.applicationId}`)
+	revalidatePath('/equipo/applications')
+	revalidatePath(`/equipo/applications/${doc.applicationId}`)
+	revalidatePath('/cuenta/applications')
+	revalidatePath(`/cuenta/applications/${doc.applicationId}`)
 	return {}
 }
 
@@ -321,7 +321,7 @@ export async function preAuthorizeApplication(
 		columns: { id: true },
 	})
 	if (!offering) {
-		return { error: ValidationCode.DASHBOARD_APPLICATION_TERM_NOT_AVAILABLE }
+		return { error: ValidationCode.CUENTA_APPLICATION_TERM_NOT_AVAILABLE }
 	}
 
 	const creditAmount = Number.parseFloat(data.creditAmount)
@@ -336,10 +336,10 @@ export async function preAuthorizeApplication(
 
 	await sendApplicationStatusEmail(data.applicationId, 'pre-authorized')
 
-	revalidatePath('/app/applications')
-	revalidatePath(`/app/applications/${data.applicationId}`)
-	revalidatePath('/dashboard/applications')
-	revalidatePath(`/dashboard/applications/${data.applicationId}`)
+	revalidatePath('/equipo/applications')
+	revalidatePath(`/equipo/applications/${data.applicationId}`)
+	revalidatePath('/cuenta/applications')
+	revalidatePath(`/cuenta/applications/${data.applicationId}`)
 	return {}
 }
 
@@ -401,9 +401,9 @@ export async function updateApplicationStatus(
 
 	await sendApplicationStatusEmail(applicationId, data.status)
 
-	revalidatePath('/app/applications')
-	revalidatePath(`/app/applications/${applicationId}`)
-	revalidatePath('/dashboard/applications')
-	revalidatePath(`/dashboard/applications/${applicationId}`)
+	revalidatePath('/equipo/applications')
+	revalidatePath(`/equipo/applications/${applicationId}`)
+	revalidatePath('/cuenta/applications')
+	revalidatePath(`/cuenta/applications/${applicationId}`)
 	return {}
 }

@@ -47,12 +47,12 @@ export async function validateRequiredInitialDocuments(
 		const file = formData.get(fieldName)
 
 		if (!(file instanceof File) || file.size === 0) {
-			errors[fieldName] = ValidationCode.DASHBOARD_APPLICATION_FILE_REQUIRED
+			errors[fieldName] = ValidationCode.CUENTA_APPLICATION_FILE_REQUIRED
 			continue
 		}
 
 		if (file.size > APPLICATION_DOCUMENT_MAX_BYTES) {
-			errors[fieldName] = ValidationCode.DASHBOARD_APPLICATION_FILE_MAX_SIZE
+			errors[fieldName] = ValidationCode.CUENTA_APPLICATION_FILE_MAX_SIZE
 			continue
 		}
 

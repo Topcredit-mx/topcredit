@@ -48,11 +48,11 @@ declare namespace Cypress {
 			params: import('../tasks').CleanupLoginFlowParams,
 		): Chainable<null>
 		task(
-			event: 'seedDashboardApplications',
-		): Chainable<import('../tasks').SeedDashboardApplicationsResult>
+			event: 'seedCuentaApplications',
+		): Chainable<import('../tasks').SeedCuentaApplicationsResult>
 		task(
-			event: 'cleanupDashboardApplications',
-			params: import('../tasks').CleanupDashboardApplicationsParams,
+			event: 'cleanupCuentaApplications',
+			params: import('../tasks').CleanupCuentaApplicationsParams,
 		): Chainable<null>
 		task(
 			event: 'seedCompanySwitcher',

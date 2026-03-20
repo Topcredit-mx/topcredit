@@ -8,8 +8,8 @@
 
 TopCredit is a **company-sponsored lending platform** for employees. It includes:
 
-- **Applicant portal** (`/dashboard`): apply for credit, upload documents, track application, and later view credits and payment history.
-- **Back office** (`/app`): role-based queues for reviewing applications and processing disbursements.
+- **Applicant portal** (`/cuenta`): apply for credit, upload documents, track application, and later view credits and payment history.
+- **Back office** (`/equipo`): role-based queues for reviewing applications and processing disbursements.
 
 The intended end-to-end flow is documented in `docs/app-flow-proposal.md`.
 
@@ -80,7 +80,7 @@ Copy `.env.example` to `.env` and set:
 
 ```
 src/
-├── app/              # Routes (dashboard, app, settings, login, api/auth)
+├── app/              # Routes (cuenta, equipo, settings, login, api/auth)
 ├── components/       # UI + feature components (incl. i18n-provider)
 ├── i18n/             # next-intl request config (request.ts)
 ├── lib/              # Shared utils, auth-utils, totp

@@ -74,7 +74,7 @@ cy.get('[data-status="rejected"]').should('be.visible')
 
 ```typescript
 // ✅ After visit — guard on content unique to page
-cy.visit(`/app/applications/${id}`)
+cy.visit(`/equipo/applications/${id}`)
 cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 cy.contains('button', /acciones/i).should('be.visible').click()
 

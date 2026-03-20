@@ -45,7 +45,7 @@ export interface NavUserProps {
 		image?: string | null
 		emailVerified?: boolean
 	}
-	/** Profile / security links; use `/dashboard/settings` in applicant sidebar. */
+	/** Profile / security links; use `/cuenta/settings` in applicant sidebar. */
 	settingsBasePath?: string
 }
 
@@ -57,7 +57,7 @@ export function NavUser({
 		settingsBasePath.replace(/\/$/, '') || DEFAULT_SETTINGS_BASE
 	const profileHref = `${settingsBase}/profile`
 	const securityHref = `${settingsBase}/security`
-	const t = useTranslations('app')
+	const t = useTranslations('equipo')
 	const tCommon = useTranslations('common')
 	const { isMobile } = useSidebar()
 	const showUnverifiedWarning = user.emailVerified === false

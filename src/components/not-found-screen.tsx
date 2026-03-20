@@ -7,7 +7,7 @@ import { buttonVariants } from '~/components/ui/button'
 import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
 
-export type NotFoundScope = 'public' | 'app' | 'dashboard' | 'settings'
+export type NotFoundScope = 'public' | 'equipo' | 'cuenta' | 'settings'
 
 function NotFoundCtaLink({
 	href,
@@ -38,10 +38,10 @@ async function NotFoundCard({ scope }: { scope: NotFoundScope }) {
 	const tAuth = await getTranslations('auth')
 
 	const primary =
-		scope === 'app'
-			? { href: '/app', label: t('cta-app-panel') }
-			: scope === 'dashboard'
-				? { href: '/dashboard', label: t('cta-dashboard') }
+		scope === 'equipo'
+			? { href: '/equipo', label: t('cta-app-panel') }
+			: scope === 'cuenta'
+				? { href: '/cuenta', label: t('cta-cuenta') }
 				: scope === 'settings'
 					? { href: '/settings/profile', label: t('cta-settings') }
 					: { href: '/', label: t('cta-home') }
@@ -49,8 +49,8 @@ async function NotFoundCard({ scope }: { scope: NotFoundScope }) {
 	const secondary =
 		scope === 'public'
 			? { href: '/login', label: tAuth('login') }
-			: scope === 'dashboard'
-				? { href: '/dashboard/applications', label: t('cta-applications') }
+			: scope === 'cuenta'
+				? { href: '/cuenta/applications', label: t('cta-applications') }
 				: scope === 'settings'
 					? { href: '/', label: t('cta-home') }
 					: null
@@ -94,7 +94,7 @@ async function NotFoundCard({ scope }: { scope: NotFoundScope }) {
 }
 
 export async function NotFoundScreen({ scope }: { scope: NotFoundScope }) {
-	const tDashboard = await getTranslations('dashboard')
+	const tCuentaFooter = await getTranslations('cuenta')
 	const year = new Date().getFullYear()
 
 	return (
@@ -103,7 +103,7 @@ export async function NotFoundScreen({ scope }: { scope: NotFoundScope }) {
 				<NotFoundCard scope={scope} />
 			</div>
 			<footer className="border-slate-200/80 border-t bg-white px-4 py-8 text-center text-slate-500 text-sm">
-				<p>{tDashboard('footer-copyright', { year })}</p>
+				<p>{tCuentaFooter('footer-copyright', { year })}</p>
 			</footer>
 		</div>
 	)

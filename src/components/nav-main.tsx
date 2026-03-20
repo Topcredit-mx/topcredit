@@ -49,7 +49,7 @@ function isPathActive(pathname: string, itemUrl: string) {
 		return true
 	}
 
-	if (targetPath === '/app') {
+	if (targetPath === '/equipo') {
 		return false
 	}
 

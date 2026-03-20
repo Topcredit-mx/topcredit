@@ -23,9 +23,9 @@ async function redirectLoggedInFromAuthRoutes(
 	if (!token) return null
 	const roles: Role[] = token.roles ?? []
 	if (roles.includes('agent'))
-		return NextResponse.redirect(new URL('/app', req.url))
+		return NextResponse.redirect(new URL('/equipo', req.url))
 	if (roles.includes('applicant'))
-		return NextResponse.redirect(new URL('/dashboard', req.url))
+		return NextResponse.redirect(new URL('/cuenta', req.url))
 	if (roles.length === 0)
 		return NextResponse.redirect(new URL('/settings', req.url))
 	return null
@@ -38,32 +38,33 @@ const withAuthMiddleware = withAuth(
 		const roles: Role[] = token?.roles ?? []
 		const isAgent = roles.includes('agent')
 
-		// Applicants: settings live under /dashboard/settings (same shell as rest of portal).
+		// Applicants: settings live under /cuenta/settings (same shell as rest of portal).
 		if (roles.includes('applicant') && path.startsWith('/settings')) {
 			const suffix =
 				path === '/settings' ? '/profile' : path.slice('/settings'.length)
 			return NextResponse.redirect(
-				new URL(`/dashboard/settings${suffix}`, req.url),
+				new URL(`/cuenta/settings${suffix}`, req.url),
 			)
 		}
 
-		// No roles: allow /settings so user can see their state; block /app and /dashboard
+		// No roles: allow /settings so user can see their state; block /equipo and /cuenta
 		if (roles.length === 0) {
-			if (path.startsWith('/app') || path.startsWith('/dashboard')) {
+			if (path.startsWith('/equipo') || path.startsWith('/cuenta')) {
 				return NextResponse.redirect(new URL('/unauthorized', req.url))
 			}
 			// /settings allowed - user can see they have no roles
 		}
 		if (
-			(path.startsWith('/app/users') || path.startsWith('/app/companies')) &&
+			(path.startsWith('/equipo/users') ||
+				path.startsWith('/equipo/companies')) &&
 			!roles.includes('admin')
 		) {
 			return NextResponse.redirect(new URL('/unauthorized', req.url))
 		}
-		if (path.startsWith('/app') && !isAgent) {
+		if (path.startsWith('/equipo') && !isAgent) {
 			return NextResponse.redirect(new URL('/unauthorized', req.url))
 		}
-		if (path.startsWith('/dashboard') && !roles.includes('applicant')) {
+		if (path.startsWith('/cuenta') && !roles.includes('applicant')) {
 			return NextResponse.redirect(new URL('/unauthorized', req.url))
 		}
 
@@ -97,10 +98,10 @@ export const config = {
 		'/verify-otp',
 		'/verify-totp',
 		'/verify-backup-code',
-		'/dashboard',
-		'/dashboard/:path*',
-		'/app',
-		'/app/:path*',
+		'/cuenta',
+		'/cuenta/:path*',
+		'/equipo',
+		'/equipo/:path*',
 		'/settings',
 		'/settings/:path*',
 		'/setup-totp',

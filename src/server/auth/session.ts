@@ -20,8 +20,8 @@ export async function requireAuth() {
 export async function redirectIfLoggedIn() {
 	const session = await getServerSession(authOptions)
 	const roles = session?.user?.roles ?? []
-	if (roles.includes('agent')) redirect('/app')
-	if (roles.includes('applicant')) redirect('/dashboard')
+	if (roles.includes('agent')) redirect('/equipo')
+	if (roles.includes('applicant')) redirect('/cuenta')
 }
 
 export async function getRequiredUser(): Promise<{

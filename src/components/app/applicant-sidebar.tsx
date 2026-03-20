@@ -40,35 +40,34 @@ interface ApplicantNavItem {
 	isActive: (pathname: string) => boolean
 }
 
-function isDashboardHomeActive(pathname: string) {
-	return pathname === '/dashboard'
+function isCuentaHomeActive(pathname: string) {
+	return pathname === '/cuenta'
 }
 
 function isNewApplicationActive(pathname: string) {
-	return pathname === '/dashboard/applications/new'
+	return pathname === '/cuenta/applications/new'
 }
 
 function isMySolicitudesActive(pathname: string) {
-	if (pathname === '/dashboard/applications/new') {
+	if (pathname === '/cuenta/applications/new') {
 		return false
 	}
 	return (
-		pathname === '/dashboard/applications' ||
-		/^\/dashboard\/applications\/\d+$/.test(pathname)
+		pathname === '/cuenta/applications' ||
+		/^\/cuenta\/applications\/\d+$/.test(pathname)
 	)
 }
 
 function isMyLoansActive(pathname: string) {
-	return pathname === '/dashboard/loans'
+	return pathname === '/cuenta/loans'
 }
 
 function isSupportActive(pathname: string) {
-	return pathname === '/dashboard/support'
+	return pathname === '/cuenta/support'
 }
 
 export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
-	const tApp = useTranslations('app')
-	const tDashboard = useTranslations('dashboard')
+	const tCuenta = useTranslations('cuenta')
 	const pathname = usePathname()
 	const { setOpenMobile } = useSidebar()
 
@@ -78,32 +77,32 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 
 	const navItems: ApplicantNavItem[] = [
 		{
-			title: tDashboard('nav-dashboard'),
-			url: '/dashboard',
+			title: tCuenta('nav-home'),
+			url: '/cuenta',
 			icon: Home,
-			isActive: isDashboardHomeActive,
+			isActive: isCuentaHomeActive,
 		},
 		{
-			title: tDashboard('nav-new-application'),
-			url: '/dashboard/applications/new',
+			title: tCuenta('nav-new-application'),
+			url: '/cuenta/applications/new',
 			icon: FilePlus2,
 			isActive: isNewApplicationActive,
 		},
 		{
-			title: tDashboard('nav-my-solicitudes'),
-			url: '/dashboard/applications',
+			title: tCuenta('nav-my-solicitudes'),
+			url: '/cuenta/applications',
 			icon: ClipboardList,
 			isActive: isMySolicitudesActive,
 		},
 		{
-			title: tDashboard('nav-my-loans'),
-			url: '/dashboard/loans',
+			title: tCuenta('nav-my-loans'),
+			url: '/cuenta/loans',
 			icon: Landmark,
 			isActive: isMyLoansActive,
 		},
 		{
-			title: tDashboard('nav-support'),
-			url: '/dashboard/support',
+			title: tCuenta('nav-support'),
+			url: '/cuenta/support',
 			icon: CircleHelp,
 			isActive: isSupportActive,
 		},
@@ -120,21 +119,21 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 		>
 			<SidebarHeader className="p-2 pb-5">
 				<Link
-					href="/dashboard"
+					href="/cuenta"
 					onClick={closeMobileMenu}
 					className="block px-2 py-1"
 				>
 					<p className="font-semibold text-brand text-lg leading-tight">
-						{tApp('brand-name')}
+						{tCuenta('brand-name')}
 					</p>
 					<p className="mt-1.5 text-[10px] text-slate-500 uppercase leading-snug tracking-[0.2em]">
-						{tDashboard('applicant-portal-tagline')}
+						{tCuenta('applicant-portal-tagline')}
 					</p>
 				</Link>
 			</SidebarHeader>
 			{/* Horizontal padding so active `box-shadow` isn’t clipped: `overflow-y-auto` forces overflow-x to clip. */}
 			<SidebarContent className="min-h-0 flex-1 gap-0 overflow-y-auto px-2 pb-2 md:px-2.5">
-				<nav aria-label={tDashboard('nav-aria')} className="flex flex-col">
+				<nav aria-label={tCuenta('nav-aria')} className="flex flex-col">
 					<SidebarMenu className="gap-0.5">
 						{navItems.map((item) => {
 							const active = item.isActive(pathname)
@@ -167,7 +166,7 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 				</nav>
 			</SidebarContent>
 			<SidebarFooter className="mt-auto p-2 pt-4">
-				<NavUser user={user} settingsBasePath="/dashboard/settings" />
+				<NavUser user={user} settingsBasePath="/cuenta/settings" />
 			</SidebarFooter>
 		</Sidebar>
 	)

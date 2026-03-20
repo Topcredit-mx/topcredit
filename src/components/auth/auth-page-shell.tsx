@@ -12,7 +12,7 @@ export async function AuthPageShell({
 	/** Wider card for document-style pages (e.g. terms, privacy). */
 	wide?: boolean
 }) {
-	const tDashboard = await getTranslations('dashboard')
+	const tCuenta = await getTranslations('cuenta')
 	const year = new Date().getFullYear()
 
 	return (
@@ -29,7 +29,7 @@ export async function AuthPageShell({
 				</div>
 			</div>
 			<footer className="border-slate-200/80 border-t bg-white px-4 py-6 text-center text-slate-500 text-sm">
-				{tDashboard('footer-copyright', { year })}
+				{tCuenta('footer-copyright', { year })}
 			</footer>
 		</div>
 	)

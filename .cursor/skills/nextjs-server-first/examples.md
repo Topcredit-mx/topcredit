@@ -390,17 +390,17 @@ export default function Loading() {
 Pattern for streaming slow components:
 
 ```typescript
-// src/app/dashboard/page.tsx
+// src/app/(main)/page.tsx
 import { Suspense } from 'react'
 import { Skeleton } from '~/components/ui/skeleton'
 import { QuickStats } from './quick-stats'
 import { RecentGroups } from './recent-groups'
 import { UserActivity } from './user-activity'
 
-export default function DashboardPage() {
+export default function HomePage() {
   return (
     <div className="container mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <h1 className="text-2xl font-bold">Home</h1>
 
       {/* Quick stats load fast - no suspense needed */}
       <Suspense fallback={<Skeleton className="h-24 w-full" />}>

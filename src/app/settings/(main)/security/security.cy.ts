@@ -1,6 +1,6 @@
 import { applicantUser } from '../../../login/login.fixtures'
 
-const applicantSettingsSecurity = '/dashboard/settings/security'
+const applicantSettingsSecurity = '/cuenta/settings/security'
 
 const totpUser = {
 	name: 'TOTP User',
@@ -16,13 +16,13 @@ describe('Settings Security', () => {
 
 	it('redirects to login when accessing applicant settings security unauthenticated', () => {
 		cy.visit(applicantSettingsSecurity)
-		cy.url().should('not.include', '/dashboard/settings')
+		cy.url().should('not.include', '/cuenta/settings')
 	})
 
 	it('shows security content when authenticated (applicant shell)', () => {
 		cy.login(applicantUser.email)
 		cy.visit(applicantSettingsSecurity)
-		cy.url().should('include', '/dashboard/settings/security')
+		cy.url().should('include', '/cuenta/settings/security')
 		cy.contains('h1', 'Configuración').should('be.visible')
 		cy.contains('Dirección de correo').should('be.visible')
 		cy.contains('Cambiar correo').should('be.visible')
@@ -44,7 +44,7 @@ describe('Settings Security', () => {
 		cy.task('enableTotpForUser', totpUser.email)
 		cy.login(totpUser.email)
 		cy.visit(applicantSettingsSecurity)
-		cy.url().should('include', '/dashboard/settings/security')
+		cy.url().should('include', '/cuenta/settings/security')
 		cy.contains('La autenticación de dos factores está habilitada').should(
 			'be.visible',
 		)

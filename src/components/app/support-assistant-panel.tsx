@@ -19,7 +19,7 @@ function faqPairs() {
 }
 
 export function SupportAssistantPanel() {
-	const t = useTranslations('dashboard.support')
+	const t = useTranslations('cuenta.support')
 	const chatRegionId = useId()
 	const [draft, setDraft] = useState('')
 
@@ -30,7 +30,7 @@ export function SupportAssistantPanel() {
 	return (
 		<div className="flex w-full flex-col">
 			<header className="mb-6 shrink-0">
-				<ShellBackLink href="/dashboard">{t('back-link')}</ShellBackLink>
+				<ShellBackLink href="/cuenta">{t('back-link')}</ShellBackLink>
 				<h1 className="font-semibold text-3xl text-slate-900 tracking-tight">
 					{t('page-title')}
 				</h1>
@@ -158,7 +158,7 @@ export function SupportAssistantPanel() {
 
 			<p className="mt-8 text-center text-slate-500 text-xs leading-relaxed">
 				{t('disclaimer')}{' '}
-				<Link href="/dashboard/settings" className={shell.textLink}>
+				<Link href="/cuenta/settings" className={shell.textLink}>
 					{t('settings-link')}
 				</Link>
 			</p>

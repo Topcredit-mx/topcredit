@@ -32,7 +32,7 @@ function UnauthorizedCtaLink({
 export default async function UnauthorizedPage() {
 	const t = await getTranslations('unauthorized')
 	const tAuth = await getTranslations('auth')
-	const tDashboard = await getTranslations('dashboard')
+	const tCuenta = await getTranslations('cuenta')
 	const session = await getServerSession(authOptions)
 	const year = new Date().getFullYear()
 	const homeHref = '/'
@@ -96,7 +96,7 @@ export default async function UnauthorizedPage() {
 			</div>
 
 			<footer className="border-slate-200/80 border-t bg-white px-4 py-8 text-center text-slate-500 text-sm">
-				<p>{tDashboard('footer-copyright', { year })}</p>
+				<p>{tCuenta('footer-copyright', { year })}</p>
 			</footer>
 		</div>
 	)
