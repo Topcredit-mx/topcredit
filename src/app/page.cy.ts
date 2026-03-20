@@ -25,7 +25,7 @@ describe('Home / Landing', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/')
 		cy.url().should('include', '/dashboard')
-		cy.contains('Mi Cuenta').should('be.visible')
+		cy.contains('Resumen ejecutivo').should('be.visible')
 	})
 
 	it('redirects logged-in agent to app', () => {

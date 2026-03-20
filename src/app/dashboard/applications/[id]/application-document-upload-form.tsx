@@ -87,7 +87,7 @@ export function ApplicationDocumentUploadForm({
 			className={
 				compact
 					? ''
-					: 'overflow-hidden rounded-2xl border border-border/70 bg-muted/20 shadow-sm'
+					: 'min-w-0 overflow-hidden rounded-2xl border border-border/70 bg-muted/20 shadow-sm'
 			}
 		>
 			{!isOpen ? (

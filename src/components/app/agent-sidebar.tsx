@@ -18,7 +18,7 @@ import {
 } from '~/components/ui/sidebar'
 import type { CompanyForSwitcher } from '~/server/scopes'
 
-interface AppSidebarProps {
+interface AgentSidebarProps {
 	user: {
 		name?: string | null
 		email?: string | null
@@ -29,11 +29,11 @@ interface AppSidebarProps {
 	selectedCompanyId: number | null
 }
 
-export function AppSidebar({
+export function AgentSidebar({
 	user,
 	companies,
 	selectedCompanyId,
-}: AppSidebarProps) {
+}: AgentSidebarProps) {
 	const t = useTranslations('app')
 	const isAdmin = user.roles?.includes('admin')
 	const disableNav = !isAdmin && companies.length === 0

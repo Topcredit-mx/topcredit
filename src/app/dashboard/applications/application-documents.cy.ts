@@ -42,9 +42,15 @@ describe('Dashboard Application Documents', () => {
 				cy.url().should('include', `/dashboard/applications/${app.id}`)
 				cy.contains(/resumen de tu solicitud/i).should('be.visible')
 				cy.contains('h2', /documentos/i).should('be.visible')
-				cy.contains(/no hay documentos cargados/i).should('be.visible')
-				cy.contains(/sube un documento actualizado/i).should('be.visible')
-				cy.contains(/haz clic para elegir el documento/i).should('be.visible')
+				cy.contains(/no hay documentos cargados/i)
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains(/sube un documento actualizado/i)
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains(/haz clic para elegir el documento/i)
+					.scrollIntoView()
+					.should('be.visible')
 				cy.get('input[name="file"]').should('not.exist')
 				cy.contains('button', /sube un documento actualizado/i)
 					.should('be.visible')
@@ -107,34 +113,49 @@ describe('Dashboard Application Documents', () => {
 					'[data-current-application-status="invalid-documentation"]',
 				).should('be.visible')
 				cy.get('[data-application-status-history-title]')
+					.scrollIntoView()
 					.should('be.visible')
 					.and('contain', 'Historial de estado')
-				cy.contains(/motivo de rechazo/i).should('be.visible')
-				cy.contains(/firma incompleta/i).should('be.visible')
-				cy.contains(/recibo ilegible/i).should('be.visible')
-				cy.get('[data-application-status-history]').within(() => {
-					cy.get('[data-status-history-item]')
-						.eq(0)
-						.should(
-							'have.attr',
-							'data-status-history-status',
-							'invalid-documentation',
-						)
-				})
+				cy.contains(/motivo de rechazo/i)
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains(/firma incompleta/i)
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains(/recibo ilegible/i)
+					.scrollIntoView()
+					.should('be.visible')
+				cy.get('[data-application-status-history]')
+					.scrollIntoView()
+					.within(() => {
+						cy.get('[data-status-history-item]')
+							.eq(0)
+							.should(
+								'have.attr',
+								'data-status-history-status',
+								'invalid-documentation',
+							)
+					})
 				cy.get('input[name="file"]')
 					.first()
 					.selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.intercept('POST', '**/dashboard/applications/*').as('uploadFirstDoc')
+				// Viewport was scrolled to history/rejections above; first card’s submit can sit off-screen.
 				cy.contains('button', /actualizar archivo/i)
 					.first()
+					.scrollIntoView()
 					.should('be.visible')
 					.click()
 				cy.wait('@uploadFirstDoc')
 
 				cy.visit(`/dashboard/applications/${app.id}`)
-				cy.contains(/documentación inválida/i).should('be.visible')
+				cy.contains(/documentación inválida/i)
+					.scrollIntoView()
+					.should('be.visible')
 				cy.contains('auth-rejected.pdf').should('not.exist')
-				cy.contains(/recibo ilegible/i).should('be.visible')
+				cy.contains(/recibo ilegible/i)
+					.scrollIntoView()
+					.should('be.visible')
 				cy.get('input[name="file"]')
 					.first()
 					.selectFile('cypress/fixtures/sample-document.webp', { force: true })
@@ -143,27 +164,30 @@ describe('Dashboard Application Documents', () => {
 				)
 				cy.contains('button', /actualizar archivo/i)
 					.first()
+					.scrollIntoView()
 					.should('be.visible')
 					.click()
 				cy.wait('@uploadSecondDoc')
 
 				cy.visit(`/dashboard/applications/${app.id}`)
-				cy.get('[data-current-application-status="pending"]').should(
-					'be.visible',
-				)
+				cy.get('[data-current-application-status="pending"]')
+					.scrollIntoView()
+					.should('be.visible')
 				cy.contains(/motivo de rechazo:/i).should('not.exist')
-				cy.get('[data-application-status-history]').within(() => {
-					cy.get('[data-status-history-item]')
-						.eq(0)
-						.should('have.attr', 'data-status-history-status', 'pending')
-					cy.get('[data-status-history-item]')
-						.eq(1)
-						.should(
-							'have.attr',
-							'data-status-history-status',
-							'invalid-documentation',
-						)
-				})
+				cy.get('[data-application-status-history]')
+					.scrollIntoView()
+					.within(() => {
+						cy.get('[data-status-history-item]')
+							.eq(0)
+							.should('have.attr', 'data-status-history-status', 'pending')
+						cy.get('[data-status-history-item]')
+							.eq(1)
+							.should(
+								'have.attr',
+								'data-status-history-status',
+								'invalid-documentation',
+							)
+					})
 			})
 		})
 
@@ -189,9 +213,15 @@ describe('Dashboard Application Documents', () => {
 				cy.wait('@uploadDoc')
 				// List is server-rendered; revalidatePath runs after action but page does not auto-refresh. Reload to see new document.
 				cy.visit(`/dashboard/applications/${app.id}`)
-				cy.contains(/pendiente/i).should('be.visible')
-				cy.contains('sample-document.webp').should('be.visible')
-				cy.contains(/recibo de nómina/i).should('be.visible')
+				cy.contains(/pendiente/i)
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains('sample-document.webp')
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains(/recibo de nómina/i)
+					.scrollIntoView()
+					.should('be.visible')
 				cy.get('a[href*="/api/application-documents/"]')
 					.first()
 					.invoke('attr', 'href')
@@ -238,7 +268,9 @@ describe('Dashboard Application Documents', () => {
 				cy.contains('button', /subir/i).should('be.visible').click()
 				cy.wait('@uploadDoc')
 				cy.visit(`/dashboard/applications/${app.id}`)
-				cy.contains('sample-document.webp').should('be.visible')
+				cy.contains('sample-document.webp')
+					.scrollIntoView()
+					.should('be.visible')
 				cy.get('a[href*="/api/application-documents/"]')
 					.first()
 					.invoke('attr', 'href')
