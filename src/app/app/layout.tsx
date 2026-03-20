@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { AgentNoAssignmentsEmpty } from '~/components/app/agent-no-assignments-empty'
-import { AppSidebar } from '~/components/app/app-sidebar'
+import { AgentSidebar } from '~/components/app/agent-sidebar'
 import { BreadcrumbNav } from '~/components/breadcrumb-nav'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { getRequiredAgentUser } from '~/server/auth/session'
@@ -32,7 +32,7 @@ export default async function AppLayout({
 
 	return (
 		<SidebarProvider>
-			<AppSidebar
+			<AgentSidebar
 				user={{ ...user, emailVerified }}
 				companies={companies}
 				selectedCompanyId={selectedCompanyId}

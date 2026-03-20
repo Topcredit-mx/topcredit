@@ -155,30 +155,19 @@ function Sidebar({
 	variant = 'sidebar',
 	collapsible = 'offcanvas',
 	className,
+	sheetContentClassName,
 	children,
 	...props
 }: React.ComponentProps<'div'> & {
 	side?: 'left' | 'right'
 	variant?: 'sidebar' | 'floating' | 'inset'
 	collapsible?: 'offcanvas' | 'icon' | 'none'
+	/** Merged into mobile `SheetContent` (e.g. `bg-transparent` for applicant rail). */
+	sheetContentClassName?: string
 }) {
 	const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
-	if (collapsible === 'none') {
-		return (
-			<div
-				data-slot="sidebar"
-				className={cn(
-					'flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground',
-					className,
-				)}
-				{...props}
-			>
-				{children}
-			</div>
-		)
-	}
-
+	// Mobile always uses a sheet so narrow viewports are usable (including collapsible="none").
 	if (isMobile) {
 		return (
 			<Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
@@ -186,7 +175,10 @@ function Sidebar({
 					data-sidebar="sidebar"
 					data-slot="sidebar"
 					data-mobile="true"
-					className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+					className={cn(
+						'w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden',
+						sheetContentClassName,
+					)}
 					style={
 						{
 							'--sidebar-width': SIDEBAR_WIDTH_MOBILE,
@@ -201,6 +193,24 @@ function Sidebar({
 					<div className="flex h-full w-full flex-col">{children}</div>
 				</SheetContent>
 			</Sheet>
+		)
+	}
+
+	// Desktop fixed rail: no icon/offcanvas collapse (e.g. applicant portal).
+	// `h-full min-h-0` keeps the rail within a viewport-clamped parent so the page scroll does not move the sidebar.
+	if (collapsible === 'none') {
+		return (
+			<div
+				data-slot="sidebar"
+				className={cn(
+					// No `overflow-hidden`: it clips active nav `box-shadow` at the rail edge. Scroll lives in `SidebarContent`.
+					'flex h-full min-h-0 w-(--sidebar-width) shrink-0 flex-col bg-sidebar text-sidebar-foreground',
+					className,
+				)}
+				{...props}
+			>
+				{children}
+			</div>
 		)
 	}
 

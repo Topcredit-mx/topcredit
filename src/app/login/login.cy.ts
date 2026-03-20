@@ -18,21 +18,21 @@ describe('Login Flow', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/dashboard')
 		cy.url().should('include', '/dashboard')
-		cy.contains('Mi Cuenta').should('be.visible')
+		cy.contains('Resumen ejecutivo').should('be.visible')
 	})
 
 	it('redirects to dashboard from /login when authenticated', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/login')
 		cy.url().should('include', '/dashboard')
-		cy.contains('Mi Cuenta').should('be.visible')
+		cy.contains('Resumen ejecutivo').should('be.visible')
 	})
 
 	it('redirects to dashboard from / when authenticated', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/')
 		cy.url().should('include', '/dashboard')
-		cy.contains('Mi Cuenta').should('be.visible')
+		cy.contains('Resumen ejecutivo').should('be.visible')
 	})
 
 	it('shows unauthorized page when applicant tries to access app', () => {
@@ -105,7 +105,7 @@ describe('Login Flow', () => {
 				cy.get('input[data-input-otp]').type(code)
 			})
 			cy.url().should('not.include', '/verify-otp')
-			cy.contains('Mi Cuenta').should('be.visible')
+			cy.contains('Resumen ejecutivo').should('be.visible')
 		})
 
 		it('shows invalid code when wrong OTP entered', () => {

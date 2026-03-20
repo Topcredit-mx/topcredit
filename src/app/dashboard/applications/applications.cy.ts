@@ -45,9 +45,9 @@ describe('Dashboard Applications', () => {
 			cy.visit('/dashboard')
 			cy.url().should('include', '/dashboard')
 			cy.url().should('not.include', '/dashboard/applications/new')
-			cy.contains(/solicitar ahora|ver estado|solicitudes activas/i).should(
-				'be.visible',
-			)
+			cy.contains(
+				/solicitar ahora|resumen ejecutivo|preaprobado|puntuación crediticia/i,
+			).should('be.visible')
 		})
 	})
 
@@ -345,9 +345,17 @@ describe('Dashboard Applications', () => {
 			cy.login(applicantWithCompany.email)
 		})
 
+		it('shows applicant sidebar navigation on dashboard home', () => {
+			cy.visit('/dashboard')
+			cy.get('[data-slot="sidebar"]').should('be.visible')
+			cy.get('a[href="/dashboard"]').should('be.visible')
+			cy.get('a[href="/dashboard/applications/new"]').should('be.visible')
+			cy.get('a[href="/dashboard/applications"]').should('be.visible')
+		})
+
 		it('Solicitar Ahora goes to new application page', () => {
 			cy.visit('/dashboard')
-			cy.contains('Mi Cuenta').should('be.visible')
+			cy.contains('Resumen ejecutivo').should('be.visible')
 			cy.contains('a', /solicitar ahora/i)
 				.should('be.visible')
 				.should('have.attr', 'href', '/dashboard/applications/new')
@@ -360,7 +368,7 @@ describe('Dashboard Applications', () => {
 
 		it('Ver Estado goes to applications list', () => {
 			cy.visit('/dashboard')
-			cy.contains('Mi Cuenta').should('be.visible')
+			cy.contains('Resumen ejecutivo').should('be.visible')
 			cy.contains('a', /ver estado/i).should(
 				'have.attr',
 				'href',

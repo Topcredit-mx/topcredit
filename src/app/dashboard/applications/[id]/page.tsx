@@ -131,7 +131,7 @@ export default async function DashboardApplicationDetailPage({
 
 	return (
 		<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-			<Card className="overflow-hidden border-border/70 bg-linear-to-br from-card to-muted/30">
+			<Card className="overflow-hidden border-border/70 bg-gradient-to-br from-card to-muted/30">
 				<CardHeader className="gap-4 border-b">
 					<div className="flex items-start justify-between gap-4">
 						<div className="space-y-2">
