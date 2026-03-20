@@ -30,7 +30,7 @@ describe('Dashboard Applications', () => {
 			cy.visit('/dashboard')
 			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(
-				/mis solicitudes de crédito|completa los datos para solicitar|salario|rfc|clabe/i,
+				/nueva solicitud de crédito|completa la información|información personal y financiera|salario|rfc|clabe/i,
 			).should('be.visible')
 		})
 
@@ -96,7 +96,7 @@ describe('Dashboard Applications', () => {
 		it('applicant can still open the new application page', () => {
 			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(
-				/mis solicitudes de crédito|completa los datos para solicitar|salario|rfc|clabe/i,
+				/nueva solicitud de crédito|completa la información|información personal y financiera|salario|rfc|clabe/i,
 			).should('be.visible')
 		})
 	})
@@ -110,7 +110,7 @@ describe('Dashboard Applications', () => {
 		it('applicant can still open the new application page', () => {
 			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(
-				/mis solicitudes de crédito|completa los datos para solicitar|salario|rfc|clabe/i,
+				/nueva solicitud de crédito|completa la información|información personal y financiera|salario|rfc|clabe/i,
 			).should('be.visible')
 		})
 	})
@@ -159,7 +159,7 @@ describe('Dashboard Applications', () => {
 		it('submitting with empty required fields shows field errors', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/dashboard/applications/new')
-			cy.contains('button', /enviar solicitud/i)
+			cy.contains('button', /solicitar ahora/i)
 				.scrollIntoView()
 				.should('be.visible')
 				.click()
@@ -179,7 +179,7 @@ describe('Dashboard Applications', () => {
 			cy.selectRadix('label:Estado', 'Nuevo León')
 			cy.get('input[name="postalCode"]').type('6400')
 			cy.get('input[name="phoneNumber"]').type('8112345678')
-			cy.contains('button', /enviar solicitud/i)
+			cy.contains('button', /solicitar ahora/i)
 				.scrollIntoView()
 				.should('be.visible')
 				.click()
@@ -273,7 +273,7 @@ describe('Dashboard Applications', () => {
 			cy.intercept('POST', '**/dashboard/applications/*').as(
 				'submitApplication',
 			)
-			cy.contains('button', /enviar solicitud/i)
+			cy.contains('button', /solicitar ahora/i)
 				.scrollIntoView()
 				.should('be.visible')
 				.click()
@@ -309,7 +309,7 @@ describe('Dashboard Applications', () => {
 			cy.intercept('POST', '**/dashboard/applications/*').as(
 				'submitApplication',
 			)
-			cy.contains('button', /enviar solicitud/i)
+			cy.contains('button', /solicitar ahora/i)
 				.scrollIntoView()
 				.should('be.visible')
 				.click()
@@ -364,6 +364,14 @@ describe('Dashboard Applications', () => {
 			cy.get('a[href="/dashboard"]').should('be.visible')
 			cy.get('a[href="/dashboard/applications/new"]').should('be.visible')
 			cy.get('a[href="/dashboard/applications"]').should('be.visible')
+			cy.get('a[href="/dashboard/loans"]').should('be.visible')
+		})
+
+		it('applicant can open Mis préstamos placeholder page', () => {
+			cy.visit('/dashboard/loans')
+			cy.url().should('include', '/dashboard/loans')
+			cy.contains(/mis préstamos/i).should('be.visible')
+			cy.contains(/sin préstamos todavía|formalizado/i).should('be.visible')
 		})
 
 		it('Solicitar Ahora goes to new application page', () => {
@@ -375,7 +383,7 @@ describe('Dashboard Applications', () => {
 				.click()
 			cy.url().should('include', '/dashboard/applications/new')
 			cy.contains(
-				/mis solicitudes de crédito|completa los datos para solicitar|salario|rfc|clabe/i,
+				/nueva solicitud de crédito|completa la información|información personal y financiera|salario|rfc|clabe/i,
 			).should('be.visible')
 		})
 

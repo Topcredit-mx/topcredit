@@ -1,6 +1,12 @@
 'use client'
 
-import { CircleHelp, FilePlus2, Home, Landmark } from 'lucide-react'
+import {
+	CircleHelp,
+	ClipboardList,
+	FilePlus2,
+	Home,
+	Landmark,
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -41,7 +47,7 @@ function isNewApplicationActive(pathname: string) {
 	return pathname === '/dashboard/applications/new'
 }
 
-function isMyLoansActive(pathname: string) {
+function isMySolicitudesActive(pathname: string) {
 	if (pathname === '/dashboard/applications/new') {
 		return false
 	}
@@ -49,6 +55,10 @@ function isMyLoansActive(pathname: string) {
 		pathname === '/dashboard/applications' ||
 		/^\/dashboard\/applications\/\d+$/.test(pathname)
 	)
+}
+
+function isMyLoansActive(pathname: string) {
+	return pathname === '/dashboard/loans'
 }
 
 function isSupportActive(pathname: string) {
@@ -79,8 +89,14 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 			isActive: isNewApplicationActive,
 		},
 		{
-			title: tDashboard('nav-my-loans'),
+			title: tDashboard('nav-my-solicitudes'),
 			url: '/dashboard/applications',
+			icon: ClipboardList,
+			isActive: isMySolicitudesActive,
+		},
+		{
+			title: tDashboard('nav-my-loans'),
+			url: '/dashboard/loans',
 			icon: Landmark,
 			isActive: isMyLoansActive,
 		},

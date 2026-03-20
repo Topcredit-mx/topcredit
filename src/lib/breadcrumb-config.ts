@@ -4,6 +4,7 @@ export const BREADCRUMB_LABEL_KEYS = [
 	'dashboard-applications',
 	'dashboard-applications-new',
 	'dashboard-applications-detail',
+	'dashboard-loans',
 	'app-dashboard',
 	'app-applications',
 	'app-applications-detail',
@@ -34,6 +35,12 @@ export function getDashboardBreadcrumbSegments(
 	const base = '/dashboard'
 	if (pathname === base) {
 		return [{ href: base, labelKey: 'dashboard-home' }]
+	}
+	if (pathname === `${base}/loans`) {
+		return [
+			{ href: base, labelKey: 'dashboard-home' },
+			{ href: `${base}/loans`, labelKey: 'dashboard-loans' },
+		]
 	}
 	if (pathname === `${base}/applications`) {
 		return [
