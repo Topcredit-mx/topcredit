@@ -6,7 +6,7 @@ import { useActionState, useEffect, useId } from 'react'
 import {
 	type RejectDocumentState,
 	rejectDocumentAction,
-} from '~/app/app/applications/actions'
+} from '~/app/app/(main)/applications/actions'
 import { Button } from '~/components/ui/button'
 import {
 	Dialog,

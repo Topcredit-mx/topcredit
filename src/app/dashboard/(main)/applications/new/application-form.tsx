@@ -4,7 +4,7 @@ import { FileStack, FileText, MapPin, ShieldCheck, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useActionState, useId, useRef, useState } from 'react'
-import { createApplicationWithInitialDocumentsAction } from '~/app/dashboard/applications/actions'
+import { createApplicationWithInitialDocumentsAction } from '~/app/dashboard/(main)/applications/actions'
 import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import {

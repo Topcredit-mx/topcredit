@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useActionState, useId, useState } from 'react'
-import { preAuthorizeApplicationFormAction } from '~/app/app/applications/actions'
+import { preAuthorizeApplicationFormAction } from '~/app/app/(main)/applications/actions'
 import { Alert } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
 import {

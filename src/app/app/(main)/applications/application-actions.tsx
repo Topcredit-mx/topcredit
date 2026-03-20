@@ -12,7 +12,7 @@ import { useActionState, useRef, useState } from 'react'
 import {
 	updateApplicationStatusFormAction,
 	updateApplicationStatusWithReasonFormAction,
-} from '~/app/app/applications/actions'
+} from '~/app/app/(main)/applications/actions'
 import { Alert } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
 import {

@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useRef } from 'react'
-import { uploadApplicationDocumentAction } from '~/app/dashboard/applications/actions'
+import { uploadApplicationDocumentAction } from '~/app/dashboard/(main)/applications/actions'
 import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import { FieldError } from '~/components/ui/field'

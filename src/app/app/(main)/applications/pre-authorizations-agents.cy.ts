@@ -4,7 +4,7 @@
  * - Agent can assign amount and term before moving an application to pre-authorized.
  */
 
-import type { SeedApplicationsReviewResult } from '../../../../cypress/tasks'
+import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
 import { preAuthAgentForReview } from './applications-review.fixtures'
 
 const preAuthAgentEmail = preAuthAgentForReview.email

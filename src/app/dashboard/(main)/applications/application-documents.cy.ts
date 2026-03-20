@@ -8,7 +8,7 @@
  * Requires BLOB_READ_WRITE_TOKEN in CI; the suite will fail without it.
  */
 
-import type { SeedDashboardApplicationsResult } from '../../../../cypress/tasks'
+import type { SeedDashboardApplicationsResult } from '../../../../../cypress/tasks'
 import { applicantWithCompany } from './applications.fixtures'
 
 describe('Dashboard Application Documents', () => {

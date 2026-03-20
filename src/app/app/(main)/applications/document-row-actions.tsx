@@ -7,7 +7,7 @@ import { useActionState, useEffect, useRef, useState } from 'react'
 import {
 	type ApproveDocumentState,
 	approveDocumentAction,
-} from '~/app/app/applications/actions'
+} from '~/app/app/(main)/applications/actions'
 import { Button } from '~/components/ui/button'
 import {
 	DropdownMenu,

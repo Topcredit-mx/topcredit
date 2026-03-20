@@ -7,7 +7,7 @@
  * Admin can perform the same requests actions; authorization flow is separate (see app-flow-proposal).
  */
 
-import type { SeedApplicationsReviewResult } from '../../../../cypress/tasks'
+import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
 import {
 	agentForReview,
 	applicantA3,

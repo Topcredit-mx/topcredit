@@ -5,7 +5,7 @@ import { useActionState, useId, useState } from 'react'
 import {
 	createCompanyAction,
 	updateCompanyAction,
-} from '~/app/app/companies/actions'
+} from '~/app/app/(main)/companies/actions'
 import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'

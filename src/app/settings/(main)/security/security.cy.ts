@@ -1,4 +1,4 @@
-import { applicantUser } from '../../login/login.fixtures'
+import { applicantUser } from '../../../login/login.fixtures'
 
 const applicantSettingsSecurity = '/dashboard/settings/security'
 

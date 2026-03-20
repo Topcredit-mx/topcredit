@@ -3,7 +3,7 @@
 import { Building2, ChevronsUpDown, LayoutDashboard } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { setSelectedCompanyId } from '~/app/app/actions'
+import { setSelectedCompanyId } from '~/app/app/(main)/actions'
 import {
 	DropdownMenu,
 	DropdownMenuContent,

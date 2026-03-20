@@ -3,8 +3,8 @@ import { EncryptJWT } from 'jose'
 import {
 	adminOverviewAdmin,
 	overviewCompanyList,
-} from '~/app/app/admin-overview-dashboard.fixtures'
-import { agentNoAssignments } from '~/app/app/agent-no-assignments.fixtures'
+} from '~/app/app/(main)/admin-overview-dashboard.fixtures'
+import { agentNoAssignments } from '~/app/app/(main)/agent-no-assignments.fixtures'
 import {
 	adminForReview,
 	agentCompanyDomains,
@@ -19,25 +19,25 @@ import {
 	companyForReviewD,
 	preAuthAgentForReview,
 	reviewApplicationConfigs,
-} from '~/app/app/applications/applications-review.fixtures'
+} from '~/app/app/(main)/applications/applications-review.fixtures'
 import {
 	adminUser as companiesAdminUser,
 	companyList as companiesCompanyList,
-} from '~/app/app/companies/companies.fixtures'
+} from '~/app/app/(main)/companies/companies.fixtures'
 import {
 	agentWithAssignments,
 	companyAssignedActive,
 	companyAssignedActive2,
 	companyAssignedInactive,
 	switcherCompanyList,
-} from '~/app/app/company-switcher.fixtures'
+} from '~/app/app/(main)/company-switcher.fixtures'
 import {
 	agentOnlyUser,
 	applicantOnlyUser,
 	userList,
 	adminUser as usersAdminUser,
 	companyList as usersCompanyList,
-} from '~/app/app/users/users.fixtures'
+} from '~/app/app/(main)/users/users.fixtures'
 import {
 	applicantB,
 	applicantInactiveCompany,
@@ -49,7 +49,7 @@ import {
 	companyWithoutCapacityRate,
 	companyWithoutTermOfferings,
 	companyWithTerms,
-} from '~/app/dashboard/applications/applications.fixtures'
+} from '~/app/dashboard/(main)/applications/applications.fixtures'
 import {
 	agentUser as loginAgentUser,
 	applicantUser as loginApplicantUser,

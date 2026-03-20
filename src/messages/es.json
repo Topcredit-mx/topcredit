@@ -651,6 +651,16 @@
 		"error-generate": "Error al generar configuración TOTP",
 		"error-verify": "Código de verificación inválido"
 	},
+	"notFound": {
+		"code-label": "404",
+		"title": "Página no encontrada",
+		"description": "La dirección que buscas no existe o fue movida. Revisa el enlace o usa los accesos de abajo.",
+		"cta-home": "Ir al inicio",
+		"cta-dashboard": "Ir a mi cuenta",
+		"cta-applications": "Mis solicitudes",
+		"cta-app-panel": "Ir al panel",
+		"cta-settings": "Ir a configuración"
+	},
 	"unauthorized": {
 		"title": "403 - No Autorizado",
 		"description": "No tienes los permisos necesarios para acceder a esta página.",
