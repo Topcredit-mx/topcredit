@@ -1,6 +1,9 @@
-# TypeScript Strict Typing
+# Agent instructions
 
-Key rules:
+Defaults for how agents write and test code in this repository.
+
+## TypeScript
+
 - **Never** use `as SomeType` (except `as const`)
 - **Never** use `!` non-null assertion
 - **Never** use `any`
@@ -9,19 +12,17 @@ Key rules:
 - Use `unknown` + runtime checks for `JSON.parse()` results
 - Use type generics when possible
 
-# KISS (Keep It Simple)
+## Simplicity
 
-- Keep solutions simple. We want all code easy to read and maintain.
+- Keep solutions simple. Prefer code that is easy to read and maintain.
 
-# Always Check for redundant code
+## Reuse and exploration
 
-Key rules:
-- If there's a function you will build, check if there is something shared already.
+- Before adding a new function or module, check whether something shared already exists.
 - Before adding new code, look for existing **constants**, **duplicate values**, **type guards/narrows**, **queries** (API, DB, or data-fetch), and shared utilities—reuse or extend instead of duplicating.
 
-# Test-Driven Development (TDD)
+## Test-driven development
 
-Key rules:
 - **Write tests first**, then implement code to make them pass.
 - **Cover edge cases**, error scenarios, and boundary conditions.
 - **Prefer E2E tests** (e.g. Cypress) for critical user flows; unit tests where they add value.
