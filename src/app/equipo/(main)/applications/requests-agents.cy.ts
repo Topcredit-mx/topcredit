@@ -18,11 +18,19 @@ import {
 const agentEmail = agentForReview.email
 const applicantEmail = applicantForReview.email
 
+/** Breadcrumb can show "Detalle de solicitud" before the `[id]` page streams; Acciones lives on the detail body. */
+const EQUIPO_APPLICATION_DETAIL_LOAD_MS = 15_000
+
 describe('Requests agents', () => {
 	let seed: SeedApplicationsReviewResult
 
 	function openApplicationActions() {
-		cy.contains('button', /acciones/i)
+		cy.get('[data-equipo-application-detail]', {
+			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+		}).should('be.visible')
+		cy.contains('button', /acciones/i, {
+			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+		})
 			.should('be.visible')
 			.click()
 	}
