@@ -35,6 +35,7 @@ const initialState = { error: '' }
 
 export function ApplicationActions({
 	applicationId,
+	isAdmin,
 	canApprove,
 	canAuthorize,
 	canPreAuthorize,
@@ -44,6 +45,7 @@ export function ApplicationActions({
 	preAuthorizeDialogProps,
 }: {
 	applicationId: number
+	isAdmin: boolean
 	canApprove: boolean
 	canAuthorize: boolean
 	canPreAuthorize: boolean
@@ -54,6 +56,10 @@ export function ApplicationActions({
 		initialCreditAmount: string | null
 		initialTermOfferingId: number | null
 		termOfferings: TermOfferingOption[]
+		salaryAtApplication: string
+		salaryFrequency: 'monthly' | 'bi-monthly'
+		companyRate: string
+		companyBorrowingCapacityRate: string | null
 	}
 }) {
 	const t = useTranslations('equipo')
@@ -206,6 +212,13 @@ export function ApplicationActions({
 							preAuthorizeDialogProps.initialTermOfferingId
 						}
 						termOfferings={preAuthorizeDialogProps.termOfferings}
+						isAdmin={isAdmin}
+						salaryAtApplication={preAuthorizeDialogProps.salaryAtApplication}
+						salaryFrequency={preAuthorizeDialogProps.salaryFrequency}
+						companyRate={preAuthorizeDialogProps.companyRate}
+						companyBorrowingCapacityRate={
+							preAuthorizeDialogProps.companyBorrowingCapacityRate
+						}
 					/>
 				) : null}
 			</div>

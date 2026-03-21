@@ -104,8 +104,13 @@ const postalCodeSchema = z
 
 // ---- Application (solicitud) ----
 
+const applicantSalaryFrequencyValues = ['monthly', 'bi-monthly'] as const
+
 export const createApplicationSchema = z.object({
 	salaryAtApplication: positiveNumericString,
+	salaryFrequency: z.enum(applicantSalaryFrequencyValues, {
+		message: ValidationCode.APPLICATION_SALARY_FREQUENCY_INVALID,
+	}),
 	payrollNumber: requiredText,
 	rfc: rfcSchema,
 	clabe: clabeSchema,

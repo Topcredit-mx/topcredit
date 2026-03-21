@@ -7,6 +7,14 @@ import {
 	statusRequiresFinancialTerms,
 	statusRequiresReason,
 } from '~/lib/application-rules'
+import {
+	isPreAuthOverCapacity,
+	maxDebtCapacityForLoanPeriod,
+	maxLoanPrincipalForCapacity,
+	monthlySalaryFromApplication,
+	parseBorrowingCapacityRate,
+	parsePositiveRate,
+} from '~/lib/pre-authorization-capacity'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { ValidationCode } from '~/lib/validation-codes'
 import { updateApplicationWithStatusHistory } from '~/server/application-status-history'
@@ -23,6 +31,7 @@ import {
 	applicationDocuments,
 	companies,
 	termOfferings,
+	terms,
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
@@ -278,10 +287,11 @@ async function sendApplicationStatusEmail(
 	}
 }
 
-export async function preAuthorizeApplication(
-	payload: unknown,
-): Promise<{ error?: string }> {
-	const { ability } = await getAbility()
+export async function preAuthorizeApplication(payload: unknown): Promise<{
+	error?: string
+	errorValues?: { maxLoanAmount?: string }
+}> {
+	const { ability, isAdmin } = await getAbility()
 	const user = await getRequiredUser()
 
 	const parsed = preAuthorizeApplicationSchema.safeParse(payload)
@@ -300,6 +310,8 @@ export async function preAuthorizeApplication(
 			status: true,
 			termOfferingId: true,
 			creditAmount: true,
+			salaryAtApplication: true,
+			salaryFrequency: true,
 		},
 	})
 
@@ -312,19 +324,89 @@ export async function preAuthorizeApplication(
 		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
 	}
 
-	const offering = await db.query.termOfferings.findFirst({
-		where: and(
-			eq(termOfferings.id, data.termOfferingId),
-			eq(termOfferings.companyId, app.companyId),
-			eq(termOfferings.disabled, false),
-		),
-		columns: { id: true },
+	const companyRow = await db.query.companies.findFirst({
+		where: eq(companies.id, app.companyId),
+		columns: { rate: true, borrowingCapacityRate: true },
 	})
+	if (!companyRow) {
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+
+	const borrowingParsed = parseBorrowingCapacityRate(
+		companyRow.borrowingCapacityRate,
+	)
+	if (borrowingParsed == null) {
+		return { error: ValidationCode.APPLICATIONS_PREAUTH_COMPANY_NO_CAPACITY }
+	}
+
+	const rateParsed = parsePositiveRate(companyRow.rate)
+	if (rateParsed == null) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+
+	const offeringRows = await db
+		.select({
+			id: termOfferings.id,
+			durationType: terms.durationType,
+			duration: terms.duration,
+		})
+		.from(termOfferings)
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.where(
+			and(
+				eq(termOfferings.id, data.termOfferingId),
+				eq(termOfferings.companyId, app.companyId),
+				eq(termOfferings.disabled, false),
+			),
+		)
+		.limit(1)
+
+	const offering = offeringRows[0]
 	if (!offering) {
 		return { error: ValidationCode.CUENTA_APPLICATION_TERM_NOT_AVAILABLE }
 	}
 
+	const monthlySalary = monthlySalaryFromApplication(
+		app.salaryAtApplication,
+		app.salaryFrequency,
+	)
+	if (monthlySalary == null) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+
 	const creditAmount = Number.parseFloat(data.creditAmount)
+
+	const totalPayments = offering.duration
+	const loanDurationType = offering.durationType
+
+	if (
+		!isAdmin &&
+		isPreAuthOverCapacity({
+			loanPrincipal: creditAmount,
+			rate: rateParsed,
+			totalPayments,
+			borrowingCapacityRate: borrowingParsed,
+			monthlySalary,
+			loanDurationType,
+		})
+	) {
+		const maxDebt = maxDebtCapacityForLoanPeriod(
+			monthlySalary,
+			borrowingParsed,
+			loanDurationType,
+		)
+		const maxPrincipal = maxLoanPrincipalForCapacity({
+			maxDebtCapacityPerLoanPeriod: maxDebt,
+			rate: rateParsed,
+			totalPayments,
+		})
+		return {
+			error: ValidationCode.APPLICATIONS_PREAUTH_EXCEEDS_CAPACITY,
+			errorValues: {
+				maxLoanAmount: formatCurrencyMxn(maxPrincipal.toFixed(2)),
+			},
+		}
+	}
 	await updateApplicationWithStatusHistory({
 		applicationId: data.applicationId,
 		status: 'pre-authorized',

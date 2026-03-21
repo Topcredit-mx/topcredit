@@ -124,6 +124,7 @@ type ResetApplicantApplicationTaskParams = {
 	termOfferingId: number
 	creditAmount: string
 	salaryAtApplication: string
+	salaryFrequency?: 'monthly' | 'bi-monthly'
 	status?:
 		| 'new'
 		| 'pending'

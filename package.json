@@ -20,7 +20,7 @@
 		"dev": "next dev",
 		"preview": "next build && next start",
 		"start": "next start",
-		"test:unit": "node --import tsx --test src/lib/mexico-identifiers.test.ts",
+		"test:unit": "node --import tsx --test \"src/lib/**/*.test.ts\"",
 		"typecheck": "tsc --noEmit",
 		"prepare": "husky"
 	},

@@ -68,6 +68,7 @@ export async function createApplicationWithInitialDocumentsAction(
 	try {
 		const applicationData = createApplicationSchema.parse({
 			salaryAtApplication: formData.get('salaryAtApplication'),
+			salaryFrequency: formData.get('salaryFrequency'),
 			payrollNumber: formData.get('payrollNumber'),
 			rfc: formData.get('rfc'),
 			clabe: formData.get('clabe'),
@@ -90,6 +91,7 @@ export async function createApplicationWithInitialDocumentsAction(
 				eq(applications.applicantId, user.id),
 				eq(applications.companyId, company.id),
 				eq(applications.salaryAtApplication, String(salary.toFixed(2))),
+				eq(applications.salaryFrequency, applicationData.salaryFrequency),
 				eq(applications.rfc, applicationData.rfc),
 				eq(applications.payrollNumber, applicationData.payrollNumber),
 				gte(applications.createdAt, sixtySecondsAgo),
@@ -125,6 +127,7 @@ export async function createApplicationWithInitialDocumentsAction(
 				termOfferingId: null,
 				creditAmount: null,
 				salaryAtApplication: String(salary.toFixed(2)),
+				salaryFrequency: applicationData.salaryFrequency,
 				payrollNumber: applicationData.payrollNumber,
 				rfc: applicationData.rfc,
 				clabe: applicationData.clabe,

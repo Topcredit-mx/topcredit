@@ -171,6 +171,7 @@ describe('Cuenta applications', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/cuenta/applications/new')
 			cy.get('input[name="salaryAtApplication"]').type('100000')
+			cy.get('select[name="salaryFrequency"]').select('monthly')
 			cy.get('input[name="payrollNumber"]').type('12345')
 			cy.get('input[name="rfc"]').type('ABCD991332ABC')
 			cy.get('input[name="clabe"]').type('032180000118359718')
@@ -247,6 +248,7 @@ describe('Cuenta applications', () => {
 				.should('be.visible')
 
 			cy.get('input[name="salaryAtApplication"]').type('100000')
+			cy.get('select[name="salaryFrequency"]').select('monthly')
 			cy.get('input[name="payrollNumber"]').type('EMP-001')
 			cy.get('input[name="rfc"]').type('GODE561231GR8')
 			cy.get('input[name="clabe"]').type('032180000118359719')
@@ -294,6 +296,7 @@ describe('Cuenta applications', () => {
 				.should('be.visible')
 
 			cy.get('input[name="salaryAtApplication"]').type('100000')
+			cy.get('select[name="salaryFrequency"]').select('monthly')
 			cy.get('input[name="payrollNumber"]').type('EMP-001')
 			cy.get('input[name="rfc"]').type('GODE561231GR8')
 			cy.get('input[name="clabe"]').type('032180000118359719')
