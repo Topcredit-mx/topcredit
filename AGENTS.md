@@ -26,3 +26,4 @@ Defaults for how agents write and test code in this repository.
 - **Write tests first**, then implement code to make them pass.
 - **Cover edge cases**, error scenarios, and boundary conditions.
 - **Prefer E2E tests** (e.g. Cypress) for critical user flows; unit tests where they add value.
+- If in plan mode, the todo's should clearly follow a "Red-Green-Refactor" cycle: write a failing test, write minimal code to pass, and refactor
