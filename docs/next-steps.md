@@ -1,25 +1,50 @@
-# App flow proposal — gap analysis
+# App flow proposal — next steps
 
-Based on [app-flow-proposal.md](./app-flow-proposal.md): these are the suggested next steps.
+Based on [app-flow-proposal.md](./app-flow-proposal.md): where the product already matches the doc, what to build next, and later phases.
 
 ---
 
-## Next steps
+## Implemented today (baseline, not gaps)
 
-1. **Implement the authorization stage explicitly**
-  - Decide whether `authorized` remains an admin-only action temporarily or gets its own dedicated `authorizations` role now.
-  - If a dedicated role is introduced, add DB role support, permissions, filtered queue, and detail actions for reviewing `pre-authorized` applications.
-  - Define exactly which additional applicant uploads, if any, are required before authorization review after the initial submission step.
-2. **Design the post-authorization operational flow**
-  - Add the HR concepts needed after authorization, such as `hrStatus` and `firstDiscountDate`.
-  - Define when an application becomes a `Credit` and which data belongs on the application vs. the eventual credit/disbursement model.
-  - Build the disbursement workflow: eligible queue, transfer data capture, receipt upload, and credit creation.
-3. **Build credits and payments**
-  - Create the credits model and payment schedule model.
-  - Add applicant-facing credit and payment-history views.
-  - Add HR/payment operations for confirming payroll deductions and reporting on collections or completed credits.
-4. **Keep docs and tests aligned with the chosen workflow**
-  - Tighten assertions anywhere tests still allow legacy ambiguity between `new` and `pending`.
-  - Continue renaming old fixtures/copy that still imply the deprecated “company not ready” gating behavior.
-  - Update operational docs whenever new roles or queues move from proposal to implementation.
+This section is an **inventory of what already exists** so “Up next” starts from a clear line in the sand. It is **not** a missing-coverage checklist; polish and test tightening for older flows live under **Ongoing** below.
 
+- Requests queue; applicant can resubmit after `invalid-documentation`.
+- Pre-authorizations role, approved-only queue, amount + term from offerings, borrowing-capacity rules (with admin override where implemented), `pre-authorized` / `denied`, and E2E for the main pre-auth paths.
+
+---
+
+## Up next
+
+After pre-authorization, the **applicant** completes contract and supporting uploads while the application stays `pre-authorized`; only then does the **authorizations** agent review.
+
+### Applicant flow at `pre-authorized`
+
+- Show the **pre-authorized offer** on cuenta application detail: amount, term, and clear copy that the applicant must complete the next steps.
+- Define the **required uploads** for this stage (contract, payroll receipt, authorization, and any extras the business wants) and enforce them on submit.
+- **Submit for review** — keep status `pre-authorized` but make it obvious to agents that the package is ready for authorizations (e.g. flag, timestamp, or document completeness; exact mechanism TBD).
+- Align cuenta UX and copy with whatever checklist you lock in.
+
+### Authorizations stage
+
+- Decide whether `authorized` stays **admin-only** for a short period or you introduce the **`authorizations`** role immediately (role in DB, CASL abilities, assignments).
+- **Queue + navigation** — filtered list of `pre-authorized` applications that are ready for authorization review (criteria must match how the applicant submit step signals “ready”).
+- **Detail actions** — review contract + uploaded docs; **Authorize** → `authorized` or **Deny** (reason required).
+- E2E: at least one path from “applicant marked ready” → authorize and one → deny.
+
+When applicant pre-authorized flow and authorizations are solid, the next major block is **HR** (`hrStatus`, first discount date), then **disbursements** (transfer + receipt → create **Credit**).
+
+---
+
+## Later phases
+
+**Post-authorization operations** — HR fields (`hrStatus`, `first discount date`), when an **Application** becomes a **Credit**, disbursement queue, transfer + receipt capture, payment schedule generation.
+
+**Credits and payments** — Credits and schedule models, applicant **My credits** + payment history, HR payment confirmation, payments/reporting views for agents.
+
+---
+
+## Ongoing
+
+- Tighten tests anywhere `new` vs `pending` is still ambiguous.
+- Rename fixtures/copy that still imply deprecated “company not ready” gating.
+- Update this doc and operational docs when new roles or queues ship.
