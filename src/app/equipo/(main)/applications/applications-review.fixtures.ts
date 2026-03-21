@@ -169,6 +169,8 @@ type ReviewApplicationConfig = {
 	companyDomain: string
 	creditAmount: string | null
 	salaryAtApplication: string
+	/** Defaults to monthly in seed when omitted. */
+	salaryFrequency?: 'monthly' | 'bi-monthly'
 	status?: ApplicationStatus
 	statusHistory?: readonly ReviewApplicationStatusHistoryStep[]
 }

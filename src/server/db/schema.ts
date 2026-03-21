@@ -218,6 +218,8 @@ export const applications = pgTable(
 			precision: 12,
 			scale: 2,
 		}).notNull(),
+		/** Whether `salaryAtApplication` is per month or per quincena (MXN). */
+		salaryFrequency: employeeSalaryFrequencyEnum('salary_frequency').notNull(),
 		payrollNumber: text('payroll_number'),
 		rfc: text('rfc'),
 		clabe: text('clabe'),

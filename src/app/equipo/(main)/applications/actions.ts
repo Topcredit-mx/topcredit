@@ -43,11 +43,16 @@ export async function rejectDocumentAction(
 	return result.error != null ? { error: result.error } : {}
 }
 
+export type PreAuthorizeFormState = {
+	error?: string
+	errorValues?: { maxLoanAmount?: string }
+}
+
 /** Form action for assigning amount + term and moving to pre-authorized. */
 export async function preAuthorizeApplicationFormAction(
-	_prevState: { error?: string },
+	_prevState: PreAuthorizeFormState,
 	formData: FormData,
-): Promise<{ error?: string }> {
+): Promise<PreAuthorizeFormState> {
 	const applicationId = Number(formData.get('applicationId'))
 	const result = await preAuthorizeApplication({
 		applicationId,
@@ -55,7 +60,7 @@ export async function preAuthorizeApplicationFormAction(
 		creditAmount: formData.get('creditAmount'),
 	})
 	if (result.error) {
-		return { error: result.error }
+		return { error: result.error, errorValues: result.errorValues }
 	}
 	revalidatePath('/equipo/applications')
 	revalidatePath(`/equipo/applications/${applicationId}`)

@@ -97,6 +97,7 @@ export const seedApplications: ReadonlyArray<{
 	duration: number
 	creditAmount: string
 	salaryAtApplication: string
+	salaryFrequency: 'monthly' | 'bi-monthly'
 	status: SeedApplicationStatus
 	denialReason?: string
 	statusHistory?: readonly SeedApplicationStatus[]
@@ -108,6 +109,7 @@ export const seedApplications: ReadonlyArray<{
 		duration: 12,
 		creditAmount: '5000.00',
 		salaryAtApplication: '25000.00',
+		salaryFrequency: 'monthly',
 		status: 'new',
 	},
 	{
@@ -117,6 +119,7 @@ export const seedApplications: ReadonlyArray<{
 		duration: 12,
 		creditAmount: '8000.00',
 		salaryAtApplication: '28000.00',
+		salaryFrequency: 'monthly',
 		status: 'pending',
 		statusHistory: ['new', 'pending'],
 	},
@@ -127,6 +130,7 @@ export const seedApplications: ReadonlyArray<{
 		duration: 12,
 		creditAmount: '12000.00',
 		salaryAtApplication: '32000.00',
+		salaryFrequency: 'monthly',
 		status: 'authorized',
 		statusHistory: [
 			'new',
@@ -143,6 +147,7 @@ export const seedApplications: ReadonlyArray<{
 		duration: 12,
 		creditAmount: '9500.00',
 		salaryAtApplication: '30000.00',
+		salaryFrequency: 'monthly',
 		status: 'invalid-documentation',
 	},
 ]

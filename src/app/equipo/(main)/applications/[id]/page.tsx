@@ -63,7 +63,7 @@ export default async function AppApplicationDetailPage({
 		notFound()
 	}
 	const scope = await getEffectiveCompanyScope()
-	const [{ ability }, application, documentList] = await Promise.all([
+	const [{ ability, isAdmin }, application, documentList] = await Promise.all([
 		getAbility(),
 		getApplicationForReview(applicationId, scope),
 		getApplicationDocuments(applicationId),
@@ -182,6 +182,7 @@ export default async function AppApplicationDetailPage({
 						{(canTransition || canPreAuthorize) && showActionControls ? (
 							<ApplicationActions
 								applicationId={application.id}
+								isAdmin={isAdmin}
 								canApprove={canApprove}
 								canAuthorize={canAuthorize}
 								canPreAuthorize={
@@ -196,6 +197,11 @@ export default async function AppApplicationDetailPage({
 												initialCreditAmount: application.creditAmount,
 												initialTermOfferingId: application.termOfferingId,
 												termOfferings,
+												salaryAtApplication: application.salaryAtApplication,
+												salaryFrequency: application.salaryFrequency,
+												companyRate: application.companyRate,
+												companyBorrowingCapacityRate:
+													application.companyBorrowingCapacityRate,
 											}
 										: undefined
 								}

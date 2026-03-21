@@ -23,4 +23,8 @@ Cypress.on('uncaught:exception', (err) => {
 	if (err.message.includes('cannot have a negative time stamp')) {
 		return false
 	}
+	// Radix Select / portals: benign browser quirk when layout runs mid-click (Chrome).
+	if (err.message.includes('ResizeObserver loop')) {
+		return false
+	}
 })

@@ -569,6 +569,7 @@ export type ResetApplicantApplicationTaskParams = {
 	termOfferingId: number
 	creditAmount: string
 	salaryAtApplication: string
+	salaryFrequency?: 'monthly' | 'bi-monthly'
 	statusHistory?: readonly ApplicationStatus[]
 	status?:
 		| 'new'
@@ -627,6 +628,7 @@ export const resetApplicantApplication = async (
 			termOfferingId: params.termOfferingId,
 			creditAmount: params.creditAmount,
 			salaryAtApplication: params.salaryAtApplication,
+			salaryFrequency: params.salaryFrequency ?? 'monthly',
 			status: finalStatus,
 		})
 		.returning()
@@ -731,6 +733,7 @@ export const seedLoginFlow = async (): Promise<SeedLoginFlowResult> => {
 			termOfferingId: offering.id,
 			creditAmount: '10000',
 			salaryAtApplication: '100000',
+			salaryFrequency: 'monthly',
 			status: 'new',
 		})
 		.returning()
@@ -1507,6 +1510,7 @@ export const seedApplicationsReview =
 							: findOffering(cfg.companyDomain).id,
 					creditAmount: cfg.creditAmount,
 					salaryAtApplication: cfg.salaryAtApplication,
+					salaryFrequency: cfg.salaryFrequency ?? 'monthly',
 					status: finalStatus,
 				},
 				baseTime,
@@ -1536,6 +1540,37 @@ export const seedApplicationsReview =
 				}))
 			}),
 		)
+
+		const preAuthAppForDocsIdx = reviewApplicationConfigs.findIndex(
+			(cfg) => cfg.applicantEmail === applicantPreAuth.email,
+		)
+		const preAuthAppForDocs = apps[preAuthAppForDocsIdx]
+		if (preAuthAppForDocsIdx >= 0 && preAuthAppForDocs) {
+			const id = preAuthAppForDocs.id
+			await db.insert(applicationDocuments).values([
+				{
+					applicationId: id,
+					documentType: 'authorization',
+					status: 'approved',
+					fileName: 'seed-authorization.pdf',
+					storageKey: `application-documents/${id}/authorization/seed-authorization.pdf`,
+				},
+				{
+					applicationId: id,
+					documentType: 'contract',
+					status: 'approved',
+					fileName: 'seed-contract.pdf',
+					storageKey: `application-documents/${id}/contract/seed-contract.pdf`,
+				},
+				{
+					applicationId: id,
+					documentType: 'payroll-receipt',
+					status: 'approved',
+					fileName: 'seed-payroll.pdf',
+					storageKey: `application-documents/${id}/payroll-receipt/seed-payroll.pdf`,
+				},
+			])
+		}
 
 		const companyBAppIdx = reviewApplicationConfigs.findIndex(
 			(cfg) => cfg.applicantEmail === applicantForReviewB.email,

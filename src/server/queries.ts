@@ -449,6 +449,7 @@ export type ApplicationDetailForApplicant = {
 	status: ApplicationStatus
 	creditAmount: string | null
 	salaryAtApplication: string
+	salaryFrequency: 'monthly' | 'bi-monthly'
 	payrollNumber: string | null
 	rfc: string | null
 	clabe: string | null
@@ -494,6 +495,7 @@ export async function getApplicationByApplicantId(
 			status: applications.status,
 			creditAmount: applications.creditAmount,
 			salaryAtApplication: applications.salaryAtApplication,
+			salaryFrequency: applications.salaryFrequency,
 			payrollNumber: applications.payrollNumber,
 			rfc: applications.rfc,
 			clabe: applications.clabe,
@@ -535,6 +537,7 @@ export async function getApplicationByApplicantId(
 		status: row.status,
 		creditAmount: row.creditAmount,
 		salaryAtApplication: row.salaryAtApplication,
+		salaryFrequency: row.salaryFrequency,
 		payrollNumber: row.payrollNumber,
 		rfc: row.rfc,
 		clabe: row.clabe,
@@ -638,6 +641,9 @@ export type ApplicationForReview = {
 	companyDomain: string
 	creditAmount: string | null
 	salaryAtApplication: string
+	salaryFrequency: 'monthly' | 'bi-monthly'
+	companyRate: string
+	companyBorrowingCapacityRate: string | null
 	status: ApplicationStatus
 	denialReason: string | null
 	createdAt: Date
@@ -682,6 +688,9 @@ export async function getApplicationsForReview(params: {
 			companyDomain: companies.domain,
 			creditAmount: applications.creditAmount,
 			salaryAtApplication: applications.salaryAtApplication,
+			salaryFrequency: applications.salaryFrequency,
+			companyRate: companies.rate,
+			companyBorrowingCapacityRate: companies.borrowingCapacityRate,
 			status: applications.status,
 			denialReason: applications.denialReason,
 			createdAt: applications.createdAt,
@@ -717,6 +726,9 @@ export async function getApplicationsForReview(params: {
 		companyDomain: row.companyDomain,
 		creditAmount: row.creditAmount,
 		salaryAtApplication: row.salaryAtApplication,
+		salaryFrequency: row.salaryFrequency,
+		companyRate: row.companyRate,
+		companyBorrowingCapacityRate: row.companyBorrowingCapacityRate,
 		status: row.status,
 		denialReason: row.denialReason,
 		createdAt: row.createdAt,
@@ -768,6 +780,9 @@ export async function getApplicationForReview(
 			companyDomain: companies.domain,
 			creditAmount: applications.creditAmount,
 			salaryAtApplication: applications.salaryAtApplication,
+			salaryFrequency: applications.salaryFrequency,
+			companyRate: companies.rate,
+			companyBorrowingCapacityRate: companies.borrowingCapacityRate,
 			status: applications.status,
 			denialReason: applications.denialReason,
 			createdAt: applications.createdAt,
@@ -804,6 +819,9 @@ export async function getApplicationForReview(
 		companyDomain: row.companyDomain,
 		creditAmount: row.creditAmount,
 		salaryAtApplication: row.salaryAtApplication,
+		salaryFrequency: row.salaryFrequency,
+		companyRate: row.companyRate,
+		companyBorrowingCapacityRate: row.companyBorrowingCapacityRate,
 		status: row.status,
 		denialReason: row.denialReason,
 		createdAt: row.createdAt,

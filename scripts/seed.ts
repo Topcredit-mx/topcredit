@@ -270,6 +270,7 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 					termOfferingId,
 					creditAmount: app.creditAmount,
 					salaryAtApplication: app.salaryAtApplication,
+					salaryFrequency: app.salaryFrequency,
 					status: app.status,
 					denialReason: app.denialReason ?? null,
 				})

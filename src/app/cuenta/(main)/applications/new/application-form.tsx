@@ -66,6 +66,7 @@ export function ApplicationForm() {
 	>({})
 
 	const salaryId = useId()
+	const salaryFrequencyId = useId()
 	const payrollId = useId()
 	const rfcId = useId()
 	const clabeId = useId()
@@ -160,6 +161,38 @@ export function ApplicationForm() {
 						{state.errors?.salaryAtApplication && (
 							<FieldError
 								message={resolveError(state.errors.salaryAtApplication)}
+							/>
+						)}
+					</Field>
+
+					<Field data-invalid={!!state.errors?.salaryFrequency}>
+						<FieldLabel className={formLabelClass} htmlFor={salaryFrequencyId}>
+							{t('label-salary-frequency')}{' '}
+							<span className="text-destructive">*</span>
+						</FieldLabel>
+						<select
+							id={salaryFrequencyId}
+							name="salaryFrequency"
+							required
+							aria-required="true"
+							aria-invalid={!!state.errors?.salaryFrequency}
+							defaultValue=""
+							className={cn(
+								formInputClass,
+								'block h-11 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs',
+							)}
+						>
+							<option value="" disabled>
+								{t('placeholder-salary-frequency')}
+							</option>
+							<option value="monthly">{t('salary-frequency-monthly')}</option>
+							<option value="bi-monthly">
+								{t('salary-frequency-bi-monthly')}
+							</option>
+						</select>
+						{state.errors?.salaryFrequency && (
+							<FieldError
+								message={resolveError(state.errors.salaryFrequency)}
 							/>
 						)}
 					</Field>

@@ -70,6 +70,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'cuenta.applications',
 		key: 'application-term-required',
 	},
+	[ValidationCode.APPLICATION_SALARY_FREQUENCY_INVALID]: {
+		namespace: 'cuenta.applications',
+		key: 'application-salary-frequency-invalid',
+	},
 	[ValidationCode.APPLICATION_VALUE_REQUIRED]: {
 		namespace: 'cuenta.applications',
 		key: 'application-value-required',
@@ -185,6 +189,14 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 	[ValidationCode.APPLICATIONS_REQUESTS_CANNOT_PREAUTH_OR_AUTH]: {
 		namespace: 'equipo',
 		key: 'applications-requests-cannot-preauth-or-auth',
+	},
+	[ValidationCode.APPLICATIONS_PREAUTH_EXCEEDS_CAPACITY]: {
+		namespace: 'equipo',
+		key: 'applications-preauth-exceeds-capacity',
+	},
+	[ValidationCode.APPLICATIONS_PREAUTH_COMPANY_NO_CAPACITY]: {
+		namespace: 'equipo',
+		key: 'applications-preauth-company-no-capacity',
 	},
 	[ValidationCode.AUTH_EMAIL_NAME_REQUIRED]: {
 		namespace: 'auth',
