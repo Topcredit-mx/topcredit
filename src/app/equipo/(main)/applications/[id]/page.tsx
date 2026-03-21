@@ -100,7 +100,10 @@ export default async function AppApplicationDetailPage({
 			: []
 
 	return (
-		<div className="mx-auto grid max-w-4xl gap-3 px-1 py-1 sm:px-1.5 sm:py-1.5">
+		<div
+			className="mx-auto grid max-w-4xl gap-3 px-1 py-1 sm:px-1.5 sm:py-1.5"
+			data-equipo-application-detail
+		>
 			<div className="-mb-1 flex items-center gap-2">
 				<span className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
 					<FileText className="size-3.5" aria-hidden />
