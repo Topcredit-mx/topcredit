@@ -1,10 +1,13 @@
 import { eq } from 'drizzle-orm'
-import type { RequiredInitialDocumentFieldName } from '~/lib/application-document-intake'
+import type {
+	InitialApplicationDocumentType,
+	RequiredInitialDocumentFieldName,
+} from '~/lib/application-document-intake'
 import {
 	APPLICATION_DOCUMENT_ALLOWED_MIME_VALUES,
 	APPLICATION_DOCUMENT_MAX_BYTES,
 	getRequiredInitialDocumentFieldName,
-	REQUIRED_INITIAL_DOCUMENTS,
+	REQUIRED_INITIAL_APPLICATION_DOCUMENTS,
 	sanitizeApplicationDocumentFileName,
 } from '~/lib/application-document-intake'
 import { ValidationCode } from '~/lib/validation-codes'
@@ -23,7 +26,7 @@ import {
 } from '~/server/storage'
 
 export type ValidatedRequiredInitialDocument = {
-	documentType: DocumentType
+	documentType: InitialApplicationDocumentType
 	fieldName: RequiredInitialDocumentFieldName
 	file: File
 	mime: string
@@ -42,7 +45,7 @@ export async function validateRequiredInitialDocuments(
 	const errors: Record<string, string> = {}
 	const documents: ValidatedRequiredInitialDocument[] = []
 
-	for (const { documentType } of REQUIRED_INITIAL_DOCUMENTS) {
+	for (const { documentType } of REQUIRED_INITIAL_APPLICATION_DOCUMENTS) {
 		const fieldName = getRequiredInitialDocumentFieldName(documentType)
 		const file = formData.get(fieldName)
 

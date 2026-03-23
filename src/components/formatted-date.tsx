@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 
 const LOCALE = 'es-MX'
 
-/** Shown until client-only format runs (avoids SSR vs browser TZ mismatch). */
 const PLACEHOLDER = '\u2014'
 
 const DATE_ONLY_OPTIONS: Intl.DateTimeFormatOptions = {
@@ -33,10 +32,6 @@ function toDate(value: Date | string): Date {
 	return typeof value === 'string' ? new Date(value) : value
 }
 
-/**
- * Formats in the **runtime** default timezone (`Intl`: browser = user's local zone).
- * Only call from `useEffect` so this runs in the browser, not during SSR.
- */
 function formatDate(
 	value: Date | string,
 	kind: 'date' | 'datetime' | 'datetime-short',
@@ -52,18 +47,11 @@ function formatDate(
 }
 
 export interface FormattedDateProps {
-	/** Date to format (Date instance or ISO string). */
 	value: Date | string
-	/** 'date' = short date, 'datetime' = full locale date + time, 'datetime-short' = compact date + time. */
 	format?: 'date' | 'datetime' | 'datetime-short'
 	className?: string
 }
 
-/**
- * Renders a date in `es-MX` using the **viewer's local timezone** (browser default).
- * SSR and first client paint show an em dash placeholder so HTML matches; after mount
- * the formatted string appears (tiny flash, no ISO string, no hydration mismatch).
- */
 export function FormattedDate({
 	value,
 	format = 'date',

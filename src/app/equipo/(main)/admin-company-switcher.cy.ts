@@ -1,11 +1,3 @@
-/**
- * US-2.2.6: Admin can view any company as an agent would
- * - Sidebar company switcher shows all active companies for admin
- * - Admin can select any company via sidebar switcher
- * - Selected company persists on page reload
- * - Admin can select "Vista general" to return to equipo overview
- */
-
 import {
 	adminOverviewAdmin,
 	overviewCompanyList,

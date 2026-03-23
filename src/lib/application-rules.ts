@@ -3,9 +3,9 @@ import {
 	type ApplicationStatus,
 } from '~/server/db/schema'
 
-/** Statuses for which we send an application status email (excludes new and pending). */
 export const NOTIFY_STATUSES = [
 	'pre-authorized',
+	'awaiting-authorization',
 	'authorized',
 	'approved',
 	'denied',
@@ -22,11 +22,11 @@ export function isNotifyStatus(
 	return NOTIFY_STATUS_SET.has(status)
 }
 
-/** Only 'denied' requires a reason; invalid-documentation reasons are per document. */
 export type ApplicationStatusRequiringReason = 'denied'
 
 export const FINANCIAL_TERMS_REQUIRED_STATUSES = [
 	'pre-authorized',
+	'awaiting-authorization',
 	'authorized',
 ] as const satisfies readonly ApplicationStatus[]
 
@@ -59,7 +59,6 @@ export function statusRequiresFinancialTerms(
 	return FINANCIAL_TERMS_REQUIRED_STATUS_SET.has(status)
 }
 
-/** Terminal statuses that are not considered "active" for applicants. */
 export const INACTIVE_APPLICATION_STATUSES = [
 	'authorized',
 	'denied',
@@ -80,7 +79,8 @@ export function canTransitionApplicationFrom(
 		status === 'new' ||
 		status === 'pending' ||
 		status === 'approved' ||
-		status === 'pre-authorized'
+		status === 'pre-authorized' ||
+		status === 'awaiting-authorization'
 	)
 }
 
@@ -100,8 +100,12 @@ export function canTransitionToApplicationStatus(
 		return currentStatus === 'approved'
 	}
 
-	if (nextStatus === 'authorized') {
+	if (nextStatus === 'awaiting-authorization') {
 		return currentStatus === 'pre-authorized'
+	}
+
+	if (nextStatus === 'authorized') {
+		return currentStatus === 'awaiting-authorization'
 	}
 
 	if (nextStatus === 'denied') {
@@ -109,7 +113,8 @@ export function canTransitionToApplicationStatus(
 			currentStatus === 'new' ||
 			currentStatus === 'pending' ||
 			currentStatus === 'approved' ||
-			currentStatus === 'pre-authorized'
+			currentStatus === 'pre-authorized' ||
+			currentStatus === 'awaiting-authorization'
 		)
 	}
 

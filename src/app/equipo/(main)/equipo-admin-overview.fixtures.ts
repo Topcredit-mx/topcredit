@@ -1,7 +1,3 @@
-/**
- * Test fixtures for equipo admin overview E2E (US-2.2.5)
- */
-
 export const adminOverviewAdmin = {
 	name: 'Admin Overview',
 	email: 'admin.overview@example.com',

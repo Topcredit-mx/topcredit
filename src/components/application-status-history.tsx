@@ -1,13 +1,14 @@
 import { History } from 'lucide-react'
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
-import { Card, CardContent, CardHeader } from '~/components/ui/card'
 import { SectionTitleRow } from '~/components/ui/section-card'
-import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
 import type { ApplicationStatusHistoryItem } from '~/server/queries'
 
+const STATUS_HISTORY_HEADING_ID = 'application-status-history-heading'
+
 export function ApplicationStatusHistoryCard({
+	className,
 	title,
 	description,
 	emptyMessage,
@@ -16,6 +17,7 @@ export function ApplicationStatusHistoryCard({
 	items,
 	getStatusLabel,
 }: {
+	className?: string
 	title: string
 	description?: string
 	emptyMessage: string
@@ -25,31 +27,46 @@ export function ApplicationStatusHistoryCard({
 	getStatusLabel: (status: ApplicationStatusHistoryItem['status']) => string
 }) {
 	return (
-		<Card className={cn(shell.elevatedCard, 'gap-0 overflow-hidden py-0')}>
-			<CardHeader className="border-slate-100 border-b px-6 py-4">
-				<SectionTitleRow
-					icon={History}
-					title={<span data-application-status-history-title>{title}</span>}
-					description={description}
-				/>
-			</CardHeader>
-			<CardContent className="px-6 pt-6 pb-6">
-				{items.length === 0 ? (
-					<p className="text-slate-600 text-sm">{emptyMessage}</p>
-				) : (
-					<ul className="space-y-3" data-application-status-history>
-						{items.map((item) => {
-							const actorLabel = item.setByUser
-								? (item.setByUser.name ?? item.setByUser.email ?? systemLabel)
-								: systemLabel
+		<section
+			className={cn('space-y-5', className)}
+			aria-labelledby={STATUS_HISTORY_HEADING_ID}
+		>
+			<SectionTitleRow
+				headingId={STATUS_HISTORY_HEADING_ID}
+				icon={History}
+				title={<span data-application-status-history-title>{title}</span>}
+				description={description}
+			/>
+			{items.length === 0 ? (
+				<p className="text-slate-600 text-sm">{emptyMessage}</p>
+			) : (
+				<ul data-application-status-history>
+					{items.map((item, index) => {
+						const actorLabel = item.setByUser
+							? (item.setByUser.name ?? item.setByUser.email ?? systemLabel)
+							: systemLabel
+						const isLast = index === items.length - 1
 
-							return (
-								<li
-									key={item.id}
-									data-status-history-item
-									data-status-history-status={item.status}
-									className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3"
-								>
+						return (
+							<li
+								key={item.id}
+								data-status-history-item
+								data-status-history-status={item.status}
+								className="flex items-stretch gap-3"
+							>
+								<div className="flex w-4 shrink-0 flex-col items-center">
+									<div
+										className="mt-1.5 size-2.5 shrink-0 rounded-full border-2 border-slate-300 bg-background"
+										aria-hidden
+									/>
+									{isLast ? null : (
+										<div
+											className="mt-1 w-0 flex-1 border-slate-300 border-l border-dotted"
+											aria-hidden
+										/>
+									)}
+								</div>
+								<div className={cn('min-w-0 flex-1 pt-0.5', !isLast && 'pb-8')}>
 									<div className="flex flex-wrap items-center justify-between gap-3">
 										<div className="flex items-center gap-2">
 											<Badge variant="secondary">
@@ -66,12 +83,12 @@ export function ApplicationStatusHistoryCard({
 											/>
 										</span>
 									</div>
-								</li>
-							)
-						})}
-					</ul>
-				)}
-			</CardContent>
-		</Card>
+								</div>
+							</li>
+						)
+					})}
+				</ul>
+			)}
+		</section>
 	)
 }

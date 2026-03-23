@@ -27,7 +27,6 @@ import {
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { Company } from '~/server/queries'
 
-/** Subset of Company used by the form – no Date fields (can't serialize to Client Components). */
 export type CompanyFormInput = Pick<
 	Company,
 	| 'id'

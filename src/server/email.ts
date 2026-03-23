@@ -140,7 +140,6 @@ export async function sendApplicationStatusEmail(
 	})
 }
 
-/** Inngest event payload; also used when sending inline (no Inngest). */
 export type EmailEventData =
 	| {
 			type: 'application-submitted'

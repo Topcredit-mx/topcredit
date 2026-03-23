@@ -20,7 +20,6 @@ import { getApplicantEligibilityData } from './eligibility'
 import { checkRateLimit, updateRateLimitCounters } from './rate-limit'
 import { getUserByEmail, sendOtp } from './users'
 
-/** No session/CASL — custom checks only. */
 export async function registerUser(
 	_prevState: unknown,
 	formData: FormData,

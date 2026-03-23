@@ -9,12 +9,10 @@ type SectionTitleRowProps = {
 	icon?: LucideIcon
 	title: React.ReactNode
 	description?: React.ReactNode
-	/** For `aria-labelledby` on a wrapping `<section>`. */
 	headingId?: string
 	className?: string
 }
 
-/** Icon + title (+ optional subtitle), vertically centered as one unit — reuse on non-card sections. */
 export function SectionTitleRow({
 	icon: Icon,
 	title,

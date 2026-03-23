@@ -16,7 +16,6 @@ const FILE_INPUT_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp'
 interface ApplicationDocumentUploadFormProps {
 	applicationId: number
 	fixedDocumentType: DocumentType
-	/** Label for the button that opens the system file picker (e.g. “Examinar archivos”, “Actualizar archivo”). */
 	pickFileButtonLabel: string
 	compact?: boolean
 	embedInTileChrome?: boolean

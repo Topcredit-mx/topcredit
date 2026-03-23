@@ -125,7 +125,6 @@ export const createApplicationSchema = z.object({
 	phoneNumber: requiredText,
 })
 
-/** Payload for updating application status (status + optional reason when required). */
 export const updateApplicationStatusSchema = z
 	.object({
 		status: z.enum(APPLICATION_STATUS_VALUES, {
@@ -174,7 +173,6 @@ export const uploadApplicationDocumentSchema = z.object({
 	documentType: documentTypeSchema,
 })
 
-/** Payload for approving a document (form: documentId). */
 export const approveApplicationDocumentSchema = z.object({
 	documentId: z.coerce
 		.number()
@@ -182,7 +180,6 @@ export const approveApplicationDocumentSchema = z.object({
 		.positive(ValidationCode.APPLICATIONS_DOCUMENT_INVALID),
 })
 
-/** Payload for rejecting a document (form: documentId + rejectionReason). */
 export const rejectApplicationDocumentSchema = z.object({
 	documentId: z.coerce
 		.number()

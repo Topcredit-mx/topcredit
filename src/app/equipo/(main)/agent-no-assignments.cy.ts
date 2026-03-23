@@ -1,9 +1,3 @@
-/**
- * US-2.2.4: Agent without assignments sees appropriate message
- * - Empty state message displayed when no assignments
- * - No company data accessible
- */
-
 import { agentNoAssignments } from './agent-no-assignments.fixtures'
 
 describe('Agent without assignments', () => {

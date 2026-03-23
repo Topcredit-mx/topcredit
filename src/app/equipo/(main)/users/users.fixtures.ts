@@ -1,7 +1,3 @@
-/**
- * Test fixtures for admin users E2E tests
- */
-
 export const adminUser = {
 	name: 'Admin User',
 	email: 'admin@example.com',

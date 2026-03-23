@@ -1,21 +1,10 @@
-/**
- * Pre-authorizations agents.
- * - Pre-authorizations agent sees approved applications.
- * - Agent can assign amount and term before moving an application to pre-authorized.
- */
-
 import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
 import { preAuthAgentForReview } from './applications-review.fixtures'
 
 const preAuthAgentEmail = preAuthAgentForReview.email
 
-/** Seed: applicant 40k monthly, company rate 0.025, borrowing 30%, 12 monthly payments → max principal. */
 const EXPECTED_PREAUTH_MAX_MXN = '$139,941.69'
 
-/**
- * Breadcrumb shows "Detalle de solicitud" from the layout before the application RSC
- * finishes streaming; wait for the detail region + status badge instead of text alone.
- */
 const EQUIPO_APPLICATION_DETAIL_LOAD_MS = 15_000
 
 describe('Pre-authorizations agents', () => {
@@ -38,7 +27,6 @@ describe('Pre-authorizations agents', () => {
 		cy.setCookie('selected_company_id', String(seed.companyId))
 	})
 
-	/** Run before the happy-path test: that test transitions the same app to `pre-authorized`, which hides Acciones. */
 	it('disables pre-authorizar when amount exceeds borrowing capacity', () => {
 		cy.visit(`/equipo/applications/${seed.preAuthApplicationId}`)
 		cy.get(

@@ -8,6 +8,7 @@ import {
 	MapPin,
 	Wallet,
 } from 'lucide-react'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
@@ -15,53 +16,21 @@ import { ApplicantPageFooter } from '~/components/app/applicant-page-footer'
 import { ApplicationStatusHistoryCard } from '~/components/application-status-history'
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
-import { SectionCard } from '~/components/ui/section-card'
+import { Button } from '~/components/ui/button'
+import { SectionCard, SectionTitleRow } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
-import { REQUIRED_INITIAL_DOCUMENTS } from '~/lib/application-document-intake'
+import { REQUIRED_INITIAL_APPLICATION_DOCUMENTS } from '~/lib/application-document-intake'
 import { CUENTA_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
-import {
-	CUENTA_DOCUMENT_STATUS_KEYS,
-	CUENTA_DOCUMENT_TYPE_KEYS,
-	isDocumentStatus,
-	isDocumentType,
-} from '~/lib/i18n-keys'
 import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
-import type {
-	ApplicationStatus,
-	DocumentStatus,
-	DocumentType,
-} from '~/server/db/schema'
+import type { ApplicationStatus } from '~/server/db/schema'
 import {
-	type ApplicationDocumentForList,
 	getApplicationByApplicantId,
 	getApplicationDocuments,
 } from '~/server/queries'
 import { formatApplicationTerm } from '../constants'
-import { ApplicationDocumentUploadForm } from './application-document-upload-form'
-
-const DOCUMENT_DETAIL_FRESHNESS_KEYS = {
-	authorization: 'initial-documents-freshness-authorization',
-	contract: 'initial-documents-freshness-contract',
-	'payroll-receipt': 'initial-documents-freshness-payroll-receipt',
-} as const satisfies Record<DocumentType, string>
-
-function findLatestDocumentForType(
-	documents: ApplicationDocumentForList[],
-	type: DocumentType,
-): ApplicationDocumentForList | undefined {
-	for (const doc of documents) {
-		if (doc.documentType === type) {
-			return doc
-		}
-	}
-	return undefined
-}
-
-function getDocumentNotUploadedBadgeClass(): string {
-	return 'border-transparent bg-slate-100 text-slate-800'
-}
+import { ApplicantDocumentSlots } from './applicant-document-slots'
 
 function trimmedNonEmpty(value: string | null | undefined): string | undefined {
 	if (value == null) return undefined
@@ -95,31 +64,12 @@ function getApplicationStatusBadgeClass(status: ApplicationStatus): string {
 	if (
 		status === 'approved' ||
 		status === 'pre-authorized' ||
+		status === 'awaiting-authorization' ||
 		status === 'authorized'
 	) {
 		return 'border-transparent bg-emerald-600 text-white'
 	}
 	return 'border-transparent bg-slate-100 text-slate-800'
-}
-
-function getDocumentStatusBadgeClass(status: DocumentStatus): string {
-	if (status === 'rejected') {
-		return 'border-transparent bg-destructive text-white'
-	}
-	if (status === 'approved') {
-		return 'border-transparent bg-emerald-600 text-white'
-	}
-	return 'border-transparent bg-amber-500 text-black'
-}
-
-function getDocumentDetailTileSurfaceClass(status: DocumentStatus): string {
-	if (status === 'rejected') {
-		return 'border-destructive/25 bg-destructive/[0.03]'
-	}
-	if (status === 'approved') {
-		return 'border-emerald-200/80 bg-emerald-50/40'
-	}
-	return 'border-slate-200 bg-white'
 }
 
 export default async function CuentaApplicationDetailPage({
@@ -144,6 +94,14 @@ export default async function CuentaApplicationDetailPage({
 		(document) => document.status === 'rejected',
 	).length
 	const t = await getTranslations('cuenta.applications')
+	const showPreAuthPackage =
+		application.status === 'pre-authorized' ||
+		application.status === 'awaiting-authorization'
+	const initialDocumentTypes = REQUIRED_INITIAL_APPLICATION_DOCUMENTS.map(
+		(d) => d.documentType,
+	)
+	const documentsSectionTitleId = `cuenta-application-${applicationId}-documents-section`
+	const preAuthorizedOfferHref = `/cuenta/applications/${applicationId}/pre-authorized`
 
 	return (
 		<main className={cn(shell.applicantMainMax, 'pb-8')}>
@@ -154,10 +112,29 @@ export default async function CuentaApplicationDetailPage({
 				<h1 className="font-semibold text-3xl text-slate-900 tracking-tight">
 					{t('detail-summary-title')}
 				</h1>
-				<p className="mt-2 max-w-2xl text-slate-600 leading-relaxed">
-					{t('detail-summary-description')}
-				</p>
 			</header>
+
+			{showPreAuthPackage ? (
+				<div
+					className={cn(
+						'mb-6 rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-4 py-4 sm:flex sm:items-center sm:justify-between sm:gap-4',
+					)}
+				>
+					<div className="min-w-0">
+						<p className="font-semibold text-slate-900 text-sm">
+							{t('detail-pre-authorized-cta-title')}
+						</p>
+						<p className="mt-1 text-slate-600 text-sm leading-relaxed">
+							{t('detail-pre-authorized-cta-body')}
+						</p>
+					</div>
+					<Button asChild variant="brand" className="mt-4 shrink-0 sm:mt-0">
+						<Link href={preAuthorizedOfferHref}>
+							{t('detail-pre-authorized-cta-button')}
+						</Link>
+					</Button>
+				</div>
+			) : null}
 
 			<div className={cn(shell.elevatedCard, 'overflow-hidden')}>
 				<div className="flex flex-col gap-4 border-slate-100 border-b px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
@@ -343,144 +320,33 @@ export default async function CuentaApplicationDetailPage({
 				</dl>
 			</SectionCard>
 
-			<SectionCard
-				className="mt-8"
-				icon={FolderOpen}
-				title={t('documents-title')}
-				description={t('documents-description')}
+			<section
+				aria-labelledby={documentsSectionTitleId}
+				className="mt-8 space-y-5"
 			>
-				<div className="grid items-start gap-5 sm:*:min-w-0 md:grid-cols-3">
-					{REQUIRED_INITIAL_DOCUMENTS.map(({ documentType }) => {
-						const doc = findLatestDocumentForType(documentList, documentType)
-						const documentTypeKey = CUENTA_DOCUMENT_TYPE_KEYS[documentType]
-						const freshnessKey = DOCUMENT_DETAIL_FRESHNESS_KEYS[documentType]
-
-						if (doc == null) {
-							return (
-								<div
-									key={documentType}
-									data-document-slot={documentType}
-									className={cn(shell.applicantDocumentUploadTile, 'py-3')}
-								>
-									<div
-										className={shell.applicantDocumentTileIconWell}
-										aria-hidden
-									>
-										<FileText className="size-6" />
-									</div>
-									<div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
-										<p className="max-w-full text-center font-semibold text-slate-900 text-sm leading-snug">
-											{t(documentTypeKey)}
-										</p>
-										<Badge className={getDocumentNotUploadedBadgeClass()}>
-											{t('document-status-not-uploaded')}
-										</Badge>
-									</div>
-									<p className="mt-1 text-center text-muted-foreground text-xs leading-relaxed">
-										{t(freshnessKey)}
-									</p>
-									<ApplicationDocumentUploadForm
-										applicationId={applicationId}
-										fixedDocumentType={documentType}
-										pickFileButtonLabel={t('browse-files')}
-										embedInTileChrome
-									/>
-								</div>
-							)
-						}
-
-						const documentStatusKey = isDocumentStatus(doc.status)
-							? CUENTA_DOCUMENT_STATUS_KEYS[doc.status]
-							: 'document-status-invalid'
-
-						return (
-							<div
-								key={`${documentType}-${doc.id}`}
-								data-document-slot={documentType}
-								className={cn(
-									shell.applicantDocumentStatusTileBase,
-									getDocumentDetailTileSurfaceClass(doc.status),
-								)}
-							>
-								<div
-									className={shell.applicantDocumentTileIconWell}
-									aria-hidden
-								>
-									<FileText className="size-6" />
-								</div>
-								<div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
-									<p className="max-w-full text-center font-semibold text-slate-900 text-sm leading-snug">
-										{t(
-											isDocumentType(doc.documentType)
-												? CUENTA_DOCUMENT_TYPE_KEYS[doc.documentType]
-												: 'document-type-invalid',
-										)}
-									</p>
-									<Badge
-										className={cn(
-											'shrink-0',
-											getDocumentStatusBadgeClass(doc.status),
-										)}
-									>
-										{t(documentStatusKey)}
-									</Badge>
-								</div>
-								{doc.hasBlobContent ? (
-									<a
-										href={doc.url}
-										target="_blank"
-										rel="noopener noreferrer"
-										className={cn(
-											'mt-1 block max-w-full truncate text-xs leading-relaxed',
-											shell.textLinkStrong,
-										)}
-										aria-label={`${t('document-link')}: ${doc.fileName}`}
-									>
-										{doc.fileName}
-									</a>
-								) : (
-									<p className="mt-1 max-w-full truncate text-muted-foreground text-xs leading-relaxed">
-										{doc.fileName}
-									</p>
-								)}
-
-								{doc.status === 'rejected' ? (
-									<div className="mt-3 w-full space-y-3">
-										{doc.rejectionReason ? (
-											<div className="rounded-lg border border-destructive/20 bg-destructive/[0.04] px-3 py-2 text-left">
-												<p className="text-destructive text-xs">
-													{t('document-rejection-reason-label')}
-												</p>
-												<p className="mt-1 text-slate-800 text-sm leading-snug">
-													{doc.rejectionReason}
-												</p>
-											</div>
-										) : null}
-										<ApplicationDocumentUploadForm
-											applicationId={applicationId}
-											fixedDocumentType={doc.documentType}
-											pickFileButtonLabel={t('document-reupload-submit')}
-											compact
-										/>
-									</div>
-								) : null}
-							</div>
-						)
-					})}
-				</div>
-			</SectionCard>
-
-			<div className="mt-8">
-				<ApplicationStatusHistoryCard
-					title={t('history-title')}
-					description={t('history-description')}
-					emptyMessage={t('history-empty')}
-					setByLabel={t('history-set-by')}
-					systemLabel={t('history-system')}
-					items={application.statusHistory}
-					getStatusLabel={(status) => t(CUENTA_APPLICATION_STATUS_KEYS[status])}
+				<SectionTitleRow
+					headingId={documentsSectionTitleId}
+					icon={FileText}
+					title={t('section-documents-card')}
 				/>
-			</div>
+				<ApplicantDocumentSlots
+					applicationId={applicationId}
+					documentTypes={initialDocumentTypes}
+					documents={documentList}
+					reuploadWhenLatestNotRejected={false}
+				/>
+			</section>
+
+			<ApplicationStatusHistoryCard
+				className="mt-8"
+				title={t('history-title')}
+				description={t('history-description')}
+				emptyMessage={t('history-empty')}
+				setByLabel={t('history-set-by')}
+				systemLabel={t('history-system')}
+				items={application.statusHistory}
+				getStatusLabel={(status) => t(CUENTA_APPLICATION_STATUS_KEYS[status])}
+			/>
 
 			<ApplicantPageFooter className="mt-16" />
 		</main>

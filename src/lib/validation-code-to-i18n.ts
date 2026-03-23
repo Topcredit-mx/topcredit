@@ -1,8 +1,3 @@
-/**
- * Maps validation codes (from backend) to next-intl namespace + key.
- * Only the frontend knows about translation keys; backend only uses codes.
- */
-
 import { useTranslations } from 'next-intl'
 import type messages from '~/messages/es.json'
 import {
@@ -142,6 +137,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'cuenta.applications',
 		key: 'application-not-found',
 	},
+	[ValidationCode.CUENTA_APPLICATION_AUTHORIZATION_PACKAGE_INCOMPLETE]: {
+		namespace: 'cuenta.applications',
+		key: 'authorization-package-incomplete',
+	},
 	[ValidationCode.CUENTA_APPLICATION_FILE_REQUIRED]: {
 		namespace: 'cuenta.applications',
 		key: 'file-required',
@@ -256,13 +255,8 @@ function isValidationCode(s: string): s is ValidationCodeType {
 	return s in CODE_TO_I18N
 }
 
-/** Action state that may return { error?: string } with validation codes. */
 type StateWithError = { error?: string } | null
 
-/**
- * Resolve action state error to a translated message, or null if none.
- * Use when displaying a single error from useActionState where the action returns validation codes.
- */
 export function getResolvedError(
 	state: StateWithError,
 	resolve: (code: string) => string,
@@ -275,10 +269,6 @@ export function getResolvedError(
 	return resolve(err)
 }
 
-/**
- * Resolves a validation code to the translated string.
- * Use in forms and anywhere server returns a code; pass the result to FieldError as message=.
- */
 export function useResolveValidationError(): (code: string) => string {
 	const tAdmin = useTranslations('admin')
 	const tCuentaApplications = useTranslations('cuenta.applications')

@@ -10,7 +10,6 @@ import { cn } from '~/lib/utils'
 const DEFAULT_BASE = '/settings'
 
 type SettingsNavProps = {
-	/** Use `/cuenta/settings` for applicant shell (sidebar); default for agents / legacy `/settings`. */
 	basePath?: string
 }
 

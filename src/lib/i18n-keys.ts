@@ -1,32 +1,31 @@
-/**
- * Typed i18n key maps for next-intl strict Messages.
- * Validation/error codes are resolved on the frontend via validation-code-to-i18n.
- */
 import type messages from '~/messages/es.json'
 import type { Role } from '~/server/auth/session'
 import type { DocumentStatus, DocumentType } from '~/server/db/schema'
 
-/** Equipo namespace: document type → message key */
 export const EQUIPO_DOCUMENT_TYPE_KEYS: Record<
 	DocumentType,
 	keyof (typeof messages)['equipo']
 > = {
+	'official-id': 'applications-document-type-official-id',
+	'proof-of-address': 'applications-document-type-proof-of-address',
+	'bank-statement': 'applications-document-type-bank-statement',
 	authorization: 'applications-document-type-authorization',
 	contract: 'applications-document-type-contract',
 	'payroll-receipt': 'applications-document-type-payroll-receipt',
 }
 
-/** Cuenta.applications: document type → message key */
 export const CUENTA_DOCUMENT_TYPE_KEYS: Record<
 	DocumentType,
 	keyof (typeof messages)['cuenta']['applications']
 > = {
+	'official-id': 'document-type-official-id',
+	'proof-of-address': 'document-type-proof-of-address',
+	'bank-statement': 'document-type-bank-statement',
 	authorization: 'document-type-authorization',
 	contract: 'document-type-contract',
 	'payroll-receipt': 'document-type-payroll-receipt',
 }
 
-/** Equipo namespace: document status → message key */
 export const EQUIPO_DOCUMENT_STATUS_KEYS: Record<
 	DocumentStatus,
 	keyof (typeof messages)['equipo']
@@ -36,7 +35,6 @@ export const EQUIPO_DOCUMENT_STATUS_KEYS: Record<
 	rejected: 'applications-document-status-rejected',
 }
 
-/** Cuenta.applications: document status → message key */
 export const CUENTA_DOCUMENT_STATUS_KEYS: Record<
 	'pending' | 'approved' | 'rejected',
 	keyof (typeof messages)['cuenta']['applications']
@@ -46,7 +44,6 @@ export const CUENTA_DOCUMENT_STATUS_KEYS: Record<
 	rejected: 'document-status-rejected',
 }
 
-/** Profile namespace: role → message key */
 export const PROFILE_ROLE_KEYS: Record<
 	Role,
 	keyof (typeof messages)['profile']
@@ -58,12 +55,10 @@ export const PROFILE_ROLE_KEYS: Record<
 	admin: 'role-admin',
 }
 
-/** Type guard: string is a valid document type (for API data) */
 export function isDocumentType(s: string): s is DocumentType {
 	return s in EQUIPO_DOCUMENT_TYPE_KEYS
 }
 
-/** Type guard: string is a valid document status */
 export function isDocumentStatus(
 	s: string,
 ): s is keyof typeof CUENTA_DOCUMENT_STATUS_KEYS {

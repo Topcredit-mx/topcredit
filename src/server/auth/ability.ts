@@ -30,6 +30,7 @@ export type AppAction =
 	| 'setStatusDenied'
 	| 'setStatusInvalidDocumentation'
 	| 'setStatusPreAuthorized'
+	| 'setStatusAwaitingAuthorization'
 	| 'setStatusAuthorized'
 export type AppSubject = 'Company' | 'User' | 'Admin' | 'Application' | 'all'
 
@@ -78,6 +79,10 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		}
 		can('read', 'Application', { applicantId: ctx.userId })
 		can('uploadDocument', 'Application', { applicantId: ctx.userId })
+		can('setStatusAwaitingAuthorization', 'Application', {
+			applicantId: ctx.userId,
+			status: 'pre-authorized',
+		})
 		return build()
 	}
 
@@ -87,13 +92,23 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 			status: { $in: ['new', 'pending'] },
 		})
 		can('setStatusDenied', 'Application', {
-			status: { $in: ['new', 'pending', 'approved', 'pre-authorized'] },
+			status: {
+				$in: [
+					'new',
+					'pending',
+					'approved',
+					'pre-authorized',
+					'awaiting-authorization',
+				],
+			},
 		})
 		can('setStatusInvalidDocumentation', 'Application', {
 			status: { $in: ['new', 'pending'] },
 		})
 		can('setStatusPreAuthorized', 'Application', { status: 'approved' })
-		can('setStatusAuthorized', 'Application', { status: 'pre-authorized' })
+		can('setStatusAuthorized', 'Application', {
+			status: 'awaiting-authorization',
+		})
 		cannot('setStatusApproved', 'Application', {
 			status: { $nin: ['new', 'pending'] },
 		})
@@ -187,12 +202,6 @@ export const getAbility = cache(async (): Promise<AbilityResult> => {
 	}
 })
 
-/**
- * Server-side guard: if the current user cannot perform `action` on `subj`, redirects to
- * `/unauthorized` (never returns). Call after getAbility() when the route or mutation must
- * be forbidden entirely when the user lacks permission—e.g. requireAbility(ability, 'manage', 'User').
- * For returning a validation error instead of redirecting, use ability.can() and return { error }.
- */
 export function requireAbility(
 	ability: AppAbility,
 	action: Parameters<AppAbility['can']>[0],
@@ -211,7 +220,6 @@ const STATUS_TO_ACTION: Partial<Record<ApplicationStatus, AppAction>> = {
 	authorized: 'setStatusAuthorized',
 }
 
-/** Returns the CASL action for setting an application to this status, or null if not allowed. */
 export function getActionForApplicationStatus(
 	status: ApplicationStatus,
 ): AppAction | null {

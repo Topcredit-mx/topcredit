@@ -63,7 +63,6 @@ function FieldError({
 	message,
 	...props
 }: React.ComponentProps<'p'> & {
-	/** Resolved error message (e.g. from useResolveValidationError). Prefer over children when showing server/validation errors. */
 	message?: string | null
 }) {
 	const content = message ?? children

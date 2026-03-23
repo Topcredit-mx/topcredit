@@ -10,10 +10,6 @@ const MXN_OPTIONS: Intl.NumberFormatOptions = {
 	currency: 'MXN',
 }
 
-/**
- * Formats a numeric value as MXN currency for display. Returns "—" for
- * null, undefined, or invalid values so the UI never shows "NaN".
- */
 export function formatCurrencyMxn(
 	value: string | number | null | undefined,
 ): string {

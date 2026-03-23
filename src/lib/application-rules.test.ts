@@ -5,10 +5,11 @@ import {
 	statusRequiresFinancialTerms,
 } from '~/lib/application-rules'
 
-test('requires financial terms only for pre-authorized and authorized', () => {
+test('requires financial terms for pre-authorized, awaiting-authorization, and authorized', () => {
 	assert.equal(statusRequiresFinancialTerms('pending'), false)
 	assert.equal(statusRequiresFinancialTerms('approved'), false)
 	assert.equal(statusRequiresFinancialTerms('pre-authorized'), true)
+	assert.equal(statusRequiresFinancialTerms('awaiting-authorization'), true)
 	assert.equal(statusRequiresFinancialTerms('authorized'), true)
 })
 
@@ -51,13 +52,41 @@ test('allows pre-authorization only from approved', () => {
 	)
 })
 
-test('allows authorization only from pre-authorized', () => {
+test('allows awaiting-authorization only from pre-authorized', () => {
 	assert.equal(
-		canTransitionToApplicationStatus('pre-authorized', 'authorized'),
+		canTransitionToApplicationStatus(
+			'pre-authorized',
+			'awaiting-authorization',
+		),
 		true,
 	)
 	assert.equal(
+		canTransitionToApplicationStatus('approved', 'awaiting-authorization'),
+		false,
+	)
+})
+
+test('allows authorization only from awaiting-authorization', () => {
+	assert.equal(
+		canTransitionToApplicationStatus('awaiting-authorization', 'authorized'),
+		true,
+	)
+	assert.equal(
+		canTransitionToApplicationStatus('pre-authorized', 'authorized'),
+		false,
+	)
+	assert.equal(
 		canTransitionToApplicationStatus('approved', 'authorized'),
+		false,
+	)
+})
+
+test('does not allow reverting to pre-authorized from awaiting-authorization', () => {
+	assert.equal(
+		canTransitionToApplicationStatus(
+			'awaiting-authorization',
+			'pre-authorized',
+		),
 		false,
 	)
 })
@@ -66,6 +95,10 @@ test('allows denials from each review stage only', () => {
 	assert.equal(canTransitionToApplicationStatus('approved', 'denied'), true)
 	assert.equal(
 		canTransitionToApplicationStatus('pre-authorized', 'denied'),
+		true,
+	)
+	assert.equal(
+		canTransitionToApplicationStatus('awaiting-authorization', 'denied'),
 		true,
 	)
 	assert.equal(canTransitionToApplicationStatus('authorized', 'denied'), false)

@@ -16,6 +16,12 @@ Defaults for how agents write and test code in this repository.
 
 - Keep solutions simple. Prefer code that is easy to read and maintain.
 
+## Comments
+
+- Do **not** add comments on functions (including JSDoc / docstrings) unless strictly necessary.
+- Reserve them for non-obvious invariants, safety or compliance notes, or other cases where the code alone cannot carry the meaning clearly.
+- Prefer clear naming and structure over explaining what the code does in a comment.
+
 ## Reuse and exploration
 
 - Before adding a new function or module, check whether something shared already exists.
@@ -27,3 +33,5 @@ Defaults for how agents write and test code in this repository.
 - **Cover edge cases**, error scenarios, and boundary conditions.
 - **Prefer E2E tests** (e.g. Cypress) for critical user flows; unit tests where they add value.
 - If in plan mode, the todo's should clearly follow a "Red-Green-Refactor" cycle: write a failing test, write minimal code to pass, and refactor
+- Between each todo, (Red, Green, Refactor) you should run unit or e2e tests only for the affected tests.
+- The full tests suite should only be tested at the end.
