@@ -10,32 +10,28 @@ This section is an **inventory of what already exists** so “Up next” starts 
 
 - Requests queue; applicant can resubmit after `invalid-documentation`.
 - Pre-authorizations role, approved-only queue, amount + term from offerings, borrowing-capacity rules (with admin override where implemented), `pre-authorized` / `denied`, and E2E for the main pre-auth paths.
+- Applicant **pre-authorized package** on cuenta: detail CTA plus dedicated offer page (amount, term, copy); required authorization-package uploads enforced before submit; **Submit for review** moves the application to `awaiting-authorization` so authorizations can see packages that are ready.
 
 ---
 
 ## Up next
 
-After pre-authorization, the **applicant** completes contract and supporting uploads while the application stays `pre-authorized`; only then does the **authorizations** agent review.
-
-### Applicant flow at `pre-authorized`
-
-- Show the **pre-authorized offer** on cuenta application detail: amount, term, and clear copy that the applicant must complete the next steps.
-- Define the **required uploads** for this stage (contract, payroll receipt, authorization, and any extras the business wants) and enforce them on submit.
-- **Submit for review** — keep status `pre-authorized` but make it obvious to agents that the package is ready for authorizations (e.g. flag, timestamp, or document completeness; exact mechanism TBD).
-- Align cuenta UX and copy with whatever checklist you lock in.
+The **authorizations** agent reviews applications that reached `awaiting-authorization` after the applicant submitted the contract and supporting uploads.
 
 ### Authorizations stage
 
 - Decide whether `authorized` stays **admin-only** for a short period or you introduce the **`authorizations`** role immediately (role in DB, CASL abilities, assignments).
-- **Queue + navigation** — filtered list of `pre-authorized` applications that are ready for authorization review (criteria must match how the applicant submit step signals “ready”).
+- **Queue + navigation** — filtered list of `awaiting-authorization` applications (criteria must match the applicant submit step).
 - **Detail actions** — review contract + uploaded docs; **Authorize** → `authorized` or **Deny** (reason required).
 - E2E: at least one path from “applicant marked ready” → authorize and one → deny.
 
-When applicant pre-authorized flow and authorizations are solid, the next major block is **HR** (`hrStatus`, first discount date), then **disbursements** (transfer + receipt → create **Credit**).
+When authorizations are solid, the next major block is **HR** (`hrStatus`, first discount date), then **disbursements** (transfer + receipt → create **Credit**).
 
 ---
 
 ## Later phases
+
+**Automated application-status email tests** — Add regression tests that assert the email pipeline when an application transitions status (e.g. to `authorized`), in a dedicated PR; keep relying on code review for the authorizations PR until then.
 
 **Post-authorization operations** — HR fields (`hrStatus`, `first discount date`), when an **Application** becomes a **Credit**, disbursement queue, transfer + receipt capture, payment schedule generation.
 
