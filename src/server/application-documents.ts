@@ -8,10 +8,6 @@ export type ApplicationDocumentStreamResult = {
 	fileName: string
 }
 
-/**
- * Returns the authenticated blob stream for an application document, or null if not found/unauthorized.
- * Used by the file download route; auth is enforced here (requireAbility read on Application).
- */
 export async function getApplicationDocumentStream(
 	documentId: number,
 ): Promise<ApplicationDocumentStreamResult | null> {

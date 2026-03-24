@@ -1,13 +1,3 @@
-/**
- * E2E: Application documents on cuenta (applicant).
- * - Documents section and upload form visible on application detail.
- * - Empty state and list with one seeded document (DB-only; no real blob).
- * - Upload form validation: submit without file shows error.
- * - Full upload flow: real file upload to blob, then list shows the document.
- *
- * Requires BLOB_READ_WRITE_TOKEN in CI; the suite will fail without it.
- */
-
 import type { SeedCuentaApplicationsResult } from '../../../../../cypress/tasks'
 import { applicantWithCompany } from './applications.fixtures'
 
@@ -41,22 +31,23 @@ describe('Cuenta application documents', () => {
 				cy.visit(`/cuenta/applications/${app.id}`)
 				cy.url().should('include', `/cuenta/applications/${app.id}`)
 				cy.contains(/resumen de tu solicitud/i).should('be.visible')
-				cy.contains('h2', /documentos/i)
+				cy.get('[data-document-slot="official-id"]')
+					.first()
 					.scrollIntoView()
 					.should('be.visible')
-				cy.get('[data-document-slot="authorization"]').within(() => {
-					cy.contains(/autorización/i).should('be.visible')
+				cy.get('[data-document-slot="official-id"]').within(() => {
+					cy.contains(/identificación oficial/i).should('be.visible')
 					cy.contains(/sin cargar/i).should('be.visible')
 				})
-				cy.get('[data-document-slot="contract"]').within(() => {
-					cy.contains(/contrato/i).should('be.visible')
+				cy.get('[data-document-slot="proof-of-address"]').within(() => {
+					cy.contains(/comprobante de domicilio/i).should('be.visible')
 					cy.contains(/sin cargar/i).should('be.visible')
 				})
-				cy.get('[data-document-slot="payroll-receipt"]').within(() => {
-					cy.contains(/recibo de nómina/i).should('be.visible')
+				cy.get('[data-document-slot="bank-statement"]').within(() => {
+					cy.contains(/estado de cuenta bancario/i).should('be.visible')
 					cy.contains(/sin cargar/i).should('be.visible')
 				})
-				cy.get('[data-document-slot="authorization"]').within(() => {
+				cy.get('[data-document-slot="official-id"]').within(() => {
 					cy.contains('button', /examinar archivos/i).should('be.visible')
 					cy.get('input[name="file"]')
 						.should('exist')
@@ -76,15 +67,16 @@ describe('Cuenta application documents', () => {
 			}).then((app) => {
 				cy.task('insertApplicationDocument', {
 					applicationId: app.id,
-					documentType: 'authorization',
+					documentType: 'official-id',
 					fileName: 'auth.pdf',
 					storageKey: 'https://example.com/e2e/auth.pdf',
 				})
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.contains('h2', /documentos/i)
+				cy.get('[data-document-slot="official-id"]')
+					.first()
 					.scrollIntoView()
 					.should('be.visible')
-				cy.contains(/autorización/i).should('be.visible')
+				cy.contains(/identificación oficial/i).should('be.visible')
 				cy.contains(/pendiente/i).should('be.visible')
 				cy.contains('auth.pdf').should('be.visible')
 				cy.get('a[href*="/api/application-documents/"]').should('not.exist')
@@ -101,7 +93,7 @@ describe('Cuenta application documents', () => {
 			}).then((app) => {
 				cy.task('insertApplicationDocument', {
 					applicationId: app.id,
-					documentType: 'authorization',
+					documentType: 'official-id',
 					fileName: 'auth-rejected.pdf',
 					storageKey: 'https://example.com/e2e/auth-rejected.pdf',
 					status: 'rejected',
@@ -109,7 +101,7 @@ describe('Cuenta application documents', () => {
 				})
 				cy.task('insertApplicationDocument', {
 					applicationId: app.id,
-					documentType: 'payroll-receipt',
+					documentType: 'proof-of-address',
 					fileName: 'payroll-rejected.pdf',
 					storageKey: 'https://example.com/e2e/payroll-rejected.pdf',
 					status: 'rejected',
@@ -146,7 +138,7 @@ describe('Cuenta application documents', () => {
 					})
 				cy.intercept('POST', '**/cuenta/applications/*').as('uploadFirstDoc')
 				cy.get(
-					'[data-document-slot="authorization"] input[name="file"]',
+					'[data-document-slot="official-id"] input[name="file"]',
 				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadFirstDoc')
 
@@ -160,7 +152,7 @@ describe('Cuenta application documents', () => {
 					.should('be.visible')
 				cy.intercept('POST', '**/cuenta/applications/*').as('uploadSecondDoc')
 				cy.get(
-					'[data-document-slot="payroll-receipt"] input[name="file"]',
+					'[data-document-slot="proof-of-address"] input[name="file"]',
 				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadSecondDoc')
 
@@ -194,12 +186,13 @@ describe('Cuenta application documents', () => {
 				salaryAtApplication: '100000',
 			}).then((app) => {
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.contains('h2', /documentos/i)
+				cy.get('[data-document-slot="official-id"]')
+					.first()
 					.scrollIntoView()
 					.should('be.visible')
 				cy.intercept('POST', '**/cuenta/applications/*').as('uploadDoc')
 				cy.get(
-					'[data-document-slot="payroll-receipt"] input[name="file"]',
+					'[data-document-slot="bank-statement"] input[name="file"]',
 				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadDoc')
 				// List is server-rendered; revalidatePath runs after action but page does not auto-refresh. Reload to see new document.
@@ -210,7 +203,7 @@ describe('Cuenta application documents', () => {
 				cy.contains('sample-document.webp')
 					.scrollIntoView()
 					.should('be.visible')
-				cy.contains(/recibo de nómina/i)
+				cy.contains(/estado de cuenta bancario/i)
 					.scrollIntoView()
 					.should('be.visible')
 				cy.get('a[href*="/api/application-documents/"]')
@@ -229,7 +222,7 @@ describe('Cuenta application documents', () => {
 			}).then((app) => {
 				cy.visit(`/cuenta/applications/${app.id}`)
 				cy.get(
-					'[data-document-slot="authorization"] input[name="file"]',
+					'[data-document-slot="official-id"] input[name="file"]',
 				).selectFile(
 					{
 						contents: Cypress.Buffer.from([]),
@@ -253,12 +246,13 @@ describe('Cuenta application documents', () => {
 				salaryAtApplication: '100000',
 			}).then((app) => {
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.contains('h2', /documentos/i)
+				cy.get('[data-document-slot="official-id"]')
+					.first()
 					.scrollIntoView()
 					.should('be.visible')
 				cy.intercept('POST', '**/cuenta/applications/*').as('uploadDoc')
 				cy.get(
-					'[data-document-slot="payroll-receipt"] input[name="file"]',
+					'[data-document-slot="bank-statement"] input[name="file"]',
 				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadDoc')
 				cy.visit(`/cuenta/applications/${app.id}`)
@@ -276,6 +270,208 @@ describe('Cuenta application documents', () => {
 							expect(res.headers['content-type']).to.include('image/webp')
 						})
 					})
+			})
+		})
+	})
+
+	describe('Pre-authorized authorization package', () => {
+		function postToApplicationUrl(id: number): RegExp {
+			return new RegExp(`/cuenta/applications/${id}(?:/|$)`)
+		}
+
+		beforeEach(() => {
+			cy.login(applicantWithCompany.email)
+		})
+
+		it('keeps submit disabled with a hint until all three package documents exist as pending', () => {
+			cy.task('resetApplicantApplication', {
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '15000',
+				salaryAtApplication: '100000',
+				status: 'pre-authorized',
+			}).then((app) => {
+				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
+				cy.contains('h1', /oferta preautorizada/i).should('be.visible')
+				cy.get('[data-document-slot="payroll-receipt"]')
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains('button', /^Enviar$/i)
+					.should('be.visible')
+					.and('be.disabled')
+				cy.contains(
+					/Los tres documentos deben estar cargados y en estado pendiente de revisión/i,
+				)
+					.scrollIntoView()
+					.should('be.visible')
+			})
+		})
+
+		it('submits a complete pending package for review and shows awaiting-authorization after reload', () => {
+			cy.task('resetApplicantApplication', {
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '15000',
+				salaryAtApplication: '100000',
+				status: 'pre-authorized',
+			}).then((app) => {
+				cy.task('seedPreAuthorizedPackageDocuments', {
+					applicationId: app.id,
+					variant: 'initialIntakeApprovedAndPackagePending',
+				})
+				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
+				cy.contains('h1', /oferta preautorizada/i).should('be.visible')
+				cy.get('[data-document-slot="payroll-receipt"]')
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains('button', /^Enviar$/i)
+					.should('be.visible')
+					.and('not.be.disabled')
+				cy.intercept('POST', postToApplicationUrl(app.id)).as(
+					'submitAuthPackage',
+				)
+				cy.contains('button', /^Enviar$/i).click()
+				cy.wait('@submitAuthPackage')
+				cy.visit(`/cuenta/applications/${app.id}`)
+				cy.get('[data-current-application-status="awaiting-authorization"]')
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains(/En revisión de autorización/i).should('be.visible')
+				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
+				cy.contains('button', /^Enviar$/i).should('not.exist')
+			})
+		})
+
+		it('uploads three package files then submits for review', () => {
+			cy.task('resetApplicantApplication', {
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '15000',
+				salaryAtApplication: '100000',
+				status: 'pre-authorized',
+			}).then((app) => {
+				cy.task('seedPreAuthorizedPackageDocuments', {
+					applicationId: app.id,
+					variant: 'initialIntakeApprovedOnly',
+				})
+				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
+				cy.contains('h1', /oferta preautorizada/i).should('be.visible')
+				cy.get('[data-document-slot="payroll-receipt"]')
+					.scrollIntoView()
+					.should('be.visible')
+
+				cy.intercept('POST', postToApplicationUrl(app.id)).as(
+					'uploadPackageDoc',
+				)
+				cy.get(
+					'[data-document-slot="payroll-receipt"] input[name="file"]',
+				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
+				cy.wait('@uploadPackageDoc')
+				cy.get('[data-document-slot="contract"] input[name="file"]').selectFile(
+					'cypress/fixtures/sample-document.webp',
+					{ force: true },
+				)
+				cy.wait('@uploadPackageDoc')
+				cy.get(
+					'[data-document-slot="authorization"] input[name="file"]',
+				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
+				cy.wait('@uploadPackageDoc')
+
+				cy.contains('button', /^Enviar$/i)
+					.should('be.visible')
+					.and('not.be.disabled')
+				cy.intercept('POST', postToApplicationUrl(app.id)).as(
+					'submitAuthPackage',
+				)
+				cy.contains('button', /^Enviar$/i).click()
+				cy.wait('@submitAuthPackage')
+				cy.visit(`/cuenta/applications/${app.id}`)
+				cy.get(
+					'[data-current-application-status="awaiting-authorization"]',
+				).should('be.visible')
+			})
+		})
+
+		it('shows next-step banner on detail and opens pre-authorized offer when applicant follows the link', () => {
+			cy.task('resetApplicantApplication', {
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '15000',
+				salaryAtApplication: '100000',
+				status: 'pre-authorized',
+			}).then((app) => {
+				cy.visit(`/cuenta/applications/${app.id}`)
+				cy.contains('h1', /resumen de tu solicitud/i).should('be.visible')
+				cy.contains(/siguiente paso: autorización/i)
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains('a', /ir a oferta y documentación/i)
+					.should('be.visible')
+					.click()
+				cy.url().should(
+					'include',
+					`/cuenta/applications/${app.id}/pre-authorized`,
+				)
+				cy.contains('h1', /oferta preautorizada/i).should('be.visible')
+			})
+		})
+
+		it('keeps submit disabled when the latest row for a package type is approved', () => {
+			cy.task('resetApplicantApplication', {
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '15000',
+				salaryAtApplication: '100000',
+				status: 'pre-authorized',
+			}).then((app) => {
+				cy.task('seedPreAuthorizedPackageDocuments', {
+					applicationId: app.id,
+					variant:
+						'initialIntakeApprovedAndPackagePending_payrollLatestApproved',
+				})
+				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
+				cy.contains('h1', /oferta preautorizada/i).should('be.visible')
+				cy.contains('button', /^Enviar$/i)
+					.scrollIntoView()
+					.should('exist')
+					.and('be.disabled')
+				cy.contains(
+					/Los tres documentos deben estar cargados y en estado pendiente de revisión/i,
+				)
+					.scrollIntoView()
+					.should('be.visible')
+			})
+		})
+
+		it('stays awaiting-authorization when applicant reuploads a package file during review', () => {
+			cy.task('resetApplicantApplication', {
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '15000',
+				salaryAtApplication: '100000',
+				status: 'awaiting-authorization',
+			}).then((app) => {
+				cy.task('seedPreAuthorizedPackageDocuments', {
+					applicationId: app.id,
+					variant: 'initialIntakeApprovedAndPackagePending',
+				})
+				cy.visit(`/cuenta/applications/${app.id}`)
+				cy.get(
+					'[data-current-application-status="awaiting-authorization"]',
+				).should('be.visible')
+				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
+				cy.intercept('POST', postToApplicationUrl(app.id)).as('reuploadPackage')
+				cy.get('[data-document-slot="contract"] input[name="file"]').selectFile(
+					'cypress/fixtures/sample-document.webp',
+					{ force: true },
+				)
+				cy.wait('@reuploadPackage')
+				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
+				cy.get(
+					'[data-current-application-status="awaiting-authorization"]',
+				).should('be.visible')
+				// Package already submitted: no second "Enviar" on this screen.
+				cy.contains('button', /^Enviar$/i).should('not.exist')
 			})
 		})
 	})

@@ -58,7 +58,6 @@ export const seedCompanies = [
 	},
 ] as const
 
-/** Terms and offerings for applicant happy path. Company domain → term config. */
 export const seedTermOfferings: ReadonlyArray<{
 	companyDomain: string
 	durationType: 'monthly' | 'bi-monthly'
@@ -68,7 +67,6 @@ export const seedTermOfferings: ReadonlyArray<{
 	{ companyDomain: 'acme.topcredit.mx', durationType: 'monthly', duration: 12 },
 ] as const
 
-/** Requests (and other non-admin agents) need assigned companies. Admin does not. */
 export const userCompanyAssignments: Record<string, readonly string[]> = {
 	'solicitudes@topcredit.mx': [
 		'acme.topcredit.mx',
@@ -83,13 +81,13 @@ export const applicationStatusEnum = [
 	'approved',
 	'invalid-documentation',
 	'pre-authorized',
+	'awaiting-authorization',
 	'authorized',
 	'denied',
 ] as const
 
 export type SeedApplicationStatus = (typeof applicationStatusEnum)[number]
 
-/** Applications to seed. Applicant email must exist in seedUsers; company domain + term must match seedTermOfferings. */
 export const seedApplications: ReadonlyArray<{
 	applicantEmail: string
 	companyDomain: string
@@ -137,6 +135,7 @@ export const seedApplications: ReadonlyArray<{
 			'pending',
 			'approved',
 			'pre-authorized',
+			'awaiting-authorization',
 			'authorized',
 		],
 	},

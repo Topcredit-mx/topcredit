@@ -13,7 +13,6 @@ import { APPLICATION_STATUS_VALUES } from '~/server/db/schema'
 
 const ALL_VALUE = '__all__'
 
-/** Labels resolved on the server so this client component does not need NextIntl context (avoids E2E/SSR fallback issues). */
 export type ApplicationsStatusFilterLabels = {
 	all: string
 	statusLabels: Record<ApplicationStatus, string>

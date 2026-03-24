@@ -8,6 +8,7 @@ const STATUS_HIGHLIGHT_COLOR: Record<ApplicationStatus, string> = {
 	approved: '#15803d',
 	'invalid-documentation': '#b45309',
 	'pre-authorized': '#0070f3',
+	'awaiting-authorization': '#0369a1',
 	authorized: '#15803d',
 	denied: '#b91c1c',
 }

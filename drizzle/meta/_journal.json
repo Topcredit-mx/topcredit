@@ -50,6 +50,13 @@
 			"when": 1774051918820,
 			"tag": "0006_outgoing_toad",
 			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1774120935725,
+			"tag": "0007_clammy_bloodscream",
+			"breakpoints": true
 		}
 	]
 }

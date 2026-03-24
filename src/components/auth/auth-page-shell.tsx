@@ -9,7 +9,6 @@ export async function AuthPageShell({
 	wide = false,
 }: {
 	children: ReactNode
-	/** Wider card for document-style pages (e.g. terms, privacy). */
 	wide?: boolean
 }) {
 	const tCuenta = await getTranslations('cuenta')

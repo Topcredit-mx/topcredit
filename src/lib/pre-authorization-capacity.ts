@@ -1,8 +1,3 @@
-/**
- * Pre-authorization loan capacity (MXN). Borrowing capacity applies to monthly income;
- * it is converted to the loan's payment period (monthly vs bi-monthly installments).
- */
-
 export const PRE_AUTH_IVA_FACTOR = 1.16
 
 export function monthlySalaryFromApplicant(
@@ -15,9 +10,6 @@ export function monthlySalaryFromApplicant(
 	return salaryAmount
 }
 
-/**
- * Parses application salary and returns monthly equivalent, or null if invalid.
- */
 export function monthlySalaryFromApplication(
 	salaryAtApplication: string,
 	salaryFrequency: 'monthly' | 'bi-monthly',

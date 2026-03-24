@@ -18,7 +18,6 @@ export { updateApplicationStatus }
 
 export type ApproveDocumentState = { error?: string } | null
 
-/** Form action for useActionState approve form. */
 export async function approveDocumentAction(
 	_prevState: ApproveDocumentState,
 	formData: FormData,
@@ -31,7 +30,6 @@ export async function approveDocumentAction(
 
 export type RejectDocumentState = { error?: string } | null
 
-/** Form action for useActionState reject form. */
 export async function rejectDocumentAction(
 	_prevState: RejectDocumentState,
 	formData: FormData,
@@ -48,7 +46,6 @@ export type PreAuthorizeFormState = {
 	errorValues?: { maxLoanAmount?: string }
 }
 
-/** Form action for assigning amount + term and moving to pre-authorized. */
 export async function preAuthorizeApplicationFormAction(
 	_prevState: PreAuthorizeFormState,
 	formData: FormData,
@@ -69,7 +66,6 @@ export async function preAuthorizeApplicationFormAction(
 	redirect(`/equipo/applications/${applicationId}`)
 }
 
-/** Form action for useActionState: immediate status updates (no reason). Returns { error } on failure; redirects on success. */
 export async function updateApplicationStatusFormAction(
 	_prevState: { error?: string },
 	formData: FormData,
@@ -92,7 +88,6 @@ export async function updateApplicationStatusFormAction(
 	redirect(`/equipo/applications/${applicationId}`)
 }
 
-/** Form action for status updates that require a reason (e.g. denied). Redirects on success. */
 export async function updateApplicationStatusWithReasonFormAction(
 	_prevState: { error?: string },
 	formData: FormData,

@@ -16,7 +16,6 @@ import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-col
 import { getPrefetchStrategy } from '~/lib/prefetch-strategy'
 import type { Company } from '~/server/queries'
 
-/** Company with Date fields serialized as ISO strings (for Client Component). */
 type CompanyForTable = Omit<Company, 'createdAt' | 'updatedAt'> & {
 	createdAt: string
 	updatedAt: string

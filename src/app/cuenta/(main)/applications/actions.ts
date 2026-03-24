@@ -28,6 +28,7 @@ import { applicationDocuments, applications } from '~/server/db/schema'
 import { sendApplicationSubmittedEvent } from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import { detectAllowedMime } from '~/server/file-validation'
+import { submitApplicationForAuthorizationReview } from '~/server/mutations'
 import { getCompanyByEmailDomain } from '~/server/queries'
 import {
 	createApplicationSchema,
@@ -49,6 +50,28 @@ export type UploadDocumentFormState = {
 	errors?: Record<string, string>
 	message?: string
 	success?: boolean
+}
+
+export type SubmitAuthorizationPackageFormState = {
+	error?: string
+	success?: boolean
+}
+
+export async function submitAuthorizationPackageAction(
+	_prevState: SubmitAuthorizationPackageFormState,
+	formData: FormData,
+): Promise<SubmitAuthorizationPackageFormState> {
+	const rawId = formData.get('applicationId')
+	const applicationId =
+		typeof rawId === 'string' ? Number.parseInt(rawId, 10) : Number.NaN
+	if (!Number.isInteger(applicationId) || applicationId < 1) {
+		return { error: ValidationCode.APPLICATION_INVALID }
+	}
+	const result = await submitApplicationForAuthorizationReview(applicationId)
+	if (result.error) {
+		return { error: result.error }
+	}
+	return { success: true }
 }
 
 export async function createApplicationWithInitialDocumentsAction(

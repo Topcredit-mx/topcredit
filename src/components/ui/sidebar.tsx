@@ -162,12 +162,10 @@ function Sidebar({
 	side?: 'left' | 'right'
 	variant?: 'sidebar' | 'floating' | 'inset'
 	collapsible?: 'offcanvas' | 'icon' | 'none'
-	/** Merged into mobile `SheetContent` (e.g. `bg-transparent` for applicant rail). */
 	sheetContentClassName?: string
 }) {
 	const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
-	// Mobile always uses a sheet so narrow viewports are usable (including collapsible="none").
 	if (isMobile) {
 		return (
 			<Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
@@ -616,10 +614,8 @@ function SidebarMenuSkeleton({
 	...props
 }: React.ComponentProps<'div'> & {
 	showIcon?: boolean
-	/** Optional index for deterministic width variety (50–90%). Same index = same width on server and client. */
 	index?: number
 }) {
-	// Deterministic width: same index always yields same width (avoids hydration errors from Math.random).
 	const width = index !== undefined ? `${50 + (index % 5) * 10}%` : '70%'
 
 	return (

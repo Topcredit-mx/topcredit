@@ -7,12 +7,7 @@ interface LocationData {
 	timezone?: string
 }
 
-/**
- * Get human-readable location information from an IP address
- * Returns a formatted string like "Mexico City, Mexico" or "Unknown location"
- */
 export async function getLocationFromIP(ipAddress: string): Promise<string> {
-	// Handle localhost/private IPs
 	if (
 		ipAddress === '127.0.0.1' ||
 		ipAddress === '::1' ||
@@ -23,7 +18,6 @@ export async function getLocationFromIP(ipAddress: string): Promise<string> {
 	}
 
 	try {
-		// Using ip-api.com (free service, no API key required)
 		const response = await fetch(
 			`http://ip-api.com/json/${ipAddress}?fields=city,regionName,country,timezone,status`,
 		)
@@ -38,7 +32,6 @@ export async function getLocationFromIP(ipAddress: string): Promise<string> {
 			return 'Unknown location'
 		}
 
-		// Build location string
 		const parts: string[] = []
 
 		if (data.city) {
@@ -60,9 +53,6 @@ export async function getLocationFromIP(ipAddress: string): Promise<string> {
 	}
 }
 
-/**
- * Get just the country from an IP address
- */
 export async function getCountryFromIP(ipAddress: string): Promise<string> {
 	if (
 		ipAddress === '127.0.0.1' ||

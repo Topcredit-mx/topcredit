@@ -1,6 +1,6 @@
 'use client'
 
-import { FileStack, FileText, MapPin, ShieldCheck, Wallet } from 'lucide-react'
+import { FileText, MapPin, ShieldCheck, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useActionState, useId, useRef, useState } from 'react'
@@ -24,7 +24,7 @@ import {
 } from '~/components/ui/select'
 import {
 	APPLICATION_DOCUMENT_ACCEPT,
-	REQUIRED_INITIAL_DOCUMENTS,
+	REQUIRED_INITIAL_APPLICATION_DOCUMENTS,
 	type RequiredInitialDocumentFieldName,
 } from '~/lib/application-document-intake'
 import { CUENTA_DOCUMENT_TYPE_KEYS } from '~/lib/i18n-keys'
@@ -38,7 +38,6 @@ import type messages from '~/messages/es.json'
 const formLabelClass =
 	'text-[11px] font-semibold text-slate-500 uppercase tracking-wide'
 const formInputClass = shell.inputOnMuted
-/** Match `Input` height: `SelectTrigger` defaults to `data-[size=default]:h-9`, which overrides plain `h-11` unless we set the same variant. */
 const formSelectTriggerClass = cn(
 	formInputClass,
 	'w-full data-[size=default]:h-11 data-[size=sm]:h-11',
@@ -77,26 +76,26 @@ export function ApplicationForm() {
 	const countryId = useId()
 	const postalCodeId = useId()
 	const phoneId = useId()
-	const authorizationFileId = useId()
-	const contractFileId = useId()
-	const payrollReceiptFileId = useId()
+	const officialIdFileId = useId()
+	const proofOfAddressFileId = useId()
+	const bankStatementFileId = useId()
 	const documentsSectionTitleId = useId()
 
 	const inputIdByFieldName: Record<RequiredInitialDocumentFieldName, string> = {
-		authorizationFile: authorizationFileId,
-		contractFile: contractFileId,
-		payrollReceiptFile: payrollReceiptFileId,
+		officialIdFile: officialIdFileId,
+		proofOfAddressFile: proofOfAddressFileId,
+		bankStatementFile: bankStatementFileId,
 	}
 
 	type CuentaApplicationsKey = keyof (typeof messages)['cuenta']['applications']
 
 	const initialDocFreshnessKeyByDocumentType: Record<
-		(typeof REQUIRED_INITIAL_DOCUMENTS)[number]['documentType'],
+		(typeof REQUIRED_INITIAL_APPLICATION_DOCUMENTS)[number]['documentType'],
 		CuentaApplicationsKey
 	> = {
-		authorization: 'initial-documents-freshness-authorization',
-		contract: 'initial-documents-freshness-contract',
-		'payroll-receipt': 'initial-documents-freshness-payroll-receipt',
+		'official-id': 'initial-documents-freshness-official-id',
+		'proof-of-address': 'initial-documents-freshness-proof-of-address',
+		'bank-statement': 'initial-documents-freshness-bank-statement',
 	}
 
 	function triggerFilePick(name: RequiredInitialDocumentFieldName) {
@@ -412,70 +411,72 @@ export function ApplicationForm() {
 			<section aria-labelledby={documentsSectionTitleId} className="space-y-5">
 				<SectionTitleRow
 					headingId={documentsSectionTitleId}
-					icon={FileStack}
+					icon={FileText}
 					title={t('section-documents-card')}
 				/>
 
 				<div className="grid gap-5 md:grid-cols-3">
-					{REQUIRED_INITIAL_DOCUMENTS.map(({ documentType, fieldName }) => {
-						const inputId = inputIdByFieldName[fieldName]
-						const error = state.errors?.[fieldName]
-						const freshnessKey =
-							initialDocFreshnessKeyByDocumentType[documentType]
+					{REQUIRED_INITIAL_APPLICATION_DOCUMENTS.map(
+						({ documentType, fieldName }) => {
+							const inputId = inputIdByFieldName[fieldName]
+							const error = state.errors?.[fieldName]
+							const freshnessKey =
+								initialDocFreshnessKeyByDocumentType[documentType]
 
-						return (
-							<Field key={fieldName} data-invalid={!!error}>
-								<div className={shell.applicantDocumentUploadTile}>
-									<div
-										className={shell.applicantDocumentTileIconWell}
-										aria-hidden
-									>
-										<FileText className="size-6" />
-									</div>
-									<label
-										htmlFor={inputId}
-										className="cursor-pointer font-semibold text-slate-900 text-sm leading-snug"
-									>
-										{t(CUENTA_DOCUMENT_TYPE_KEYS[documentType])}{' '}
-										<span className="text-destructive">*</span>
-									</label>
-									<p className="mt-1 text-muted-foreground text-xs leading-relaxed">
-										{t(freshnessKey)}
-									</p>
-									<input
-										ref={(el) => {
-											setFileInputElement(fieldName, el)
-										}}
-										id={inputId}
-										type="file"
-										name={fieldName}
-										accept={APPLICATION_DOCUMENT_ACCEPT}
-										className="sr-only"
-										aria-invalid={!!error}
-									/>
-									<Button
-										type="button"
-										variant="secondary"
-										className={cn(
-											shell.applicantDocumentTileActionButton,
-											'mt-4',
-										)}
-										onClick={() => {
-											triggerFilePick(fieldName)
-										}}
-									>
-										{t('browse-files')}
-									</Button>
-									{error ? (
-										<FieldError
-											message={resolveError(error)}
-											className="mt-3 text-center"
+							return (
+								<Field key={fieldName} data-invalid={!!error}>
+									<div className={shell.applicantDocumentUploadTile}>
+										<div
+											className={shell.applicantDocumentTileIconWell}
+											aria-hidden
+										>
+											<FileText className="size-6" />
+										</div>
+										<label
+											htmlFor={inputId}
+											className="cursor-pointer font-semibold text-slate-900 text-sm leading-snug"
+										>
+											{t(CUENTA_DOCUMENT_TYPE_KEYS[documentType])}{' '}
+											<span className="text-destructive">*</span>
+										</label>
+										<p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+											{t(freshnessKey)}
+										</p>
+										<input
+											ref={(el) => {
+												setFileInputElement(fieldName, el)
+											}}
+											id={inputId}
+											type="file"
+											name={fieldName}
+											accept={APPLICATION_DOCUMENT_ACCEPT}
+											className="sr-only"
+											aria-invalid={!!error}
 										/>
-									) : null}
-								</div>
-							</Field>
-						)
-					})}
+										<Button
+											type="button"
+											variant="secondary"
+											className={cn(
+												shell.applicantDocumentTileActionButton,
+												'mt-4',
+											)}
+											onClick={() => {
+												triggerFilePick(fieldName)
+											}}
+										>
+											{t('browse-files')}
+										</Button>
+										{error ? (
+											<FieldError
+												message={resolveError(error)}
+												className="mt-3 text-center"
+											/>
+										) : null}
+									</div>
+								</Field>
+							)
+						},
+					)}
 				</div>
 			</section>
 

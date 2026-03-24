@@ -1,11 +1,3 @@
-/**
- * US-2.2.3: Agent sees only assigned companies
- * - Sidebar company switcher shows only assigned active companies
- * - Inactive assigned companies are filtered out (not shown)
- * - Agent can switch between assigned companies
- * - Unassigned companies are not visible
- */
-
 import {
 	agentWithAssignments,
 	companyAssignedActive,

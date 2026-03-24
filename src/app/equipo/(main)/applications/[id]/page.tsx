@@ -37,6 +37,7 @@ function statusBadgeVariant(
 		case 'approved':
 		case 'authorized':
 		case 'pre-authorized':
+		case 'awaiting-authorization':
 			return 'default'
 		case 'denied':
 		case 'invalid-documentation':

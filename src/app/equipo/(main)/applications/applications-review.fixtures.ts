@@ -1,12 +1,4 @@
-/**
- * Fixtures for app applications review E2E tests (Phase 3: agents review/authorize/reject).
- *
- * Single source of truth — the batch seed task in cypress/tasks imports from here.
- */
-
 import type { ApplicationStatus } from '~/server/db/schema'
-
-// ── Users ───────────────────────────────────────────────────────────────
 
 export const agentForReview = {
 	name: 'Agent Review',
@@ -32,7 +24,6 @@ export const applicantForReview = {
 	roles: ['applicant'] as const,
 }
 
-/** One applicant per application – no applicant has multiple active applications. */
 export const applicantA2 = {
 	name: 'Applicant A2',
 	email: 'applicant.a2@reviewcompany.com',
@@ -66,21 +57,17 @@ export const applicantForReviewB = {
 	roles: ['applicant'] as const,
 }
 
-/** Company with no agent assignments – only admin (all scope) can see its applications. */
 export const applicantForReviewC = {
 	name: 'Applicant Admin-Only Company',
 	email: 'applicant.review@adminonly.com',
 	roles: ['applicant'] as const,
 }
 
-/** Inactive company – applications hidden, not in picker. */
 export const applicantForReviewD = {
 	name: 'Applicant Inactive Company',
 	email: 'applicant.review@inactivecompany.com',
 	roles: ['applicant'] as const,
 }
-
-// ── Companies ───────────────────────────────────────────────────────────
 
 type CompanyFixture = {
 	name: string
@@ -100,7 +87,6 @@ export const companyForReview: CompanyFixture = {
 	active: true,
 }
 
-/** Second company for cross-company 404 test; agent is assigned to it. */
 export const companyForReviewB: CompanyFixture = {
 	name: 'Other Company',
 	domain: 'othercompany.com',
@@ -110,7 +96,6 @@ export const companyForReviewB: CompanyFixture = {
 	active: true,
 }
 
-/** Company with no agent assignments – only admin (all scope) can see. */
 export const companyForReviewC: CompanyFixture = {
 	name: 'Admin-Only Company',
 	domain: 'adminonly.com',
@@ -120,7 +105,6 @@ export const companyForReviewC: CompanyFixture = {
 	active: true,
 }
 
-/** Inactive company – not in picker; cookie cleared if selected. */
 export const companyForReviewD: CompanyFixture = {
 	name: 'Inactive Company',
 	domain: 'inactivecompany.com',
@@ -129,8 +113,6 @@ export const companyForReviewD: CompanyFixture = {
 	employeeSalaryFrequency: 'monthly',
 	active: false,
 }
-
-// ── Seed configuration (imported by cypress/tasks seed) ─────────────────
 
 export const allReviewApplicants = [
 	applicantForReview,
@@ -151,14 +133,12 @@ export const allReviewCompanies = [
 	companyForReviewD,
 ]
 
-/** Domains of companies the agent is assigned to. */
 export const agentCompanyDomains = [
 	companyForReview.domain,
 	companyForReviewB.domain,
 	companyForReviewD.domain,
 ]
 
-/** One entry per application to seed. */
 type ReviewApplicationStatusHistoryStep = {
 	status: ApplicationStatus
 	actorEmail: string | null
@@ -169,7 +149,6 @@ type ReviewApplicationConfig = {
 	companyDomain: string
 	creditAmount: string | null
 	salaryAtApplication: string
-	/** Defaults to monthly in seed when omitted. */
 	salaryFrequency?: 'monthly' | 'bi-monthly'
 	status?: ApplicationStatus
 	statusHistory?: readonly ReviewApplicationStatusHistoryStep[]

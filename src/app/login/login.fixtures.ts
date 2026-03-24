@@ -1,7 +1,3 @@
-/**
- * Test fixtures for login E2E tests
- */
-
 export const applicantUser = {
 	name: 'Usuario Solicitante',
 	email: 'applicant@example.com',
@@ -14,7 +10,6 @@ export const agentUser = {
 	roles: ['agent', 'requests'] as const,
 }
 
-/** User with no roles - used to test redirect to /unauthorized */
 export const noRoleUser = {
 	name: 'No Role User',
 	email: 'norole@example.com',

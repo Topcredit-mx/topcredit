@@ -1,4 +1,3 @@
-/** Rate limit helpers in their own file to avoid session → config → actions → session cycle. */
 import { eq } from 'drizzle-orm'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'

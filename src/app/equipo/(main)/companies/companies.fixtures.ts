@@ -1,20 +1,15 @@
-/**
- * Test fixtures for admin companies E2E tests
- */
-
 export const adminUser = {
 	name: 'Admin User',
 	email: 'admin@example.com',
 	roles: ['agent', 'admin'] as const,
 }
 
-// Names prefixed with "E2E " so they never match seed/other data when multiple companies exist
 export const companies = {
 	acme: {
 		name: 'E2E Acme Corporation',
 		domain: 'acme.com',
 		rate: '0.0250',
-		borrowingCapacityRate: '0.30', // 30% of salary
+		borrowingCapacityRate: '0.30',
 		employeeSalaryFrequency: 'monthly' as const,
 		active: true,
 	},
@@ -30,7 +25,7 @@ export const companies = {
 		name: 'E2E Inactive Corp',
 		domain: 'inactive.com',
 		rate: '0.0200',
-		borrowingCapacityRate: '0.25', // 25% of salary
+		borrowingCapacityRate: '0.25',
 		employeeSalaryFrequency: 'monthly' as const,
 		active: false,
 	},

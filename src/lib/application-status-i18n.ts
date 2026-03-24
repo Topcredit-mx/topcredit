@@ -1,28 +1,27 @@
 import type { ApplicationStatus } from '~/server/db/schema'
 
-/** Equipo namespace status keys (use with useTranslations('equipo')). */
 const EQUIPO_STATUS_KEYS = [
 	'applications-status-new',
 	'applications-status-pending',
 	'applications-status-approved',
 	'applications-status-invalid-documentation',
 	'applications-status-pre-authorized',
+	'applications-status-awaiting-authorization',
 	'applications-status-authorized',
 	'applications-status-denied',
 ] as const
 
-/** Cuenta.applications status keys (use with useTranslations('cuenta.applications')). */
 const CUENTA_STATUS_KEYS = [
 	'status-new',
 	'status-pending',
 	'status-approved',
 	'status-invalid-documentation',
 	'status-pre-authorized',
+	'status-awaiting-authorization',
 	'status-authorized',
 	'status-denied',
 ] as const
 
-/** i18n keys for equipo namespace (agent application list / detail). */
 export const EQUIPO_APPLICATION_STATUS_KEYS: Record<
 	ApplicationStatus,
 	(typeof EQUIPO_STATUS_KEYS)[number]
@@ -32,11 +31,11 @@ export const EQUIPO_APPLICATION_STATUS_KEYS: Record<
 	approved: 'applications-status-approved',
 	'invalid-documentation': 'applications-status-invalid-documentation',
 	'pre-authorized': 'applications-status-pre-authorized',
+	'awaiting-authorization': 'applications-status-awaiting-authorization',
 	authorized: 'applications-status-authorized',
 	denied: 'applications-status-denied',
 }
 
-/** i18n keys for cuenta.applications (applicant flows). */
 export const CUENTA_APPLICATION_STATUS_KEYS: Record<
 	ApplicationStatus,
 	(typeof CUENTA_STATUS_KEYS)[number]
@@ -46,6 +45,7 @@ export const CUENTA_APPLICATION_STATUS_KEYS: Record<
 	approved: 'status-approved',
 	'invalid-documentation': 'status-invalid-documentation',
 	'pre-authorized': 'status-pre-authorized',
+	'awaiting-authorization': 'status-awaiting-authorization',
 	authorized: 'status-authorized',
 	denied: 'status-denied',
 }

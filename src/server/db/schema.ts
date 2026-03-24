@@ -39,6 +39,7 @@ export const APPLICATION_STATUS_VALUES = [
 	'approved',
 	'invalid-documentation',
 	'pre-authorized',
+	'awaiting-authorization',
 	'authorized',
 	'denied',
 ] as const
@@ -51,6 +52,9 @@ export const applicationStatusEnum = pgEnum(
 )
 
 export const DOCUMENT_TYPE_VALUES = [
+	'official-id',
+	'proof-of-address',
+	'bank-statement',
 	'authorization',
 	'contract',
 	'payroll-receipt',
@@ -218,7 +222,6 @@ export const applications = pgTable(
 			precision: 12,
 			scale: 2,
 		}).notNull(),
-		/** Whether `salaryAtApplication` is per month or per quincena (MXN). */
 		salaryFrequency: employeeSalaryFrequencyEnum('salary_frequency').notNull(),
 		payrollNumber: text('payroll_number'),
 		rfc: text('rfc'),
@@ -242,7 +245,7 @@ export const applications = pgTable(
 	(table) => [
 		check(
 			'applications_financial_terms_required_for_late_statuses_check',
-			sql`(${table.status} NOT IN ('pre-authorized', 'authorized') OR (${table.termOfferingId} IS NOT NULL AND ${table.creditAmount} IS NOT NULL))`,
+			sql`(${table.status} NOT IN ('pre-authorized', 'awaiting-authorization', 'authorized') OR (${table.termOfferingId} IS NOT NULL AND ${table.creditAmount} IS NOT NULL))`,
 		),
 	],
 )

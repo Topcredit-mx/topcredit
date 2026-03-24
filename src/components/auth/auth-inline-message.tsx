@@ -5,26 +5,16 @@ import { cn } from '~/lib/utils'
 export type AuthInlineMessageTone = 'destructive' | 'success'
 
 export type AuthInlineMessageProps = {
-	/** Resolved message; empty string and null/undefined hide content but can still reserve height. */
 	message: string | null | undefined
 	tone?: AuthInlineMessageTone
 	className?: string
-	/** When true, keeps a stable min-height when there is no message. */
 	reserveHeight?: boolean
 	minHeightClass?: string
 	align?: 'center' | 'start'
-	/**
-	 * When true, shows `loadingLabel` in the same slot as a message (e.g. under OTP inputs).
-	 * Mutually exclusive with showing `message` while loading is true.
-	 */
 	loading?: boolean
 	loadingLabel?: string
 }
 
-/**
- * Minimal inline status (icon + text) for auth shells and cards.
- * Avoids heavy alert panels and reduces layout shift when `reserveHeight` is set.
- */
 export function AuthInlineMessage({
 	message,
 	tone = 'destructive',

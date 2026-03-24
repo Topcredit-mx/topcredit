@@ -7,6 +7,7 @@ import {
 	statusRequiresFinancialTerms,
 	statusRequiresReason,
 } from '~/lib/application-rules'
+import { isAuthorizationPackageReadyForSubmit } from '~/lib/authorization-package-readiness'
 import {
 	isPreAuthOverCapacity,
 	maxDebtCapacityForLoanPeriod,
@@ -24,7 +25,11 @@ import {
 	requireAbility,
 	subject,
 } from '~/server/auth/ability'
-import { getRequiredUser, type Role } from '~/server/auth/session'
+import {
+	getRequiredApplicantUser,
+	getRequiredUser,
+	type Role,
+} from '~/server/auth/session'
 import { db } from '~/server/db'
 import type { ApplicationStatus } from '~/server/db/schema'
 import {
@@ -36,6 +41,7 @@ import {
 	userRoles,
 } from '~/server/db/schema'
 import { sendApplicationStatusEvent } from '~/server/email'
+import { getApplicationDocuments } from '~/server/queries'
 import {
 	approveApplicationDocumentSchema,
 	preAuthorizeApplicationSchema,
@@ -422,6 +428,80 @@ export async function preAuthorizeApplication(payload: unknown): Promise<{
 	revalidatePath(`/equipo/applications/${data.applicationId}`)
 	revalidatePath('/cuenta/applications')
 	revalidatePath(`/cuenta/applications/${data.applicationId}`)
+	return {}
+}
+
+export async function submitApplicationForAuthorizationReview(
+	applicationId: number,
+): Promise<{ error?: string }> {
+	const user = await getRequiredApplicantUser()
+	const { ability } = await getAbility()
+
+	if (!Number.isInteger(applicationId) || applicationId < 1) {
+		return { error: ValidationCode.APPLICATION_INVALID }
+	}
+
+	const app = await db.query.applications.findFirst({
+		where: (a, { eq }) => eq(a.id, applicationId),
+		columns: {
+			id: true,
+			applicantId: true,
+			companyId: true,
+			status: true,
+			termOfferingId: true,
+			creditAmount: true,
+		},
+	})
+
+	if (!app) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	if (app.applicantId !== user.id) {
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+
+	if (!canTransitionToApplicationStatus(app.status, 'awaiting-authorization')) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	if (statusRequiresFinancialTerms('awaiting-authorization')) {
+		if (app.termOfferingId == null || app.creditAmount == null) {
+			return { error: ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED }
+		}
+	}
+
+	if (
+		!ability.can(
+			'setStatusAwaitingAuthorization',
+			subject('Application', {
+				id: app.id,
+				applicantId: app.applicantId,
+				companyId: app.companyId,
+				status: app.status,
+			}),
+		)
+	) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	const documents = await getApplicationDocuments(applicationId)
+	if (!isAuthorizationPackageReadyForSubmit(documents)) {
+		return {
+			error: ValidationCode.CUENTA_APPLICATION_AUTHORIZATION_PACKAGE_INCOMPLETE,
+		}
+	}
+
+	await updateApplicationWithStatusHistory({
+		applicationId,
+		status: 'awaiting-authorization',
+		setByUserId: user.id,
+		denialReason: null,
+	})
+
+	await sendApplicationStatusEmail(applicationId, 'awaiting-authorization')
+
+	revalidatePath('/equipo/applications')
+	revalidatePath(`/equipo/applications/${applicationId}`)
+	revalidatePath('/cuenta/applications')
+	revalidatePath(`/cuenta/applications/${applicationId}`)
 	return {}
 }
 

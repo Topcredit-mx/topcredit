@@ -1,12 +1,3 @@
-/**
- * Requests agents (approval flow).
- * - Agent with company selected: list applications, open detail, reject, invalid docs.
- *   Requests agent does not see authorize/pre-authorize actions.
- * - Agent with no company selected: multi scope, company switcher filters.
- * - Inactive company: cookie fallback, not in picker, applications hidden.
- * Admin can perform the same requests actions; authorization flow is separate (see app-flow-proposal).
- */
-
 import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
 import {
 	agentForReview,
@@ -18,7 +9,6 @@ import {
 const agentEmail = agentForReview.email
 const applicantEmail = applicantForReview.email
 
-/** Breadcrumb can show "Detalle de solicitud" before the `[id]` page streams; Acciones lives on the detail body. */
 const EQUIPO_APPLICATION_DETAIL_LOAD_MS = 15_000
 
 describe('Requests agents', () => {

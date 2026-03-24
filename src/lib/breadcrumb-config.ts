@@ -1,4 +1,3 @@
-/** i18n keys under the "breadcrumbs" namespace (must match messages/es.json). */
 export const BREADCRUMB_LABEL_KEYS = [
 	'cuenta-home',
 	'cuenta-applications',
@@ -16,18 +15,10 @@ export const BREADCRUMB_LABEL_KEYS = [
 
 export type BreadcrumbLabelKey = (typeof BREADCRUMB_LABEL_KEYS)[number]
 
-/**
- * Breadcrumb segment: href and i18n key (under "breadcrumbs" namespace).
- * Last segment is the current page (rendered as BreadcrumbPage, no link).
- */
 export type BreadcrumbSegment = { href: string; labelKey: BreadcrumbLabelKey }
 
 type Params = { id?: string; domain?: string }
 
-/**
- * Returns breadcrumb segments for applicant (cuenta) pathnames.
- * Pathname must start with /cuenta.
- */
 export function getCuentaBreadcrumbSegments(
 	pathname: string,
 	params: Params,
@@ -72,10 +63,6 @@ export function getCuentaBreadcrumbSegments(
 	return [{ href: base, labelKey: 'cuenta-home' }]
 }
 
-/**
- * Returns breadcrumb segments for staff (equipo) pathnames.
- * Pathname must start with /equipo.
- */
 export function getEquipoBreadcrumbSegments(
 	pathname: string,
 	params: Params,

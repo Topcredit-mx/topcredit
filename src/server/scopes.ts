@@ -11,10 +11,6 @@ export type CompanyScope =
 	| { type: 'multi'; companyIds: number[] }
 	| { type: 'all' }
 
-/**
- * Returns the effective selected company ID for display and scope.
- * Null if cookie empty, or selected company is inactive (cookie cannot be modified in RSC).
- */
 export async function getEffectiveSelectedCompanyId(): Promise<number | null> {
 	const selectedCompanyId = await getSelectedCompanyId()
 	if (selectedCompanyId === null) return null
@@ -26,7 +22,6 @@ export async function getEffectiveSelectedCompanyId(): Promise<number | null> {
 	return company?.active ? selectedCompanyId : null
 }
 
-/** Company scope for agent operational screens. Validates cookie via CASL. Treats inactive company as no selection. */
 export async function getEffectiveCompanyScope(): Promise<CompanyScope> {
 	const { ability, assignedCompanyIds, isAdmin } = await getAbility()
 	const selectedCompanyId = await getEffectiveSelectedCompanyId()
@@ -47,7 +42,6 @@ export async function getEffectiveCompanyScope(): Promise<CompanyScope> {
 	return { type: 'multi', companyIds: assignedCompanyIds }
 }
 
-/** Read selected company id from cookie (for layout and data filtering). */
 export async function getSelectedCompanyId(): Promise<number | null> {
 	const cookieStore = await cookies()
 	const value = cookieStore.get(SELECTED_COMPANY_COOKIE)?.value

@@ -25,6 +25,7 @@
 	"applicationStatus": {
 		"subject": {
 			"pre-authorized": "Tu crédito fue pre-autorizado - Topcredit",
+			"awaiting-authorization": "Tu expediente fue enviado a autorización - Topcredit",
 			"authorized": "Tu crédito fue autorizado - Topcredit",
 			"approved": "Tu solicitud fue aprobada - Topcredit",
 			"denied": "Actualización de tu solicitud de crédito - Topcredit",
@@ -34,6 +35,7 @@
 		"reasonPrefix": "Motivo:",
 		"statusLabel": {
 			"pre-authorized": "¡Pre-autorizado!",
+			"awaiting-authorization": "En revisión de autorización",
 			"authorized": "¡Autorizado!",
 			"approved": "¡Aprobada!",
 			"denied": "Solicitud denegada",
@@ -41,6 +43,7 @@
 		},
 		"subtitle": {
 			"pre-authorized": "Tu crédito ha sido pre-autorizado",
+			"awaiting-authorization": "Tu paquete de documentos está en revisión para la autorización final",
 			"authorized": "Tu crédito ha sido autorizado",
 			"approved": "Tu solicitud ha sido aprobada",
 			"denied": "Tu solicitud de crédito no fue aprobada",

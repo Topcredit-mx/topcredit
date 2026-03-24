@@ -45,7 +45,6 @@ export interface NavUserProps {
 		image?: string | null
 		emailVerified?: boolean
 	}
-	/** Profile / security links; use `/cuenta/settings` in applicant sidebar. */
 	settingsBasePath?: string
 }
 

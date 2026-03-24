@@ -38,7 +38,6 @@ export type UserWithRoles = {
 	companies: CompanyBasic[]
 }
 
-/** UserWithRoles with Date fields as ISO strings (for Client Components). */
 export type UserForTable = Omit<
 	UserWithRoles,
 	'emailVerified' | 'createdAt' | 'updatedAt'
@@ -331,7 +330,6 @@ export async function getCompanyByDomain(
 	}
 }
 
-/** Extract domain from email (e.g. user@acme.com → acme.com) and return active company. */
 export async function getCompanyByEmailDomain(
 	email: string,
 ): Promise<Company | null> {
@@ -754,9 +752,6 @@ export async function getApplicationsForReview(params: {
 	}))
 }
 
-/**
- * Returns an application for review only if it belongs to the scope.
- */
 export async function getApplicationForReview(
 	applicationId: number,
 	scope: CompanyScope,
@@ -858,7 +853,6 @@ export type TermOfferingForCompany = {
 	createdAt: Date
 }
 
-/** TermOfferingForCompany with createdAt as string (for Client Components). */
 export type TermOfferingForForm = Omit<TermOfferingForCompany, 'createdAt'> & {
 	createdAt: string
 }

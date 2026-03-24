@@ -1,10 +1,3 @@
-/**
- * Agent with companies assigned but no company selected sees multi-scope view.
- * - Shows "Todas mis empresas" in switcher and app content (no empty state)
- * - Sidebar navigation stays enabled so agent can navigate
- * - Company switcher remains enabled so the user can pick a company
- */
-
 import {
 	agentWithAssignments,
 	companyAssignedActive,

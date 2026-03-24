@@ -20,7 +20,6 @@ interface ApplicationReasonDialogProps {
 	open: boolean
 	action: ApplicationStatusRequiringReason | null
 	applicationId: number
-	/** Bound action from useActionState(updateApplicationStatusWithReasonFormAction, ...) */
 	formAction: (formData: FormData) => void
 	formState: ReasonFormState
 	pending: boolean

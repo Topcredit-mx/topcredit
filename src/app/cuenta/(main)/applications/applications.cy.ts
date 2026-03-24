@@ -243,7 +243,16 @@ describe('Cuenta applications', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/cuenta/applications/new')
 
-			cy.contains(/Autorización.*máx\.\s*2 meses de antigüedad/i)
+			cy.contains('h2', /documentos requeridos/i)
+				.scrollIntoView()
+				.should('be.visible')
+			cy.contains(/Identificación oficial.*INE o pasaporte/i)
+				.scrollIntoView()
+				.should('be.visible')
+			cy.contains(/Comprobante de domicilio.*no mayor a 3 meses/i)
+				.scrollIntoView()
+				.should('be.visible')
+			cy.contains(/Estado de cuenta bancario.*no mayor a 3 meses/i)
 				.scrollIntoView()
 				.should('be.visible')
 
@@ -259,15 +268,15 @@ describe('Cuenta applications', () => {
 			cy.get('input[name="postalCode"]').type('64000')
 			cy.get('input[name="phoneNumber"]').type('8112345678')
 
-			cy.get('input[name="authorizationFile"]').selectFile(
+			cy.get('input[name="officialIdFile"]').selectFile(
 				'cypress/fixtures/sample-document.webp',
 				{ force: true },
 			)
-			cy.get('input[name="contractFile"]').selectFile(
+			cy.get('input[name="proofOfAddressFile"]').selectFile(
 				'cypress/fixtures/sample-document.webp',
 				{ force: true },
 			)
-			cy.get('input[name="payrollReceiptFile"]').selectFile(
+			cy.get('input[name="bankStatementFile"]').selectFile(
 				'cypress/fixtures/sample-document.webp',
 				{ force: true },
 			)
@@ -291,7 +300,7 @@ describe('Cuenta applications', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/cuenta/applications/new')
 
-			cy.contains(/Contrato.*máx\.\s*2 meses de antigüedad/i)
+			cy.contains('h2', /documentos requeridos/i)
 				.scrollIntoView()
 				.should('be.visible')
 
@@ -316,7 +325,7 @@ describe('Cuenta applications', () => {
 
 			cy.url().should('include', '/cuenta/applications/new')
 
-			cy.get('input[name="authorizationFile"]')
+			cy.get('input[name="officialIdFile"]')
 				.closest('[data-slot="field"]')
 				.scrollIntoView()
 				.within(() => {
@@ -325,7 +334,7 @@ describe('Cuenta applications', () => {
 						/Selecciona un archivo válido\./i,
 					).should('be.visible')
 				})
-			cy.get('input[name="contractFile"]')
+			cy.get('input[name="proofOfAddressFile"]')
 				.closest('[data-slot="field"]')
 				.scrollIntoView()
 				.within(() => {
@@ -334,7 +343,7 @@ describe('Cuenta applications', () => {
 						/Selecciona un archivo válido\./i,
 					).should('be.visible')
 				})
-			cy.get('input[name="payrollReceiptFile"]')
+			cy.get('input[name="bankStatementFile"]')
 				.closest('[data-slot="field"]')
 				.scrollIntoView()
 				.within(() => {

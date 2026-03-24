@@ -1,5 +1,3 @@
-/** Loads messages/email/{locale}.json so emails work without request context (e.g. Inngest). */
-
 import type esEmail from '../messages/email/es.json'
 
 type Messages = Record<string, unknown>

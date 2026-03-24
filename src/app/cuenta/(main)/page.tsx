@@ -17,6 +17,7 @@ import { ApplicantPageFooter } from '~/components/app/applicant-page-footer'
 import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { isActiveApplicationStatus } from '~/lib/application-rules'
+import { cuentaHeroSurfaceStyle } from '~/lib/cuenta-hero-surface-style'
 import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
@@ -44,6 +45,8 @@ function applicationProgressPercent(status: ApplicationStatus): number {
 			return 45
 		case 'pre-authorized':
 			return 88
+		case 'awaiting-authorization':
+			return 92
 		case 'approved':
 			return 100
 		default:
@@ -51,9 +54,12 @@ function applicationProgressPercent(status: ApplicationStatus): number {
 	}
 }
 
-/** Approved / pre-authorized: green bar + badge styling. */
 function isApprovedLikeStatus(status: ApplicationStatus): boolean {
-	return status === 'approved' || status === 'pre-authorized'
+	return (
+		status === 'approved' ||
+		status === 'pre-authorized' ||
+		status === 'awaiting-authorization'
+	)
 }
 
 function applicationBadgeSurfaceClass(status: ApplicationStatus): string {
@@ -75,18 +81,14 @@ function applicationInProgressBadgeLabel(
 			return tCuenta('applications.status-approved')
 		case 'pre-authorized':
 			return tCuenta('applications.status-pre-authorized')
+		case 'awaiting-authorization':
+			return tCuenta('applications.status-awaiting-authorization')
 		case 'invalid-documentation':
 			return tCuenta('applications.status-invalid-documentation')
 		default:
 			return tCuenta('applications-in-progress-badge-review')
 	}
 }
-
-/** Inline gradient uses CSS variables so it stays in sync with `@theme` brand tokens. */
-const HERO_SURFACE_STYLE = {
-	backgroundImage:
-		'linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%)',
-} as const
 
 const PORTFOLIO_DEMO_LOANS = [
 	{
@@ -202,7 +204,7 @@ export default async function CuentaHomePage() {
 			<section className="grid gap-8 lg:grid-cols-[1.35fr_1fr_1fr]">
 				<Card
 					className="gap-5 overflow-hidden rounded-3xl border-0 p-7 text-white shadow-hero"
-					style={HERO_SURFACE_STYLE}
+					style={cuentaHeroSurfaceStyle}
 				>
 					<div className="w-fit self-start rounded-full bg-emerald-400 px-3 py-1 font-semibold text-emerald-950 text-xs uppercase tracking-wide">
 						{tCuenta('hero-pre-approved')}

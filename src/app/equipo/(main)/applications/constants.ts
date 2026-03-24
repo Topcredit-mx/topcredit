@@ -1,4 +1,3 @@
-/** Minimal term shape for formatting (durationType + duration). */
 export type TermOfferingForFormat = {
 	durationType: 'monthly' | 'bi-monthly'
 	duration: number

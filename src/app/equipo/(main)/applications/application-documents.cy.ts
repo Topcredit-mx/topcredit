@@ -1,7 +1,3 @@
-/**
- * E2E: Application documents on app (agent) – read-only list, no upload.
- */
-
 import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
 import { agentForReview } from './applications-review.fixtures'
 

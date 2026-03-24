@@ -1,10 +1,3 @@
-/**
- * Shared constants and helpers for “initial application includes required documents”.
- *
- * This module is intentionally importable by both client and server code:
- * - client: renders file inputs and uses `APPLICATION_DOCUMENT_ACCEPT`
- * - server: validates MIME/size and computes the stored file name
- */
 import type { DocumentType } from '~/server/db/schema'
 
 export const APPLICATION_DOCUMENT_MAX_BYTES = 15 * 1024 * 1024 // 15 MB
@@ -21,30 +14,48 @@ export const APPLICATION_DOCUMENT_ACCEPT =
 
 export const APPLICATION_DOCUMENT_FILE_NAME_MAX_LENGTH = 255
 
-export type RequiredInitialDocumentFieldName =
-	| 'authorizationFile'
-	| 'contractFile'
-	| 'payrollReceiptFile'
+export const INITIAL_APPLICATION_DOCUMENT_TYPES = [
+	'official-id',
+	'proof-of-address',
+	'bank-statement',
+] as const satisfies readonly DocumentType[]
 
-export const REQUIRED_INITIAL_DOCUMENTS = [
-	{ documentType: 'authorization', fieldName: 'authorizationFile' },
-	{ documentType: 'contract', fieldName: 'contractFile' },
-	{ documentType: 'payroll-receipt', fieldName: 'payrollReceiptFile' },
+export type InitialApplicationDocumentType =
+	(typeof INITIAL_APPLICATION_DOCUMENT_TYPES)[number]
+
+export const PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES = [
+	'payroll-receipt',
+	'contract',
+	'authorization',
+] as const satisfies readonly DocumentType[]
+
+export type PreAuthorizationPackageDocumentType =
+	(typeof PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES)[number]
+
+export type RequiredInitialDocumentFieldName =
+	| 'officialIdFile'
+	| 'proofOfAddressFile'
+	| 'bankStatementFile'
+
+export const REQUIRED_INITIAL_APPLICATION_DOCUMENTS = [
+	{ documentType: 'official-id', fieldName: 'officialIdFile' },
+	{ documentType: 'proof-of-address', fieldName: 'proofOfAddressFile' },
+	{ documentType: 'bank-statement', fieldName: 'bankStatementFile' },
 ] as const satisfies readonly {
-	documentType: DocumentType
+	documentType: InitialApplicationDocumentType
 	fieldName: RequiredInitialDocumentFieldName
 }[]
 
 export function getRequiredInitialDocumentFieldName(
-	documentType: DocumentType,
+	documentType: InitialApplicationDocumentType,
 ): RequiredInitialDocumentFieldName {
 	switch (documentType) {
-		case 'authorization':
-			return 'authorizationFile'
-		case 'contract':
-			return 'contractFile'
-		case 'payroll-receipt':
-			return 'payrollReceiptFile'
+		case 'official-id':
+			return 'officialIdFile'
+		case 'proof-of-address':
+			return 'proofOfAddressFile'
+		case 'bank-statement':
+			return 'bankStatementFile'
 		default: {
 			const _exhaustive: never = documentType
 			return _exhaustive
@@ -57,4 +68,35 @@ export function sanitizeApplicationDocumentFileName(fileName: string): string {
 		fileName.replace(/\0/g, '').replace(/[/\\]/g, '_').trim() || 'document'
 
 	return rawName.slice(0, APPLICATION_DOCUMENT_FILE_NAME_MAX_LENGTH)
+}
+
+export type DocumentRowForLatestByType = {
+	documentType: DocumentType
+	createdAt: Date
+}
+
+export function getLatestDocumentByType<
+	T extends DocumentRowForLatestByType & { id?: number },
+>(documents: readonly T[], documentType: DocumentType): T | undefined {
+	let best: T | undefined
+	for (const d of documents) {
+		if (d.documentType !== documentType) continue
+		if (best == null) {
+			best = d
+			continue
+		}
+		const dTime = d.createdAt.getTime()
+		const bTime = best.createdAt.getTime()
+		if (dTime > bTime) {
+			best = d
+			continue
+		}
+		if (dTime < bTime) continue
+		const dId = typeof d.id === 'number' ? d.id : undefined
+		const bId = typeof best.id === 'number' ? best.id : undefined
+		if (dId !== undefined && bId !== undefined && dId > bId) {
+			best = d
+		}
+	}
+	return best
 }

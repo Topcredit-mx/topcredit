@@ -2,10 +2,6 @@ import { NextResponse } from 'next/server'
 import { getApplicationDocumentStream } from '~/server/application-documents'
 import { buildInlineDisposition } from '~/server/content-disposition'
 
-/**
- * Serves the application document file. Auth and blob fetch live in server/application-documents.
- * This route exists only because the UI uses <a href="..."> for "Ver"—the browser needs a GET URL to request the file.
- */
 export async function GET(
 	_request: Request,
 	context: { params: Promise<{ id: string }> },

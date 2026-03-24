@@ -56,7 +56,7 @@ import {
 	noRoleUser as loginNoRoleUser,
 } from '~/app/login/login.fixtures'
 import type { Role } from '~/server/auth/session'
-import type { ApplicationStatus } from '~/server/db/schema'
+import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
 import {
 	applicationDocuments,
 	applicationStatusHistory,
@@ -69,9 +69,19 @@ import {
 	users,
 } from '~/server/db/schema'
 import { deleteBlob, isBlobStorageKey } from '~/server/storage'
+import {
+	E2E_PRE_AUTH_INITIAL_INTAKE_APPROVED,
+	E2E_PRE_AUTH_PACKAGE_PENDING,
+	E2E_PRE_AUTH_PAYROLL_APPROVED_LATEST,
+	type SeedPreAuthorizedPackageVariant,
+} from '../fixtures/pre-authorized-package'
 import { getDb } from './cypress-db'
 
-/** Delete Vercel Blob files for all application documents under applications in the given term. No-op when BLOB_READ_WRITE_TOKEN is unset. */
+export type SeedPreAuthorizedPackageDocumentsTaskParams = {
+	applicationId: number
+	variant: SeedPreAuthorizedPackageVariant
+}
+
 async function deleteBlobsForTerm(
 	db: Awaited<ReturnType<typeof getDb>>,
 	termId: number,
@@ -104,7 +114,6 @@ export type LoginTaskParams = string
 export const login = async (email: LoginTaskParams) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 
-	// Find user
 	const user = await db.query.users.findFirst({
 		where: eq(users.email, email),
 	})
@@ -113,20 +122,17 @@ export const login = async (email: LoginTaskParams) => {
 		throw new Error(`User with email ${email} not found`)
 	}
 
-	// Get user roles
 	const roles = await db.query.userRoles.findMany({
 		where: eq(userRoles.userId, user.id),
 	})
 
 	const rolesList = roles.map((r) => r.role)
 
-	// Create encrypted JWT token (NextAuth v4 JWT format using JWE)
 	const secret = process.env.AUTH_SECRET
 	if (!secret) {
 		throw new Error('AUTH_SECRET is not defined')
 	}
 
-	// Use hkdf to derive encryption key (NextAuth v4 default)
 	const encoder = new TextEncoder()
 	const keyMaterial = await crypto.subtle.importKey(
 		'raw',
@@ -158,7 +164,7 @@ export const login = async (email: LoginTaskParams) => {
 		picture: user.image,
 		roles: rolesList,
 		iat: now,
-		exp: now + 60 * 60 * 24 * 30, // 30 days
+		exp: now + 60 * 60 * 24 * 30,
 		jti: crypto.randomUUID(),
 	})
 		.setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
@@ -171,7 +177,6 @@ export type ResetUserTaskParams = {
 	name: string
 	email: string
 	roles?: Role[]
-	/** Default true. Set false for verification-specific E2E tests. */
 	verified?: boolean
 }
 
@@ -267,7 +272,6 @@ export const removeRole = async (params: RemoveRoleTaskParams) => {
 
 export type EnableTotpForUserTaskParams = string
 
-/** Enable TOTP for a user by email (for E2E: security screen with TOTP enabled). */
 export const enableTotpForUser = async (email: EnableTotpForUserTaskParams) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	const user = await db.query.users.findFirst({
@@ -363,8 +367,6 @@ export const deleteCompaniesByDomain = async (
 	return null
 }
 
-// User-Company assignment tasks
-
 export type AssignCompanyToUserTaskParams = {
 	userEmail: string
 	companyDomain: string
@@ -375,7 +377,6 @@ export const assignCompanyToUser = async (
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 
-	// Find user
 	const user = await db.query.users.findFirst({
 		where: eq(users.email, params.userEmail),
 	})
@@ -383,7 +384,6 @@ export const assignCompanyToUser = async (
 		throw new Error(`User with email ${params.userEmail} not found`)
 	}
 
-	// Find company
 	const company = await db.query.companies.findFirst({
 		where: eq(companies.domain, params.companyDomain),
 	})
@@ -391,17 +391,15 @@ export const assignCompanyToUser = async (
 		throw new Error(`Company with domain ${params.companyDomain} not found`)
 	}
 
-	// Check if already assigned
 	const existing = await db.query.userCompanies.findFirst({
 		where: (uc, { and }) =>
 			and(eq(uc.userId, user.id), eq(uc.companyId, company.id)),
 	})
 
 	if (existing) {
-		return existing // Already assigned
+		return existing
 	}
 
-	// Create assignment
 	const [assignment] = await db
 		.insert(userCompanies)
 		.values({
@@ -413,7 +411,7 @@ export const assignCompanyToUser = async (
 	return assignment
 }
 
-export type DeleteUserCompanyAssignmentsByEmailTaskParams = string[] // User emails
+export type DeleteUserCompanyAssignmentsByEmailTaskParams = string[]
 
 export const deleteUserCompanyAssignmentsByEmail = async (
 	emails: DeleteUserCompanyAssignmentsByEmailTaskParams,
@@ -433,7 +431,7 @@ export const deleteUserCompanyAssignmentsByEmail = async (
 	return null
 }
 
-export type DeleteApplicationsByApplicantIdTaskParams = number // applicantId
+export type DeleteApplicationsByApplicantIdTaskParams = number
 
 export const deleteApplicationsByApplicantId = async (
 	applicantId: DeleteApplicationsByApplicantIdTaskParams,
@@ -445,14 +443,13 @@ export const deleteApplicationsByApplicantId = async (
 
 export type InsertApplicationDocumentTaskParams = {
 	applicationId: number
-	documentType: 'authorization' | 'contract' | 'payroll-receipt'
+	documentType: DocumentType
 	fileName: string
 	storageKey: string
 	status?: 'pending' | 'approved' | 'rejected'
 	rejectionReason?: string | null
 }
 
-/** Insert one application document for E2E (e.g. to test list display). Documents are deleted when application/user is cleaned up. */
 export const insertApplicationDocument = async (
 	params: InsertApplicationDocumentTaskParams,
 ) => {
@@ -474,6 +471,44 @@ export const insertApplicationDocument = async (
 		.returning()
 	if (!doc) throw new Error('Failed to insert application document')
 	return doc
+}
+
+export const seedPreAuthorizedPackageDocuments = async (
+	params: SeedPreAuthorizedPackageDocumentsTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	const { applicationId, variant } = params
+
+	const rows: {
+		documentType: DocumentType
+		fileName: string
+		storageKey: string
+		status: 'pending' | 'approved' | 'rejected'
+	}[] = []
+
+	if (variant === 'initialIntakeApprovedOnly') {
+		rows.push(...E2E_PRE_AUTH_INITIAL_INTAKE_APPROVED)
+	} else {
+		rows.push(...E2E_PRE_AUTH_INITIAL_INTAKE_APPROVED)
+		rows.push(...E2E_PRE_AUTH_PACKAGE_PENDING)
+		if (
+			variant === 'initialIntakeApprovedAndPackagePending_payrollLatestApproved'
+		) {
+			rows.push(E2E_PRE_AUTH_PAYROLL_APPROVED_LATEST)
+		}
+	}
+
+	for (const row of rows) {
+		await db.insert(applicationDocuments).values({
+			applicationId,
+			documentType: row.documentType,
+			fileName: row.fileName,
+			storageKey: row.storageKey,
+			status: row.status,
+			rejectionReason: null,
+		})
+	}
+	return null
 }
 
 export const getUserIdByEmail = async (
@@ -528,12 +563,27 @@ function getDefaultSeedStatusHistory(
 				{ status: 'approved', setByUserId: defaultActorUserId },
 				{ status: 'pre-authorized', setByUserId: defaultActorUserId },
 			]
+		case 'awaiting-authorization':
+			return [
+				{ status: 'new', setByUserId: defaultActorUserId },
+				{ status: 'pending', setByUserId: defaultActorUserId },
+				{ status: 'approved', setByUserId: defaultActorUserId },
+				{ status: 'pre-authorized', setByUserId: defaultActorUserId },
+				{
+					status: 'awaiting-authorization',
+					setByUserId: defaultActorUserId,
+				},
+			]
 		case 'authorized':
 			return [
 				{ status: 'new', setByUserId: defaultActorUserId },
 				{ status: 'pending', setByUserId: defaultActorUserId },
 				{ status: 'approved', setByUserId: defaultActorUserId },
 				{ status: 'pre-authorized', setByUserId: defaultActorUserId },
+				{
+					status: 'awaiting-authorization',
+					setByUserId: defaultActorUserId,
+				},
 				{ status: 'authorized', setByUserId: defaultActorUserId },
 			]
 		case 'denied':
@@ -562,8 +612,6 @@ function createOrderedSeedStatusHistory(options: {
 	return [...steps]
 }
 
-// ---- Composite tasks ----
-
 export type ResetApplicantApplicationTaskParams = {
 	applicantId: number
 	termOfferingId: number
@@ -576,6 +624,7 @@ export type ResetApplicantApplicationTaskParams = {
 		| 'pending'
 		| 'invalid-documentation'
 		| 'pre-authorized'
+		| 'awaiting-authorization'
 		| 'authorized'
 		| 'denied'
 }
@@ -649,8 +698,6 @@ export const resetApplicantApplication = async (
 
 	return app
 }
-
-// ---- Seed: Login flow (shared by page.cy.ts and login.cy.ts) ----
 
 const LOGIN_DOMAIN = 'example.com'
 
@@ -769,7 +816,56 @@ export const cleanupLoginFlow = async (params: CleanupLoginFlowParams) => {
 	return null
 }
 
-// ---- Seed: Cuenta applications (applicant E2E) ----
+async function wipeCuentaApplicationsE2EFixtureState(
+	db: ReturnType<typeof getDb>,
+) {
+	const allApplicants = [
+		applicantWithCompany,
+		applicantB,
+		applicantNoCompany,
+		applicantInactiveCompany,
+		applicantWithCompanyWithoutCapacityRate,
+		applicantWithCompanyWithoutTermOfferings,
+	]
+	const allCompanies = [
+		companyWithTerms,
+		companyInactive,
+		companyWithoutCapacityRate,
+		companyWithoutTermOfferings,
+	]
+	const domainList = allCompanies.map((c) => c.domain)
+
+	const termRows = await db
+		.selectDistinct({ termId: termOfferings.termId })
+		.from(termOfferings)
+		.innerJoin(companies, eq(termOfferings.companyId, companies.id))
+		.where(inArray(companies.domain, domainList))
+
+	const termIds = [...new Set(termRows.map((r) => r.termId))]
+	for (const termId of termIds) {
+		await deleteBlobsForTerm(db, termId)
+	}
+
+	await Promise.all(
+		allApplicants.map((u) => db.delete(users).where(eq(users.email, u.email))),
+	)
+	await Promise.all(
+		allCompanies.map((c) =>
+			db.delete(companies).where(eq(companies.domain, c.domain)),
+		),
+	)
+
+	for (const termId of termIds) {
+		const stillUsed = await db
+			.select({ id: termOfferings.id })
+			.from(termOfferings)
+			.where(eq(termOfferings.termId, termId))
+			.limit(1)
+		if (stillUsed.length === 0) {
+			await db.delete(terms).where(eq(terms.id, termId))
+		}
+	}
+}
 
 export type SeedCuentaApplicationsResult = {
 	applicantId: number
@@ -781,6 +877,8 @@ export type SeedCuentaApplicationsResult = {
 export const seedCuentaApplications =
 	async (): Promise<SeedCuentaApplicationsResult> => {
 		const db = getDb(process.env.DATABASE_URL || '')
+
+		await wipeCuentaApplicationsE2EFixtureState(db)
 
 		const allApplicants = [
 			applicantWithCompany,
@@ -796,17 +894,6 @@ export const seedCuentaApplications =
 			companyWithoutCapacityRate,
 			companyWithoutTermOfferings,
 		]
-
-		await Promise.all(
-			allApplicants.map((u) =>
-				db.delete(users).where(eq(users.email, u.email)),
-			),
-		)
-		await Promise.all(
-			allCompanies.map((c) =>
-				db.delete(companies).where(eq(companies.domain, c.domain)),
-			),
-		)
 
 		const now = new Date()
 		const [createdUsers, createdCompanies, [term]] = await Promise.all([
@@ -910,11 +997,16 @@ export const cleanupCuentaApplications = async (
 			db.delete(companies).where(eq(companies.domain, c.domain)),
 		),
 	)
-	await db.delete(terms).where(eq(terms.id, params.termId))
+	const stillUsed = await db
+		.select({ id: termOfferings.id })
+		.from(termOfferings)
+		.where(eq(termOfferings.termId, params.termId))
+		.limit(1)
+	if (stillUsed.length === 0) {
+		await db.delete(terms).where(eq(terms.id, params.termId))
+	}
 	return null
 }
-
-// ---- Seed: Company switcher (shared by company-switcher.cy.ts and agent-no-company-picked.cy.ts) ----
 
 export type SeedCompanySwitcherResult = {
 	agentId: number
@@ -997,8 +1089,6 @@ export const cleanupCompanySwitcher = async () => {
 	)
 	return null
 }
-
-// ---- Seed: Admin users ----
 
 export type SeedAdminUsersResult = {
 	adminId: number
@@ -1087,9 +1177,6 @@ export const cleanupAdminUsers = async () => {
 	return null
 }
 
-// ---- Seed: Admin companies ----
-
-/** All company domains used by any E2E spec. Clean these in cleanupAdminCompanies so the companies list is not polluted by other specs or previous runs. */
 const ALL_E2E_COMPANY_DOMAINS = [
 	...companiesCompanyList.map((c) => c.domain),
 	...usersCompanyList.map((c) => c.domain),
@@ -1162,8 +1249,6 @@ export const cleanupAdminCompanies = async () => {
 	return null
 }
 
-// ---- Seed: Admin overview (shared by equipo-admin-overview.cy.ts and admin-company-switcher.cy.ts) ----
-
 export const seedAdminOverview = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
 
@@ -1218,8 +1303,6 @@ export const cleanupAdminOverview = async () => {
 	return null
 }
 
-// ---- Seed: Agent no assignments ----
-
 export const seedAgentNoAssignments = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	await db.delete(users).where(eq(users.email, agentNoAssignments.email))
@@ -1250,8 +1333,6 @@ export const cleanupAgentNoAssignments = async () => {
 	await db.delete(users).where(eq(users.email, agentNoAssignments.email))
 	return null
 }
-
-// ---- Seed: Security ----
 
 const TOTP_USER = {
 	name: 'TOTP User',
@@ -1306,8 +1387,6 @@ export const cleanupSecurity = async () => {
 	return null
 }
 
-// ---- Seed: Profile ----
-
 export const seedProfile = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	await db.delete(users).where(eq(users.email, loginApplicantUser.email))
@@ -1339,24 +1418,17 @@ export const cleanupProfile = async () => {
 	return null
 }
 
-// ---- Seed: Applications review ----
-
 export type SeedApplicationsReviewResult = {
 	companyId: number
 	companyDId: number
 	termId: number
 	companyBApplicationId: number
-	/** First application (for companyId) – use for documents E2E. */
 	applicationId: number
-	/** Application with creditAmount 40,000 (applicantA4) – use for invalid-documentation E2E. */
 	applicantA4ApplicationId: number
-	/** Application with creditAmount 45,000 (applicantA5) – use for list-reflects-status E2E. */
 	applicantA5ApplicationId: number
-	/** Approved application with pending financial terms for pre-authorization E2E. */
 	preAuthApplicationId: number
 }
 
-/** Company domains from other E2E specs. Remove their applications at seed start so the review list count is predictable (no leak from cuenta applicant seeds etc.). */
 const OTHER_E2E_APPLICATION_DOMAINS = [
 	'example.com',
 	'norate.com',
@@ -1550,24 +1622,45 @@ export const seedApplicationsReview =
 			await db.insert(applicationDocuments).values([
 				{
 					applicationId: id,
-					documentType: 'authorization',
+					documentType: 'official-id',
 					status: 'approved',
-					fileName: 'seed-authorization.pdf',
-					storageKey: `application-documents/${id}/authorization/seed-authorization.pdf`,
+					fileName: 'seed-ine.pdf',
+					storageKey: `application-documents/${id}/official-id/seed-ine.pdf`,
+				},
+				{
+					applicationId: id,
+					documentType: 'proof-of-address',
+					status: 'approved',
+					fileName: 'seed-address.pdf',
+					storageKey: `application-documents/${id}/proof-of-address/seed-address.pdf`,
+				},
+				{
+					applicationId: id,
+					documentType: 'bank-statement',
+					status: 'approved',
+					fileName: 'seed-bank.pdf',
+					storageKey: `application-documents/${id}/bank-statement/seed-bank.pdf`,
+				},
+				{
+					applicationId: id,
+					documentType: 'payroll-receipt',
+					status: 'pending',
+					fileName: 'seed-payroll.pdf',
+					storageKey: `application-documents/${id}/payroll-receipt/seed-payroll.pdf`,
 				},
 				{
 					applicationId: id,
 					documentType: 'contract',
-					status: 'approved',
+					status: 'pending',
 					fileName: 'seed-contract.pdf',
 					storageKey: `application-documents/${id}/contract/seed-contract.pdf`,
 				},
 				{
 					applicationId: id,
-					documentType: 'payroll-receipt',
-					status: 'approved',
-					fileName: 'seed-payroll.pdf',
-					storageKey: `application-documents/${id}/payroll-receipt/seed-payroll.pdf`,
+					documentType: 'authorization',
+					status: 'pending',
+					fileName: 'seed-authorization.pdf',
+					storageKey: `application-documents/${id}/authorization/seed-authorization.pdf`,
 				},
 			])
 		}

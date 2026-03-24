@@ -1,10 +1,3 @@
-/**
- * US-2.2.5: Admin sees general equipo overview
- * - Admin overview shows aggregated data across all companies when no company selected
- * - Overview is the default view for admins (no company selected)
- * - Shows when no company is selected on the company switcher in the sidebar
- */
-
 import { adminOverviewAdmin } from './equipo-admin-overview.fixtures'
 
 describe('Equipo admin overview', () => {

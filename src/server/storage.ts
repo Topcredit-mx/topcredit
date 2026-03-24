@@ -4,7 +4,6 @@ export const APPLICATION_DOCUMENTS_PREFIX = 'application-documents/'
 
 const VERCEL_BLOB_URL_HOST = 'blob.vercel-storage.com'
 
-/** True if the key is a Vercel Blob URL or our pathname prefix (so safe to pass to del/get). */
 export function isBlobStorageKey(key: string): boolean {
 	return (
 		key.includes(VERCEL_BLOB_URL_HOST) ||
@@ -29,7 +28,6 @@ export async function deleteBlob(urlOrPathname: string): Promise<void> {
 	await del(urlOrPathname)
 }
 
-/** Fetch private blob by pathname for streaming (e.g. authenticated download). */
 export async function getBlob(pathname: string) {
 	return get(pathname, { access: 'private' })
 }
