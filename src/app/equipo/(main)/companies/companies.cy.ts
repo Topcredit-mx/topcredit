@@ -6,6 +6,10 @@ describe('Admin Companies List', () => {
 		cy.task('seedAdminCompanies')
 	})
 
+	after(() => {
+		cy.task('cleanupAdminCompanies')
+	})
+
 	describe('Access Control', () => {
 		it('redirects non-admin users to unauthorized page', () => {
 			const agentUser = {

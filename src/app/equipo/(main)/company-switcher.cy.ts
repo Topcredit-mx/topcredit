@@ -14,6 +14,10 @@ describe('Company Switcher', () => {
 		cy.task('seedCompanySwitcher')
 	})
 
+	after(() => {
+		cy.task('cleanupCompanySwitcher')
+	})
+
 	beforeEach(() => {
 		cy.login(agentEmail)
 		cy.visit('/equipo')

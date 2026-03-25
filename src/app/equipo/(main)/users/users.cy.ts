@@ -15,6 +15,10 @@ describe('Admin Users', () => {
 		cy.task('seedAdminUsers')
 	})
 
+	after(() => {
+		cy.task('cleanupAdminUsers')
+	})
+
 	describe('Access Control', () => {
 		it('redirects non-admin users to unauthorized page', () => {
 			cy.login(applicantOnlyUser.email)

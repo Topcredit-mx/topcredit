@@ -11,6 +11,10 @@ describe('Agent with no company picked', () => {
 		cy.task('seedCompanySwitcher')
 	})
 
+	after(() => {
+		cy.task('cleanupCompanySwitcher')
+	})
+
 	beforeEach(() => {
 		cy.login(agentEmail)
 		cy.clearCookie('selected_company_id')

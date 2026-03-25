@@ -101,6 +101,12 @@ jobs:
           NODE_NO_WARNINGS: 1
           TERM: xterm
 
+      - name: Verify E2E database is empty
+        if: success()
+        run: pnpm exec tsx scripts/e2e-db-snapshot.ts --strict
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+
       - name: Delete neon branch
         if: always()
         uses: neondatabase/delete-branch-action@v3.2.0

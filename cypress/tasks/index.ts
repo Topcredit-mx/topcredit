@@ -68,6 +68,7 @@ import {
 	applicationStatusHistory,
 	applications,
 	companies,
+	emailOtps,
 	termOfferings,
 	terms,
 	userCompanies,
@@ -839,9 +840,11 @@ export type CleanupLoginFlowParams = { termId: number }
 export const cleanupLoginFlow = async (params: CleanupLoginFlowParams) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	const allUsers = [loginApplicantUser, loginAgentUser, loginNoRoleUser]
+	const loginEmails = allUsers.map((u) => u.email)
 	await Promise.all(
 		allUsers.map((u) => db.delete(users).where(eq(users.email, u.email))),
 	)
+	await db.delete(emailOtps).where(inArray(emailOtps.email, loginEmails))
 	await db.delete(companies).where(eq(companies.domain, LOGIN_DOMAIN))
 	await db.delete(terms).where(eq(terms.id, params.termId))
 	return null
@@ -1411,6 +1414,8 @@ export const seedSecurity = async () => {
 
 export const cleanupSecurity = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	const securityEmails = [loginApplicantUser.email, TOTP_USER.email]
+	await db.delete(emailOtps).where(inArray(emailOtps.email, securityEmails))
 	await Promise.all([
 		db.delete(users).where(eq(users.email, loginApplicantUser.email)),
 		db.delete(users).where(eq(users.email, TOTP_USER.email)),
@@ -1445,6 +1450,9 @@ export const seedProfile = async () => {
 
 export const cleanupProfile = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	await db
+		.delete(emailOtps)
+		.where(eq(emailOtps.email, loginApplicantUser.email))
 	await db.delete(users).where(eq(users.email, loginApplicantUser.email))
 	return null
 }

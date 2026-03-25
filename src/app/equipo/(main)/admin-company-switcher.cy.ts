@@ -11,6 +11,10 @@ describe('Admin company switcher', () => {
 		cy.task('seedAdminOverview')
 	})
 
+	after(() => {
+		cy.task('cleanupAdminOverview')
+	})
+
 	beforeEach(() => {
 		cy.login(adminEmail)
 		cy.clearCookie('selected_company_id')
