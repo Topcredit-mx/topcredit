@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+	filterDocumentsWithUploadedFile,
+	filterToLatestDocumentsPerType,
 	getLatestDocumentByType,
 	getRequiredInitialDocumentFieldName,
 	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
@@ -9,6 +11,16 @@ import {
 
 const t1 = new Date('2025-01-10T12:00:00Z')
 const t2 = new Date('2025-01-12T12:00:00Z')
+
+test('filterDocumentsWithUploadedFile: keeps only rows with hasBlobContent true', () => {
+	assert.deepEqual(
+		filterDocumentsWithUploadedFile([
+			{ hasBlobContent: true, documentType: 'official-id', createdAt: t1 },
+			{ hasBlobContent: false, documentType: 'contract', createdAt: t1 },
+		]),
+		[{ hasBlobContent: true, documentType: 'official-id', createdAt: t1 }],
+	)
+})
 
 test('getLatestDocumentByType: picks newest by createdAt regardless of array order', () => {
 	const older = {
@@ -53,6 +65,49 @@ test('getLatestDocumentByType: undefined when no row for type', () => {
 		),
 		undefined,
 	)
+})
+
+test('filterToLatestDocumentsPerType: one row per type, newest wins; sorted by documentType', () => {
+	const olderAuth = {
+		id: 1,
+		documentType: 'authorization' as const,
+		createdAt: t1,
+		hasBlobContent: true,
+	}
+	const newerAuth = {
+		id: 2,
+		documentType: 'authorization' as const,
+		createdAt: t2,
+		hasBlobContent: true,
+	}
+	const contract = {
+		id: 3,
+		documentType: 'contract' as const,
+		createdAt: t1,
+		hasBlobContent: true,
+	}
+	assert.deepEqual(
+		filterToLatestDocumentsPerType([olderAuth, newerAuth, contract]),
+		[newerAuth, contract],
+	)
+})
+
+test('filterToLatestDocumentsPerType: drops rows without blob before picking latest', () => {
+	const withBlob = {
+		id: 1,
+		documentType: 'contract' as const,
+		createdAt: t2,
+		hasBlobContent: true,
+	}
+	const withoutBlob = {
+		id: 2,
+		documentType: 'contract' as const,
+		createdAt: t1,
+		hasBlobContent: false,
+	}
+	assert.deepEqual(filterToLatestDocumentsPerType([withoutBlob, withBlob]), [
+		withBlob,
+	])
 })
 
 test('REQUIRED_INITIAL_APPLICATION_DOCUMENTS lists official-id, proof-of-address, bank-statement in order', () => {

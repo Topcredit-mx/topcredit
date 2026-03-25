@@ -7,6 +7,7 @@ export type Role =
 	| 'agent'
 	| 'requests'
 	| 'pre-authorizations'
+	| 'authorizations'
 	| 'admin'
 
 export async function requireAuth() {

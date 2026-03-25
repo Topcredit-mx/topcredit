@@ -3,7 +3,6 @@ import type { EmailT } from '~/lib/email-i18n'
 import type { ApplicationStatus } from '~/server/db/schema'
 
 const STATUS_HIGHLIGHT_COLOR: Record<ApplicationStatus, string> = {
-	new: '#666',
 	pending: '#666',
 	approved: '#15803d',
 	'invalid-documentation': '#b45309',

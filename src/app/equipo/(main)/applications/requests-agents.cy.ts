@@ -1,3 +1,10 @@
+import {
+	assertEquipoApplicationDetailLoaded,
+	openEquipoApplicationActions,
+	selectDocumentDecisionInRow,
+	submitEquipoDocumentReviewForm,
+	typeDocumentRejectionReasonInRow,
+} from '../../../../../cypress/support/equipo-document-review-helpers'
 import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
 import {
 	agentForReview,
@@ -9,21 +16,8 @@ import {
 const agentEmail = agentForReview.email
 const applicantEmail = applicantForReview.email
 
-const EQUIPO_APPLICATION_DETAIL_LOAD_MS = 15_000
-
 describe('Requests agents', () => {
 	let seed: SeedApplicationsReviewResult
-
-	function openApplicationActions() {
-		cy.get('[data-equipo-application-detail]', {
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		}).should('be.visible')
-		cy.contains('button', /acciones/i, {
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		})
-			.should('be.visible')
-			.click()
-	}
 
 	before(() => {
 		cy.task<SeedApplicationsReviewResult>('seedApplicationsReview').then(
@@ -43,6 +37,113 @@ describe('Requests agents', () => {
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 
+		describe('Document review (requests queue)', () => {
+			// applicant A4 only: nested suites run after sibling tests, so seed.applicationId
+			// is often already approved by "Aprobar" and requests agents cannot update documents.
+
+			it('shows empty documents state when application has no documents', () => {
+				cy.visit(`/equipo/applications/${seed.applicantA4ApplicationId}`)
+				assertEquipoApplicationDetailLoaded()
+				cy.get('main').within(() => {
+					cy.contains(/documentos/i).should('be.visible')
+					cy.contains(/no hay documentos/i).should('be.visible')
+					cy.get('input[name="file"]').should('not.exist')
+				})
+			})
+
+			it('shows documents section read-only with list and no upload form', () => {
+				cy.task('insertApplicationDocument', {
+					applicationId: seed.applicantA4ApplicationId,
+					documentType: 'contract',
+					fileName: 'contract-e2e.pdf',
+					storageKey: 'application-documents/e2e-contract.pdf',
+				})
+				cy.visit(`/equipo/applications/${seed.applicantA4ApplicationId}`)
+				assertEquipoApplicationDetailLoaded()
+				cy.get('main').within(() => {
+					cy.contains(/documentos/i).should('be.visible')
+					cy.contains(/contrato/i).should('be.visible')
+					cy.contains('contract-e2e.pdf').should('be.visible')
+					cy.get('input[name="file"]').should('not.exist')
+				})
+			})
+
+			it('shows approved state when agent approves a pending document', () => {
+				cy.task('insertApplicationDocument', {
+					applicationId: seed.applicantA4ApplicationId,
+					documentType: 'authorization',
+					fileName: 'auth-approve-e2e.pdf',
+					storageKey: 'application-documents/e2e-auth-approve.pdf',
+				})
+				cy.visit(`/equipo/applications/${seed.applicantA4ApplicationId}`)
+				assertEquipoApplicationDetailLoaded()
+				selectDocumentDecisionInRow('auth-approve-e2e.pdf', 'approve')
+				submitEquipoDocumentReviewForm()
+				cy.get('[data-equipo-application-documents-list]')
+					.contains('li', 'auth-approve-e2e.pdf')
+					.should('have.attr', 'data-status', 'approved')
+			})
+
+			it('shows validation error when agent submits reject without reason', () => {
+				cy.task('insertApplicationDocument', {
+					applicationId: seed.applicantA4ApplicationId,
+					documentType: 'contract',
+					fileName: 'reject-validation-e2e.pdf',
+					storageKey: 'application-documents/e2e-reject-validation.pdf',
+				})
+				cy.visit(`/equipo/applications/${seed.applicantA4ApplicationId}`)
+				assertEquipoApplicationDetailLoaded()
+				selectDocumentDecisionInRow('reject-validation-e2e.pdf', 'reject')
+				submitEquipoDocumentReviewForm()
+				cy.contains('El motivo de rechazo es obligatorio').should('be.visible')
+			})
+
+			it('shows rejected state and reason when agent rejects with reason', () => {
+				const reason = 'Documento ilegible en la página 2'
+				cy.task('insertApplicationDocument', {
+					applicationId: seed.applicantA4ApplicationId,
+					documentType: 'authorization',
+					fileName: 'reject-with-reason-e2e.pdf',
+					storageKey: 'application-documents/e2e-reject-reason.pdf',
+				})
+				cy.visit(`/equipo/applications/${seed.applicantA4ApplicationId}`)
+				assertEquipoApplicationDetailLoaded()
+				selectDocumentDecisionInRow('reject-with-reason-e2e.pdf', 'reject')
+				typeDocumentRejectionReasonInRow('reject-with-reason-e2e.pdf', reason)
+				submitEquipoDocumentReviewForm()
+				cy.get('[data-equipo-application-documents-list]')
+					.contains('li', 'reject-with-reason-e2e.pdf')
+					.should('have.attr', 'data-status', 'rejected')
+					.and('contain', reason)
+			})
+
+			it('allows agent to reject a document then approve it again', () => {
+				const rejectReason = 'Rechazado por error'
+				cy.task('insertApplicationDocument', {
+					applicationId: seed.applicantA4ApplicationId,
+					documentType: 'payroll-receipt',
+					fileName: 'deny-then-approve-e2e.pdf',
+					storageKey: 'application-documents/e2e-deny-approve.pdf',
+				})
+				cy.visit(`/equipo/applications/${seed.applicantA4ApplicationId}`)
+				assertEquipoApplicationDetailLoaded()
+				selectDocumentDecisionInRow('deny-then-approve-e2e.pdf', 'reject')
+				typeDocumentRejectionReasonInRow(
+					'deny-then-approve-e2e.pdf',
+					rejectReason,
+				)
+				submitEquipoDocumentReviewForm()
+				cy.get('[data-equipo-application-documents-list]')
+					.contains('li', 'deny-then-approve-e2e.pdf')
+					.should('have.attr', 'data-status', 'rejected')
+				selectDocumentDecisionInRow('deny-then-approve-e2e.pdf', 'approve')
+				submitEquipoDocumentReviewForm()
+				cy.get('[data-equipo-application-documents-list]')
+					.contains('li', 'deny-then-approve-e2e.pdf')
+					.should('have.attr', 'data-status', 'approved')
+			})
+		})
+
 		it('shows applications list with table', () => {
 			cy.visit('/equipo/applications')
 			cy.get('table').should('be.visible')
@@ -58,10 +159,10 @@ describe('Requests agents', () => {
 			cy.contains(applicantForReview.name).should('exist')
 		})
 
-		it('shows both new and pending applications in the requests queue', () => {
+		it('shows pending applications in the requests queue', () => {
 			cy.visit('/equipo/applications')
 			cy.get('table').should('be.visible')
-			cy.contains(/nueva/i).should('be.visible')
+			cy.get('tbody tr').should('have.length.at.least', 2)
 			cy.contains(/pendiente/i).should('be.visible')
 		})
 
@@ -105,7 +206,7 @@ describe('Requests agents', () => {
 					cy.get('a[aria-label="Revisar solicitud"]').should('exist').click()
 				})
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			openApplicationActions()
+			openEquipoApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/rechazar/i)
 				.should('be.visible')
@@ -128,7 +229,7 @@ describe('Requests agents', () => {
 					cy.get('a[aria-label="Revisar solicitud"]').should('exist').click()
 				})
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			openApplicationActions()
+			openEquipoApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/rechazar/i)
 				.should('be.visible')
@@ -146,62 +247,48 @@ describe('Requests agents', () => {
 			cy.contains(/denegado/i).should('be.visible')
 		})
 
-		it('requests agent sees only approve, reject and invalid-docs in actions menu', () => {
+		it('requests agent sees only approve and reject in actions menu', () => {
 			cy.visit(`/equipo/applications/${seed.applicantA5ApplicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			openApplicationActions()
+			openEquipoApplicationActions()
 			cy.get('[role="menu"]').within(() => {
-				cy.get('[role="menuitem"]').should('have.length', 3)
+				cy.get('[role="menuitem"]').should('have.length', 2)
 				cy.contains('[role="menuitem"]', /aprobar/i).should('be.visible')
 				cy.contains('[role="menuitem"]', /rechazar/i).should('be.visible')
-				cy.contains('[role="menuitem"]', /documentación inválida/i).should(
-					'be.visible',
-				)
 			})
 		})
 
-		it('can mark as invalid documentation', () => {
+		it('can reject a document while the application stays pending', () => {
 			cy.task('insertApplicationDocument', {
-				applicationId: seed.applicantA4ApplicationId,
+				applicationId: seed.applicantA3ApplicationId,
 				documentType: 'contract',
-				fileName: 'e2e-40k-invalid.pdf',
-				storageKey: 'application-documents/e2e-40k-invalid.pdf',
+				fileName: 'e2e-40k-reject-doc.pdf',
+				storageKey: 'application-documents/e2e-40k-reject-doc.pdf',
 			})
-			cy.visit(`/equipo/applications/${seed.applicantA4ApplicationId}`)
-			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains('li', 'e2e-40k-invalid.pdf').within(() =>
-				cy.get('button[aria-label*="cciones"]').should('be.visible').click(),
+			cy.visit(`/equipo/applications/${seed.applicantA3ApplicationId}`)
+			assertEquipoApplicationDetailLoaded()
+			cy.get(
+				'[data-equipo-application-detail] [data-current-application-status="pending"]',
+			).should('be.visible')
+			selectDocumentDecisionInRow('e2e-40k-reject-doc.pdf', 'reject')
+			typeDocumentRejectionReasonInRow(
+				'e2e-40k-reject-doc.pdf',
+				'E2E document rejected',
 			)
-			cy.get('[role="menu"]').within(() =>
-				cy
-					.contains('[role="menuitem"]', /rechazar/i)
-					.should('be.visible')
-					.click(),
-			)
-			cy.get('[data-slot="dialog-content"]').within(() => {
-				cy.get('textarea[name="rejectionReason"]').type('E2E invalid docs')
-				cy.contains('button', /confirmar/i)
-					.should('be.visible')
-					.click()
-			})
-			cy.contains('li', 'e2e-40k-invalid.pdf').within(() => {
-				cy.get('[role="img"][aria-label*="Rechazado"]').should('be.visible')
-			})
-			openApplicationActions()
-			cy.get('[role="menuitem"]')
-				.contains(/documentación inválida/i)
-				.should('be.visible')
-				.click()
-			// Action redirects to same URL (reload); wait for new page then new state
-			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains('Documentación inválida').should('be.visible')
+			submitEquipoDocumentReviewForm()
+			cy.get('[data-equipo-application-documents-list]')
+				.contains('li', 'e2e-40k-reject-doc.pdf')
+				.should('have.attr', 'data-status', 'rejected')
+			cy.get(
+				'[data-equipo-application-detail] [data-current-application-status="pending"]',
+			).should('be.visible')
 		})
 
-		it('changes status from new to approved when agent clicks Aprobar', () => {
+		it('changes status from pending to approved when agent clicks Aprobar', () => {
 			cy.visit(`/equipo/applications/${seed.applicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains(/nueva/i).should('be.visible')
-			openApplicationActions()
+			cy.contains(/pendiente/i).should('be.visible')
+			openEquipoApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/aprobar/i)
 				.should('be.visible')
@@ -215,7 +302,7 @@ describe('Requests agents', () => {
 			cy.visit(`/equipo/applications/${seed.applicantA5ApplicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/pendiente/i).should('be.visible')
-			openApplicationActions()
+			openEquipoApplicationActions()
 			cy.get('[role="menuitem"]')
 				.contains(/aprobar/i)
 				.should('be.visible')
@@ -266,7 +353,7 @@ describe('Requests agents', () => {
 		})
 
 		it('picking a company from switcher filters the list', () => {
-			cy.get('table tbody tr').should('have.length', 7)
+			cy.get('table tbody tr').should('have.length', 10)
 			cy.get('[data-slot="sidebar"]')
 				.find('[data-slot="dropdown-menu-trigger"]')
 				.first()
@@ -299,7 +386,7 @@ describe('Requests agents', () => {
 			cy.visit('/equipo')
 			cy.setCookie('selected_company_id', String(seed.companyDId))
 			cy.visit('/equipo/applications')
-			cy.get('table tbody tr').should('have.length', 7)
+			cy.get('table tbody tr').should('have.length', 10)
 			cy.contains('inactivecompany.com').should('not.exist')
 			cy.get('[data-slot="sidebar"]')
 				.find('[data-slot="dropdown-menu-trigger"]')

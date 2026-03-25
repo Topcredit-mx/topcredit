@@ -173,19 +173,42 @@ export const uploadApplicationDocumentSchema = z.object({
 	documentType: documentTypeSchema,
 })
 
-export const approveApplicationDocumentSchema = z.object({
-	documentId: z.coerce
-		.number()
-		.int()
-		.positive(ValidationCode.APPLICATIONS_DOCUMENT_INVALID),
-})
+export const applicationDocumentDecisionSchema = z
+	.object({
+		documentId: z
+			.number()
+			.int()
+			.positive(ValidationCode.APPLICATIONS_DOCUMENT_INVALID),
+		status: z.enum(['approved', 'rejected']),
+		rejectionReason: z.string().nullable(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.status === 'rejected') {
+			const trimmed = data.rejectionReason?.trim() ?? ''
+			if (trimmed.length === 0) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message:
+						ValidationCode.APPLICATIONS_DOCUMENT_REJECTION_REASON_REQUIRED,
+					path: ['rejectionReason'],
+				})
+			}
+		}
+	})
 
-export const rejectApplicationDocumentSchema = z.object({
-	documentId: z.coerce
-		.number()
-		.int()
-		.positive(ValidationCode.APPLICATIONS_DOCUMENT_INVALID),
-	rejectionReason: z
-		.string()
-		.min(1, ValidationCode.APPLICATIONS_DOCUMENT_REJECTION_REASON_REQUIRED),
-})
+export const applyApplicationDocumentDecisionsSchema = z
+	.object({
+		applicationId: z
+			.number()
+			.int()
+			.positive(ValidationCode.APPLICATION_INVALID),
+		decisions: z
+			.array(applicationDocumentDecisionSchema)
+			.min(1, ValidationCode.APPLICATIONS_DOCUMENT_DECISIONS_REQUIRED),
+	})
+	.refine(
+		(data) =>
+			new Set(data.decisions.map((d) => d.documentId)).size ===
+			data.decisions.length,
+		{ message: ValidationCode.APPLICATIONS_DOCUMENT_INVALID },
+	)

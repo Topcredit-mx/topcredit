@@ -1,2 +1,0 @@
-ALTER TYPE "public"."roles" ADD VALUE 'pre-authorizations' BEFORE 'admin';--> statement-breakpoint
-ALTER TABLE "applications" ADD CONSTRAINT "applications_financial_terms_required_for_late_statuses_check" CHECK (("applications"."status" NOT IN ('pre-authorized', 'authorized') OR ("applications"."term_offering_id" IS NOT NULL AND "applications"."credit_amount" IS NOT NULL)));

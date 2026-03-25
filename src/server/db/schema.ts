@@ -20,6 +20,7 @@ export const rolesEnum = pgEnum('roles', [
 	'agent',
 	'requests',
 	'pre-authorizations',
+	'authorizations',
 	'admin',
 ])
 
@@ -34,7 +35,6 @@ export const durationTypeEnum = pgEnum('duration_type', [
 ])
 
 export const APPLICATION_STATUS_VALUES = [
-	'new',
 	'pending',
 	'approved',
 	'invalid-documentation',

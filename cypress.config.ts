@@ -11,7 +11,7 @@ export default defineConfig({
 	},
 	e2e: {
 		baseUrl: 'http://localhost:3000',
-		retries: process.env.CI ? 2 : 0,
+		retries: process.env.GITHUB_ACTIONS === 'true' ? 2 : 0,
 		specPattern: ['src/**/*.cy.{js,ts}'],
 		setupNodeEvents(on, cypressConfig) {
 			on('task', tasks)

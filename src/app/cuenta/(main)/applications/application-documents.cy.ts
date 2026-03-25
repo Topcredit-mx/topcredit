@@ -69,33 +69,37 @@ describe('Cuenta application documents', () => {
 					applicationId: app.id,
 					documentType: 'official-id',
 					fileName: 'auth.pdf',
-					storageKey: 'https://example.com/e2e/auth.pdf',
+					storageKey: `application-documents/${app.id}/official-id/e2e-auth.pdf`,
 				})
 				cy.visit(`/cuenta/applications/${app.id}`)
 				cy.get('[data-document-slot="official-id"]')
 					.first()
 					.scrollIntoView()
 					.should('be.visible')
-				cy.contains(/identificación oficial/i).should('be.visible')
-				cy.contains(/pendiente/i).should('be.visible')
-				cy.contains('auth.pdf').should('be.visible')
-				cy.get('a[href*="/api/application-documents/"]').should('not.exist')
+					.within(() => {
+						cy.contains(/identificación oficial/i).should('be.visible')
+						cy.contains(/pendiente/i).should('exist')
+						cy.contains('auth.pdf').should('be.visible')
+					})
+				cy.get('a[href*="/api/application-documents/"]')
+					.should('have.length', 1)
+					.should('be.visible')
 			})
 		})
 
-		it('shows rejected reasons and returns to pending after the last rejected doc is reuploaded', () => {
+		it('shows rejected reasons and stays pending after the last rejected doc is reuploaded', () => {
 			cy.task('resetApplicantApplication', {
 				applicantId: seed.applicantId,
 				termOfferingId: seed.termOfferingId,
 				creditAmount: '15000',
 				salaryAtApplication: '100000',
-				status: 'invalid-documentation',
+				status: 'pending',
 			}).then((app) => {
 				cy.task('insertApplicationDocument', {
 					applicationId: app.id,
 					documentType: 'official-id',
 					fileName: 'auth-rejected.pdf',
-					storageKey: 'https://example.com/e2e/auth-rejected.pdf',
+					storageKey: `application-documents/${app.id}/official-id/e2e-auth-rejected.pdf`,
 					status: 'rejected',
 					rejectionReason: 'Firma incompleta',
 				})
@@ -103,15 +107,18 @@ describe('Cuenta application documents', () => {
 					applicationId: app.id,
 					documentType: 'proof-of-address',
 					fileName: 'payroll-rejected.pdf',
-					storageKey: 'https://example.com/e2e/payroll-rejected.pdf',
+					storageKey: `application-documents/${app.id}/proof-of-address/e2e-payroll-rejected.pdf`,
 					status: 'rejected',
 					rejectionReason: 'Recibo ilegible',
 				})
 
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.get(
-					'[data-current-application-status="invalid-documentation"]',
-				).should('be.visible')
+				cy.get('[data-current-application-status="pending"]').should(
+					'be.visible',
+				)
+				cy.contains(/documentación inválida/i)
+					.scrollIntoView()
+					.should('be.visible')
 				cy.get('[data-application-status-history-title]')
 					.scrollIntoView()
 					.should('be.visible')
@@ -130,11 +137,7 @@ describe('Cuenta application documents', () => {
 					.within(() => {
 						cy.get('[data-status-history-item]')
 							.eq(0)
-							.should(
-								'have.attr',
-								'data-status-history-status',
-								'invalid-documentation',
-							)
+							.should('have.attr', 'data-status-history-status', 'pending')
 					})
 				cy.intercept('POST', '**/cuenta/applications/*').as('uploadFirstDoc')
 				cy.get(
@@ -164,16 +167,10 @@ describe('Cuenta application documents', () => {
 				cy.get('[data-application-status-history]')
 					.scrollIntoView()
 					.within(() => {
+						cy.get('[data-status-history-item]').should('have.length', 1)
 						cy.get('[data-status-history-item]')
 							.eq(0)
 							.should('have.attr', 'data-status-history-status', 'pending')
-						cy.get('[data-status-history-item]')
-							.eq(1)
-							.should(
-								'have.attr',
-								'data-status-history-status',
-								'invalid-documentation',
-							)
 					})
 			})
 		})

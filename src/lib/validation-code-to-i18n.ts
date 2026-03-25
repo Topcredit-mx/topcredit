@@ -165,6 +165,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'applications-document-rejection-reason-required',
 	},
+	[ValidationCode.APPLICATIONS_DOCUMENT_DECISIONS_REQUIRED]: {
+		namespace: 'equipo',
+		key: 'applications-document-decisions-required',
+	},
 	[ValidationCode.APPLICATIONS_ERROR_GENERIC]: {
 		namespace: 'equipo',
 		key: 'applications-error-generic',
@@ -196,6 +200,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 	[ValidationCode.APPLICATIONS_PREAUTH_COMPANY_NO_CAPACITY]: {
 		namespace: 'equipo',
 		key: 'applications-preauth-company-no-capacity',
+	},
+	[ValidationCode.APPLICATIONS_AUTHORIZATION_PACKAGE_NOT_APPROVED]: {
+		namespace: 'equipo',
+		key: 'applications-authorization-package-not-approved',
 	},
 	[ValidationCode.AUTH_EMAIL_NAME_REQUIRED]: {
 		namespace: 'auth',

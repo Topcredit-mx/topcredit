@@ -7,7 +7,10 @@ import {
 	statusRequiresFinancialTerms,
 	statusRequiresReason,
 } from '~/lib/application-rules'
-import { isAuthorizationPackageReadyForSubmit } from '~/lib/authorization-package-readiness'
+import {
+	isAuthorizationPackageFullyApproved,
+	isAuthorizationPackageReadyForSubmit,
+} from '~/lib/authorization-package-readiness'
 import {
 	isPreAuthOverCapacity,
 	maxDebtCapacityForLoanPeriod,
@@ -31,7 +34,7 @@ import {
 	type Role,
 } from '~/server/auth/session'
 import { db } from '~/server/db'
-import type { ApplicationStatus } from '~/server/db/schema'
+import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
 import {
 	applicationDocuments,
 	companies,
@@ -40,12 +43,14 @@ import {
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
-import { sendApplicationStatusEvent } from '~/server/email'
+import {
+	sendApplicationDocumentsRejectedEvent,
+	sendApplicationStatusEvent,
+} from '~/server/email'
 import { getApplicationDocuments } from '~/server/queries'
 import {
-	approveApplicationDocumentSchema,
+	applyApplicationDocumentDecisionsSchema,
 	preAuthorizeApplicationSchema,
-	rejectApplicationDocumentSchema,
 	updateApplicationStatusSchema,
 } from '~/server/schemas'
 
@@ -175,69 +180,95 @@ export async function deleteCompany(id: number) {
 
 // ---- Application (solicitud) ----
 
-async function setDocumentStatus(
-	documentId: number,
-	updates: { status: 'approved' | 'rejected'; rejectionReason: string | null },
+export async function applyApplicationDocumentDecisions(
+	payload: unknown,
 ): Promise<{ error?: string }> {
+	const parsed = applyApplicationDocumentDecisionsSchema.safeParse(payload)
+	if (!parsed.success) {
+		const msg = parsed.error.issues[0]?.message
+		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+	const { applicationId, decisions } = parsed.data
 	const { ability } = await getAbility()
-	const doc = await db.query.applicationDocuments.findFirst({
-		where: (d, { eq }) => eq(d.id, documentId),
-		columns: { id: true, applicationId: true, status: true },
+	const docIds = decisions.map((d) => d.documentId)
+	const rows = await db.query.applicationDocuments.findMany({
+		where: (d, { inArray: inArr }) => inArr(d.id, docIds),
+		columns: { id: true, applicationId: true, documentType: true },
 		with: {
 			application: {
 				columns: { id: true, applicantId: true, companyId: true, status: true },
 			},
 		},
 	})
-	if (!doc?.application) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
-	const companyId = doc.application.companyId
+	if (rows.length !== docIds.length) {
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+	const byId = new Map(rows.map((r) => [r.id, r]))
+	for (const id of docIds) {
+		if (!byId.has(id)) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+	const applicationIds = new Set(rows.map((r) => r.applicationId))
+	if (applicationIds.size !== 1 || !applicationIds.has(applicationId)) {
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+	const first = rows[0]
+	if (!first?.application)
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	const companyId = first.application.companyId
 	requireAbility(
 		ability,
 		'update',
 		subject('Application', {
-			id: doc.application.id,
-			applicantId: doc.application.applicantId,
+			id: first.application.id,
+			applicantId: first.application.applicantId,
 			companyId,
-			status: doc.application.status,
+			status: first.application.status,
 		}),
 	)
-	await db
-		.update(applicationDocuments)
-		.set({ ...updates, updatedAt: new Date() })
-		.where(eq(applicationDocuments.id, documentId))
+	for (const decision of decisions) {
+		const row = byId.get(decision.documentId)
+		if (!row?.application)
+			return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+	const rejectedForEmail: { documentType: DocumentType; reason: string }[] = []
+	for (const decision of decisions) {
+		const row = byId.get(decision.documentId)
+		if (!row) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+		const rejectionReason =
+			decision.status === 'rejected'
+				? (decision.rejectionReason?.trim() ?? '')
+				: null
+		await db
+			.update(applicationDocuments)
+			.set({
+				status: decision.status,
+				rejectionReason,
+				updatedAt: new Date(),
+			})
+			.where(eq(applicationDocuments.id, decision.documentId))
+		if (decision.status === 'rejected' && rejectionReason !== null) {
+			rejectedForEmail.push({
+				documentType: row.documentType,
+				reason: rejectionReason,
+			})
+		}
+	}
+	const application = await db.query.applications.findFirst({
+		where: (a, { eq: eqA }) => eqA(a.id, applicationId),
+		with: { applicant: { columns: { email: true } } },
+	})
+	const applicantEmail = application?.applicant?.email
+	if (applicantEmail && rejectedForEmail.length > 0) {
+		await sendApplicationDocumentsRejectedEvent(
+			applicantEmail,
+			rejectedForEmail,
+		)
+	}
 	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${doc.applicationId}`)
+	revalidatePath(`/equipo/applications/${applicationId}`)
 	revalidatePath('/cuenta/applications')
-	revalidatePath(`/cuenta/applications/${doc.applicationId}`)
+	revalidatePath(`/cuenta/applications/${applicationId}`)
 	return {}
-}
-
-export async function approveApplicationDocument(
-	payload: unknown,
-): Promise<{ error?: string }> {
-	const parsed = approveApplicationDocumentSchema.safeParse(payload)
-	if (!parsed.success) {
-		const msg = parsed.error.issues[0]?.message
-		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
-	}
-	return setDocumentStatus(parsed.data.documentId, {
-		status: 'approved',
-		rejectionReason: null,
-	})
-}
-
-export async function rejectApplicationDocument(
-	payload: unknown,
-): Promise<{ error?: string }> {
-	const parsed = rejectApplicationDocumentSchema.safeParse(payload)
-	if (!parsed.success) {
-		const msg = parsed.error.issues[0]?.message
-		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
-	}
-	return setDocumentStatus(parsed.data.documentId, {
-		status: 'rejected',
-		rejectionReason: parsed.data.rejectionReason.trim(),
-	})
 }
 
 type ApplicationStatusContext = {
@@ -545,6 +576,15 @@ export async function updateApplicationStatus(
 	if (statusRequiresFinancialTerms(data.status)) {
 		if (app.termOfferingId == null || app.creditAmount == null) {
 			return { error: ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED }
+		}
+	}
+
+	if (data.status === 'authorized') {
+		const documents = await getApplicationDocuments(applicationId)
+		if (!isAuthorizationPackageFullyApproved(documents)) {
+			return {
+				error: ValidationCode.APPLICATIONS_AUTHORIZATION_PACKAGE_NOT_APPROVED,
+			}
 		}
 	}
 

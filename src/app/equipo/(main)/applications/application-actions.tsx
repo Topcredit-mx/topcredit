@@ -1,12 +1,6 @@
 'use client'
 
-import {
-	Banknote,
-	CheckCircle2,
-	ChevronDown,
-	FileWarning,
-	XCircle,
-} from 'lucide-react'
+import { Banknote, CheckCircle2, ChevronDown, XCircle } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useActionState, useRef, useState } from 'react'
 import {
@@ -21,6 +15,11 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from '~/components/ui/tooltip'
 import {
 	getResolvedError,
 	useResolveValidationError,
@@ -38,20 +37,18 @@ export function ApplicationActions({
 	isAdmin,
 	canApprove,
 	canAuthorize,
+	authorizationPackageFullyApproved,
 	canPreAuthorize,
 	canDeny,
-	canSetInvalidDocumentation,
-	hasRejectedDocuments,
 	preAuthorizeDialogProps,
 }: {
 	applicationId: number
 	isAdmin: boolean
 	canApprove: boolean
 	canAuthorize: boolean
+	authorizationPackageFullyApproved: boolean
 	canPreAuthorize: boolean
 	canDeny: boolean
-	canSetInvalidDocumentation: boolean
-	hasRejectedDocuments: boolean
 	preAuthorizeDialogProps?: {
 		initialCreditAmount: string | null
 		initialTermOfferingId: number | null
@@ -81,6 +78,9 @@ export function ApplicationActions({
 		treatEmptyAsNone: true,
 	})
 
+	const authorizeBlockedByPackage =
+		canAuthorize && !authorizationPackageFullyApproved
+
 	function submitImmediateStatus(status: string) {
 		const statusInput = statusInputRef.current
 		const form = immediateFormRef.current
@@ -93,6 +93,11 @@ export function ApplicationActions({
 	return (
 		<div className="flex flex-col gap-2">
 			{translatedError && <Alert variant="banner" message={translatedError} />}
+			{authorizeBlockedByPackage ? (
+				<p className="max-w-md text-muted-foreground text-xs leading-relaxed">
+					{t('applications-authorize-package-incomplete-hint')}
+				</p>
+			) : null}
 			<div className="flex flex-wrap items-center gap-2">
 				<form
 					ref={immediateFormRef}
@@ -112,6 +117,7 @@ export function ApplicationActions({
 							size="sm"
 							disabled={pending || pendingReason}
 							className="gap-2"
+							data-equipo-application-primary-actions="trigger"
 						>
 							{t('applications-actions')}
 							<ChevronDown className="size-4 opacity-70" />
@@ -130,18 +136,43 @@ export function ApplicationActions({
 								{t('applications-action-approve')}
 							</DropdownMenuItem>
 						)}
-						{canAuthorize && (
-							<DropdownMenuItem
-								onSelect={(e) => {
-									e.preventDefault()
-									submitImmediateStatus('authorized')
-								}}
-								disabled={pending || pendingReason}
-							>
-								<CheckCircle2 className="size-4" />
-								{t('applications-action-authorize')}
-							</DropdownMenuItem>
-						)}
+						{canAuthorize &&
+							(authorizeBlockedByPackage ? (
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<span
+											className="inline-flex w-full cursor-default"
+											data-authorize-menu-item="blocked"
+										>
+											<DropdownMenuItem
+												onSelect={(e) => {
+													e.preventDefault()
+												}}
+												disabled
+												aria-disabled
+											>
+												<CheckCircle2 className="size-4" />
+												{t('applications-action-authorize')}
+											</DropdownMenuItem>
+										</span>
+									</TooltipTrigger>
+									<TooltipContent side="left" className="max-w-xs">
+										{t('applications-authorize-package-incomplete-hint')}
+									</TooltipContent>
+								</Tooltip>
+							) : (
+								<DropdownMenuItem
+									data-authorize-menu-item="ready"
+									onSelect={(e) => {
+										e.preventDefault()
+										submitImmediateStatus('authorized')
+									}}
+									disabled={pending || pendingReason}
+								>
+									<CheckCircle2 className="size-4" />
+									{t('applications-action-authorize')}
+								</DropdownMenuItem>
+							))}
 						{canPreAuthorize && preAuthorizeDialogProps ? (
 							<DropdownMenuItem
 								onSelect={(e) => {
@@ -165,28 +196,6 @@ export function ApplicationActions({
 							>
 								<XCircle className="size-4" />
 								{t('applications-action-reject')}
-							</DropdownMenuItem>
-						)}
-						{canSetInvalidDocumentation && (
-							<DropdownMenuItem
-								onSelect={(e) => {
-									e.preventDefault()
-									if (!hasRejectedDocuments) return
-									submitImmediateStatus('invalid-documentation')
-								}}
-								disabled={pending || pendingReason || !hasRejectedDocuments}
-								aria-disabled={
-									pending || pendingReason || !hasRejectedDocuments
-								}
-								title={
-									!hasRejectedDocuments
-										? t('applications-action-invalid-docs-disabled-hint')
-										: undefined
-								}
-								data-application-action="invalid-docs"
-							>
-								<FileWarning className="size-4" />
-								{t('applications-action-invalid-docs')}
 							</DropdownMenuItem>
 						)}
 					</DropdownMenuContent>

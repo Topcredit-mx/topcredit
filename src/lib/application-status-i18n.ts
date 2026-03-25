@@ -1,7 +1,6 @@
 import type { ApplicationStatus } from '~/server/db/schema'
 
 const EQUIPO_STATUS_KEYS = [
-	'applications-status-new',
 	'applications-status-pending',
 	'applications-status-approved',
 	'applications-status-invalid-documentation',
@@ -12,7 +11,6 @@ const EQUIPO_STATUS_KEYS = [
 ] as const
 
 const CUENTA_STATUS_KEYS = [
-	'status-new',
 	'status-pending',
 	'status-approved',
 	'status-invalid-documentation',
@@ -26,7 +24,6 @@ export const EQUIPO_APPLICATION_STATUS_KEYS: Record<
 	ApplicationStatus,
 	(typeof EQUIPO_STATUS_KEYS)[number]
 > = {
-	new: 'applications-status-new',
 	pending: 'applications-status-pending',
 	approved: 'applications-status-approved',
 	'invalid-documentation': 'applications-status-invalid-documentation',
@@ -40,7 +37,6 @@ export const CUENTA_APPLICATION_STATUS_KEYS: Record<
 	ApplicationStatus,
 	(typeof CUENTA_STATUS_KEYS)[number]
 > = {
-	new: 'status-new',
 	pending: 'status-pending',
 	approved: 'status-approved',
 	'invalid-documentation': 'status-invalid-documentation',

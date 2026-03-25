@@ -319,7 +319,7 @@ describe('Admin Companies List', () => {
 		before(() => {
 			editCompany = {
 				name: 'Edit Test Company',
-				domain: 'edittest.com',
+				domain: 'e2e-editcompany-local',
 				rate: '0.0250',
 				borrowingCapacityRate: '0.30',
 				employeeSalaryFrequency: 'monthly' as const,
@@ -344,13 +344,15 @@ describe('Admin Companies List', () => {
 				.within(() => {
 					cy.get('a[href*="/edit"]').should('exist').click()
 				})
-			const editPath = `/equipo/companies/${editCompany.domain}/edit`
+			const editPath = `/equipo/companies/${encodeURIComponent(editCompany.domain)}/edit`
 			cy.url().should('include', editPath)
 			cy.contains(/editar|edit/i).should('be.visible')
 		})
 
 		it('loads existing company data in form', () => {
-			cy.visit(`/equipo/companies/${editCompany.domain}/edit`)
+			cy.visit(
+				`/equipo/companies/${encodeURIComponent(editCompany.domain)}/edit`,
+			)
 
 			cy.get('input[name="name"]').should('have.value', editCompany.name)
 			cy.get('input[name="domain"]').should('have.value', editCompany.domain)
@@ -363,7 +365,9 @@ describe('Admin Companies List', () => {
 		})
 
 		it('toggles active status', () => {
-			cy.visit(`/equipo/companies/${editCompany.domain}/edit`)
+			cy.visit(
+				`/equipo/companies/${encodeURIComponent(editCompany.domain)}/edit`,
+			)
 
 			cy.contains('label', /activa/i)
 				.should('be.visible')
@@ -382,7 +386,9 @@ describe('Admin Companies List', () => {
 					cy.contains('Inactiva').should('exist')
 				})
 
-			cy.visit(`/equipo/companies/${editCompany.domain}/edit`)
+			cy.visit(
+				`/equipo/companies/${encodeURIComponent(editCompany.domain)}/edit`,
+			)
 			cy.contains('label', /activa/i)
 				.should('be.visible')
 				.click()
@@ -401,7 +407,9 @@ describe('Admin Companies List', () => {
 		})
 
 		it('updates company details', () => {
-			cy.visit(`/equipo/companies/${editCompany.domain}/edit`)
+			cy.visit(
+				`/equipo/companies/${encodeURIComponent(editCompany.domain)}/edit`,
+			)
 
 			cy.get('input[name="name"]').clear().type('Updated Company Name')
 			cy.get('input[name="rate"]').clear().type('3.0')
@@ -418,7 +426,9 @@ describe('Admin Companies List', () => {
 				.type('Updated')
 			cy.contains('Updated Company Name').should('exist')
 
-			cy.visit(`/equipo/companies/${editCompany.domain}/edit`)
+			cy.visit(
+				`/equipo/companies/${encodeURIComponent(editCompany.domain)}/edit`,
+			)
 			cy.get('input[name="name"]').clear().type(editCompany.name)
 			cy.get('input[name="rate"]').clear().type('2.5')
 			cy.get('input[name="borrowingCapacityRate"]').clear().type('30')
@@ -428,7 +438,9 @@ describe('Admin Companies List', () => {
 		})
 
 		it('prevents editing domain to duplicate value', () => {
-			cy.visit(`/equipo/companies/${editCompany.domain}/edit`)
+			cy.visit(
+				`/equipo/companies/${encodeURIComponent(editCompany.domain)}/edit`,
+			)
 
 			cy.get('input[name="domain"]').should('be.disabled')
 			cy.contains(/el dominio no puede ser modificado/i).should('be.visible')

@@ -1,7 +1,7 @@
 export const agentWithAssignments = {
 	name: 'Agent With Companies',
 	email: 'agent.switcher@example.com',
-	roles: ['agent'] as const,
+	roles: ['agent', 'requests'] as const,
 }
 
 export const companyAssignedActive = {

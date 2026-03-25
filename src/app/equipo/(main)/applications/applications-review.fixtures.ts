@@ -18,6 +18,30 @@ export const adminForReview = {
 	roles: ['agent', 'admin'] as const,
 }
 
+export const authorizationsAgentForReview = {
+	name: 'Authorizations Review',
+	email: 'authorizations.review@example.com',
+	roles: ['agent', 'authorizations'] as const,
+}
+
+export const applicantAuthzAwaiting = {
+	name: 'Applicant Authz',
+	email: 'applicant.authz@reviewcompany.com',
+	roles: ['applicant'] as const,
+}
+
+export const applicantAuthzDeny = {
+	name: 'Applicant Authz Deny',
+	email: 'applicant.authz.deny@reviewcompany.com',
+	roles: ['applicant'] as const,
+}
+
+export const applicantAuthzAdmin = {
+	name: 'Applicant Authz Admin',
+	email: 'applicant.authz.admin@reviewcompany.com',
+	roles: ['applicant'] as const,
+}
+
 export const applicantForReview = {
 	name: 'Applicant For Review',
 	email: 'applicant.review@reviewcompany.com',
@@ -121,6 +145,9 @@ export const allReviewApplicants = [
 	applicantA4,
 	applicantA5,
 	applicantPreAuth,
+	applicantAuthzAwaiting,
+	applicantAuthzDeny,
+	applicantAuthzAdmin,
 	applicantForReviewB,
 	applicantForReviewC,
 	applicantForReviewD,
@@ -160,7 +187,7 @@ export const reviewApplicationConfigs: readonly ReviewApplicationConfig[] = [
 		companyDomain: companyForReview.domain,
 		creditAmount: '25000',
 		salaryAtApplication: '40000',
-		status: 'new' as const,
+		status: 'pending' as const,
 	},
 	{
 		applicantEmail: applicantA2.email,
@@ -193,9 +220,56 @@ export const reviewApplicationConfigs: readonly ReviewApplicationConfig[] = [
 		salaryAtApplication: '40000',
 		status: 'approved' as const,
 		statusHistory: [
-			{ status: 'new', actorEmail: applicantPreAuth.email },
 			{ status: 'pending', actorEmail: applicantPreAuth.email },
 			{ status: 'approved', actorEmail: agentForReview.email },
+		],
+	},
+	{
+		applicantEmail: applicantAuthzAwaiting.email,
+		companyDomain: companyForReview.domain,
+		creditAmount: '50000.00',
+		salaryAtApplication: '40000',
+		status: 'awaiting-authorization' as const,
+		statusHistory: [
+			{ status: 'pending', actorEmail: applicantAuthzAwaiting.email },
+			{ status: 'approved', actorEmail: agentForReview.email },
+			{ status: 'pre-authorized', actorEmail: preAuthAgentForReview.email },
+			{
+				status: 'awaiting-authorization',
+				actorEmail: applicantAuthzAwaiting.email,
+			},
+		],
+	},
+	{
+		applicantEmail: applicantAuthzDeny.email,
+		companyDomain: companyForReview.domain,
+		creditAmount: '51000.00',
+		salaryAtApplication: '40000',
+		status: 'awaiting-authorization' as const,
+		statusHistory: [
+			{ status: 'pending', actorEmail: applicantAuthzDeny.email },
+			{ status: 'approved', actorEmail: agentForReview.email },
+			{ status: 'pre-authorized', actorEmail: preAuthAgentForReview.email },
+			{
+				status: 'awaiting-authorization',
+				actorEmail: applicantAuthzDeny.email,
+			},
+		],
+	},
+	{
+		applicantEmail: applicantAuthzAdmin.email,
+		companyDomain: companyForReview.domain,
+		creditAmount: '52000.00',
+		salaryAtApplication: '40000',
+		status: 'awaiting-authorization' as const,
+		statusHistory: [
+			{ status: 'pending', actorEmail: applicantAuthzAdmin.email },
+			{ status: 'approved', actorEmail: agentForReview.email },
+			{ status: 'pre-authorized', actorEmail: preAuthAgentForReview.email },
+			{
+				status: 'awaiting-authorization',
+				actorEmail: applicantAuthzAdmin.email,
+			},
 		],
 	},
 	{

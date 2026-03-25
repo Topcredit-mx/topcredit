@@ -52,6 +52,7 @@ export const PROFILE_ROLE_KEYS: Record<
 	agent: 'role-agent',
 	requests: 'role-requests',
 	'pre-authorizations': 'role-pre-authorizations',
+	authorizations: 'role-authorizations',
 	admin: 'role-admin',
 }
 

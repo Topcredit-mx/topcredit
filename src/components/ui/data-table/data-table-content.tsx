@@ -14,7 +14,7 @@ import { useDataTable } from './use-data-table'
 export function DataTableContent<TData>() {
 	const { table, columnsLength } = useDataTable<TData>()
 	return (
-		<div className="overflow-hidden rounded-md border">
+		<div className="rounded-md border">
 			<Table>
 				<TableHeader>
 					{table.getHeaderGroups().map((headerGroup) => (

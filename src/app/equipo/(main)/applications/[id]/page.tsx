@@ -15,8 +15,10 @@ import { ApplicationStatusHistoryCard } from '~/components/application-status-hi
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { filterToLatestDocumentsPerType } from '~/lib/application-document-intake'
 import { canTransitionApplicationFrom } from '~/lib/application-rules'
 import { EQUIPO_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import { isAuthorizationPackageFullyApproved } from '~/lib/authorization-package-readiness'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, subject } from '~/server/auth/ability'
 import type { ApplicationStatus } from '~/server/db/schema'
@@ -28,6 +30,7 @@ import {
 import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
 import { ApplicationDocumentRow } from '../application-document-row'
+import { ApplicationDocumentsReviewForm } from '../application-documents-review-form'
 import { formatApplicationTerm } from '../constants'
 
 function statusBadgeVariant(
@@ -40,7 +43,6 @@ function statusBadgeVariant(
 		case 'awaiting-authorization':
 			return 'default'
 		case 'denied':
-		case 'invalid-documentation':
 			return 'destructive'
 		default:
 			return 'secondary'
@@ -80,21 +82,16 @@ export default async function AppApplicationDetailPage({
 		companyId: application.companyId,
 		status: application.status,
 	})
-	const hasRejectedDocuments = documentList.some((d) => d.status === 'rejected')
 	const canPreAuthorize = ability.can('setStatusPreAuthorized', appSubject)
 	const canAuthorize = ability.can('setStatusAuthorized', appSubject)
 	const canApprove = ability.can('setStatusApproved', appSubject)
 	const canDeny = ability.can('setStatusDenied', appSubject)
-	const canSetInvalidDocumentation = ability.can(
-		'setStatusInvalidDocumentation',
-		appSubject,
-	)
+	const canUpdateDocuments = ability.can('update', appSubject)
+	const documentsForDisplay = filterToLatestDocumentsPerType(documentList)
+	const authorizationPackageFullyApproved =
+		isAuthorizationPackageFullyApproved(documentList)
 	const showActionControls =
-		canApprove ||
-		canAuthorize ||
-		canDeny ||
-		canSetInvalidDocumentation ||
-		canPreAuthorize
+		canApprove || canAuthorize || canDeny || canPreAuthorize
 	const termOfferings =
 		canPreAuthorize && application.status === 'approved'
 			? await getTermOfferingsForCompany(application.companyId)
@@ -189,12 +186,13 @@ export default async function AppApplicationDetailPage({
 								isAdmin={isAdmin}
 								canApprove={canApprove}
 								canAuthorize={canAuthorize}
+								authorizationPackageFullyApproved={
+									authorizationPackageFullyApproved
+								}
 								canPreAuthorize={
 									canPreAuthorize && application.status === 'approved'
 								}
 								canDeny={canDeny}
-								canSetInvalidDocumentation={canSetInvalidDocumentation}
-								hasRejectedDocuments={hasRejectedDocuments}
 								preAuthorizeDialogProps={
 									canPreAuthorize && application.status === 'approved'
 										? {
@@ -266,21 +264,35 @@ export default async function AppApplicationDetailPage({
 					</CardTitle>
 				</CardHeader>
 				<CardContent className={`pt-4 ${DETAIL_CARD_CONTENT_CLASS}`}>
-					{documentList.length > 0 ? (
-						<ul className="space-y-3">
-							{documentList.map((doc) => (
-								<ApplicationDocumentRow
-									key={doc.id}
-									id={doc.id}
-									documentType={doc.documentType}
-									status={doc.status}
-									fileName={doc.fileName}
-									url={doc.url}
-									hasBlobContent={doc.hasBlobContent}
-									rejectionReason={doc.rejectionReason}
-								/>
-							))}
-						</ul>
+					{documentsForDisplay.length > 0 ? (
+						canUpdateDocuments ? (
+							<ApplicationDocumentsReviewForm
+								applicationId={application.id}
+								documents={documentsForDisplay.map((doc) => ({
+									id: doc.id,
+									documentType: doc.documentType,
+									status: doc.status,
+									fileName: doc.fileName,
+									url: doc.url,
+									hasBlobContent: doc.hasBlobContent,
+									rejectionReason: doc.rejectionReason,
+								}))}
+							/>
+						) : (
+							<ul className="space-y-3" data-equipo-application-documents-list>
+								{documentsForDisplay.map((doc) => (
+									<ApplicationDocumentRow
+										key={doc.id}
+										documentType={doc.documentType}
+										status={doc.status}
+										fileName={doc.fileName}
+										url={doc.url}
+										hasBlobContent={doc.hasBlobContent}
+										rejectionReason={doc.rejectionReason}
+									/>
+								))}
+							</ul>
+						)
 					) : (
 						<div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-8 text-center">
 							<FileText

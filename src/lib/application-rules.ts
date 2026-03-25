@@ -9,7 +9,6 @@ export const NOTIFY_STATUSES = [
 	'authorized',
 	'approved',
 	'denied',
-	'invalid-documentation',
 ] as const satisfies readonly ApplicationStatus[]
 
 export type NotifyStatus = (typeof NOTIFY_STATUSES)[number]
@@ -76,7 +75,6 @@ export function canTransitionApplicationFrom(
 	status: ApplicationStatus,
 ): boolean {
 	return (
-		status === 'new' ||
 		status === 'pending' ||
 		status === 'approved' ||
 		status === 'pre-authorized' ||
@@ -89,11 +87,11 @@ export function canTransitionToApplicationStatus(
 	nextStatus: ApplicationStatus,
 ): boolean {
 	if (nextStatus === 'pending') {
-		return currentStatus === 'invalid-documentation'
+		return false
 	}
 
-	if (nextStatus === 'approved' || nextStatus === 'invalid-documentation') {
-		return currentStatus === 'new' || currentStatus === 'pending'
+	if (nextStatus === 'approved') {
+		return currentStatus === 'pending'
 	}
 
 	if (nextStatus === 'pre-authorized') {
@@ -110,7 +108,6 @@ export function canTransitionToApplicationStatus(
 
 	if (nextStatus === 'denied') {
 		return (
-			currentStatus === 'new' ||
 			currentStatus === 'pending' ||
 			currentStatus === 'approved' ||
 			currentStatus === 'pre-authorized' ||

@@ -1,13 +1,16 @@
 import { Resend } from 'resend'
 import { ApplicationStatusTemplate } from '~/components/email/application-status-template'
 import { ApplicationSubmittedTemplate } from '~/components/email/application-submitted-template'
+import { DocumentsRejectedTemplate } from '~/components/email/documents-rejected-template'
 import { OTPTemplate } from '~/components/email/otp-template'
 import { env } from '~/env'
 import type { EmailEventPayload } from '~/inngest/client'
+import { partitionRejectedDocumentsForEmail } from '~/lib/application-documents-rejected-email'
 import { isNotifyStatus } from '~/lib/application-rules'
+import type { EmailMessageKey, EmailT } from '~/lib/email-i18n'
 import { getEmailTranslations } from '~/lib/email-i18n'
 import { getLocationFromIP } from '~/lib/ip-location'
-import type { ApplicationStatus } from '~/server/db/schema'
+import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
 
 const resend = new Resend(env.RESEND_API_KEY)
 const INNGEST_EVENT_KEY = env.INNGEST_EVENT_KEY
@@ -140,6 +143,71 @@ export async function sendApplicationStatusEmail(
 	})
 }
 
+function documentTypeLabelForEmail(
+	t: EmailT,
+	documentType: DocumentType,
+): string {
+	const key =
+		`documentsRejected.documentTypes.${documentType}` as EmailMessageKey
+	return t(key)
+}
+
+export async function sendApplicationDocumentsRejectedEmail(
+	email: string,
+	items: readonly { documentType: DocumentType; reason: string }[],
+): Promise<void> {
+	if (items.length === 0) return
+
+	const { t } = await getEmailT()
+	const { initialRequest, authorizationPackage } =
+		partitionRejectedDocumentsForEmail(items)
+
+	const initialRequestItems = initialRequest.map((item) => ({
+		typeLabel: documentTypeLabelForEmail(t, item.documentType),
+		reason: item.reason,
+	}))
+	const authorizationPackageItems = authorizationPackage.map((item) => ({
+		typeLabel: documentTypeLabelForEmail(t, item.documentType),
+		reason: item.reason,
+	}))
+
+	const subject = t('documentsRejected.subject')
+	const intro = t('documentsRejected.intro')
+	const lines: string[] = [intro, '']
+	if (initialRequestItems.length > 0) {
+		lines.push(t('documentsRejected.sectionInitial'))
+		for (const item of initialRequestItems) {
+			lines.push(
+				`${item.typeLabel}: ${t('documentsRejected.reasonLabel')} ${item.reason}`,
+			)
+		}
+		lines.push('')
+	}
+	if (authorizationPackageItems.length > 0) {
+		lines.push(t('documentsRejected.sectionAuthorization'))
+		for (const item of authorizationPackageItems) {
+			lines.push(
+				`${item.typeLabel}: ${t('documentsRejected.reasonLabel')} ${item.reason}`,
+			)
+		}
+		lines.push('')
+	}
+	lines.push(t('documentsRejected.footer'))
+	const text = lines.join('\n')
+
+	await resend.emails.send({
+		from: env.EMAIL_FROM,
+		to: resolveRecipient(email),
+		subject: resolveSubject(subject, email),
+		text: resolveBody(text, email),
+		react: DocumentsRejectedTemplate({
+			initialRequest: initialRequestItems,
+			authorizationPackage: authorizationPackageItems,
+			t,
+		}),
+	})
+}
+
 export type EmailEventData =
 	| {
 			type: 'application-submitted'
@@ -156,6 +224,11 @@ export type EmailEventData =
 			reason?: string | null
 	  }
 	| { type: 'otp'; email: string; code: string; ipAddress: string }
+	| {
+			type: 'application-documents-rejected'
+			email: string
+			items: { documentType: DocumentType; reason: string }[]
+	  }
 
 export async function sendEmailFromEventData(
 	data: EmailEventData,
@@ -177,6 +250,9 @@ export async function sendEmailFromEventData(
 			break
 		case 'otp':
 			await sendOtpEmail(data.email, data.code, data.ipAddress)
+			break
+		case 'application-documents-rejected':
+			await sendApplicationDocumentsRejectedEmail(data.email, data.items)
 			break
 		default: {
 			const _: never = data
@@ -226,12 +302,33 @@ async function sendEmailEvent(data: EmailEventData): Promise<void> {
 				},
 			}
 			break
+		case 'application-documents-rejected':
+			event = {
+				name: 'email/application.documentsRejected',
+				data: {
+					email: data.email,
+					items: data.items,
+				},
+			}
+			break
 		default: {
 			const _: never = data
 			throw new Error(`Unknown email event type: ${JSON.stringify(data)}`)
 		}
 	}
 	await inngest.send(event)
+}
+
+export async function sendApplicationDocumentsRejectedEvent(
+	email: string,
+	items: readonly { documentType: DocumentType; reason: string }[],
+): Promise<void> {
+	if (items.length === 0) return
+	await sendEmailEvent({
+		type: 'application-documents-rejected',
+		email,
+		items: [...items],
+	})
 }
 
 export async function sendApplicationSubmittedEvent(

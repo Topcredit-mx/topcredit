@@ -1,9 +1,203 @@
 {
-	"id": "3ccce692-f7e7-4ed6-95b6-8027bced33a5",
+	"id": "028ce0cb-b7fa-4f8e-a6b2-5e8e6d9cce05",
 	"prevId": "00000000-0000-0000-0000-000000000000",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
+		"public.application_documents": {
+			"name": "application_documents",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "serial",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"application_id": {
+					"name": "application_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"document_type": {
+					"name": "document_type",
+					"type": "document_type",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"status": {
+					"name": "status",
+					"type": "document_status",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"storage_key": {
+					"name": "storage_key",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"file_name": {
+					"name": "file_name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"rejection_reason": {
+					"name": "rejection_reason",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"application_documents_application_id_document_type_idx": {
+					"name": "application_documents_application_id_document_type_idx",
+					"columns": [
+						{
+							"expression": "application_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "document_type",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"application_documents_application_id_applications_id_fk": {
+					"name": "application_documents_application_id_applications_id_fk",
+					"tableFrom": "application_documents",
+					"tableTo": "applications",
+					"columnsFrom": ["application_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {
+				"application_documents_rejection_reason_check": {
+					"name": "application_documents_rejection_reason_check",
+					"value": "((\"application_documents\".\"status\" = 'rejected' AND \"application_documents\".\"rejection_reason\" IS NOT NULL) OR (\"application_documents\".\"status\" <> 'rejected' AND \"application_documents\".\"rejection_reason\" IS NULL))"
+				}
+			},
+			"isRLSEnabled": false
+		},
+		"public.application_status_history": {
+			"name": "application_status_history",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "serial",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"application_id": {
+					"name": "application_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"status": {
+					"name": "status",
+					"type": "application_status",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"set_by_user_id": {
+					"name": "set_by_user_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"application_status_history_application_id_created_at_idx": {
+					"name": "application_status_history_application_id_created_at_idx",
+					"columns": [
+						{
+							"expression": "application_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "created_at",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"application_status_history_application_id_applications_id_fk": {
+					"name": "application_status_history_application_id_applications_id_fk",
+					"tableFrom": "application_status_history",
+					"tableTo": "applications",
+					"columnsFrom": ["application_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				},
+				"application_status_history_set_by_user_id_users_id_fk": {
+					"name": "application_status_history_set_by_user_id_users_id_fk",
+					"tableFrom": "application_status_history",
+					"tableTo": "users",
+					"columnsFrom": ["set_by_user_id"],
+					"columnsTo": ["id"],
+					"onDelete": "set null",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
 		"public.applications": {
 			"name": "applications",
 			"schema": "",
@@ -20,23 +214,96 @@
 					"primaryKey": false,
 					"notNull": true
 				},
+				"company_id": {
+					"name": "company_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
 				"term_offering_id": {
 					"name": "term_offering_id",
 					"type": "integer",
 					"primaryKey": false,
-					"notNull": true
+					"notNull": false
 				},
 				"credit_amount": {
 					"name": "credit_amount",
 					"type": "numeric(12, 2)",
 					"primaryKey": false,
-					"notNull": true
+					"notNull": false
 				},
 				"salary_at_application": {
 					"name": "salary_at_application",
 					"type": "numeric(12, 2)",
 					"primaryKey": false,
 					"notNull": true
+				},
+				"salary_frequency": {
+					"name": "salary_frequency",
+					"type": "employee_salary_frequency",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"payroll_number": {
+					"name": "payroll_number",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"rfc": {
+					"name": "rfc",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"clabe": {
+					"name": "clabe",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"street_and_number": {
+					"name": "street_and_number",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"interior_number": {
+					"name": "interior_number",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"city": {
+					"name": "city",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"state": {
+					"name": "state",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"country": {
+					"name": "country",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"postal_code": {
+					"name": "postal_code",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"phone_number": {
+					"name": "phone_number",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
 				},
 				"status": {
 					"name": "status",
@@ -77,6 +344,15 @@
 					"onDelete": "cascade",
 					"onUpdate": "no action"
 				},
+				"applications_company_id_companies_id_fk": {
+					"name": "applications_company_id_companies_id_fk",
+					"tableFrom": "applications",
+					"tableTo": "companies",
+					"columnsFrom": ["company_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				},
 				"applications_term_offering_id_term_offerings_id_fk": {
 					"name": "applications_term_offering_id_term_offerings_id_fk",
 					"tableFrom": "applications",
@@ -90,7 +366,12 @@
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {},
 			"policies": {},
-			"checkConstraints": {},
+			"checkConstraints": {
+				"applications_financial_terms_required_for_late_statuses_check": {
+					"name": "applications_financial_terms_required_for_late_statuses_check",
+					"value": "(\"applications\".\"status\" NOT IN ('pre-authorized', 'awaiting-authorization', 'authorized') OR (\"applications\".\"term_offering_id\" IS NOT NULL AND \"applications\".\"credit_amount\" IS NOT NULL))"
+				}
+			},
 			"isRLSEnabled": false
 		},
 		"public.companies": {
@@ -589,12 +870,30 @@
 			"name": "application_status",
 			"schema": "public",
 			"values": [
-				"new",
 				"pending",
+				"approved",
 				"invalid-documentation",
 				"pre-authorized",
+				"awaiting-authorization",
 				"authorized",
 				"denied"
+			]
+		},
+		"public.document_status": {
+			"name": "document_status",
+			"schema": "public",
+			"values": ["pending", "approved", "rejected"]
+		},
+		"public.document_type": {
+			"name": "document_type",
+			"schema": "public",
+			"values": [
+				"official-id",
+				"proof-of-address",
+				"bank-statement",
+				"authorization",
+				"contract",
+				"payroll-receipt"
 			]
 		},
 		"public.duration_type": {
@@ -610,7 +909,14 @@
 		"public.roles": {
 			"name": "roles",
 			"schema": "public",
-			"values": ["applicant", "agent", "requests", "admin"]
+			"values": [
+				"applicant",
+				"agent",
+				"requests",
+				"pre-authorizations",
+				"authorizations",
+				"admin"
+			]
 		}
 	},
 	"schemas": {},

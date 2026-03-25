@@ -124,9 +124,7 @@ type ResetApplicantApplicationTaskParams = {
 	salaryAtApplication: string
 	salaryFrequency?: 'monthly' | 'bi-monthly'
 	status?:
-		| 'new'
 		| 'pending'
-		| 'invalid-documentation'
 		| 'pre-authorized'
 		| 'awaiting-authorization'
 		| 'authorized'

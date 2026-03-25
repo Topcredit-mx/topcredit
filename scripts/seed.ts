@@ -19,6 +19,7 @@ function isRole(s: string): s is Role {
 		s === 'agent' ||
 		s === 'requests' ||
 		s === 'pre-authorizations' ||
+		s === 'authorizations' ||
 		s === 'admin'
 	)
 }
@@ -50,35 +51,21 @@ function getDefaultSeedStatusHistory(
 	setByUserId: number | null,
 ): ReadonlyArray<{ status: ApplicationStatus; setByUserId: number | null }> {
 	switch (status) {
-		case 'new':
-			return [{ status: 'new', setByUserId }]
 		case 'pending':
-			return [
-				{ status: 'new', setByUserId },
-				{ status: 'pending', setByUserId },
-			]
+			return [{ status: 'pending', setByUserId }]
 		case 'approved':
 			return [
-				{ status: 'new', setByUserId },
 				{ status: 'pending', setByUserId },
 				{ status: 'approved', setByUserId },
 			]
-		case 'invalid-documentation':
-			return [
-				{ status: 'new', setByUserId },
-				{ status: 'pending', setByUserId },
-				{ status: 'invalid-documentation', setByUserId },
-			]
 		case 'pre-authorized':
 			return [
-				{ status: 'new', setByUserId },
 				{ status: 'pending', setByUserId },
 				{ status: 'approved', setByUserId },
 				{ status: 'pre-authorized', setByUserId },
 			]
 		case 'awaiting-authorization':
 			return [
-				{ status: 'new', setByUserId },
 				{ status: 'pending', setByUserId },
 				{ status: 'approved', setByUserId },
 				{ status: 'pre-authorized', setByUserId },
@@ -86,7 +73,6 @@ function getDefaultSeedStatusHistory(
 			]
 		case 'authorized':
 			return [
-				{ status: 'new', setByUserId },
 				{ status: 'pending', setByUserId },
 				{ status: 'approved', setByUserId },
 				{ status: 'pre-authorized', setByUserId },
@@ -95,10 +81,13 @@ function getDefaultSeedStatusHistory(
 			]
 		case 'denied':
 			return [
-				{ status: 'new', setByUserId },
 				{ status: 'pending', setByUserId },
 				{ status: 'denied', setByUserId },
 			]
+		case 'invalid-documentation':
+			throw new Error(
+				'invalid-documentation is no longer a supported seed application status',
+			)
 	}
 }
 
@@ -360,7 +349,7 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 		const invalidApp = await db.query.applications.findFirst({
 			where: and(
 				eq(applications.applicantId, invalidDocsApplicantId),
-				eq(applications.status, 'invalid-documentation'),
+				eq(applications.status, 'pending'),
 			),
 			columns: { id: true },
 		})
@@ -380,7 +369,7 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 						'Documento ilegible (semilla de desarrollo). Sube una versión más clara.',
 				})
 				console.log(
-					`  ✓ Created rejected application document (invalid-documentation application ${invalidApp.id})`,
+					`  ✓ Created rejected application document (pending application ${invalidApp.id})`,
 				)
 			}
 		}
