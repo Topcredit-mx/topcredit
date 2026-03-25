@@ -1,7 +1,5 @@
 export const EQUIPO_APPLICATION_DETAIL_LOAD_MS = 15_000
 
-export const EQUIPO_DOCUMENTS_SAVE_BUTTON_RE = /guardar cambios en documentos/i
-
 /** Pre-auth package has 3 document types; server refresh must run before authorize unlocks. */
 export const EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT = 3
 
@@ -26,6 +24,24 @@ export function dismissEquipoApplicationActionsMenu() {
 	cy.get('body').should('not.have.attr', 'data-scroll-locked')
 }
 
+export function assertEquipoDocumentRowStatus(
+	fileName: string,
+	status: string,
+	containSubstring?: string,
+	getOptions?: { timeout?: number },
+) {
+	const row = cy
+		.get(
+			`[data-equipo-application-documents-list] li[data-document-file-name="${fileName}"]`,
+			getOptions,
+		)
+		.first()
+		.should('have.attr', 'data-status', status)
+	if (containSubstring !== undefined) {
+		row.and('contain', containSubstring)
+	}
+}
+
 export function withinEquipoDocumentRowByFileName(
 	fileName: string,
 	fn: () => void,
@@ -33,6 +49,7 @@ export function withinEquipoDocumentRowByFileName(
 	cy.get(
 		`[data-equipo-application-documents-list] li[data-document-file-name="${fileName}"]`,
 	)
+		.first()
 		.should('be.visible')
 		.scrollIntoView()
 		.within(fn)
@@ -63,19 +80,21 @@ export function selectDocumentDecisionInRow(
 	})
 }
 
-/** Approve every listed file in one submit (bulk document decisions). */
+/** Approve every listed file in one submit (bulk document decisions + authorize when applicable). */
 export function approveAuthorizationPackageDocumentsInOneSubmit(
 	fileNames: readonly string[],
 ) {
 	for (const fileName of fileNames) {
 		selectDocumentDecisionInRow(fileName, 'approve')
 	}
-	submitEquipoDocumentReviewForm()
+	cy.get('[data-documents-review-submit]')
+		.should('have.attr', 'data-documents-review-kind', 'save-and-authorize')
+		.should('be.visible')
+		.click()
 	for (const fileName of fileNames) {
-		cy.get(
-			`[data-equipo-application-documents-list] li[data-document-file-name="${fileName}"]`,
-			{ timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS },
-		).should('have.attr', 'data-status', 'approved')
+		assertEquipoDocumentRowStatus(fileName, 'approved', undefined, {
+			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+		})
 	}
 }
 
@@ -100,28 +119,20 @@ export function typeDocumentRejectionReasonInRow(
 }
 
 export function submitEquipoDocumentReviewForm() {
-	cy.contains('button', EQUIPO_DOCUMENTS_SAVE_BUTTON_RE)
+	cy.get('[data-documents-review-submit]')
 		.should('be.visible')
+		.should('not.be.disabled')
 		.click()
 }
 
-export function waitForEquipoAuthorizationPackageApprovedInUi() {
+export function clickDocumentReviewAuthorizeOnly() {
 	cy.get(
-		'[data-equipo-application-documents-list] > li[data-status="approved"]',
+		'[data-documents-review-submit][data-documents-review-kind="authorize-only"]',
 		{
 			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 		},
-	).should('have.length', EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT)
-}
-
-export function clickAuthorizeApplicationWhenReady() {
-	cy.get('[data-slot="dropdown-menu-content"][data-state="open"]', {
-		timeout: 15_000,
-	})
+	)
 		.should('be.visible')
-		.within(() => {
-			cy.get('[data-authorize-menu-item="ready"]', { timeout: 15_000 })
-				.should('be.visible')
-				.click({ force: true })
-		})
+		.should('not.be.disabled')
+		.click()
 }

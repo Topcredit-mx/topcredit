@@ -18,7 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { filterToLatestDocumentsPerType } from '~/lib/application-document-intake'
 import { canTransitionApplicationFrom } from '~/lib/application-rules'
 import { EQUIPO_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
-import { isAuthorizationPackageFullyApproved } from '~/lib/authorization-package-readiness'
+import {
+	isAuthorizationPackageFullyApproved,
+	isInitialIntakeFullyApproved,
+} from '~/lib/authorization-package-readiness'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, subject } from '~/server/auth/ability'
 import type { ApplicationStatus } from '~/server/db/schema'
@@ -90,8 +93,12 @@ export default async function AppApplicationDetailPage({
 	const documentsForDisplay = filterToLatestDocumentsPerType(documentList)
 	const authorizationPackageFullyApproved =
 		isAuthorizationPackageFullyApproved(documentList)
-	const showActionControls =
-		canApprove || canAuthorize || canDeny || canPreAuthorize
+	const initialIntakeFullyApproved = isInitialIntakeFullyApproved(documentList)
+	const showApproveInMenu =
+		canApprove &&
+		application.status === 'pending' &&
+		documentsForDisplay.length === 0
+	const showActionControls = canDeny || canPreAuthorize || showApproveInMenu
 	const termOfferings =
 		canPreAuthorize && application.status === 'approved'
 			? await getTermOfferingsForCompany(application.companyId)
@@ -185,10 +192,7 @@ export default async function AppApplicationDetailPage({
 								applicationId={application.id}
 								isAdmin={isAdmin}
 								canApprove={canApprove}
-								canAuthorize={canAuthorize}
-								authorizationPackageFullyApproved={
-									authorizationPackageFullyApproved
-								}
+								showApproveInMenu={showApproveInMenu}
 								canPreAuthorize={
 									canPreAuthorize && application.status === 'approved'
 								}
@@ -268,6 +272,18 @@ export default async function AppApplicationDetailPage({
 						canUpdateDocuments ? (
 							<ApplicationDocumentsReviewForm
 								applicationId={application.id}
+								applicationStatus={application.status}
+								canFollowUpApprove={
+									canApprove && application.status === 'pending'
+								}
+								canFollowUpAuthorize={
+									canAuthorize &&
+									application.status === 'awaiting-authorization'
+								}
+								authorizationPackageFullyApproved={
+									authorizationPackageFullyApproved
+								}
+								initialIntakeFullyApproved={initialIntakeFullyApproved}
 								documents={documentsForDisplay.map((doc) => ({
 									id: doc.id,
 									documentType: doc.documentType,
@@ -276,6 +292,7 @@ export default async function AppApplicationDetailPage({
 									url: doc.url,
 									hasBlobContent: doc.hasBlobContent,
 									rejectionReason: doc.rejectionReason,
+									createdAt: doc.createdAt,
 								}))}
 							/>
 						) : (

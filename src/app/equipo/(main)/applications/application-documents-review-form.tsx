@@ -3,7 +3,13 @@
 import { CheckCircle2, Eye, FileText, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { startTransition, useActionState, useEffect, useState } from 'react'
+import {
+	startTransition,
+	useActionState,
+	useEffect,
+	useMemo,
+	useState,
+} from 'react'
 import {
 	type ApplyDocumentDecisionsState,
 	applyDocumentDecisionsAction,
@@ -11,29 +17,74 @@ import {
 import { Button } from '~/components/ui/button'
 import { FieldError } from '~/components/ui/field'
 import { Textarea } from '~/components/ui/textarea'
+import {
+	isAuthorizationPackageFullyApproved,
+	isInitialIntakeFullyApproved,
+} from '~/lib/authorization-package-readiness'
 import { EQUIPO_DOCUMENT_TYPE_KEYS, isDocumentType } from '~/lib/i18n-keys'
 import {
 	getResolvedError,
 	useResolveValidationError,
 } from '~/lib/validation-code-to-i18n'
-import type { DocumentStatus } from '~/server/db/schema'
+import type {
+	ApplicationStatus,
+	DocumentStatus,
+	DocumentType,
+} from '~/server/db/schema'
 
 export type ReviewFormDocument = {
 	id: number
-	documentType: string
+	documentType: DocumentType
 	status: DocumentStatus
 	fileName: string
 	url: string
 	hasBlobContent: boolean
 	rejectionReason: string | null
+	createdAt: Date
+}
+
+function effectiveStatusForRow(
+	doc: ReviewFormDocument,
+	decision: 'unchanged' | 'approve' | 'reject',
+): DocumentStatus {
+	if (decision === 'unchanged') return doc.status
+	if (decision === 'approve') return 'approved'
+	return 'rejected'
+}
+
+function buildProjectedPackageRows(
+	documents: readonly ReviewFormDocument[],
+	decisionById: Record<number, 'unchanged' | 'approve' | 'reject'>,
+): {
+	documentType: DocumentType
+	status: DocumentStatus
+	createdAt: Date
+	hasBlobContent: boolean
+}[] {
+	return documents.map((doc) => ({
+		documentType: doc.documentType,
+		status: effectiveStatusForRow(doc, decisionById[doc.id] ?? 'unchanged'),
+		createdAt: doc.createdAt,
+		hasBlobContent: doc.hasBlobContent,
+	}))
 }
 
 export function ApplicationDocumentsReviewForm({
 	applicationId,
 	documents,
+	applicationStatus,
+	canFollowUpApprove,
+	canFollowUpAuthorize,
+	authorizationPackageFullyApproved,
+	initialIntakeFullyApproved,
 }: {
 	applicationId: number
 	documents: readonly ReviewFormDocument[]
+	applicationStatus: ApplicationStatus
+	canFollowUpApprove: boolean
+	canFollowUpAuthorize: boolean
+	authorizationPackageFullyApproved: boolean
+	initialIntakeFullyApproved: boolean
 }) {
 	const t = useTranslations('equipo')
 	const router = useRouter()
@@ -70,9 +121,136 @@ export function ApplicationDocumentsReviewForm({
 	const displayError = getResolvedError(state, resolveError)
 	const serverError = displayError ?? undefined
 
+	const { submitPlan } = useMemo(() => {
+		let dirty = false
+		for (const doc of documents) {
+			const dec = decisionById[doc.id] ?? 'unchanged'
+			if (dec !== 'unchanged') {
+				dirty = true
+				break
+			}
+		}
+
+		const projected = buildProjectedPackageRows(documents, decisionById)
+		const hasRejectInBatch = projected.some((r) => r.status === 'rejected')
+
+		const projectsAuthPackageComplete =
+			applicationStatus === 'awaiting-authorization' &&
+			isAuthorizationPackageFullyApproved(projected)
+		const projectsInitialComplete =
+			applicationStatus === 'pending' && isInitialIntakeFullyApproved(projected)
+
+		const showAuthorizeOnly =
+			!dirty &&
+			canFollowUpAuthorize &&
+			authorizationPackageFullyApproved &&
+			applicationStatus === 'awaiting-authorization'
+		const showApproveOnly =
+			!dirty &&
+			canFollowUpApprove &&
+			initialIntakeFullyApproved &&
+			applicationStatus === 'pending'
+
+		let followUpStatus: 'approved' | 'authorized' | undefined
+		if (dirty && !hasRejectInBatch) {
+			if (projectsAuthPackageComplete && canFollowUpAuthorize) {
+				followUpStatus = 'authorized'
+			} else if (projectsInitialComplete && canFollowUpApprove) {
+				followUpStatus = 'approved'
+			}
+		}
+		if (showAuthorizeOnly) {
+			followUpStatus = 'authorized'
+		}
+		if (showApproveOnly) {
+			followUpStatus = 'approved'
+		}
+
+		type Plan =
+			| { kind: 'request-changes' }
+			| {
+					kind: 'save-and-authorize' | 'save-and-approve' | 'save-only'
+					followUpStatus?: 'approved' | 'authorized'
+			  }
+			| { kind: 'authorize-only' }
+			| { kind: 'approve-only' }
+			| { kind: 'idle' }
+
+		let plan: Plan
+		if (hasRejectInBatch && dirty) {
+			plan = { kind: 'request-changes' }
+		} else if (showAuthorizeOnly) {
+			plan = { kind: 'authorize-only' }
+		} else if (showApproveOnly) {
+			plan = { kind: 'approve-only' }
+		} else if (dirty) {
+			plan = {
+				kind:
+					followUpStatus === 'authorized'
+						? 'save-and-authorize'
+						: followUpStatus === 'approved'
+							? 'save-and-approve'
+							: 'save-only',
+				followUpStatus,
+			}
+		} else {
+			plan = { kind: 'idle' }
+		}
+
+		const submitEnabled = dirty || showAuthorizeOnly || showApproveOnly
+
+		return { submitPlan: { plan, submitEnabled, followUpStatus } }
+	}, [
+		documents,
+		decisionById,
+		applicationStatus,
+		canFollowUpApprove,
+		canFollowUpAuthorize,
+		authorizationPackageFullyApproved,
+		initialIntakeFullyApproved,
+	])
+
 	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault()
 		setLocalError(null)
+
+		const { plan, followUpStatus, submitEnabled } = submitPlan
+		if (!submitEnabled) {
+			return
+		}
+
+		if (plan.kind === 'authorize-only') {
+			const fd = new FormData()
+			fd.set(
+				'payload',
+				JSON.stringify({
+					applicationId,
+					decisions: [],
+					followUpStatus: 'authorized',
+				}),
+			)
+			startTransition(() => {
+				submit(fd)
+			})
+			return
+		}
+
+		if (plan.kind === 'approve-only') {
+			const fd = new FormData()
+			fd.set(
+				'payload',
+				JSON.stringify({
+					applicationId,
+					decisions: [],
+					followUpStatus: 'approved',
+				}),
+			)
+			startTransition(() => {
+				submit(fd)
+			})
+			return
+		}
+
 		const decisions: {
 			documentId: number
 			status: 'approved' | 'rejected'
@@ -104,14 +282,75 @@ export function ApplicationDocumentsReviewForm({
 			setLocalError(t('applications-document-decisions-required'))
 			return
 		}
+
+		const payload: {
+			applicationId: number
+			decisions: typeof decisions
+			followUpStatus?: 'approved' | 'authorized'
+		} = { applicationId, decisions }
+		if (
+			plan.kind === 'save-and-authorize' ||
+			plan.kind === 'save-and-approve'
+		) {
+			if (followUpStatus != null) {
+				payload.followUpStatus = followUpStatus
+			}
+		}
+
 		const fd = new FormData()
-		fd.set('payload', JSON.stringify({ applicationId, decisions }))
+		fd.set('payload', JSON.stringify(payload))
 		startTransition(() => {
 			submit(fd)
 		})
 	}
 
 	const combinedError = localError ?? serverError
+
+	const buttonLabel = (() => {
+		const { plan } = submitPlan
+		if (plan.kind === 'request-changes') {
+			return t('applications-documents-review-request-changes')
+		}
+		if (plan.kind === 'authorize-only') {
+			return t('applications-documents-review-authorize-only')
+		}
+		if (plan.kind === 'approve-only') {
+			return t('applications-documents-review-approve-only')
+		}
+		if (plan.kind === 'save-and-authorize') {
+			return t('applications-documents-review-save-and-authorize')
+		}
+		if (plan.kind === 'save-and-approve') {
+			return t('applications-documents-review-save-and-approve')
+		}
+		return t('applications-documents-review-submit')
+	})()
+
+	const buttonVariant = (() => {
+		const { plan } = submitPlan
+		if (plan.kind === 'request-changes') {
+			return 'destructive' as const
+		}
+		if (
+			plan.kind === 'save-and-authorize' ||
+			plan.kind === 'authorize-only' ||
+			plan.kind === 'save-and-approve' ||
+			plan.kind === 'approve-only'
+		) {
+			return 'default' as const
+		}
+		return 'secondary' as const
+	})()
+
+	const reviewKind = (() => {
+		const { plan } = submitPlan
+		if (plan.kind === 'request-changes') return 'request-changes'
+		if (plan.kind === 'authorize-only') return 'authorize-only'
+		if (plan.kind === 'approve-only') return 'approve-only'
+		if (plan.kind === 'save-and-authorize') return 'save-and-authorize'
+		if (plan.kind === 'save-and-approve') return 'save-and-approve'
+		return 'save'
+	})()
 
 	return (
 		<form
@@ -139,10 +378,16 @@ export function ApplicationDocumentsReviewForm({
 				))}
 			</ul>
 			<div className="flex justify-end border-border/60 border-t pt-4">
-				<Button type="submit" disabled={pending} data-documents-review-submit>
+				<Button
+					type="submit"
+					variant={buttonVariant}
+					disabled={pending || !submitPlan.submitEnabled}
+					data-documents-review-submit
+					data-documents-review-kind={reviewKind}
+				>
 					{pending
 						? t('applications-documents-review-submitting')
-						: t('applications-documents-review-submit')}
+						: buttonLabel}
 				</Button>
 			</div>
 		</form>

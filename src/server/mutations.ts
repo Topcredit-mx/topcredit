@@ -2,14 +2,17 @@
 
 import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { filterToLatestDocumentsPerType } from '~/lib/application-document-intake'
 import {
 	canTransitionToApplicationStatus,
 	statusRequiresFinancialTerms,
 	statusRequiresReason,
 } from '~/lib/application-rules'
 import {
+	type DocumentRowForPackageCheck,
 	isAuthorizationPackageFullyApproved,
 	isAuthorizationPackageReadyForSubmit,
+	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
 import {
 	isPreAuthOverCapacity,
@@ -34,7 +37,11 @@ import {
 	type Role,
 } from '~/server/auth/session'
 import { db } from '~/server/db'
-import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
+import type {
+	ApplicationStatus,
+	DocumentStatus,
+	DocumentType,
+} from '~/server/db/schema'
 import {
 	applicationDocuments,
 	companies,
@@ -53,6 +60,7 @@ import {
 	preAuthorizeApplicationSchema,
 	updateApplicationStatusSchema,
 } from '~/server/schemas'
+import { isBlobStorageKey } from '~/server/storage'
 
 // ---- User ----
 
@@ -180,6 +188,108 @@ export async function deleteCompany(id: number) {
 
 // ---- Application (solicitud) ----
 
+type ApplicationRowForSubject = {
+	id: number
+	applicantId: number
+	companyId: number
+	status: ApplicationStatus
+	termOfferingId: number | null
+	creditAmount: string | null
+}
+
+function mergeDocumentDecisionsIntoRows<
+	T extends {
+		id: number
+		documentType: DocumentType
+		status: DocumentStatus
+		rejectionReason: string | null
+		createdAt: Date
+		hasBlobContent: boolean
+	},
+>(
+	rows: readonly T[],
+	decisions: readonly {
+		documentId: number
+		status: 'approved' | 'rejected'
+		rejectionReason: string | null
+	}[],
+): T[] {
+	const decisionById = new Map(decisions.map((d) => [d.documentId, d] as const))
+	return rows.map((row) => {
+		const d = decisionById.get(row.id)
+		if (d == null) return row
+		return {
+			...row,
+			status: d.status,
+			rejectionReason: d.status === 'rejected' ? d.rejectionReason : null,
+		}
+	})
+}
+
+function followUpPackageValidationError(
+	followUpStatus: 'approved' | 'authorized',
+	documents: DocumentRowForPackageCheck[],
+): (typeof ValidationCode)[keyof typeof ValidationCode] | null {
+	if (followUpStatus === 'authorized') {
+		if (!isAuthorizationPackageFullyApproved(documents)) {
+			return ValidationCode.APPLICATIONS_AUTHORIZATION_PACKAGE_NOT_APPROVED
+		}
+		return null
+	}
+	if (!isInitialIntakeFullyApproved(documents)) {
+		return ValidationCode.APPLICATIONS_ERROR_TRANSITION
+	}
+	return null
+}
+
+async function applyFollowUpStatusIfValid(
+	applicationId: number,
+	followUpStatus: 'approved' | 'authorized',
+	application: ApplicationRowForSubject,
+): Promise<{ error?: string }> {
+	const { ability } = await getAbility()
+	const user = await getRequiredUser()
+
+	if (!canTransitionToApplicationStatus(application.status, followUpStatus)) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	if (statusRequiresFinancialTerms(followUpStatus)) {
+		if (
+			application.termOfferingId == null ||
+			application.creditAmount == null
+		) {
+			return { error: ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED }
+		}
+	}
+
+	const action = getActionForApplicationStatus(followUpStatus)
+	if (action == null) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	if (!ability.can(action, toApplicationSubject(application))) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	const documents = await getApplicationDocuments(applicationId)
+	const packageError = followUpPackageValidationError(followUpStatus, documents)
+	if (packageError != null) {
+		return { error: packageError }
+	}
+
+	await updateApplicationWithStatusHistory({
+		applicationId,
+		status: followUpStatus,
+		setByUserId: user.id,
+		denialReason: null,
+	})
+
+	await sendApplicationStatusEmail(applicationId, followUpStatus)
+
+	return {}
+}
+
 export async function applyApplicationDocumentDecisions(
 	payload: unknown,
 ): Promise<{ error?: string }> {
@@ -188,12 +298,66 @@ export async function applyApplicationDocumentDecisions(
 		const msg = parsed.error.issues[0]?.message
 		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
 	}
-	const { applicationId, decisions } = parsed.data
+	const { applicationId, decisions, followUpStatus } = parsed.data
 	const { ability } = await getAbility()
+
+	const application = await db.query.applications.findFirst({
+		where: (a, { eq: eqA }) => eqA(a.id, applicationId),
+		columns: {
+			id: true,
+			applicantId: true,
+			companyId: true,
+			status: true,
+			termOfferingId: true,
+			creditAmount: true,
+		},
+	})
+	if (!application) {
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+
+	requireAbility(
+		ability,
+		'update',
+		subject('Application', {
+			id: application.id,
+			applicantId: application.applicantId,
+			companyId: application.companyId,
+			status: application.status,
+		}),
+	)
+
+	if (decisions.length === 0) {
+		if (followUpStatus == null) {
+			return { error: ValidationCode.APPLICATIONS_DOCUMENT_DECISIONS_REQUIRED }
+		}
+		const followUpResult = await applyFollowUpStatusIfValid(
+			applicationId,
+			followUpStatus,
+			application,
+		)
+		if (followUpResult.error != null) {
+			return { error: followUpResult.error }
+		}
+		revalidatePath('/equipo/applications')
+		revalidatePath(`/equipo/applications/${applicationId}`)
+		revalidatePath('/cuenta/applications')
+		revalidatePath(`/cuenta/applications/${applicationId}`)
+		return {}
+	}
+
 	const docIds = decisions.map((d) => d.documentId)
 	const rows = await db.query.applicationDocuments.findMany({
 		where: (d, { inArray: inArr }) => inArr(d.id, docIds),
-		columns: { id: true, applicationId: true, documentType: true },
+		columns: {
+			id: true,
+			applicationId: true,
+			documentType: true,
+			status: true,
+			rejectionReason: true,
+			createdAt: true,
+			storageKey: true,
+		},
 		with: {
 			application: {
 				columns: { id: true, applicantId: true, companyId: true, status: true },
@@ -212,24 +376,47 @@ export async function applyApplicationDocumentDecisions(
 		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
 	}
 	const first = rows[0]
-	if (!first?.application)
+	if (!first?.application) {
 		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
-	const companyId = first.application.companyId
-	requireAbility(
-		ability,
-		'update',
-		subject('Application', {
-			id: first.application.id,
-			applicantId: first.application.applicantId,
-			companyId,
-			status: first.application.status,
-		}),
-	)
+	}
 	for (const decision of decisions) {
 		const row = byId.get(decision.documentId)
-		if (!row?.application)
+		if (!row?.application) {
 			return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+		}
 	}
+
+	if (followUpStatus != null) {
+		if (decisions.some((d) => d.status === 'rejected')) {
+			return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+		}
+		const allRows = await db
+			.select({
+				id: applicationDocuments.id,
+				documentType: applicationDocuments.documentType,
+				status: applicationDocuments.status,
+				createdAt: applicationDocuments.createdAt,
+				rejectionReason: applicationDocuments.rejectionReason,
+				storageKey: applicationDocuments.storageKey,
+			})
+			.from(applicationDocuments)
+			.where(eq(applicationDocuments.applicationId, applicationId))
+
+		const rowsForMerge = allRows.map((r) => ({
+			...r,
+			hasBlobContent: isBlobStorageKey(r.storageKey),
+		}))
+		const merged = mergeDocumentDecisionsIntoRows(rowsForMerge, decisions)
+		const latest = filterToLatestDocumentsPerType(merged)
+		const preWritePackageError = followUpPackageValidationError(
+			followUpStatus,
+			latest,
+		)
+		if (preWritePackageError != null) {
+			return { error: preWritePackageError }
+		}
+	}
+
 	const rejectedForEmail: { documentType: DocumentType; reason: string }[] = []
 	for (const decision of decisions) {
 		const row = byId.get(decision.documentId)
@@ -253,17 +440,30 @@ export async function applyApplicationDocumentDecisions(
 			})
 		}
 	}
-	const application = await db.query.applications.findFirst({
+
+	const applicationForEmail = await db.query.applications.findFirst({
 		where: (a, { eq: eqA }) => eqA(a.id, applicationId),
 		with: { applicant: { columns: { email: true } } },
 	})
-	const applicantEmail = application?.applicant?.email
+	const applicantEmail = applicationForEmail?.applicant?.email
 	if (applicantEmail && rejectedForEmail.length > 0) {
 		await sendApplicationDocumentsRejectedEvent(
 			applicantEmail,
 			rejectedForEmail,
 		)
 	}
+
+	if (followUpStatus != null) {
+		const followUpResult = await applyFollowUpStatusIfValid(
+			applicationId,
+			followUpStatus,
+			application,
+		)
+		if (followUpResult.error != null) {
+			return { error: followUpResult.error }
+		}
+	}
+
 	revalidatePath('/equipo/applications')
 	revalidatePath(`/equipo/applications/${applicationId}`)
 	revalidatePath('/cuenta/applications')

@@ -43,6 +43,23 @@ test('applyApplicationDocumentDecisionsSchema rejects when rejection reason is b
 	assert.equal(result.success, false)
 })
 
+test('applyApplicationDocumentDecisionsSchema accepts empty decisions with followUp', () => {
+	const result = applyApplicationDocumentDecisionsSchema.safeParse({
+		applicationId: 1,
+		decisions: [],
+		followUpStatus: 'authorized',
+	})
+	assert.equal(result.success, true)
+})
+
+test('applyApplicationDocumentDecisionsSchema rejects empty decisions without followUp', () => {
+	const result = applyApplicationDocumentDecisionsSchema.safeParse({
+		applicationId: 1,
+		decisions: [],
+	})
+	assert.equal(result.success, false)
+})
+
 test('partitionRejectedDocumentsForEmail splits initial vs authorization package types', () => {
 	const result = partitionRejectedDocumentsForEmail([
 		{ documentType: 'official-id', reason: 'a' },

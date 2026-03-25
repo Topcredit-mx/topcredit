@@ -83,6 +83,10 @@ declare namespace Cypress {
 			event: 'seedPreAuthorizedPackageDocuments',
 			params: import('../tasks').SeedPreAuthorizedPackageDocumentsTaskParams,
 		): Chainable<null>
+		task(
+			event: 'updateLatestApplicationDocumentByType',
+			params: import('../tasks').UpdateLatestApplicationDocumentByTypeTaskParams,
+		): Chainable<null>
 	}
 }
 

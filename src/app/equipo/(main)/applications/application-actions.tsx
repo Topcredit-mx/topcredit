@@ -16,11 +16,6 @@ import {
 	DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from '~/components/ui/tooltip'
-import {
 	getResolvedError,
 	useResolveValidationError,
 } from '~/lib/validation-code-to-i18n'
@@ -36,8 +31,7 @@ export function ApplicationActions({
 	applicationId,
 	isAdmin,
 	canApprove,
-	canAuthorize,
-	authorizationPackageFullyApproved,
+	showApproveInMenu,
 	canPreAuthorize,
 	canDeny,
 	preAuthorizeDialogProps,
@@ -45,8 +39,7 @@ export function ApplicationActions({
 	applicationId: number
 	isAdmin: boolean
 	canApprove: boolean
-	canAuthorize: boolean
-	authorizationPackageFullyApproved: boolean
+	showApproveInMenu: boolean
 	canPreAuthorize: boolean
 	canDeny: boolean
 	preAuthorizeDialogProps?: {
@@ -78,9 +71,6 @@ export function ApplicationActions({
 		treatEmptyAsNone: true,
 	})
 
-	const authorizeBlockedByPackage =
-		canAuthorize && !authorizationPackageFullyApproved
-
 	function submitImmediateStatus(status: string) {
 		const statusInput = statusInputRef.current
 		const form = immediateFormRef.current
@@ -93,11 +83,6 @@ export function ApplicationActions({
 	return (
 		<div className="flex flex-col gap-2">
 			{translatedError && <Alert variant="banner" message={translatedError} />}
-			{authorizeBlockedByPackage ? (
-				<p className="max-w-md text-muted-foreground text-xs leading-relaxed">
-					{t('applications-authorize-package-incomplete-hint')}
-				</p>
-			) : null}
 			<div className="flex flex-wrap items-center gap-2">
 				<form
 					ref={immediateFormRef}
@@ -124,7 +109,7 @@ export function ApplicationActions({
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="start" className="min-w-48">
-						{canApprove && (
+						{showApproveInMenu && canApprove ? (
 							<DropdownMenuItem
 								onSelect={(e) => {
 									e.preventDefault()
@@ -135,44 +120,7 @@ export function ApplicationActions({
 								<CheckCircle2 className="size-4" />
 								{t('applications-action-approve')}
 							</DropdownMenuItem>
-						)}
-						{canAuthorize &&
-							(authorizeBlockedByPackage ? (
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<span
-											className="inline-flex w-full cursor-default"
-											data-authorize-menu-item="blocked"
-										>
-											<DropdownMenuItem
-												onSelect={(e) => {
-													e.preventDefault()
-												}}
-												disabled
-												aria-disabled
-											>
-												<CheckCircle2 className="size-4" />
-												{t('applications-action-authorize')}
-											</DropdownMenuItem>
-										</span>
-									</TooltipTrigger>
-									<TooltipContent side="left" className="max-w-xs">
-										{t('applications-authorize-package-incomplete-hint')}
-									</TooltipContent>
-								</Tooltip>
-							) : (
-								<DropdownMenuItem
-									data-authorize-menu-item="ready"
-									onSelect={(e) => {
-										e.preventDefault()
-										submitImmediateStatus('authorized')
-									}}
-									disabled={pending || pendingReason}
-								>
-									<CheckCircle2 className="size-4" />
-									{t('applications-action-authorize')}
-								</DropdownMenuItem>
-							))}
+						) : null}
 						{canPreAuthorize && preAuthorizeDialogProps ? (
 							<DropdownMenuItem
 								onSelect={(e) => {

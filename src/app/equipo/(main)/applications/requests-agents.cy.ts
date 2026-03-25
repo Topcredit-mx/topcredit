@@ -1,5 +1,7 @@
 import {
 	assertEquipoApplicationDetailLoaded,
+	assertEquipoDocumentRowStatus,
+	EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 	openEquipoApplicationActions,
 	selectDocumentDecisionInRow,
 	submitEquipoDocumentReviewForm,
@@ -79,9 +81,7 @@ describe('Requests agents', () => {
 				assertEquipoApplicationDetailLoaded()
 				selectDocumentDecisionInRow('auth-approve-e2e.pdf', 'approve')
 				submitEquipoDocumentReviewForm()
-				cy.get('[data-equipo-application-documents-list]')
-					.contains('li', 'auth-approve-e2e.pdf')
-					.should('have.attr', 'data-status', 'approved')
+				assertEquipoDocumentRowStatus('auth-approve-e2e.pdf', 'approved')
 			})
 
 			it('shows validation error when agent submits reject without reason', () => {
@@ -111,10 +111,11 @@ describe('Requests agents', () => {
 				selectDocumentDecisionInRow('reject-with-reason-e2e.pdf', 'reject')
 				typeDocumentRejectionReasonInRow('reject-with-reason-e2e.pdf', reason)
 				submitEquipoDocumentReviewForm()
-				cy.get('[data-equipo-application-documents-list]')
-					.contains('li', 'reject-with-reason-e2e.pdf')
-					.should('have.attr', 'data-status', 'rejected')
-					.and('contain', reason)
+				assertEquipoDocumentRowStatus(
+					'reject-with-reason-e2e.pdf',
+					'rejected',
+					reason,
+				)
 			})
 
 			it('allows agent to reject a document then approve it again', () => {
@@ -133,14 +134,10 @@ describe('Requests agents', () => {
 					rejectReason,
 				)
 				submitEquipoDocumentReviewForm()
-				cy.get('[data-equipo-application-documents-list]')
-					.contains('li', 'deny-then-approve-e2e.pdf')
-					.should('have.attr', 'data-status', 'rejected')
+				assertEquipoDocumentRowStatus('deny-then-approve-e2e.pdf', 'rejected')
 				selectDocumentDecisionInRow('deny-then-approve-e2e.pdf', 'approve')
 				submitEquipoDocumentReviewForm()
-				cy.get('[data-equipo-application-documents-list]')
-					.contains('li', 'deny-then-approve-e2e.pdf')
-					.should('have.attr', 'data-status', 'approved')
+				assertEquipoDocumentRowStatus('deny-then-approve-e2e.pdf', 'approved')
 			})
 		})
 
@@ -247,17 +244,6 @@ describe('Requests agents', () => {
 			cy.contains(/denegado/i).should('be.visible')
 		})
 
-		it('requests agent sees only approve and reject in actions menu', () => {
-			cy.visit(`/equipo/applications/${seed.applicantA5ApplicationId}`)
-			cy.contains(/detalle de solicitud/i).should('be.visible')
-			openEquipoApplicationActions()
-			cy.get('[role="menu"]').within(() => {
-				cy.get('[role="menuitem"]').should('have.length', 2)
-				cy.contains('[role="menuitem"]', /aprobar/i).should('be.visible')
-				cy.contains('[role="menuitem"]', /rechazar/i).should('be.visible')
-			})
-		})
-
 		it('can reject a document while the application stays pending', () => {
 			cy.task('insertApplicationDocument', {
 				applicationId: seed.applicantA3ApplicationId,
@@ -276,9 +262,7 @@ describe('Requests agents', () => {
 				'E2E document rejected',
 			)
 			submitEquipoDocumentReviewForm()
-			cy.get('[data-equipo-application-documents-list]')
-				.contains('li', 'e2e-40k-reject-doc.pdf')
-				.should('have.attr', 'data-status', 'rejected')
+			assertEquipoDocumentRowStatus('e2e-40k-reject-doc.pdf', 'rejected')
 			cy.get(
 				'[data-equipo-application-detail] [data-current-application-status="pending"]',
 			).should('be.visible')
@@ -311,6 +295,19 @@ describe('Requests agents', () => {
 			cy.contains(/aprobada/i).should('be.visible')
 		})
 
+		it('requests agent sees only deny in actions menu when the application has documents', () => {
+			cy.visit(`/equipo/applications/${seed.applicantA3ApplicationId}`)
+			cy.contains(/detalle de solicitud/i).should('be.visible')
+			cy.get(
+				'[data-equipo-application-detail] [data-current-application-status="pending"]',
+			).should('be.visible')
+			openEquipoApplicationActions()
+			cy.get('[role="menu"]').within(() => {
+				cy.get('[role="menuitem"]').should('have.length', 1)
+				cy.contains('[role="menuitem"]', /rechazar/i).should('be.visible')
+			})
+		})
+
 		it('filter by status shows matching applications', () => {
 			cy.visit('/equipo/applications')
 			cy.get('table').should('be.visible')
@@ -334,6 +331,24 @@ describe('Requests agents', () => {
 			cy.contains(
 				/404|not found|página no encontrada|could not be found/i,
 			).should('be.visible')
+		})
+
+		describe('Cross-role access (requests vs authorization stage)', () => {
+			it('hides application actions and document decisions on awaiting-authorization', () => {
+				cy.visit(`/equipo/applications/${seed.authzApplicationId}`)
+				cy.get(
+					'[data-equipo-application-detail] [data-current-application-status="awaiting-authorization"]',
+					{ timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS },
+				).should('be.visible')
+				cy.get('[data-equipo-application-primary-actions="trigger"]').should(
+					'not.exist',
+				)
+				cy.get('[data-equipo-application-documents-list] > li').should(
+					'have.length',
+					3,
+				)
+				cy.get('[data-document-decision-button]').should('not.exist')
+			})
 		})
 	})
 

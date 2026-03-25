@@ -1,14 +1,13 @@
 import {
 	approveAuthorizationPackageDocumentsInOneSubmit,
+	assertEquipoDocumentRowStatus,
 	assertEquipoDocumentRowsSortedByDocumentType,
-	clickAuthorizeApplicationWhenReady,
-	dismissEquipoApplicationActionsMenu,
+	clickDocumentReviewAuthorizeOnly,
 	EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 	openEquipoApplicationActions,
 	selectDocumentDecisionInRow,
 	submitEquipoDocumentReviewForm,
 	typeDocumentRejectionReasonInRow,
-	waitForEquipoAuthorizationPackageApprovedInUi,
 } from '../../../../../cypress/support/equipo-document-review-helpers'
 import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
 import {
@@ -37,7 +36,18 @@ describe('Authorizations agents', () => {
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 
-		it('blocks authorize until each package document is approved, then authorizes', () => {
+		it('does not show application actions on a pending requests-stage application', () => {
+			cy.visit(`/equipo/applications/${seed.applicationId}`)
+			cy.get(
+				'[data-equipo-application-detail] [data-current-application-status="pending"]',
+				{ timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS },
+			).should('be.visible')
+			cy.get('[data-equipo-application-primary-actions="trigger"]').should(
+				'not.exist',
+			)
+		})
+
+		it('authorizes when all package documents are approved in one submit', () => {
 			const authzId = seed.authzApplicationId
 			const authzPackageFiles = [
 				`seed-authorization-authz-${authzId}.pdf`,
@@ -50,18 +60,8 @@ describe('Authorizations agents', () => {
 				{ timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS },
 			).should('be.visible')
 			assertEquipoDocumentRowsSortedByDocumentType()
-			openEquipoApplicationActions()
-			cy.get('[data-authorize-menu-item="blocked"]').should('be.visible')
-			dismissEquipoApplicationActionsMenu()
+			cy.get('[data-documents-review-submit]').should('be.disabled')
 			approveAuthorizationPackageDocumentsInOneSubmit(authzPackageFiles)
-			cy.get('[data-equipo-application-detail]', {
-				timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-			}).should('be.visible')
-			cy.visit(`/equipo/applications/${authzId}`)
-			assertEquipoDocumentRowsSortedByDocumentType()
-			waitForEquipoAuthorizationPackageApprovedInUi()
-			openEquipoApplicationActions()
-			clickAuthorizeApplicationWhenReady()
 			cy.get(
 				'[data-equipo-application-detail] [data-current-application-status="authorized"]',
 				{ timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS },
@@ -91,11 +91,7 @@ describe('Authorizations agents', () => {
 			selectDocumentDecisionInRow(fileName, 'reject')
 			typeDocumentRejectionReasonInRow(fileName, reason)
 			submitEquipoDocumentReviewForm()
-			cy.get(
-				`[data-equipo-application-documents-list] li[data-document-file-name="${fileName}"]`,
-			)
-				.should('have.attr', 'data-status', 'rejected')
-				.and('contain', reason)
+			assertEquipoDocumentRowStatus(fileName, 'rejected', reason)
 		})
 
 		it('denies an awaiting-authorization application', () => {
@@ -136,8 +132,7 @@ describe('Authorizations agents', () => {
 				'[data-equipo-application-detail] [data-current-application-status="awaiting-authorization"]',
 				{ timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS },
 			).should('be.visible')
-			openEquipoApplicationActions()
-			clickAuthorizeApplicationWhenReady()
+			clickDocumentReviewAuthorizeOnly()
 			cy.get(
 				'[data-equipo-application-detail] [data-current-application-status="authorized"]',
 				{ timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS },

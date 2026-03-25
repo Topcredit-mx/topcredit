@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import {
 	applicantB,
@@ -478,6 +478,51 @@ export const insertApplicationDocument = async (
 		.returning()
 	if (!doc) throw new Error('Failed to insert application document')
 	return doc
+}
+
+export type UpdateLatestApplicationDocumentByTypeTaskParams = {
+	applicationId: number
+	documentType: DocumentType
+	status: 'pending' | 'approved' | 'rejected'
+	rejectionReason?: string | null
+}
+
+export const updateLatestApplicationDocumentByType = async (
+	params: UpdateLatestApplicationDocumentByTypeTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	if (
+		params.status === 'rejected' &&
+		(params.rejectionReason == null || params.rejectionReason.trim() === '')
+	) {
+		throw new Error('Rejected documents require a non-empty rejectionReason')
+	}
+	const [latest] = await db
+		.select({ id: applicationDocuments.id })
+		.from(applicationDocuments)
+		.where(
+			and(
+				eq(applicationDocuments.applicationId, params.applicationId),
+				eq(applicationDocuments.documentType, params.documentType),
+			),
+		)
+		.orderBy(desc(applicationDocuments.createdAt))
+		.limit(1)
+	if (!latest) {
+		throw new Error(
+			`No document row for application ${params.applicationId} and type ${params.documentType}`,
+		)
+	}
+	await db
+		.update(applicationDocuments)
+		.set({
+			status: params.status,
+			rejectionReason:
+				params.status === 'rejected' ? params.rejectionReason : null,
+			updatedAt: new Date(),
+		})
+		.where(eq(applicationDocuments.id, latest.id))
+	return null
 }
 
 export const seedPreAuthorizedPackageDocuments = async (

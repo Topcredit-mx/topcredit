@@ -202,9 +202,8 @@ export const applyApplicationDocumentDecisionsSchema = z
 			.number()
 			.int()
 			.positive(ValidationCode.APPLICATION_INVALID),
-		decisions: z
-			.array(applicationDocumentDecisionSchema)
-			.min(1, ValidationCode.APPLICATIONS_DOCUMENT_DECISIONS_REQUIRED),
+		decisions: z.array(applicationDocumentDecisionSchema),
+		followUpStatus: z.enum(['approved', 'authorized']).optional(),
 	})
 	.refine(
 		(data) =>
@@ -212,3 +211,17 @@ export const applyApplicationDocumentDecisionsSchema = z
 			data.decisions.length,
 		{ message: ValidationCode.APPLICATIONS_DOCUMENT_INVALID },
 	)
+	.refine((data) => data.decisions.length > 0 || data.followUpStatus != null, {
+		message: ValidationCode.APPLICATIONS_DOCUMENT_DECISIONS_REQUIRED,
+	})
+	.superRefine((data, ctx) => {
+		if (data.followUpStatus != null) {
+			if (data.decisions.some((d) => d.status === 'rejected')) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: ValidationCode.APPLICATIONS_ERROR_GENERIC,
+					path: ['followUpStatus'],
+				})
+			}
+		}
+	})

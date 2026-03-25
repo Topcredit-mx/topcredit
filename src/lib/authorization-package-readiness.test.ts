@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
 	isAuthorizationPackageFullyApproved,
 	isAuthorizationPackageReadyForSubmit,
+	isInitialIntakeFullyApproved,
 } from './authorization-package-readiness'
 
 const baseDate = new Date('2025-01-15T12:00:00Z')
@@ -260,5 +261,51 @@ test('isAuthorizationPackageFullyApproved: ignores rows without uploaded file', 
 			},
 		]),
 		false,
+	)
+})
+
+test('isInitialIntakeFullyApproved: false when a required type is missing', () => {
+	assert.equal(
+		isInitialIntakeFullyApproved([
+			{
+				documentType: 'official-id',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+			{
+				documentType: 'proof-of-address',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+		]),
+		false,
+	)
+})
+
+test('isInitialIntakeFullyApproved: true when all three intake types are approved', () => {
+	assert.equal(
+		isInitialIntakeFullyApproved([
+			{
+				documentType: 'official-id',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+			{
+				documentType: 'proof-of-address',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+			{
+				documentType: 'bank-statement',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+		]),
+		true,
 	)
 })
