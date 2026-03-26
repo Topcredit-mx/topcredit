@@ -3,25 +3,19 @@ export const EQUIPO_APPLICATION_DETAIL_LOAD_MS = 15_000
 /** Pre-auth package has 3 document types; server refresh must run before authorize unlocks. */
 export const EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT = 3
 
+/** Initial intake types already approved before the authorization package (realistic E2E). */
+export const EQUIPO_INITIAL_INTAKE_DOCUMENT_COUNT = 3
+
+/** Rows on awaiting-authorization detail: approved intake + authorization package (latest per type). */
+export const EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT =
+	EQUIPO_INITIAL_INTAKE_DOCUMENT_COUNT + EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT
+
 const EQUIPO_APPLICATION_DETAIL_ROOT =
 	'[aria-labelledby="equipo-application-detail-title"]'
 
 export const EQUIPO_DOCUMENTS_CARD_SCOPE = '#equipo-application-documents-card'
 
 export const EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE = `${EQUIPO_DOCUMENTS_CARD_SCOPE} form`
-
-function documentRowStatusPattern(
-	status: 'pending' | 'approved' | 'rejected',
-): RegExp {
-	switch (status) {
-		case 'pending':
-			return /pendiente/i
-		case 'approved':
-			return /aprobado/i
-		case 'rejected':
-			return /rechazado/i
-	}
-}
 
 export function assertEquipoApplicationDetailLoaded() {
 	cy.contains('h1', /detalle de solicitud/i).should('be.visible')
@@ -62,12 +56,34 @@ export function assertEquipoDocumentRowStatus(
 	containSubstring?: string,
 	getOptions?: { timeout?: number },
 ) {
-	const pattern = documentRowStatusPattern(status)
 	cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE, getOptions).within(() => {
 		cy.contains('li', fileName)
 			.first()
 			.within(() => {
-				cy.contains(pattern).should('be.visible')
+				if (status === 'pending') {
+					cy.get('button[aria-label="Aprobar"]').should(
+						'have.attr',
+						'aria-pressed',
+						'false',
+					)
+					cy.get('button[aria-label="Rechazar"]').should(
+						'have.attr',
+						'aria-pressed',
+						'false',
+					)
+				} else if (status === 'approved') {
+					cy.get('button[aria-label="Aprobar"]').should(
+						'have.attr',
+						'aria-pressed',
+						'true',
+					)
+				} else {
+					cy.get('button[aria-label="Rechazar"]').should(
+						'have.attr',
+						'aria-pressed',
+						'true',
+					)
+				}
 			})
 	})
 	if (containSubstring !== undefined) {
@@ -75,6 +91,32 @@ export function assertEquipoDocumentRowStatus(
 			cy.contains('li', fileName).first().should('contain', containSubstring)
 		})
 	}
+}
+
+export function equipoAuthzApprovedIntakeSeedFileNames(
+	applicationId: number,
+): readonly string[] {
+	return [
+		`seed-intake-ine-authz-${applicationId}.pdf`,
+		`seed-intake-address-authz-${applicationId}.pdf`,
+		`seed-intake-bank-authz-${applicationId}.pdf`,
+	]
+}
+
+export function assertEquipoDocumentRowDecisionsDisabled(fileName: string) {
+	withinEquipoDocumentRowByFileName(fileName, () => {
+		cy.get('fieldset').should('have.attr', 'inert')
+		cy.get('button[aria-label^="Aprobar"]').should(
+			'have.attr',
+			'aria-disabled',
+			'true',
+		)
+		cy.get('button[aria-label^="Rechazar"]').should(
+			'have.attr',
+			'aria-disabled',
+			'true',
+		)
+	})
 }
 
 export function withinEquipoDocumentRowByFileName(
@@ -116,6 +158,30 @@ export function selectDocumentDecisionInRow(
 			)
 		}
 	})
+}
+
+/** Approve all initial-intake rows in one submit (bulk decisions + approve application when applicable). */
+export function approveInitialIntakeDocumentsInOneSubmit(
+	fileNames: readonly string[],
+) {
+	for (const fileName of fileNames) {
+		selectDocumentDecisionInRow(fileName, 'approve')
+	}
+	cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
+		.find('.border-t.pt-4 button[type="submit"]')
+		.first()
+		.should('be.visible')
+		.should('not.be.disabled')
+		.should(($btn) => {
+			const label = $btn.text().replace(/\s+/g, ' ').trim()
+			expect(label).to.match(/guardar y aprobar/i)
+		})
+		.click()
+	for (const fileName of fileNames) {
+		assertEquipoDocumentRowStatus(fileName, 'approved', undefined, {
+			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+		})
+	}
 }
 
 /** Approve every listed file in one submit (bulk document decisions + authorize when applicable). */

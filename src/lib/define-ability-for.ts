@@ -6,10 +6,14 @@ import {
 	subject,
 } from '@casl/ability'
 import {
+	INITIAL_APPLICATION_DOCUMENT_TYPES,
+	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
+} from '~/lib/application-document-intake'
+import {
 	type ApplicantEligibilityData,
 	isEligibleForNewApplication,
 } from '~/lib/application-rules'
-import type { ApplicationStatus } from '~/server/db/schema'
+import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
 
 export { subject }
 
@@ -20,12 +24,20 @@ export type AppAction =
 	| 'update'
 	| 'delete'
 	| 'uploadDocument'
+	| 'setApplicationDocumentStatus'
 	| 'setStatusApproved'
 	| 'setStatusDenied'
 	| 'setStatusPreAuthorized'
 	| 'setStatusAwaitingAuthorization'
 	| 'setStatusAuthorized'
-export type AppSubject = 'Company' | 'User' | 'Admin' | 'Application' | 'all'
+	| 'reopenAuthorizationReview'
+export type AppSubject =
+	| 'Company'
+	| 'User'
+	| 'Admin'
+	| 'Application'
+	| 'ApplicationDocument'
+	| 'all'
 
 export type CompanySubject = { id: number } & ForcedSubject<'Company'>
 export type UserSubject = { id: number } & ForcedSubject<'User'>
@@ -36,8 +48,25 @@ export type ApplicationSubject = {
 	status?: ApplicationStatus
 } & ForcedSubject<'Application'>
 
+export type ApplicationDocumentSubject = {
+	documentType: DocumentType
+	applicationId: number
+	applicantId: number
+	companyId: number
+	applicationStatus: ApplicationStatus
+} & ForcedSubject<'ApplicationDocument'>
+
 export type AppAbility = MongoAbility<
-	[AppAction, AppSubject | CompanySubject | UserSubject | ApplicationSubject]
+	[
+		AppAction,
+		(
+			| AppSubject
+			| CompanySubject
+			| UserSubject
+			| ApplicationSubject
+			| ApplicationDocumentSubject
+		),
+	]
 >
 
 export type AbilityContext = {
@@ -82,6 +111,8 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 
 	if (isAdmin) {
 		can('manage', 'all')
+		can('reopenAuthorizationReview', 'Application')
+		can('setApplicationDocumentStatus', 'ApplicationDocument')
 		can('setStatusApproved', 'Application', {
 			status: 'pending',
 		})
@@ -125,6 +156,11 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 			companyId: { $in: ctx.assignedCompanyIds },
 			status: 'pending',
 		})
+		can('setApplicationDocumentStatus', 'ApplicationDocument', {
+			documentType: { $in: [...INITIAL_APPLICATION_DOCUMENT_TYPES] },
+			companyId: { $in: ctx.assignedCompanyIds },
+			applicationStatus: 'pending',
+		})
 	}
 
 	if (isPreAuthorizations && hasCompanyAssignments) {
@@ -142,6 +178,11 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 			companyId: { $in: ctx.assignedCompanyIds },
 			status: 'approved',
 		})
+		can('setApplicationDocumentStatus', 'ApplicationDocument', {
+			documentType: { $in: [...PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES] },
+			companyId: { $in: ctx.assignedCompanyIds },
+			applicationStatus: { $in: ['approved', 'pre-authorized'] },
+		})
 	}
 
 	if (isAuthorizations && isAgent && hasCompanyAssignments) {
@@ -149,7 +190,9 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
 		can('update', 'Application', {
 			companyId: { $in: ctx.assignedCompanyIds },
-			status: 'awaiting-authorization',
+			status: {
+				$in: ['awaiting-authorization', 'authorized'],
+			},
 		})
 		can('setStatusAuthorized', 'Application', {
 			companyId: { $in: ctx.assignedCompanyIds },
@@ -158,6 +201,17 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		can('setStatusDenied', 'Application', {
 			companyId: { $in: ctx.assignedCompanyIds },
 			status: 'awaiting-authorization',
+		})
+		can('reopenAuthorizationReview', 'Application', {
+			companyId: { $in: ctx.assignedCompanyIds },
+			status: 'authorized',
+		})
+		can('setApplicationDocumentStatus', 'ApplicationDocument', {
+			documentType: { $in: [...PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES] },
+			companyId: { $in: ctx.assignedCompanyIds },
+			applicationStatus: {
+				$in: ['awaiting-authorization', 'authorized'],
+			},
 		})
 	}
 

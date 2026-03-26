@@ -22,6 +22,7 @@ import {
 	isAuthorizationPackageFullyApproved,
 	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
+import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, subject } from '~/server/auth/ability'
 import type { ApplicationStatus } from '~/server/db/schema'
@@ -32,7 +33,6 @@ import {
 } from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
-import { ApplicationDocumentRow } from '../application-document-row'
 import { ApplicationDocumentsReviewForm } from '../application-documents-review-form'
 import { formatApplicationTerm } from '../constants'
 
@@ -90,15 +90,12 @@ export default async function AppApplicationDetailPage({
 	const canApprove = ability.can('setStatusApproved', appSubject)
 	const canDeny = ability.can('setStatusDenied', appSubject)
 	const canUpdateDocuments = ability.can('update', appSubject)
+	const canReadApplication = ability.can('read', appSubject)
 	const documentsForDisplay = filterToLatestDocumentsPerType(documentList)
 	const authorizationPackageFullyApproved =
 		isAuthorizationPackageFullyApproved(documentList)
 	const initialIntakeFullyApproved = isInitialIntakeFullyApproved(documentList)
-	const showApproveInMenu =
-		canApprove &&
-		application.status === 'pending' &&
-		documentsForDisplay.length === 0
-	const showActionControls = canDeny || canPreAuthorize || showApproveInMenu
+	const showActionControls = canDeny || canPreAuthorize
 	const termOfferings =
 		canPreAuthorize && application.status === 'approved'
 			? await getTermOfferingsForCompany(application.companyId)
@@ -196,8 +193,6 @@ export default async function AppApplicationDetailPage({
 							<ApplicationActions
 								applicationId={application.id}
 								isAdmin={isAdmin}
-								canApprove={canApprove}
-								showApproveInMenu={showApproveInMenu}
 								canPreAuthorize={
 									canPreAuthorize && application.status === 'approved'
 								}
@@ -278,10 +273,11 @@ export default async function AppApplicationDetailPage({
 				</CardHeader>
 				<CardContent className={`pt-4 ${DETAIL_CARD_CONTENT_CLASS}`}>
 					{documentsForDisplay.length > 0 ? (
-						canUpdateDocuments ? (
+						canReadApplication ? (
 							<ApplicationDocumentsReviewForm
 								applicationId={application.id}
 								applicationStatus={application.status}
+								canApplyFollowUpActions={canUpdateDocuments}
 								canFollowUpApprove={
 									canApprove && application.status === 'pending'
 								}
@@ -302,23 +298,14 @@ export default async function AppApplicationDetailPage({
 									hasBlobContent: doc.hasBlobContent,
 									rejectionReason: doc.rejectionReason,
 									createdAt: doc.createdAt,
+									canSetStatus: canSetApplicationDocumentReviewStatus(
+										ability,
+										doc.documentType,
+										application,
+									),
 								}))}
 							/>
-						) : (
-							<ul className="space-y-3">
-								{documentsForDisplay.map((doc) => (
-									<ApplicationDocumentRow
-										key={doc.id}
-										documentType={doc.documentType}
-										status={doc.status}
-										fileName={doc.fileName}
-										url={doc.url}
-										hasBlobContent={doc.hasBlobContent}
-										rejectionReason={doc.rejectionReason}
-									/>
-								))}
-							</ul>
-						)
+						) : null
 					) : (
 						<div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-8 text-center">
 							<FileText

@@ -2,7 +2,7 @@
 
 import { CheckCircle2, Eye, FileText, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import {
 	startTransition,
 	useActionState,
@@ -18,14 +18,15 @@ import { Button } from '~/components/ui/button'
 import { FieldError } from '~/components/ui/field'
 import { Textarea } from '~/components/ui/textarea'
 import {
+	INITIAL_APPLICATION_DOCUMENT_TYPES,
+	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
+} from '~/lib/application-document-intake'
+import {
 	isAuthorizationPackageFullyApproved,
 	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
-import {
-	EQUIPO_DOCUMENT_STATUS_KEYS,
-	EQUIPO_DOCUMENT_TYPE_KEYS,
-	isDocumentType,
-} from '~/lib/i18n-keys'
+import { EQUIPO_DOCUMENT_TYPE_KEYS, isDocumentType } from '~/lib/i18n-keys'
+import { cn } from '~/lib/utils'
 import {
 	getResolvedError,
 	useResolveValidationError,
@@ -45,6 +46,7 @@ export type ReviewFormDocument = {
 	hasBlobContent: boolean
 	rejectionReason: string | null
 	createdAt: Date
+	canSetStatus: boolean
 }
 
 function effectiveStatusForRow(
@@ -73,10 +75,56 @@ function buildProjectedPackageRows(
 	}))
 }
 
+const INITIAL_INTAKE_TYPE_SET = new Set<DocumentType>(
+	INITIAL_APPLICATION_DOCUMENT_TYPES,
+)
+const AUTHORIZATION_PACKAGE_TYPE_SET = new Set<DocumentType>(
+	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
+)
+
+function partitionDocumentsForReviewForm(
+	documents: readonly ReviewFormDocument[],
+): {
+	initialIntake: ReviewFormDocument[]
+	authorizationPackage: ReviewFormDocument[]
+	other: ReviewFormDocument[]
+} {
+	const initialIntake: ReviewFormDocument[] = []
+	const authorizationPackage: ReviewFormDocument[] = []
+	const other: ReviewFormDocument[] = []
+	for (const doc of documents) {
+		if (INITIAL_INTAKE_TYPE_SET.has(doc.documentType)) {
+			initialIntake.push(doc)
+		} else if (AUTHORIZATION_PACKAGE_TYPE_SET.has(doc.documentType)) {
+			authorizationPackage.push(doc)
+		} else {
+			other.push(doc)
+		}
+	}
+	return {
+		initialIntake,
+		authorizationPackage,
+		other,
+	}
+}
+
+function sortDocumentsByTranslatedTypeLabel(
+	documents: readonly ReviewFormDocument[],
+	getTypeLabel: (doc: ReviewFormDocument) => string,
+	locale: string,
+): ReviewFormDocument[] {
+	return [...documents].sort((a, b) =>
+		getTypeLabel(a).localeCompare(getTypeLabel(b), locale, {
+			sensitivity: 'base',
+		}),
+	)
+}
+
 export function ApplicationDocumentsReviewForm({
 	applicationId,
 	documents,
 	applicationStatus,
+	canApplyFollowUpActions,
 	canFollowUpApprove,
 	canFollowUpAuthorize,
 	authorizationPackageFullyApproved,
@@ -85,12 +133,14 @@ export function ApplicationDocumentsReviewForm({
 	applicationId: number
 	documents: readonly ReviewFormDocument[]
 	applicationStatus: ApplicationStatus
+	canApplyFollowUpActions: boolean
 	canFollowUpApprove: boolean
 	canFollowUpAuthorize: boolean
 	authorizationPackageFullyApproved: boolean
 	initialIntakeFullyApproved: boolean
 }) {
 	const t = useTranslations('equipo')
+	const locale = useLocale()
 	const router = useRouter()
 	const resolveError = useResolveValidationError()
 	const [state, submit, pending] = useActionState<
@@ -128,6 +178,7 @@ export function ApplicationDocumentsReviewForm({
 	const { submitPlan } = useMemo(() => {
 		let dirty = false
 		for (const doc of documents) {
+			if (!doc.canSetStatus) continue
 			const dec = decisionById[doc.id] ?? 'unchanged'
 			if (dec !== 'unchanged') {
 				dirty = true
@@ -146,11 +197,13 @@ export function ApplicationDocumentsReviewForm({
 
 		const showAuthorizeOnly =
 			!dirty &&
+			canApplyFollowUpActions &&
 			canFollowUpAuthorize &&
 			authorizationPackageFullyApproved &&
 			applicationStatus === 'awaiting-authorization'
 		const showApproveOnly =
 			!dirty &&
+			canApplyFollowUpActions &&
 			canFollowUpApprove &&
 			initialIntakeFullyApproved &&
 			applicationStatus === 'pending'
@@ -208,6 +261,7 @@ export function ApplicationDocumentsReviewForm({
 		documents,
 		decisionById,
 		applicationStatus,
+		canApplyFollowUpActions,
 		canFollowUpApprove,
 		canFollowUpAuthorize,
 		authorizationPackageFullyApproved,
@@ -310,6 +364,31 @@ export function ApplicationDocumentsReviewForm({
 
 	const combinedError = localError ?? serverError
 
+	const { initialIntake, authorizationPackage, other } = useMemo(() => {
+		const raw = partitionDocumentsForReviewForm(documents)
+		const typeLabelForSort = (doc: ReviewFormDocument) =>
+			isDocumentType(doc.documentType)
+				? t(EQUIPO_DOCUMENT_TYPE_KEYS[doc.documentType])
+				: doc.documentType
+		return {
+			initialIntake: sortDocumentsByTranslatedTypeLabel(
+				raw.initialIntake,
+				typeLabelForSort,
+				locale,
+			),
+			authorizationPackage: sortDocumentsByTranslatedTypeLabel(
+				raw.authorizationPackage,
+				typeLabelForSort,
+				locale,
+			),
+			other: sortDocumentsByTranslatedTypeLabel(
+				raw.other,
+				typeLabelForSort,
+				locale,
+			),
+		}
+	}, [documents, locale, t])
+
 	const buttonLabel = (() => {
 		const { plan } = submitPlan
 		if (plan.kind === 'request-changes') {
@@ -351,22 +430,97 @@ export function ApplicationDocumentsReviewForm({
 			{combinedError ? (
 				<FieldError message={combinedError} className="text-sm" role="alert" />
 			) : null}
-			<ul className="space-y-3">
-				{documents.map((doc) => (
-					<DocumentReviewRow
-						key={doc.id}
-						doc={doc}
-						decision={decisionById[doc.id] ?? 'unchanged'}
-						reason={reasonById[doc.id] ?? ''}
-						onDecisionChange={(id, next) => {
-							setDecisionById((prev) => ({ ...prev, [id]: next }))
-						}}
-						onReasonChange={(id, value) => {
-							setReasonById((prev) => ({ ...prev, [id]: value }))
-						}}
-					/>
-				))}
-			</ul>
+			<div className="space-y-6">
+				{initialIntake.length > 0 ? (
+					<div className="space-y-2">
+						<h3 className="font-medium text-foreground text-sm">
+							{t('applications-documents-section-initial-intake')}
+						</h3>
+						<ul className="space-y-0 divide-y divide-border/60 border-border/60 border-b">
+							{initialIntake.map((doc) => (
+								<DocumentReviewRow
+									key={doc.id}
+									doc={doc}
+									decision={decisionById[doc.id] ?? 'unchanged'}
+									reason={reasonById[doc.id] ?? ''}
+									onDecisionChange={(id, next) => {
+										setDecisionById((prev) => ({ ...prev, [id]: next }))
+									}}
+									onReasonChange={(id, value) => {
+										setReasonById((prev) => ({ ...prev, [id]: value }))
+									}}
+									notPermittedHint={t(
+										'applications-document-review-not-permitted',
+									)}
+								/>
+							))}
+						</ul>
+					</div>
+				) : null}
+				{authorizationPackage.length > 0 ? (
+					<div
+						className={cn(
+							'space-y-2',
+							initialIntake.length > 0 && 'border-border/60 border-t pt-4',
+						)}
+					>
+						<h3 className="font-medium text-foreground text-sm">
+							{t('applications-documents-section-authorization-package')}
+						</h3>
+						<ul className="space-y-0 divide-y divide-border/60 border-border/60 border-b">
+							{authorizationPackage.map((doc) => (
+								<DocumentReviewRow
+									key={doc.id}
+									doc={doc}
+									decision={decisionById[doc.id] ?? 'unchanged'}
+									reason={reasonById[doc.id] ?? ''}
+									onDecisionChange={(id, next) => {
+										setDecisionById((prev) => ({ ...prev, [id]: next }))
+									}}
+									onReasonChange={(id, value) => {
+										setReasonById((prev) => ({ ...prev, [id]: value }))
+									}}
+									notPermittedHint={t(
+										'applications-document-review-not-permitted',
+									)}
+								/>
+							))}
+						</ul>
+					</div>
+				) : null}
+				{other.length > 0 ? (
+					<div
+						className={cn(
+							'space-y-2',
+							(initialIntake.length > 0 || authorizationPackage.length > 0) &&
+								'border-border/60 border-t pt-4',
+						)}
+					>
+						<h3 className="font-medium text-foreground text-sm">
+							{t('applications-documents-section-other')}
+						</h3>
+						<ul className="space-y-0 divide-y divide-border/60 border-border/60 border-b">
+							{other.map((doc) => (
+								<DocumentReviewRow
+									key={doc.id}
+									doc={doc}
+									decision={decisionById[doc.id] ?? 'unchanged'}
+									reason={reasonById[doc.id] ?? ''}
+									onDecisionChange={(id, next) => {
+										setDecisionById((prev) => ({ ...prev, [id]: next }))
+									}}
+									onReasonChange={(id, value) => {
+										setReasonById((prev) => ({ ...prev, [id]: value }))
+									}}
+									notPermittedHint={t(
+										'applications-document-review-not-permitted',
+									)}
+								/>
+							))}
+						</ul>
+					</div>
+				) : null}
+			</div>
 			<div className="flex justify-end border-border/60 border-t pt-4">
 				<Button
 					type="submit"
@@ -388,6 +542,7 @@ function DocumentReviewRow({
 	reason,
 	onDecisionChange,
 	onReasonChange,
+	notPermittedHint,
 }: {
 	doc: ReviewFormDocument
 	decision: 'unchanged' | 'approve' | 'reject'
@@ -397,30 +552,32 @@ function DocumentReviewRow({
 		next: 'unchanged' | 'approve' | 'reject',
 	) => void
 	onReasonChange: (id: number, value: string) => void
+	notPermittedHint: string
 }) {
 	const t = useTranslations('equipo')
+	const canSetStatus = doc.canSetStatus
 	const decisionLabel = t('applications-documents-review-decision-label')
 	const typeLabel = isDocumentType(doc.documentType)
 		? t(EQUIPO_DOCUMENT_TYPE_KEYS[doc.documentType])
 		: doc.documentType
 	const documentLinkLabel = t('applications-document-link')
-	const displayStatus: DocumentStatus =
-		decision === 'approve'
-			? 'approved'
-			: decision === 'reject'
-				? 'rejected'
-				: doc.status
-	const rowStatusLabel = t(EQUIPO_DOCUMENT_STATUS_KEYS[displayStatus])
 
-	const approveLooksActive =
+	const approveSemanticActive =
 		decision === 'approve' ||
 		(decision === 'unchanged' && doc.status === 'approved')
-	const rejectLooksActive =
+	const rejectSemanticActive =
 		decision === 'reject' ||
 		(decision === 'unchanged' && doc.status === 'rejected')
 
+	const approveLabel = canSetStatus
+		? t('applications-document-action-approve')
+		: `${t('applications-document-action-approve')}. ${notPermittedHint}`
+	const rejectLabel = canSetStatus
+		? t('applications-document-action-reject')
+		: `${t('applications-document-action-reject')}. ${notPermittedHint}`
+
 	return (
-		<li className="flex flex-col gap-2 border-border/60 border-b py-3 last:border-b-0">
+		<li className="flex flex-col gap-2 py-3">
 			<div className="flex min-h-8 w-full flex-col gap-3 text-sm sm:flex-row sm:items-center sm:gap-3">
 				<div className="flex min-h-8 min-w-0 flex-1 items-center gap-3">
 					<FileText
@@ -450,20 +607,28 @@ function DocumentReviewRow({
 							</Button>
 						) : null}
 					</span>
-					<span className="shrink-0 text-muted-foreground text-xs sm:ml-auto">
-						{rowStatusLabel}
-					</span>
 				</div>
-				<fieldset className="flex shrink-0 items-center gap-1 self-end border-0 p-0 sm:self-auto">
+				<fieldset
+					className={cn(
+						'flex shrink-0 items-center gap-1 self-end border-0 p-0 sm:ml-auto sm:self-auto',
+						!canSetStatus &&
+							'cursor-not-allowed opacity-[0.52] saturate-[0.65]',
+					)}
+					inert={!canSetStatus ? true : undefined}
+					title={canSetStatus ? undefined : notPermittedHint}
+				>
 					<legend className="sr-only">{`${decisionLabel} (${typeLabel})`}</legend>
 					<Button
 						type="button"
-						variant={approveLooksActive ? 'default' : 'outline'}
+						variant={approveSemanticActive ? 'default' : 'outline'}
 						size="icon"
 						className="size-9 shrink-0"
-						aria-pressed={approveLooksActive}
-						aria-label={t('applications-document-action-approve')}
+						aria-pressed={approveSemanticActive}
+						aria-disabled={!canSetStatus}
+						aria-label={approveLabel}
+						tabIndex={canSetStatus ? undefined : -1}
 						onClick={() => {
+							if (!canSetStatus) return
 							if (decision === 'approve') {
 								onDecisionChange(doc.id, 'unchanged')
 							} else {
@@ -475,12 +640,15 @@ function DocumentReviewRow({
 					</Button>
 					<Button
 						type="button"
-						variant={rejectLooksActive ? 'destructive' : 'outline'}
+						variant={rejectSemanticActive ? 'destructive' : 'outline'}
 						size="icon"
 						className="size-9 shrink-0"
-						aria-pressed={rejectLooksActive}
-						aria-label={t('applications-document-action-reject')}
+						aria-pressed={rejectSemanticActive}
+						aria-disabled={!canSetStatus}
+						aria-label={rejectLabel}
+						tabIndex={canSetStatus ? undefined : -1}
 						onClick={() => {
+							if (!canSetStatus) return
 							if (decision === 'reject') {
 								onDecisionChange(doc.id, 'unchanged')
 							} else {
@@ -492,7 +660,7 @@ function DocumentReviewRow({
 					</Button>
 				</fieldset>
 			</div>
-			{decision === 'reject' ? (
+			{decision === 'reject' && canSetStatus ? (
 				<div className="pl-0 sm:pl-7">
 					<label
 						className="mb-1 block text-muted-foreground text-xs"

@@ -16,6 +16,21 @@ const appPending = subject('Application', {
 	status: 'pending' as const,
 })
 
+const appAuthorized = subject('Application', {
+	id: 3,
+	applicantId: 4,
+	companyId: 10,
+	status: 'authorized' as const,
+})
+
+const authzPackageDocOnAuthorizedApp = subject('ApplicationDocument', {
+	documentType: 'contract' as const,
+	applicationId: 3,
+	applicantId: 4,
+	companyId: 10,
+	applicationStatus: 'authorized' as const,
+})
+
 test('authorizations specialist can update and authorize at awaiting-authorization', () => {
 	const ability = defineAbilityFor({
 		roles: ['agent', 'authorizations'],
@@ -25,6 +40,31 @@ test('authorizations specialist can update and authorize at awaiting-authorizati
 	assert.equal(ability.can('update', appAwaiting), true)
 	assert.equal(ability.can('setStatusAuthorized', appAwaiting), true)
 	assert.equal(ability.can('setStatusDenied', appAwaiting), true)
+})
+
+test('authorizations specialist can update package documents and reopen review on authorized application', () => {
+	const ability = defineAbilityFor({
+		roles: ['agent', 'authorizations'],
+		assignedCompanyIds: [10],
+		userId: 99,
+	})
+	assert.equal(ability.can('update', appAuthorized), true)
+	assert.equal(ability.can('reopenAuthorizationReview', appAuthorized), true)
+	assert.equal(
+		ability.can('setApplicationDocumentStatus', authzPackageDocOnAuthorizedApp),
+		true,
+	)
+	assert.equal(ability.can('setStatusAuthorized', appAuthorized), false)
+})
+
+test('requests agent cannot update authorized application or reopen authorization review', () => {
+	const ability = defineAbilityFor({
+		roles: ['agent', 'requests'],
+		assignedCompanyIds: [10],
+		userId: 99,
+	})
+	assert.equal(ability.can('update', appAuthorized), false)
+	assert.equal(ability.can('reopenAuthorizationReview', appAuthorized), false)
 })
 
 test('requests agent cannot update application at awaiting-authorization', () => {

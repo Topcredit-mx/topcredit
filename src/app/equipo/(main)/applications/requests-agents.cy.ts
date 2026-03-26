@@ -1,8 +1,11 @@
 import {
+	approveInitialIntakeDocumentsInOneSubmit,
 	assertEquipoApplicationDetailLoaded,
 	assertEquipoApplicationShowsAppStatus,
 	assertEquipoDocumentRowStatus,
 	EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+	EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
+	EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE,
 	EQUIPO_DOCUMENTS_CARD_SCOPE,
 	openEquipoApplicationActions,
 	selectDocumentDecisionInRow,
@@ -11,6 +14,7 @@ import {
 } from '../../../../../cypress/support/equipo-document-review-helpers'
 import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
 import {
+	adminForReview,
 	agentForReview,
 	applicantA3,
 	applicantForReview,
@@ -42,8 +46,7 @@ describe('Requests agents', () => {
 		})
 
 		describe('Document review (requests queue)', () => {
-			// applicant A4 only: nested suites run after sibling tests, so seed.applicationId
-			// is often already approved by "Aprobar" and requests agents cannot update documents.
+			// applicant A4 only: these tests mutate A4; sibling tests use seed.applicationId for full intake approval.
 
 			it('shows empty documents state when application has no documents', () => {
 				cy.visit(`/equipo/applications/${seed.applicantA4ApplicationId}`)
@@ -72,7 +75,7 @@ describe('Requests agents', () => {
 				})
 			})
 
-			it('shows approved state when agent approves a pending document', () => {
+			it('persists a single document approval while intake and application stay pending', () => {
 				cy.task('insertApplicationDocument', {
 					applicationId: seed.applicantA4ApplicationId,
 					documentType: 'bank-statement',
@@ -82,8 +85,17 @@ describe('Requests agents', () => {
 				cy.visit(`/equipo/applications/${seed.applicantA4ApplicationId}`)
 				assertEquipoApplicationDetailLoaded()
 				selectDocumentDecisionInRow('bank-approve-e2e.pdf', 'approve')
+				cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
+					.find('.border-t.pt-4 button[type="submit"]')
+					.first()
+					.should(($btn) => {
+						expect($btn.text().replace(/\s+/g, ' ').trim()).to.match(
+							/guardar cambios en documentos/i,
+						)
+					})
 				submitEquipoDocumentReviewForm()
 				assertEquipoDocumentRowStatus('bank-approve-e2e.pdf', 'approved')
+				assertEquipoApplicationShowsAppStatus(/pendiente/i)
 			})
 
 			it('shows validation error when agent submits reject without reason', () => {
@@ -266,29 +278,96 @@ describe('Requests agents', () => {
 			assertEquipoApplicationShowsAppStatus(/pendiente/i)
 		})
 
-		it('changes status from pending to approved when agent clicks Aprobar', () => {
-			cy.visit(`/equipo/applications/${seed.applicationId}`)
+		it('with full intake on file, agent can approve two documents and reject one; application stays pending', () => {
+			const appId = seed.applicationId
+			const intakeRows = [
+				{
+					documentType: 'official-id' as const,
+					fileName: 'e2e-intake-mixed-ine.pdf',
+					storageKey: 'application-documents/e2e-intake-mixed-ine.pdf',
+				},
+				{
+					documentType: 'proof-of-address' as const,
+					fileName: 'e2e-intake-mixed-address.pdf',
+					storageKey: 'application-documents/e2e-intake-mixed-address.pdf',
+				},
+				{
+					documentType: 'bank-statement' as const,
+					fileName: 'e2e-intake-mixed-bank.pdf',
+					storageKey: 'application-documents/e2e-intake-mixed-bank.pdf',
+				},
+			]
+			for (const row of intakeRows) {
+				cy.task('insertApplicationDocument', {
+					applicationId: appId,
+					documentType: row.documentType,
+					fileName: row.fileName,
+					storageKey: row.storageKey,
+				})
+			}
+			const rejectReason = 'Estado de cuenta ilegible (E2E)'
+			cy.visit(`/equipo/applications/${appId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains(/pendiente/i).should('be.visible')
-			openEquipoApplicationActions()
-			cy.get('[role="menuitem"]')
-				.contains(/aprobar/i)
-				.should('be.visible')
-				.click()
-			// Action redirects to same URL (reload); wait for new page then new state
-			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.contains(/aprobada/i).should('be.visible')
+			assertEquipoApplicationShowsAppStatus(/pendiente/i)
+			selectDocumentDecisionInRow('e2e-intake-mixed-ine.pdf', 'approve')
+			selectDocumentDecisionInRow('e2e-intake-mixed-address.pdf', 'approve')
+			selectDocumentDecisionInRow('e2e-intake-mixed-bank.pdf', 'reject')
+			typeDocumentRejectionReasonInRow(
+				'e2e-intake-mixed-bank.pdf',
+				rejectReason,
+			)
+			cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
+				.find('.border-t.pt-4 button[type="submit"]')
+				.first()
+				.should(($btn) => {
+					expect($btn.text().replace(/\s+/g, ' ').trim()).to.match(
+						/solicitar cambios/i,
+					)
+				})
+			submitEquipoDocumentReviewForm()
+			assertEquipoDocumentRowStatus('e2e-intake-mixed-ine.pdf', 'approved')
+			assertEquipoDocumentRowStatus('e2e-intake-mixed-address.pdf', 'approved')
+			assertEquipoDocumentRowStatus(
+				'e2e-intake-mixed-bank.pdf',
+				'rejected',
+				rejectReason,
+			)
+			assertEquipoApplicationShowsAppStatus(/pendiente/i)
 		})
 
-		it('changes status from pending to approved on re-review', () => {
-			cy.visit(`/equipo/applications/${seed.applicantA5ApplicationId}`)
+		it('changes status from pending to approved on re-review via document form', () => {
+			const appId = seed.applicantA5ApplicationId
+			const intakeRows = [
+				{
+					documentType: 'official-id' as const,
+					fileName: 'e2e-a5-re-review-ine.pdf',
+					storageKey: 'application-documents/e2e-a5-re-review-ine.pdf',
+				},
+				{
+					documentType: 'proof-of-address' as const,
+					fileName: 'e2e-a5-re-review-address.pdf',
+					storageKey: 'application-documents/e2e-a5-re-review-address.pdf',
+				},
+				{
+					documentType: 'bank-statement' as const,
+					fileName: 'e2e-a5-re-review-bank.pdf',
+					storageKey: 'application-documents/e2e-a5-re-review-bank.pdf',
+				},
+			]
+			for (const row of intakeRows) {
+				cy.task('insertApplicationDocument', {
+					applicationId: appId,
+					documentType: row.documentType,
+					fileName: row.fileName,
+					storageKey: row.storageKey,
+				})
+			}
+			cy.visit(`/equipo/applications/${appId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/pendiente/i).should('be.visible')
-			openEquipoApplicationActions()
-			cy.get('[role="menuitem"]')
-				.contains(/aprobar/i)
-				.should('be.visible')
-				.click()
+			approveInitialIntakeDocumentsInOneSubmit(
+				intakeRows.map((r) => r.fileName),
+			)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/aprobada/i).should('be.visible')
 		})
@@ -350,10 +429,19 @@ describe('Requests agents', () => {
 				)
 				cy.get(`${EQUIPO_DOCUMENTS_CARD_SCOPE} ul > li`).should(
 					'have.length',
-					3,
+					EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
 				)
 				cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE).within(() => {
-					cy.get('button[aria-label="Aprobar"]').should('not.exist')
+					cy.get('button[aria-label^="Aprobar"]').should(
+						'have.attr',
+						'aria-disabled',
+						'true',
+					)
+					cy.get('button[aria-label^="Rechazar"]').should(
+						'have.attr',
+						'aria-disabled',
+						'true',
+					)
 				})
 			})
 		})
@@ -427,5 +515,62 @@ describe('Requests agents', () => {
 			cy.contains('inactivecompany.com').should('not.exist')
 			cy.get('table').should('not.contain', applicantForReviewD.name)
 		})
+	})
+})
+
+describe('Requests admin', () => {
+	let seed: SeedApplicationsReviewResult
+
+	beforeEach(() => {
+		cy.task<SeedApplicationsReviewResult>('seedApplicationsReview').then(
+			(result) => {
+				seed = result
+			},
+		)
+	})
+
+	afterEach(() => {
+		cy.task('cleanupApplicationsReview', { termId: seed.termId })
+	})
+
+	beforeEach(() => {
+		cy.login(adminForReview.email)
+		cy.setCookie('selected_company_id', String(seed.companyId))
+	})
+
+	it('can approve all intake documents and move application to approved (happy path)', () => {
+		const appId = seed.applicationId
+		const intakeRows = [
+			{
+				documentType: 'official-id' as const,
+				fileName: 'e2e-admin-requests-intake-ine.pdf',
+				storageKey: 'application-documents/e2e-admin-requests-intake-ine.pdf',
+			},
+			{
+				documentType: 'proof-of-address' as const,
+				fileName: 'e2e-admin-requests-intake-address.pdf',
+				storageKey:
+					'application-documents/e2e-admin-requests-intake-address.pdf',
+			},
+			{
+				documentType: 'bank-statement' as const,
+				fileName: 'e2e-admin-requests-intake-bank.pdf',
+				storageKey: 'application-documents/e2e-admin-requests-intake-bank.pdf',
+			},
+		]
+		for (const row of intakeRows) {
+			cy.task('insertApplicationDocument', {
+				applicationId: appId,
+				documentType: row.documentType,
+				fileName: row.fileName,
+				storageKey: row.storageKey,
+			})
+		}
+		cy.visit(`/equipo/applications/${appId}`)
+		cy.contains(/detalle de solicitud/i).should('be.visible')
+		assertEquipoApplicationShowsAppStatus(/pendiente/i)
+		approveInitialIntakeDocumentsInOneSubmit(intakeRows.map((r) => r.fileName))
+		cy.contains(/detalle de solicitud/i).should('be.visible')
+		cy.contains(/aprobada/i).should('be.visible')
 	})
 })

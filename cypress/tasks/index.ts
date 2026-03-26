@@ -31,6 +31,7 @@ import {
 	authorizationsAgentForReview,
 	companyForReview,
 	companyForReviewD,
+	dualQueueAgentForReview,
 	preAuthAgentForReview,
 	reviewApplicationConfigs,
 } from '~/app/equipo/(main)/applications/applications-review.fixtures'
@@ -1500,6 +1501,7 @@ export const seedApplicationsReview =
 			agentForReview,
 			preAuthAgentForReview,
 			authorizationsAgentForReview,
+			dualQueueAgentForReview,
 			adminForReview,
 			...allReviewApplicants,
 		]
@@ -1564,6 +1566,7 @@ export const seedApplicationsReview =
 		const requestsAgent = findUser(agentForReview.email)
 		const preAuthAgent = findUser(preAuthAgentForReview.email)
 		const authorizationsAgent = findUser(authorizationsAgentForReview.email)
+		const dualQueueAgent = findUser(dualQueueAgentForReview.email)
 
 		const [, offerings] = await Promise.all([
 			db.insert(userRoles).values(
@@ -1585,7 +1588,12 @@ export const seedApplicationsReview =
 				)
 				.returning(),
 			db.insert(userCompanies).values(
-				[requestsAgent, preAuthAgent, authorizationsAgent].flatMap((user) =>
+				[
+					requestsAgent,
+					preAuthAgent,
+					authorizationsAgent,
+					dualQueueAgent,
+				].flatMap((user) =>
 					agentCompanyDomains.map((domain) => ({
 						userId: user.id,
 						companyId: findCompany(domain).id,
@@ -1712,6 +1720,29 @@ export const seedApplicationsReview =
 			if (applicant.email === applicantAuthzAdmin.email)
 				authzAdminAppForDocs = appRow
 			const id = appRow.id
+			const approvedInitialIntake = [
+				{
+					applicationId: id,
+					documentType: 'official-id' as const,
+					status: 'approved' as const,
+					fileName: `seed-intake-ine-authz-${id}.pdf`,
+					storageKey: `application-documents/${id}/official-id/seed-intake-ine-authz-${id}.pdf`,
+				},
+				{
+					applicationId: id,
+					documentType: 'proof-of-address' as const,
+					status: 'approved' as const,
+					fileName: `seed-intake-address-authz-${id}.pdf`,
+					storageKey: `application-documents/${id}/proof-of-address/seed-intake-address-authz-${id}.pdf`,
+				},
+				{
+					applicationId: id,
+					documentType: 'bank-statement' as const,
+					status: 'approved' as const,
+					fileName: `seed-intake-bank-authz-${id}.pdf`,
+					storageKey: `application-documents/${id}/bank-statement/seed-intake-bank-authz-${id}.pdf`,
+				},
+			] as const
 			const packagePending =
 				applicant.email !== applicantAuthzAdmin.email
 					? ([
@@ -1760,7 +1791,9 @@ export const seedApplicationsReview =
 								storageKey: `application-documents/${id}/authorization/seed-authorization-authz-admin-${id}.pdf`,
 							},
 						] as const)
-			await db.insert(applicationDocuments).values([...packagePending])
+			await db
+				.insert(applicationDocuments)
+				.values([...approvedInitialIntake, ...packagePending])
 		}
 		if (
 			authzAppForDocs == null ||
@@ -1807,6 +1840,7 @@ export const cleanupApplicationsReview = async (
 		agentForReview,
 		preAuthAgentForReview,
 		authorizationsAgentForReview,
+		dualQueueAgentForReview,
 		adminForReview,
 		...allReviewApplicants,
 	]

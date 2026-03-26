@@ -1,12 +1,14 @@
 import {
 	approveAuthorizationPackageDocumentsInOneSubmit,
 	assertEquipoApplicationShowsAppStatus,
+	assertEquipoDocumentRowDecisionsDisabled,
 	assertEquipoDocumentRowStatus,
 	clickDocumentReviewAuthorizeOnly,
 	EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-	EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT,
+	EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
 	EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE,
 	EQUIPO_DOCUMENTS_CARD_SCOPE,
+	equipoAuthzApprovedIntakeSeedFileNames,
 	openEquipoApplicationActions,
 	selectDocumentDecisionInRow,
 	submitEquipoDocumentReviewForm,
@@ -53,6 +55,7 @@ describe('Authorizations agents', () => {
 
 		it('authorizes when all package documents are approved in one submit', () => {
 			const authzId = seed.authzApplicationId
+			const intakeFileNames = equipoAuthzApprovedIntakeSeedFileNames(authzId)
 			const authzPackageFiles = [
 				`seed-authorization-authz-${authzId}.pdf`,
 				`seed-contract-authz-${authzId}.pdf`,
@@ -64,10 +67,16 @@ describe('Authorizations agents', () => {
 			})
 			cy.get(`${EQUIPO_DOCUMENTS_CARD_SCOPE} ul > li`).should(
 				'have.length',
-				EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT,
+				EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
 			)
+			for (const name of intakeFileNames) {
+				assertEquipoDocumentRowDecisionsDisabled(name)
+			}
 			cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE)
-				.should('contain', `seed-authorization-authz-${authzId}`)
+				.should('contain', `seed-intake-ine-authz-${authzId}`)
+				.and('contain', `seed-intake-address-authz-${authzId}`)
+				.and('contain', `seed-intake-bank-authz-${authzId}`)
+				.and('contain', `seed-authorization-authz-${authzId}`)
 				.and('contain', `seed-contract-authz-${authzId}`)
 				.and('contain', `seed-payroll-authz-${authzId}`)
 			cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
@@ -75,17 +84,63 @@ describe('Authorizations agents', () => {
 				.first()
 				.should('be.disabled')
 			approveAuthorizationPackageDocumentsInOneSubmit(authzPackageFiles)
+			for (const name of intakeFileNames) {
+				assertEquipoDocumentRowDecisionsDisabled(name)
+			}
 			assertEquipoApplicationShowsAppStatus(/autorizado/i, {
 				timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 			})
 		})
 
-		it('shows validation error when rejecting a package document without reason', () => {
-			const fileName = `seed-contract-authz-${seed.authzDenyApplicationId}.pdf`
-			cy.visit(`/equipo/applications/${seed.authzDenyApplicationId}`)
+		it('reopens to awaiting-authorization when rejecting a package document after authorize', () => {
+			const authzId = seed.authzApplicationId
+			const contractFile = `seed-contract-authz-${authzId}.pdf`
+			const authzPackageFiles = [
+				`seed-authorization-authz-${authzId}.pdf`,
+				contractFile,
+				`seed-payroll-authz-${authzId}.pdf`,
+			] as const
+			cy.visit(`/equipo/applications/${authzId}`)
 			assertEquipoApplicationShowsAppStatus(/en revisión de autorización/i, {
 				timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 			})
+			approveAuthorizationPackageDocumentsInOneSubmit(authzPackageFiles)
+			assertEquipoApplicationShowsAppStatus(/autorizado/i, {
+				timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+			})
+			const reopenReason = 'E2E: corrección solicitada tras autorizar'
+			selectDocumentDecisionInRow(contractFile, 'reject')
+			typeDocumentRejectionReasonInRow(contractFile, reopenReason)
+			cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
+				.find('.border-t.pt-4 button[type="submit"]')
+				.first()
+				.should(($btn) => {
+					expect($btn.text().replace(/\s+/g, ' ').trim()).to.match(
+						/solicitar cambios/i,
+					)
+				})
+			submitEquipoDocumentReviewForm()
+			assertEquipoApplicationShowsAppStatus(/en revisión de autorización/i, {
+				timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+			})
+			assertEquipoDocumentRowStatus(contractFile, 'rejected', reopenReason)
+		})
+
+		it('shows validation error when rejecting a package document without reason', () => {
+			const appId = seed.authzDenyApplicationId
+			const fileName = `seed-contract-authz-${appId}.pdf`
+			const intakeFileNames = equipoAuthzApprovedIntakeSeedFileNames(appId)
+			cy.visit(`/equipo/applications/${appId}`)
+			assertEquipoApplicationShowsAppStatus(/en revisión de autorización/i, {
+				timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+			})
+			cy.get(`${EQUIPO_DOCUMENTS_CARD_SCOPE} ul > li`).should(
+				'have.length',
+				EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
+			)
+			for (const name of intakeFileNames) {
+				assertEquipoDocumentRowDecisionsDisabled(name)
+			}
 			selectDocumentDecisionInRow(fileName, 'reject')
 			submitEquipoDocumentReviewForm()
 			cy.contains('El motivo de rechazo es obligatorio').should('be.visible')
@@ -93,11 +148,20 @@ describe('Authorizations agents', () => {
 
 		it('shows rejected state and reason when rejecting a package document with reason', () => {
 			const reason = 'Carta ilegible en E2E'
-			const fileName = `seed-authorization-authz-${seed.authzDenyApplicationId}.pdf`
-			cy.visit(`/equipo/applications/${seed.authzDenyApplicationId}`)
+			const appId = seed.authzDenyApplicationId
+			const fileName = `seed-authorization-authz-${appId}.pdf`
+			const intakeFileNames = equipoAuthzApprovedIntakeSeedFileNames(appId)
+			cy.visit(`/equipo/applications/${appId}`)
 			assertEquipoApplicationShowsAppStatus(/en revisión de autorización/i, {
 				timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 			})
+			cy.get(`${EQUIPO_DOCUMENTS_CARD_SCOPE} ul > li`).should(
+				'have.length',
+				EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
+			)
+			for (const name of intakeFileNames) {
+				assertEquipoDocumentRowDecisionsDisabled(name)
+			}
 			selectDocumentDecisionInRow(fileName, 'reject')
 			typeDocumentRejectionReasonInRow(fileName, reason)
 			submitEquipoDocumentReviewForm()
@@ -105,10 +169,19 @@ describe('Authorizations agents', () => {
 		})
 
 		it('denies an awaiting-authorization application', () => {
-			cy.visit(`/equipo/applications/${seed.authzDenyApplicationId}`)
+			const appId = seed.authzDenyApplicationId
+			const intakeFileNames = equipoAuthzApprovedIntakeSeedFileNames(appId)
+			cy.visit(`/equipo/applications/${appId}`)
 			assertEquipoApplicationShowsAppStatus(/en revisión de autorización/i, {
 				timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 			})
+			cy.get(`${EQUIPO_DOCUMENTS_CARD_SCOPE} ul > li`).should(
+				'have.length',
+				EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
+			)
+			for (const name of intakeFileNames) {
+				assertEquipoDocumentRowDecisionsDisabled(name)
+			}
 			openEquipoApplicationActions()
 			cy.get('[role="menu"]')
 				.find('[role="menuitem"]')
@@ -135,10 +208,15 @@ describe('Authorizations agents', () => {
 		})
 
 		it('can authorize when the authorization package is already approved', () => {
-			cy.visit(`/equipo/applications/${seed.authzAdminApplicationId}`)
+			const appId = seed.authzAdminApplicationId
+			cy.visit(`/equipo/applications/${appId}`)
 			assertEquipoApplicationShowsAppStatus(/en revisión de autorización/i, {
 				timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 			})
+			cy.get(`${EQUIPO_DOCUMENTS_CARD_SCOPE} ul > li`).should(
+				'have.length',
+				EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
+			)
 			clickDocumentReviewAuthorizeOnly()
 			assertEquipoApplicationShowsAppStatus(/autorizado/i, {
 				timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,

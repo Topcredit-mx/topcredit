@@ -46,12 +46,16 @@ test('allows pre-authorization only from approved', () => {
 	)
 })
 
-test('allows awaiting-authorization only from pre-authorized', () => {
+test('allows awaiting-authorization from pre-authorized or authorized (reopen)', () => {
 	assert.equal(
 		canTransitionToApplicationStatus(
 			'pre-authorized',
 			'awaiting-authorization',
 		),
+		true,
+	)
+	assert.equal(
+		canTransitionToApplicationStatus('authorized', 'awaiting-authorization'),
 		true,
 	)
 	assert.equal(

@@ -1,6 +1,9 @@
 import { assertEquipoApplicationShowsAppStatus } from '../../../../../cypress/support/equipo-document-review-helpers'
 import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
-import { preAuthAgentForReview } from './applications-review.fixtures'
+import {
+	adminForReview,
+	preAuthAgentForReview,
+} from './applications-review.fixtures'
 
 const preAuthAgentEmail = preAuthAgentForReview.email
 
@@ -115,5 +118,53 @@ describe('Pre-authorizations agents', () => {
 		).should('contain', 'Aprobada')
 		cy.contains('18,000').should('exist')
 		cy.contains('12 meses').should('exist')
+	})
+})
+
+describe('Pre-authorizations admin', () => {
+	let seed: SeedApplicationsReviewResult
+
+	beforeEach(() => {
+		cy.task<SeedApplicationsReviewResult>('seedApplicationsReview').then(
+			(result) => {
+				seed = result
+			},
+		)
+	})
+
+	afterEach(() => {
+		cy.task('cleanupApplicationsReview', { termId: seed.termId })
+	})
+
+	beforeEach(() => {
+		cy.login(adminForReview.email)
+		cy.setCookie('selected_company_id', String(seed.companyId))
+	})
+
+	it('can pre-authorize above borrowing capacity (admin override)', () => {
+		cy.visit(`/equipo/applications/${seed.preAuthApplicationId}`)
+		assertEquipoApplicationShowsAppStatus(/aprobada/i, {
+			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+		})
+		cy.contains('button', /acciones/i)
+			.should('be.visible')
+			.click()
+		cy.contains('[role="menuitem"]', /pre-autorizar/i)
+			.should('be.visible')
+			.click()
+		cy.get('[role="dialog"]').should('be.visible')
+		cy.selectRadix('label:Plazo', '12 meses')
+		cy.get('[role="dialog"] input[name="creditAmount"]').clear().type('9999999')
+		cy.get('[role="dialog"]').within(() => {
+			cy.contains('button', /^pre-autorizar$/i)
+				.should('be.visible')
+				.and('not.be.disabled')
+		})
+		cy.get('[role="dialog"]')
+			.contains('button', /^pre-autorizar$/i)
+			.click()
+		assertEquipoApplicationShowsAppStatus(/preautorizado/i, {
+			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+		})
 	})
 })

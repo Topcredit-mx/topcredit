@@ -2,7 +2,10 @@
 
 import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { filterToLatestDocumentsPerType } from '~/lib/application-document-intake'
+import {
+	filterToLatestDocumentsPerType,
+	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
+} from '~/lib/application-document-intake'
 import {
 	canTransitionToApplicationStatus,
 	statusRequiresFinancialTerms,
@@ -14,6 +17,7 @@ import {
 	isAuthorizationPackageReadyForSubmit,
 	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
+import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import {
 	isPreAuthOverCapacity,
 	maxDebtCapacityForLoanPeriod,
@@ -197,6 +201,24 @@ type ApplicationRowForSubject = {
 	creditAmount: string | null
 }
 
+const AUTHORIZATION_PACKAGE_TYPE_SET = new Set<DocumentType>(
+	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
+)
+
+function decisionsRejectAuthorizationPackageDocument(
+	decisions: readonly { documentId: number; status: 'approved' | 'rejected' }[],
+	rowById: Map<number, { documentType: DocumentType }>,
+): boolean {
+	for (const d of decisions) {
+		if (d.status !== 'rejected') continue
+		const row = rowById.get(d.documentId)
+		if (row != null && AUTHORIZATION_PACKAGE_TYPE_SET.has(row.documentType)) {
+			return true
+		}
+	}
+	return false
+}
+
 function mergeDocumentDecisionsIntoRows<
 	T extends {
 		id: number
@@ -316,21 +338,18 @@ export async function applyApplicationDocumentDecisions(
 		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
 	}
 
-	requireAbility(
-		ability,
-		'update',
-		subject('Application', {
-			id: application.id,
-			applicantId: application.applicantId,
-			companyId: application.companyId,
-			status: application.status,
-		}),
-	)
+	const appSubject = subject('Application', {
+		id: application.id,
+		applicantId: application.applicantId,
+		companyId: application.companyId,
+		status: application.status,
+	})
 
 	if (decisions.length === 0) {
 		if (followUpStatus == null) {
 			return { error: ValidationCode.APPLICATIONS_DOCUMENT_DECISIONS_REQUIRED }
 		}
+		requireAbility(ability, 'update', appSubject)
 		const followUpResult = await applyFollowUpStatusIfValid(
 			applicationId,
 			followUpStatus,
@@ -345,6 +364,8 @@ export async function applyApplicationDocumentDecisions(
 		revalidatePath(`/cuenta/applications/${applicationId}`)
 		return {}
 	}
+
+	requireAbility(ability, 'read', appSubject)
 
 	const docIds = decisions.map((d) => d.documentId)
 	const rows = await db.query.applicationDocuments.findMany({
@@ -383,6 +404,15 @@ export async function applyApplicationDocumentDecisions(
 		const row = byId.get(decision.documentId)
 		if (!row?.application) {
 			return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+		}
+		if (
+			!canSetApplicationDocumentReviewStatus(
+				ability,
+				row.documentType,
+				application,
+			)
+		) {
+			return { error: ValidationCode.APPLICATIONS_DOCUMENT_REVIEW_FORBIDDEN }
 		}
 	}
 
@@ -451,6 +481,37 @@ export async function applyApplicationDocumentDecisions(
 			applicantEmail,
 			rejectedForEmail,
 		)
+	}
+
+	if (
+		application.status === 'authorized' &&
+		decisionsRejectAuthorizationPackageDocument(decisions, byId)
+	) {
+		const reopenSubject = subject('Application', {
+			id: application.id,
+			applicantId: application.applicantId,
+			companyId: application.companyId,
+			status: 'authorized',
+		} as const)
+		if (!ability.can('reopenAuthorizationReview', reopenSubject)) {
+			return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+		}
+		if (
+			!canTransitionToApplicationStatus(
+				application.status,
+				'awaiting-authorization',
+			)
+		) {
+			return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+		}
+		const reopenUser = await getRequiredUser()
+		await updateApplicationWithStatusHistory({
+			applicationId,
+			status: 'awaiting-authorization',
+			setByUserId: reopenUser.id,
+			denialReason: null,
+		})
+		await sendApplicationStatusEmail(applicationId, 'awaiting-authorization')
 	}
 
 	if (followUpStatus != null) {
@@ -785,6 +846,13 @@ export async function updateApplicationStatus(
 			return {
 				error: ValidationCode.APPLICATIONS_AUTHORIZATION_PACKAGE_NOT_APPROVED,
 			}
+		}
+	}
+
+	if (data.status === 'approved' && app.status === 'pending') {
+		const documents = await getApplicationDocuments(applicationId)
+		if (!isInitialIntakeFullyApproved(documents)) {
+			return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
 		}
 	}
 

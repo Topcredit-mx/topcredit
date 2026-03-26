@@ -99,7 +99,7 @@ export function canTransitionToApplicationStatus(
 	}
 
 	if (nextStatus === 'awaiting-authorization') {
-		return currentStatus === 'pre-authorized'
+		return currentStatus === 'pre-authorized' || currentStatus === 'authorized'
 	}
 
 	if (nextStatus === 'authorized') {

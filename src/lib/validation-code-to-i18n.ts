@@ -169,6 +169,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'applications-document-decisions-required',
 	},
+	[ValidationCode.APPLICATIONS_DOCUMENT_REVIEW_FORBIDDEN]: {
+		namespace: 'equipo',
+		key: 'applications-document-review-forbidden',
+	},
 	[ValidationCode.APPLICATIONS_ERROR_GENERIC]: {
 		namespace: 'equipo',
 		key: 'applications-error-generic',
