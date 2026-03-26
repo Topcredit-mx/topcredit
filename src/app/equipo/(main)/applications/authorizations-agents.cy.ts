@@ -1,9 +1,9 @@
 import {
 	approveAuthorizationPackageDocumentsInOneSubmit,
 	assertEquipoDocumentRowStatus,
-	assertEquipoDocumentRowsSortedByDocumentType,
 	clickDocumentReviewAuthorizeOnly,
 	EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+	EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT,
 	openEquipoApplicationActions,
 	selectDocumentDecisionInRow,
 	submitEquipoDocumentReviewForm,
@@ -59,7 +59,19 @@ describe('Authorizations agents', () => {
 				'[data-equipo-application-detail] [data-current-application-status="awaiting-authorization"]',
 				{ timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS },
 			).should('be.visible')
-			assertEquipoDocumentRowsSortedByDocumentType()
+			cy.get('[data-equipo-application-documents-list] > li').should(
+				'have.length',
+				EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT,
+			)
+			cy.get('[data-equipo-application-documents-list] > li')
+				.eq(0)
+				.should('have.attr', 'data-document-type', 'authorization')
+			cy.get('[data-equipo-application-documents-list] > li')
+				.eq(1)
+				.should('have.attr', 'data-document-type', 'contract')
+			cy.get('[data-equipo-application-documents-list] > li')
+				.eq(2)
+				.should('have.attr', 'data-document-type', 'payroll-receipt')
 			cy.get('[data-documents-review-submit]').should('be.disabled')
 			approveAuthorizationPackageDocumentsInOneSubmit(authzPackageFiles)
 			cy.get(

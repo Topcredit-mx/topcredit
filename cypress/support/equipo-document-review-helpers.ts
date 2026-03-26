@@ -98,17 +98,6 @@ export function approveAuthorizationPackageDocumentsInOneSubmit(
 	}
 }
 
-export function assertEquipoDocumentRowsSortedByDocumentType() {
-	cy.get('[data-equipo-application-documents-list] > li').then(($lis) => {
-		const types = $lis
-			.map((_, el) => el.getAttribute('data-document-type'))
-			.get()
-			.filter((t): t is string => t != null && t.length > 0)
-		const sorted = [...types].sort((a, b) => a.localeCompare(b))
-		expect(types).to.deep.equal(sorted)
-	})
-}
-
 export function typeDocumentRejectionReasonInRow(
 	fileName: string,
 	text: string,
