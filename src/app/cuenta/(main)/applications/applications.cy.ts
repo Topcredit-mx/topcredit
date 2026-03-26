@@ -424,12 +424,15 @@ describe('Cuenta applications', () => {
 				creditAmount,
 				salaryAtApplication: '100000',
 			}).then((app) => {
+				const detailPath = `/cuenta/applications/${app.id}`
 				cy.visit('/cuenta/applications')
 				cy.get('main').should('be.visible')
-				cy.get(`a[href="/cuenta/applications/${app.id}"]`)
+				cy.get(`a[href="${detailPath}"]`)
 					.scrollIntoView()
 					.should('be.visible')
 					.click()
+				// Link click: wait for pathname (no cy.visit load barrier); 15s for slow CI.
+				cy.location('pathname', { timeout: 15_000 }).should('eq', detailPath)
 				cy.contains('h1', /resumen de tu solicitud/i)
 					.scrollIntoView()
 					.should('be.visible')
