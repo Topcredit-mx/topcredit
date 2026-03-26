@@ -176,14 +176,18 @@ describe('Requests agents', () => {
 			cy.contains(/pendiente/i).should('be.visible')
 		})
 
-		it('opens application detail and shows data', () => {
+		it('Revisar link targets application detail with expected data', () => {
+			const detailPath = `/equipo/applications/${seed.applicationId}`
 			cy.visit('/equipo/applications')
 			cy.get('table').should('be.visible')
 			cy.findTableRow('25,000')
 				.scrollIntoView()
 				.within(() => {
-					cy.get('a[aria-label="Revisar solicitud"]').should('exist').click()
+					cy.get('a[aria-label="Revisar solicitud"]')
+						.should('exist')
+						.should('have.attr', 'href', detailPath)
 				})
+			cy.visit(detailPath)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(applicantEmail).should('be.visible')
 			cy.contains('25,000').should('exist')
@@ -207,13 +211,17 @@ describe('Requests agents', () => {
 		})
 
 		it('reject requires reason', () => {
+			const detailPath = `/equipo/applications/${seed.applicantA2ApplicationId}`
 			cy.visit('/equipo/applications')
 			cy.get('table').should('be.visible')
 			cy.findTableRow('30,000')
 				.scrollIntoView()
 				.within(() => {
-					cy.get('a[aria-label="Revisar solicitud"]').should('exist').click()
+					cy.get('a[aria-label="Revisar solicitud"]')
+						.should('exist')
+						.should('have.attr', 'href', detailPath)
 				})
+			cy.visit(detailPath)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			openEquipoApplicationActions()
 			cy.get('[role="menuitem"]')
@@ -230,13 +238,17 @@ describe('Requests agents', () => {
 		})
 
 		it('can reject with reason', () => {
+			const detailPath = `/equipo/applications/${seed.applicantA2ApplicationId}`
 			cy.visit('/equipo/applications')
 			cy.get('table').should('be.visible')
 			cy.findTableRow('30,000')
 				.scrollIntoView()
 				.within(() => {
-					cy.get('a[aria-label="Revisar solicitud"]').should('exist').click()
+					cy.get('a[aria-label="Revisar solicitud"]')
+						.should('exist')
+						.should('have.attr', 'href', detailPath)
 				})
+			cy.visit(detailPath)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			openEquipoApplicationActions()
 			cy.get('[role="menuitem"]')

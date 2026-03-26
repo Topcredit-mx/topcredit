@@ -19,6 +19,7 @@ import {
 	agentForReview,
 	allReviewApplicants,
 	allReviewCompanies,
+	applicantA2,
 	applicantA3,
 	applicantA4,
 	applicantA5,
@@ -1464,6 +1465,7 @@ export type SeedApplicationsReviewResult = {
 	termId: number
 	companyBApplicationId: number
 	applicationId: number
+	applicantA2ApplicationId: number
 	applicantA3ApplicationId: number
 	applicantA4ApplicationId: number
 	applicantA5ApplicationId: number
@@ -1807,6 +1809,7 @@ export const seedApplicationsReview =
 		const applicationForReviewApp = appForApplicantEmail(
 			applicantForReview.email,
 		)
+		const applicantA2App = appForApplicantEmail(applicantA2.email)
 		const applicantA3App = appForApplicantEmail(applicantA3.email)
 		const applicantA4App = appForApplicantEmail(applicantA4.email)
 		const applicantA5App = appForApplicantEmail(applicantA5.email)
@@ -1817,6 +1820,7 @@ export const seedApplicationsReview =
 			termId: term.id,
 			companyBApplicationId: companyBApp.id,
 			applicationId: applicationForReviewApp.id,
+			applicantA2ApplicationId: applicantA2App.id,
 			applicantA3ApplicationId: applicantA3App.id,
 			applicantA4ApplicationId: applicantA4App.id,
 			applicantA5ApplicationId: applicantA5App.id,

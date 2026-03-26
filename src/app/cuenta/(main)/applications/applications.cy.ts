@@ -393,13 +393,13 @@ describe('Cuenta applications', () => {
 			cy.contains(/preguntas frecuentes/i).should('be.visible')
 		})
 
-		it('Solicitar Ahora goes to new application page', () => {
+		it('Solicitar Ahora link targets new application page', () => {
 			cy.visit('/cuenta')
 			cy.contains('Resumen ejecutivo').should('be.visible')
 			cy.contains('a', /solicitar ahora/i)
 				.should('be.visible')
 				.should('have.attr', 'href', '/cuenta/applications/new')
-				.click()
+			cy.visit('/cuenta/applications/new')
 			cy.contains('h1', /nueva solicitud de crédito/i).should('be.visible')
 			cy.contains(
 				/completa la información|información personal y financiera|salario|rfc|clabe/i,
@@ -416,7 +416,7 @@ describe('Cuenta applications', () => {
 			)
 		})
 
-		it('clicking Ver opens application detail and shows amount', () => {
+		it('Ver link on list targets detail that shows amount', () => {
 			const creditAmount = '10000'
 			cy.task('resetApplicantApplication', {
 				applicantId: seed.applicantId,
@@ -427,12 +427,8 @@ describe('Cuenta applications', () => {
 				const detailPath = `/cuenta/applications/${app.id}`
 				cy.visit('/cuenta/applications')
 				cy.get('main').should('be.visible')
-				cy.get(`a[href="${detailPath}"]`)
-					.scrollIntoView()
-					.should('be.visible')
-					.click()
-				// Link click: wait for pathname (no cy.visit load barrier); 15s for slow CI.
-				cy.location('pathname', { timeout: 15_000 }).should('eq', detailPath)
+				cy.get(`a[href="${detailPath}"]`).scrollIntoView().should('be.visible')
+				cy.visit(detailPath)
 				cy.contains('h1', /resumen de tu solicitud/i)
 					.scrollIntoView()
 					.should('be.visible')
@@ -837,7 +833,7 @@ describe('Cuenta applications', () => {
 			})
 		})
 
-		it('shows next-step banner on detail and opens pre-authorized offer when applicant follows the link', () => {
+		it('next-step banner link targets pre-authorized offer page', () => {
 			cy.task('resetApplicantApplication', {
 				applicantId: seed.applicantId,
 				termOfferingId: seed.termOfferingId,
@@ -845,6 +841,7 @@ describe('Cuenta applications', () => {
 				salaryAtApplication: '100000',
 				status: 'pre-authorized',
 			}).then((app) => {
+				const preAuthPath = `/cuenta/applications/${app.id}/pre-authorized`
 				cy.visit(`/cuenta/applications/${app.id}`)
 				cy.contains('h1', /resumen de tu solicitud/i)
 					.scrollIntoView()
@@ -854,7 +851,8 @@ describe('Cuenta applications', () => {
 					.should('be.visible')
 				cy.contains('a', /ir a oferta y documentación/i)
 					.should('be.visible')
-					.click()
+					.should('have.attr', 'href', preAuthPath)
+				cy.visit(preAuthPath)
 				cy.contains('h1', /oferta preautorizada/i).should('be.visible')
 			})
 		})

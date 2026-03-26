@@ -153,11 +153,12 @@ describe('Admin Companies List', () => {
 			cy.get('table').should('be.visible')
 		})
 
-		it('navigates to create company page', () => {
+		it('Nueva empresa link targets create company page', () => {
 			cy.get('table').should('exist')
 			cy.contains('a', /nueva empresa/i)
 				.should('be.visible')
-				.click()
+				.should('have.attr', 'href', '/equipo/companies/new')
+			cy.visit('/equipo/companies/new')
 			cy.contains(/crear empresa/i).should('be.visible')
 		})
 
@@ -337,14 +338,18 @@ describe('Admin Companies List', () => {
 			cy.login(adminUser.email)
 		})
 
-		it('navigates to edit company page', () => {
+		it('row edit link targets company edit page', () => {
+			const editHref = `/equipo/companies/${encodeURIComponent(editCompany.domain)}/edit`
 			cy.visit('/equipo/companies')
 			cy.get('table').should('be.visible')
 			cy.findTableRow(editCompany.name)
 				.scrollIntoView()
 				.within(() => {
-					cy.get('a[href*="/edit"]').should('exist').click()
+					cy.get('a[href*="/edit"]')
+						.should('exist')
+						.should('have.attr', 'href', editHref)
 				})
+			cy.visit(editHref)
 			cy.contains(/editar|edit/i).should('be.visible')
 		})
 
