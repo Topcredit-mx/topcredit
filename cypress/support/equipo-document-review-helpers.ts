@@ -3,6 +3,9 @@ export const EQUIPO_APPLICATION_DETAIL_LOAD_MS = 15_000
 /** Pre-auth package has 3 document types; server refresh must run before authorize unlocks. */
 export const EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT = 3
 
+export const EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE =
+	'[data-equipo-application-detail] [data-documents-review-form]'
+
 export function assertEquipoApplicationDetailLoaded() {
 	cy.contains(/detalle de solicitud/i).should('be.visible')
 }
@@ -87,7 +90,9 @@ export function approveAuthorizationPackageDocumentsInOneSubmit(
 	for (const fileName of fileNames) {
 		selectDocumentDecisionInRow(fileName, 'approve')
 	}
-	cy.get('[data-documents-review-submit]')
+	cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
+		.find('[data-documents-review-submit]')
+		.first()
 		.should('have.attr', 'data-documents-review-kind', 'save-and-authorize')
 		.should('be.visible')
 		.click()
@@ -108,19 +113,22 @@ export function typeDocumentRejectionReasonInRow(
 }
 
 export function submitEquipoDocumentReviewForm() {
-	cy.get('[data-documents-review-submit]')
+	cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
+		.find('[data-documents-review-submit]')
+		.first()
 		.should('be.visible')
 		.should('not.be.disabled')
 		.click()
 }
 
 export function clickDocumentReviewAuthorizeOnly() {
-	cy.get(
-		'[data-documents-review-submit][data-documents-review-kind="authorize-only"]',
-		{
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		},
-	)
+	cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE, {
+		timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+	})
+		.find(
+			'[data-documents-review-submit][data-documents-review-kind="authorize-only"]',
+		)
+		.first()
 		.should('be.visible')
 		.should('not.be.disabled')
 		.click()

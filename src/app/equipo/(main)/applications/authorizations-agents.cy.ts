@@ -4,6 +4,7 @@ import {
 	clickDocumentReviewAuthorizeOnly,
 	EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 	EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT,
+	EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE,
 	openEquipoApplicationActions,
 	selectDocumentDecisionInRow,
 	submitEquipoDocumentReviewForm,
@@ -72,7 +73,10 @@ describe('Authorizations agents', () => {
 			cy.get('[data-equipo-application-documents-list] > li')
 				.eq(2)
 				.should('have.attr', 'data-document-type', 'payroll-receipt')
-			cy.get('[data-documents-review-submit]').should('be.disabled')
+			cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
+				.find('[data-documents-review-submit]')
+				.first()
+				.should('be.disabled')
 			approveAuthorizationPackageDocumentsInOneSubmit(authzPackageFiles)
 			cy.get(
 				'[data-equipo-application-detail] [data-current-application-status="authorized"]',
