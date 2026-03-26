@@ -1,5 +1,5 @@
 ---
-description: Cypress E2E standards — selectors, assertions, state, auth, Next.js streaming, Link/client navigation, test titles. Apply when writing or editing .cy.ts specs.
+description: Cypress E2E standards — simplicity vs helpers, selectors, assertions, state, auth, Next.js, test titles. Apply when writing or editing .cy.ts specs.
 globs: **/*.cy.ts, **/cypress/**/*
 alwaysApply: false
 ---
@@ -7,6 +7,17 @@ alwaysApply: false
 # Cypress E2E Best Practices
 
 Apply when writing or refactoring Cypress E2E tests. Keep tests isolated, stable, and readable.
+
+---
+
+## Simplicity — specs over indirection
+
+- **A spec should read like a script** someone can follow without opening other files. **Repetition is fine** if each block is obvious (visit → assert heading → click → fill → submit → assert).
+- **Avoid sprawl of small `export function` helpers** (`assertFoo`, `openBar`, `submitBaz`) that hide multi-step Cypress chains. Every extra name is a context switch. Prefer the same steps **inlined in the spec** when a flow is only used once or twice.
+- **`Cypress.Commands.add` is the preferred reuse mechanism** for steps that repeat many times across specs: one place (`cypress/support/commands.ts`, or split by domain only if that file becomes huge), **`cy.` discoverability**, and typings in `cypress/support/index.d.ts`. Commands should map to **one clear user action** (e.g. “open Acciones menu on equipo application detail”), not whole scenarios.
+- **TS modules beside specs** are best for **data tied to seeds** (e.g. predictable blob file names from an application id) or **shared constants** — not for orchestrating long DOM sequences. If only one describe block needs a builder, keep it in that file.
+- **Smell:** two helpers that differ only by button label / post-condition (`approveInitialIntake…` vs `approveAuthorizationPackage…`) — merge into one parameterized command or **duplicate the loop inline** so the spec shows exactly which submit label is expected.
+- **Current concentration:** `cypress/support/equipo-document-review-helpers.ts` bundles many flows for equipo application documents; new work should **not add more exports there** without trimming or moving to `cy.*` commands. Refactors can **inline** or **command-ify** incrementally when touching those specs.
 
 ---
 

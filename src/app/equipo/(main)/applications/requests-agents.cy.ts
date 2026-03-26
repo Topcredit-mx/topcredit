@@ -1,5 +1,4 @@
 import {
-	approveInitialIntakeDocumentsInOneSubmit,
 	assertEquipoApplicationDetailLoaded,
 	assertEquipoApplicationShowsAppStatus,
 	assertEquipoDocumentRowStatus,
@@ -326,14 +325,10 @@ describe('Requests agents', () => {
 				rejectReason,
 			)
 			cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
-				.find('.border-t.pt-4 button[type="submit"]')
-				.first()
-				.should(($btn) => {
-					expect($btn.text().replace(/\s+/g, ' ').trim()).to.match(
-						/solicitar cambios/i,
-					)
-				})
-			submitEquipoDocumentReviewForm()
+				.find('.border-t.pt-4')
+				.contains('button[type="submit"]', /solicitar cambios/i)
+				.should('be.visible')
+				.click()
 			assertEquipoDocumentRowStatus('e2e-intake-mixed-ine.pdf', 'approved')
 			assertEquipoDocumentRowStatus('e2e-intake-mixed-address.pdf', 'approved')
 			assertEquipoDocumentRowStatus(
@@ -374,9 +369,18 @@ describe('Requests agents', () => {
 			cy.visit(`/equipo/applications/${appId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/pendiente/i).should('be.visible')
-			approveInitialIntakeDocumentsInOneSubmit(
-				intakeRows.map((r) => r.fileName),
-			)
+			selectDocumentDecisionInRow('e2e-a5-re-review-ine.pdf', 'approve')
+			selectDocumentDecisionInRow('e2e-a5-re-review-address.pdf', 'approve')
+			selectDocumentDecisionInRow('e2e-a5-re-review-bank.pdf', 'approve')
+			cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
+				.find('.border-t.pt-4')
+				.contains('button[type="submit"]', /guardar y aprobar/i)
+				.should('be.visible')
+				.should('not.be.disabled')
+				.click()
+			assertEquipoDocumentRowStatus('e2e-a5-re-review-ine.pdf', 'approved')
+			assertEquipoDocumentRowStatus('e2e-a5-re-review-address.pdf', 'approved')
+			assertEquipoDocumentRowStatus('e2e-a5-re-review-bank.pdf', 'approved')
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(/aprobada/i).should('be.visible')
 		})
@@ -576,7 +580,30 @@ describe('Requests admin', () => {
 		cy.visit(`/equipo/applications/${appId}`)
 		cy.contains(/detalle de solicitud/i).should('be.visible')
 		assertEquipoApplicationShowsAppStatus(/pendiente/i)
-		approveInitialIntakeDocumentsInOneSubmit(intakeRows.map((r) => r.fileName))
+		selectDocumentDecisionInRow('e2e-admin-requests-intake-ine.pdf', 'approve')
+		selectDocumentDecisionInRow(
+			'e2e-admin-requests-intake-address.pdf',
+			'approve',
+		)
+		selectDocumentDecisionInRow('e2e-admin-requests-intake-bank.pdf', 'approve')
+		cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
+			.find('.border-t.pt-4')
+			.contains('button[type="submit"]', /guardar y aprobar/i)
+			.should('be.visible')
+			.should('not.be.disabled')
+			.click()
+		assertEquipoDocumentRowStatus(
+			'e2e-admin-requests-intake-ine.pdf',
+			'approved',
+		)
+		assertEquipoDocumentRowStatus(
+			'e2e-admin-requests-intake-address.pdf',
+			'approved',
+		)
+		assertEquipoDocumentRowStatus(
+			'e2e-admin-requests-intake-bank.pdf',
+			'approved',
+		)
 		cy.contains(/detalle de solicitud/i).should('be.visible')
 		cy.contains(/aprobada/i).should('be.visible')
 	})

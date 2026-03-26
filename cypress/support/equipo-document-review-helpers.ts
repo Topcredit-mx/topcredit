@@ -85,16 +85,6 @@ export function assertEquipoDocumentRowStatus(
 	}
 }
 
-export function equipoAuthzApprovedIntakeSeedFileNames(
-	applicationId: number,
-): readonly string[] {
-	return [
-		`seed-intake-ine-authz-${applicationId}.pdf`,
-		`seed-intake-address-authz-${applicationId}.pdf`,
-		`seed-intake-bank-authz-${applicationId}.pdf`,
-	]
-}
-
 export function assertEquipoDocumentRowDecisionsDisabled(fileName: string) {
 	withinEquipoDocumentRowByFileName(fileName, () => {
 		cy.get('fieldset').should('have.attr', 'inert')
@@ -148,50 +138,6 @@ export function selectDocumentDecisionInRow(
 			)
 		}
 	})
-}
-
-/** Approve all initial-intake rows in one submit (bulk decisions + approve application when applicable). */
-export function approveInitialIntakeDocumentsInOneSubmit(
-	fileNames: readonly string[],
-) {
-	for (const fileName of fileNames) {
-		selectDocumentDecisionInRow(fileName, 'approve')
-	}
-	cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
-		.find('.border-t.pt-4 button[type="submit"]')
-		.first()
-		.should('be.visible')
-		.should('not.be.disabled')
-		.should(($btn) => {
-			const label = $btn.text().replace(/\s+/g, ' ').trim()
-			expect(label).to.match(/guardar y aprobar/i)
-		})
-		.click()
-	for (const fileName of fileNames) {
-		assertEquipoDocumentRowStatus(fileName, 'approved')
-	}
-}
-
-/** Approve every listed file in one submit (bulk document decisions + authorize when applicable). */
-export function approveAuthorizationPackageDocumentsInOneSubmit(
-	fileNames: readonly string[],
-) {
-	for (const fileName of fileNames) {
-		selectDocumentDecisionInRow(fileName, 'approve')
-	}
-	cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
-		.find('.border-t.pt-4 button[type="submit"]')
-		.first()
-		.should('be.visible')
-		.should('not.be.disabled')
-		.should(($btn) => {
-			const label = $btn.text().replace(/\s+/g, ' ').trim()
-			expect(label).to.match(/guardar y autorizar/i)
-		})
-		.click()
-	for (const fileName of fileNames) {
-		assertEquipoDocumentRowStatus(fileName, 'approved')
-	}
 }
 
 export function typeDocumentRejectionReasonInRow(
