@@ -11,7 +11,9 @@ function Field({
 	orientation?: 'vertical' | 'horizontal' | 'responsive'
 }) {
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: groups label+control for forms; not always a single fieldset
 		<div
+			role="group"
 			data-slot="field"
 			className={cn(
 				'flex gap-2',

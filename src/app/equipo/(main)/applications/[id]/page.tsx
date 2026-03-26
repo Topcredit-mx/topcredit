@@ -105,22 +105,27 @@ export default async function AppApplicationDetailPage({
 			: []
 
 	return (
-		<div
+		<section
 			className="mx-auto grid max-w-4xl gap-3 px-1 py-1 sm:px-1.5 sm:py-1.5"
-			data-equipo-application-detail
+			aria-labelledby="equipo-application-detail-title"
 		>
+			<h1
+				id="equipo-application-detail-title"
+				className="font-semibold text-2xl text-foreground tracking-tight"
+			>
+				{t('applications-detail-title')}
+			</h1>
 			<div className="-mb-1 flex items-center gap-2">
 				<span className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
 					<FileText className="size-3.5" aria-hidden />
 					{t('applications-detail-status')}
 				</span>
-				<Badge
-					variant={statusBadgeVariant(application.status)}
-					className="shrink-0"
-					data-current-application-status={application.status}
-				>
-					{t(EQUIPO_APPLICATION_STATUS_KEYS[application.status])}
-				</Badge>
+				{/* biome-ignore lint/a11y/useSemanticElements: live region for application status; <output> is for form results */}
+				<div role="status" className="inline-flex shrink-0">
+					<Badge variant={statusBadgeVariant(application.status)}>
+						{t(EQUIPO_APPLICATION_STATUS_KEYS[application.status])}
+					</Badge>
+				</div>
 			</div>
 
 			{/* Main overview card: applicant + key data */}
@@ -255,10 +260,14 @@ export default async function AppApplicationDetailPage({
 			</div>
 
 			{/* Documents */}
-			<Card className={DETAIL_CARD_CLASS}>
+			<Card
+				id="equipo-application-documents-card"
+				className={DETAIL_CARD_CLASS}
+				aria-labelledby="equipo-application-documents-heading"
+			>
 				<CardHeader className={`border-b ${DETAIL_CARD_HEADER_CLASS}`}>
 					<CardTitle asChild className="flex items-center gap-2 text-base">
-						<h2>
+						<h2 id="equipo-application-documents-heading">
 							<FolderOpen
 								className="size-4 text-muted-foreground"
 								aria-hidden
@@ -296,7 +305,7 @@ export default async function AppApplicationDetailPage({
 								}))}
 							/>
 						) : (
-							<ul className="space-y-3" data-equipo-application-documents-list>
+							<ul className="space-y-3">
 								{documentsForDisplay.map((doc) => (
 									<ApplicationDocumentRow
 										key={doc.id}
@@ -333,6 +342,6 @@ export default async function AppApplicationDetailPage({
 				items={application.statusHistory}
 				getStatusLabel={(status) => t(EQUIPO_APPLICATION_STATUS_KEYS[status])}
 			/>
-		</div>
+		</section>
 	)
 }

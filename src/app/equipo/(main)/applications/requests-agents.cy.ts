@@ -1,7 +1,9 @@
 import {
 	assertEquipoApplicationDetailLoaded,
+	assertEquipoApplicationShowsAppStatus,
 	assertEquipoDocumentRowStatus,
 	EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+	EQUIPO_DOCUMENTS_CARD_SCOPE,
 	openEquipoApplicationActions,
 	selectDocumentDecisionInRow,
 	submitEquipoDocumentReviewForm,
@@ -180,8 +182,8 @@ describe('Requests agents', () => {
 		it('keeps Solicitudes active on application detail routes', () => {
 			cy.visit(`/equipo/applications/${seed.applicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.get('[data-slot="sidebar"]').within(() => {
-				cy.contains('[data-slot="sidebar-menu-button"]', /^solicitudes$/i)
+			cy.get('nav[aria-label="Navegación"]').within(() => {
+				cy.contains('a', /^Solicitudes$/i)
 					.should('be.visible')
 					.and('have.attr', 'data-active', 'true')
 			})
@@ -253,9 +255,7 @@ describe('Requests agents', () => {
 			})
 			cy.visit(`/equipo/applications/${seed.applicantA3ApplicationId}`)
 			assertEquipoApplicationDetailLoaded()
-			cy.get(
-				'[data-equipo-application-detail] [data-current-application-status="pending"]',
-			).should('be.visible')
+			assertEquipoApplicationShowsAppStatus(/pendiente/i)
 			selectDocumentDecisionInRow('e2e-40k-reject-doc.pdf', 'reject')
 			typeDocumentRejectionReasonInRow(
 				'e2e-40k-reject-doc.pdf',
@@ -263,9 +263,7 @@ describe('Requests agents', () => {
 			)
 			submitEquipoDocumentReviewForm()
 			assertEquipoDocumentRowStatus('e2e-40k-reject-doc.pdf', 'rejected')
-			cy.get(
-				'[data-equipo-application-detail] [data-current-application-status="pending"]',
-			).should('be.visible')
+			assertEquipoApplicationShowsAppStatus(/pendiente/i)
 		})
 
 		it('changes status from pending to approved when agent clicks Aprobar', () => {
@@ -298,9 +296,7 @@ describe('Requests agents', () => {
 		it('requests agent sees only deny in actions menu when the application has documents', () => {
 			cy.visit(`/equipo/applications/${seed.applicantA3ApplicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
-			cy.get(
-				'[data-equipo-application-detail] [data-current-application-status="pending"]',
-			).should('be.visible')
+			assertEquipoApplicationShowsAppStatus(/pendiente/i)
 			openEquipoApplicationActions()
 			cy.get('[role="menu"]').within(() => {
 				cy.get('[role="menuitem"]').should('have.length', 1)
@@ -336,18 +332,21 @@ describe('Requests agents', () => {
 		describe('Cross-role access (requests vs authorization stage)', () => {
 			it('hides application actions and document decisions on awaiting-authorization', () => {
 				cy.visit(`/equipo/applications/${seed.authzApplicationId}`)
-				cy.get(
-					'[data-equipo-application-detail] [data-current-application-status="awaiting-authorization"]',
-					{ timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS },
-				).should('be.visible')
-				cy.get('[data-equipo-application-primary-actions="trigger"]').should(
-					'not.exist',
+				assertEquipoApplicationShowsAppStatus(/en revisión de autorización/i, {
+					timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+				})
+				cy.get('[aria-labelledby="equipo-application-detail-title"]').within(
+					() => {
+						cy.contains('button', /acciones/i).should('not.exist')
+					},
 				)
-				cy.get('[data-equipo-application-documents-list] > li').should(
+				cy.get(`${EQUIPO_DOCUMENTS_CARD_SCOPE} ul > li`).should(
 					'have.length',
 					3,
 				)
-				cy.get('[data-document-decision-button]').should('not.exist')
+				cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE).within(() => {
+					cy.get('button[aria-label="Aprobar"]').should('not.exist')
+				})
 			})
 		})
 	})
@@ -369,18 +368,12 @@ describe('Requests agents', () => {
 
 		it('picking a company from switcher filters the list', () => {
 			cy.get('table tbody tr').should('have.length', 10)
-			cy.get('[data-slot="sidebar"]')
-				.find('[data-slot="dropdown-menu-trigger"]')
-				.first()
+			cy.get('#company-switcher-trigger').should('be.visible').click()
+			cy.get('[role="menu"]')
+				.contains('Other Company')
 				.should('be.visible')
 				.click()
-			cy.contains('[data-slot="dropdown-menu-item"]', 'Other Company')
-				.should('be.visible')
-				.click()
-			cy.get('[data-slot="sidebar"]')
-				.find('[data-slot="dropdown-menu-trigger"]')
-				.first()
-				.should('contain', 'Other Company')
+			cy.get('#company-switcher-trigger').should('contain', 'Other Company')
 			cy.get('table tbody tr').should('have.length', 1)
 			cy.contains('othercompany.com').should('be.visible')
 			cy.findTableRow('15,000').should('exist')
@@ -389,11 +382,7 @@ describe('Requests agents', () => {
 
 	describe('Inactive company', () => {
 		function openCompanySwitcher() {
-			cy.get('[data-slot="sidebar"]')
-				.find('[data-slot="dropdown-menu-trigger"]')
-				.first()
-				.should('be.visible')
-				.click()
+			cy.get('#company-switcher-trigger').should('be.visible').click()
 		}
 
 		it('cookie with inactive company falls back to all-assigned view', () => {
@@ -403,10 +392,10 @@ describe('Requests agents', () => {
 			cy.visit('/equipo/applications')
 			cy.get('table tbody tr').should('have.length', 10)
 			cy.contains('inactivecompany.com').should('not.exist')
-			cy.get('[data-slot="sidebar"]')
-				.find('[data-slot="dropdown-menu-trigger"]')
-				.first()
-				.should('contain', 'Todas mis empresas')
+			cy.get('#company-switcher-trigger').should(
+				'contain',
+				'Todas mis empresas',
+			)
 		})
 
 		it('inactive company not in picker', () => {
@@ -415,7 +404,7 @@ describe('Requests agents', () => {
 			cy.clearCookie('selected_company_id')
 			cy.visit('/equipo/applications')
 			openCompanySwitcher()
-			cy.get('[data-slot="dropdown-menu-content"]')
+			cy.get('[role="menu"]')
 				.should('be.visible')
 				.within(() => {
 					cy.contains('Inactive Company').should('not.exist')

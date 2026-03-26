@@ -326,31 +326,28 @@ describe('Cuenta applications', () => {
 			cy.url().should('include', '/cuenta/applications/new')
 
 			cy.get('input[name="officialIdFile"]')
-				.closest('[data-slot="field"]')
+				.closest('[role="group"]')
 				.scrollIntoView()
 				.within(() => {
-					cy.contains(
-						'[data-slot="field-error"]',
-						/Selecciona un archivo válido\./i,
-					).should('be.visible')
+					cy.contains('p', /Selecciona un archivo válido\./i).should(
+						'be.visible',
+					)
 				})
 			cy.get('input[name="proofOfAddressFile"]')
-				.closest('[data-slot="field"]')
+				.closest('[role="group"]')
 				.scrollIntoView()
 				.within(() => {
-					cy.contains(
-						'[data-slot="field-error"]',
-						/Selecciona un archivo válido\./i,
-					).should('be.visible')
+					cy.contains('p', /Selecciona un archivo válido\./i).should(
+						'be.visible',
+					)
 				})
 			cy.get('input[name="bankStatementFile"]')
-				.closest('[data-slot="field"]')
+				.closest('[role="group"]')
 				.scrollIntoView()
 				.within(() => {
-					cy.contains(
-						'[data-slot="field-error"]',
-						/Selecciona un archivo válido\./i,
-					).should('be.visible')
+					cy.contains('p', /Selecciona un archivo válido\./i).should(
+						'be.visible',
+					)
 				})
 		})
 	})
@@ -368,7 +365,9 @@ describe('Cuenta applications', () => {
 
 		it('shows applicant sidebar navigation on cuenta home', () => {
 			cy.visit('/cuenta')
-			cy.get('[data-slot="sidebar"]').should('be.visible')
+			cy.get('nav[aria-label="Navegación principal del portal"]').should(
+				'be.visible',
+			)
 			cy.get('a[href="/cuenta"]').should('be.visible')
 			cy.get('a[href="/cuenta/applications/new"]').should('be.visible')
 			cy.get('a[href="/cuenta/applications"]').should('be.visible')
@@ -450,23 +449,31 @@ describe('Cuenta applications', () => {
 				cy.visit(`/cuenta/applications/${app.id}`)
 				cy.url().should('include', `/cuenta/applications/${app.id}`)
 				cy.contains(/resumen de tu solicitud/i).should('be.visible')
-				cy.get('[data-document-slot="official-id"]')
+				cy.get('section[aria-labelledby="cuenta-application-doc-official-id"]')
 					.first()
 					.scrollIntoView()
 					.should('be.visible')
-				cy.get('[data-document-slot="official-id"]').within(() => {
+				cy.get(
+					'section[aria-labelledby="cuenta-application-doc-official-id"]',
+				).within(() => {
 					cy.contains(/identificación oficial/i).should('be.visible')
 					cy.contains(/sin cargar/i).should('be.visible')
 				})
-				cy.get('[data-document-slot="proof-of-address"]').within(() => {
+				cy.get(
+					'section[aria-labelledby="cuenta-application-doc-proof-of-address"]',
+				).within(() => {
 					cy.contains(/comprobante de domicilio/i).should('be.visible')
 					cy.contains(/sin cargar/i).should('be.visible')
 				})
-				cy.get('[data-document-slot="bank-statement"]').within(() => {
+				cy.get(
+					'section[aria-labelledby="cuenta-application-doc-bank-statement"]',
+				).within(() => {
 					cy.contains(/estado de cuenta bancario/i).should('be.visible')
 					cy.contains(/sin cargar/i).should('be.visible')
 				})
-				cy.get('[data-document-slot="official-id"]').within(() => {
+				cy.get(
+					'section[aria-labelledby="cuenta-application-doc-official-id"]',
+				).within(() => {
 					cy.contains('button', /examinar archivos/i).should('be.visible')
 					cy.get('input[name="file"]')
 						.should('exist')
@@ -491,7 +498,7 @@ describe('Cuenta applications', () => {
 					storageKey: `application-documents/${app.id}/official-id/e2e-auth.pdf`,
 				})
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.get('[data-document-slot="official-id"]')
+				cy.get('section[aria-labelledby="cuenta-application-doc-official-id"]')
 					.first()
 					.scrollIntoView()
 					.should('be.visible')
@@ -532,13 +539,14 @@ describe('Cuenta applications', () => {
 				})
 
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.get('[data-current-application-status="pending"]').should(
+				cy.contains('[role="status"]', /documentación inválida/i).should(
 					'be.visible',
 				)
 				cy.contains(/documentación inválida/i)
 					.scrollIntoView()
 					.should('be.visible')
-				cy.get('[data-application-status-history-title]')
+				cy.get('section[aria-labelledby="application-status-history-heading"]')
+					.find('h2')
 					.scrollIntoView()
 					.should('be.visible')
 					.and('contain', 'Historial de estado')
@@ -551,16 +559,19 @@ describe('Cuenta applications', () => {
 				cy.contains(/recibo ilegible/i)
 					.scrollIntoView()
 					.should('be.visible')
-				cy.get('[data-application-status-history]')
-					.scrollIntoView()
-					.within(() => {
-						cy.get('[data-status-history-item]')
-							.eq(0)
-							.should('have.attr', 'data-status-history-status', 'pending')
-					})
+				cy.contains('h2', /historial de estado/i)
+					.closest('section')
+					.find('ol li')
+					.should('have.length.at.least', 1)
+				cy.contains('h2', /historial de estado/i)
+					.closest('section')
+					.find('ol li')
+					.first()
+					.invoke('text')
+					.should('match', /pendiente|documentación inválida/i)
 				cy.intercept('POST', '**/cuenta/applications/*').as('uploadFirstDoc')
 				cy.get(
-					'[data-document-slot="official-id"] input[name="file"]',
+					'section[aria-labelledby="cuenta-application-doc-official-id"] input[name="file"]',
 				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadFirstDoc')
 
@@ -574,23 +585,25 @@ describe('Cuenta applications', () => {
 					.should('be.visible')
 				cy.intercept('POST', '**/cuenta/applications/*').as('uploadSecondDoc')
 				cy.get(
-					'[data-document-slot="proof-of-address"] input[name="file"]',
+					'section[aria-labelledby="cuenta-application-doc-proof-of-address"] input[name="file"]',
 				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadSecondDoc')
 
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.get('[data-current-application-status="pending"]')
+				cy.contains('[role="status"]', /pendiente/i)
 					.scrollIntoView()
 					.should('be.visible')
 				cy.contains(/motivo de rechazo:/i).should('not.exist')
-				cy.get('[data-application-status-history]')
-					.scrollIntoView()
-					.within(() => {
-						cy.get('[data-status-history-item]').should('have.length', 1)
-						cy.get('[data-status-history-item]')
-							.eq(0)
-							.should('have.attr', 'data-status-history-status', 'pending')
-					})
+				cy.contains('h2', /historial de estado/i)
+					.closest('section')
+					.find('ol li')
+					.should('have.length', 1)
+				cy.contains('h2', /historial de estado/i)
+					.closest('section')
+					.find('ol li')
+					.first()
+					.invoke('text')
+					.should('match', /pendiente|documentación inválida/i)
 			})
 		})
 
@@ -602,13 +615,13 @@ describe('Cuenta applications', () => {
 				salaryAtApplication: '100000',
 			}).then((app) => {
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.get('[data-document-slot="official-id"]')
+				cy.get('section[aria-labelledby="cuenta-application-doc-official-id"]')
 					.first()
 					.scrollIntoView()
 					.should('be.visible')
 				cy.intercept('POST', '**/cuenta/applications/*').as('uploadDoc')
 				cy.get(
-					'[data-document-slot="bank-statement"] input[name="file"]',
+					'section[aria-labelledby="cuenta-application-doc-bank-statement"] input[name="file"]',
 				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadDoc')
 				// List is server-rendered; revalidatePath runs after action but page does not auto-refresh. Reload to see new document.
@@ -638,7 +651,7 @@ describe('Cuenta applications', () => {
 			}).then((app) => {
 				cy.visit(`/cuenta/applications/${app.id}`)
 				cy.get(
-					'[data-document-slot="official-id"] input[name="file"]',
+					'section[aria-labelledby="cuenta-application-doc-official-id"] input[name="file"]',
 				).selectFile(
 					{
 						contents: Cypress.Buffer.from([]),
@@ -662,13 +675,13 @@ describe('Cuenta applications', () => {
 				salaryAtApplication: '100000',
 			}).then((app) => {
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.get('[data-document-slot="official-id"]')
+				cy.get('section[aria-labelledby="cuenta-application-doc-official-id"]')
 					.first()
 					.scrollIntoView()
 					.should('be.visible')
 				cy.intercept('POST', '**/cuenta/applications/*').as('uploadDoc')
 				cy.get(
-					'[data-document-slot="bank-statement"] input[name="file"]',
+					'section[aria-labelledby="cuenta-application-doc-bank-statement"] input[name="file"]',
 				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadDoc')
 				cy.visit(`/cuenta/applications/${app.id}`)
@@ -709,7 +722,9 @@ describe('Cuenta applications', () => {
 			}).then((app) => {
 				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
 				cy.contains('h1', /oferta preautorizada/i).should('be.visible')
-				cy.get('[data-document-slot="payroll-receipt"]')
+				cy.get(
+					'section[aria-labelledby="cuenta-application-doc-payroll-receipt"]',
+				)
 					.scrollIntoView()
 					.should('be.visible')
 				cy.contains('button', /^Enviar$/i)
@@ -737,7 +752,9 @@ describe('Cuenta applications', () => {
 				})
 				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
 				cy.contains('h1', /oferta preautorizada/i).should('be.visible')
-				cy.get('[data-document-slot="payroll-receipt"]')
+				cy.get(
+					'section[aria-labelledby="cuenta-application-doc-payroll-receipt"]',
+				)
 					.scrollIntoView()
 					.should('be.visible')
 				cy.contains('button', /^Enviar$/i)
@@ -749,7 +766,7 @@ describe('Cuenta applications', () => {
 				cy.contains('button', /^Enviar$/i).click()
 				cy.wait('@submitAuthPackage')
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.get('[data-current-application-status="awaiting-authorization"]')
+				cy.contains('[role="status"]', /en revisión de autorización/i)
 					.scrollIntoView()
 					.should('be.visible')
 				cy.contains(/En revisión de autorización/i).should('be.visible')
@@ -772,7 +789,9 @@ describe('Cuenta applications', () => {
 				})
 				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
 				cy.contains('h1', /oferta preautorizada/i).should('be.visible')
-				cy.get('[data-document-slot="payroll-receipt"]')
+				cy.get(
+					'section[aria-labelledby="cuenta-application-doc-payroll-receipt"]',
+				)
 					.scrollIntoView()
 					.should('be.visible')
 
@@ -780,16 +799,15 @@ describe('Cuenta applications', () => {
 					'uploadPackageDoc',
 				)
 				cy.get(
-					'[data-document-slot="payroll-receipt"] input[name="file"]',
+					'section[aria-labelledby="cuenta-application-doc-payroll-receipt"] input[name="file"]',
 				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadPackageDoc')
-				cy.get('[data-document-slot="contract"] input[name="file"]').selectFile(
-					'cypress/fixtures/sample-document.webp',
-					{ force: true },
-				)
+				cy.get(
+					'section[aria-labelledby="cuenta-application-doc-contract"] input[name="file"]',
+				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadPackageDoc')
 				cy.get(
-					'[data-document-slot="authorization"] input[name="file"]',
+					'section[aria-labelledby="cuenta-application-doc-authorization"] input[name="file"]',
 				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@uploadPackageDoc')
 
@@ -802,9 +820,9 @@ describe('Cuenta applications', () => {
 				cy.contains('button', /^Enviar$/i).click()
 				cy.wait('@submitAuthPackage')
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.get(
-					'[data-current-application-status="awaiting-authorization"]',
-				).should('be.visible')
+				cy.contains('[role="status"]', /en revisión de autorización/i).should(
+					'be.visible',
+				)
 			})
 		})
 
@@ -880,13 +898,13 @@ describe('Cuenta applications', () => {
 				})
 				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
 				cy.contains('h1', /oferta preautorizada/i).should('be.visible')
-				cy.get('[data-current-application-status="awaiting-authorization"]')
+				cy.contains('[role="status"]', /en revisión de autorización/i)
 					.scrollIntoView()
 					.should('be.visible')
 				cy.contains(/Tu paquete está en revisión/i)
 					.scrollIntoView()
 					.should('be.visible')
-				cy.get('[data-document-slot="contract"]')
+				cy.get('section[aria-labelledby="cuenta-application-doc-contract"]')
 					.scrollIntoView()
 					.should('be.visible')
 					.and('contain', reason)
@@ -906,20 +924,19 @@ describe('Cuenta applications', () => {
 					variant: 'initialIntakeApprovedAndPackagePending',
 				})
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.get(
-					'[data-current-application-status="awaiting-authorization"]',
-				).should('be.visible')
+				cy.contains('[role="status"]', /en revisión de autorización/i).should(
+					'be.visible',
+				)
 				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
 				cy.intercept('POST', postToApplicationUrl(app.id)).as('reuploadPackage')
-				cy.get('[data-document-slot="contract"] input[name="file"]').selectFile(
-					'cypress/fixtures/sample-document.webp',
-					{ force: true },
-				)
+				cy.get(
+					'section[aria-labelledby="cuenta-application-doc-contract"] input[name="file"]',
+				).selectFile('cypress/fixtures/sample-document.webp', { force: true })
 				cy.wait('@reuploadPackage')
 				cy.visit(`/cuenta/applications/${app.id}/pre-authorized`)
-				cy.get(
-					'[data-current-application-status="awaiting-authorization"]',
-				).should('be.visible')
+				cy.contains('[role="status"]', /en revisión de autorización/i).should(
+					'be.visible',
+				)
 				// Package already submitted: no second "Enviar" on this screen.
 				cy.contains('button', /^Enviar$/i).should('not.exist')
 			})

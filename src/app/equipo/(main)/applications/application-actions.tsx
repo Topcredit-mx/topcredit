@@ -102,7 +102,7 @@ export function ApplicationActions({
 							size="sm"
 							disabled={pending || pendingReason}
 							className="gap-2"
-							data-equipo-application-primary-actions="trigger"
+							aria-haspopup="menu"
 						>
 							{t('applications-actions')}
 							<ChevronDown className="size-4 opacity-70" />

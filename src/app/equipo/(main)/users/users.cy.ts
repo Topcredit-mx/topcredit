@@ -119,8 +119,8 @@ describe('Admin Users', () => {
 			cy.findTableRow(users.jane.name).within(() => {
 				findRoleCheckbox(cy.root(), 'Admin').should(
 					'have.attr',
-					'data-state',
-					'checked',
+					'aria-checked',
+					'true',
 				)
 			})
 
@@ -132,8 +132,8 @@ describe('Admin Users', () => {
 			cy.findTableRow(users.jane.name).within(() => {
 				findRoleCheckbox(cy.root(), 'Admin').should(
 					'have.attr',
-					'data-state',
-					'unchecked',
+					'aria-checked',
+					'false',
 				)
 			})
 		})
@@ -142,13 +142,13 @@ describe('Admin Users', () => {
 			cy.findTableRow(users.jane.name).within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Solicitudes role"]',
-				).should('have.attr', 'data-state', 'checked')
+				).should('have.attr', 'aria-checked', 'true')
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Preautorizaciones role"]',
-				).should('have.attr', 'data-state', 'unchecked')
+				).should('have.attr', 'aria-checked', 'false')
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Autorizaciones role"]',
-				).should('have.attr', 'data-state', 'unchecked')
+				).should('have.attr', 'aria-checked', 'false')
 			})
 		})
 	})
@@ -208,7 +208,7 @@ describe('Admin Users', () => {
 			cy.findTableRow('Admin User').within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Admin role"]',
-				).should('have.attr', 'data-state', 'checked')
+				).should('have.attr', 'aria-checked', 'true')
 			})
 		})
 
@@ -222,7 +222,7 @@ describe('Admin Users', () => {
 			cy.findTableRow(users.bob.name).within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Admin role"]',
-				).should('have.attr', 'data-state', 'unchecked')
+				).should('have.attr', 'aria-checked', 'false')
 			})
 
 			cy.task('assignRole', { email: users.bob.email, role: 'admin' })
@@ -389,7 +389,7 @@ describe('Admin Users', () => {
 				cy.contains('label', companies.acme.name)
 					.parent()
 					.find('button[role="checkbox"]')
-					.should('have.attr', 'data-state', 'checked')
+					.should('have.attr', 'aria-checked', 'true')
 			})
 
 			cy.task('deleteUserCompanyAssignmentsByEmail', [agentOnlyUser.email])

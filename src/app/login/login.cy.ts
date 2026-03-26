@@ -102,7 +102,7 @@ describe('Login Flow', () => {
 					throw new Error(
 						'E2E_OTP_CODE must be set for full UI login tests (e.g. in CI or E2E_OTP_CODE=123456 when running Cypress)',
 					)
-				cy.get('input[data-input-otp]').type(code)
+				cy.get('input[autocomplete="one-time-code"]').type(code)
 			})
 			cy.url().should('not.include', '/verify-otp')
 			cy.contains('Resumen ejecutivo').should('be.visible')
@@ -113,7 +113,7 @@ describe('Login Flow', () => {
 			cy.get('input[name="email"]').type(applicantUser.email)
 			cy.get('form').submit()
 			cy.url().should('include', '/verify-otp')
-			cy.get('input[data-input-otp]').type('111111')
+			cy.get('input[autocomplete="one-time-code"]').type('111111')
 			cy.contains(/invalid|inválido|inválida/i).should('be.visible')
 			cy.url().should('include', '/verify-otp')
 		})

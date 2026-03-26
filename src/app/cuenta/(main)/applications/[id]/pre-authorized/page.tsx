@@ -119,18 +119,20 @@ export default async function CuentaPreAuthorizedOfferPage({
 						<p className="m-0 min-w-0 truncate font-semibold text-[11px] text-white/80 uppercase leading-none tracking-wide">
 							{t('pre-authorized-offer-summary-label')}
 						</p>
-						<Badge
-							className={cn(
-								getApplicationStatusBadgeClass(
-									application.status,
-									hasRejectedPackageDocs,
-								),
-								'h-5 max-w-44 shrink-0 truncate px-2 py-0 font-semibold text-[10px] uppercase leading-none tracking-wide',
-							)}
-							data-current-application-status={application.status}
-						>
-							{t(CUENTA_APPLICATION_STATUS_KEYS[application.status])}
-						</Badge>
+						{/* biome-ignore lint/a11y/useSemanticElements: live region for application status */}
+						<div role="status" className="inline-flex max-w-44 shrink-0">
+							<Badge
+								className={cn(
+									getApplicationStatusBadgeClass(
+										application.status,
+										hasRejectedPackageDocs,
+									),
+									'h-5 max-w-44 shrink-0 truncate px-2 py-0 font-semibold text-[10px] uppercase leading-none tracking-wide',
+								)}
+							>
+								{t(CUENTA_APPLICATION_STATUS_KEYS[application.status])}
+							</Badge>
+						</div>
 					</div>
 					<div className="space-y-5 px-6 pt-5 pb-7">
 						<div>

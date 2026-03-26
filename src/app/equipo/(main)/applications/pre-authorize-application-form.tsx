@@ -308,9 +308,7 @@ export function PreAuthorizeApplicationDialog({
 							aria-invalid={amountFieldInvalid}
 						/>
 						{maxPrincipalFormatted != null && !overCapacity ? (
-							<FieldDescription
-								data-preauth-max-principal={maxPrincipalFormatted}
-							>
+							<FieldDescription>
 								{t('applications-preauth-max-display', {
 									maxLoanAmount: maxPrincipalFormatted,
 								})}
@@ -319,10 +317,7 @@ export function PreAuthorizeApplicationDialog({
 						{overCapacity &&
 						capacityContext != null &&
 						maxPrincipalFormatted != null ? (
-							<FieldDescription
-								className="text-destructive"
-								data-preauth-exceeds-capacity-hint="true"
-							>
+							<FieldDescription className="text-destructive" role="alert">
 								{t('applications-preauth-exceeds-capacity', {
 									maxLoanAmount: maxPrincipalFormatted,
 								})}
@@ -346,7 +341,6 @@ export function PreAuthorizeApplicationDialog({
 										type="submit"
 										variant="destructive"
 										disabled={submitDisabled}
-										data-preauth-submit
 									>
 										{pending
 											? t('applications-submit-saving')
@@ -358,11 +352,7 @@ export function PreAuthorizeApplicationDialog({
 								</TooltipContent>
 							</Tooltip>
 						) : (
-							<Button
-								type="submit"
-								disabled={submitDisabled}
-								data-preauth-submit
-							>
+							<Button type="submit" disabled={submitDisabled}>
 								{pending
 									? t('applications-submit-saving')
 									: t('applications-pre-authorize-submit')}

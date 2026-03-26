@@ -10,7 +10,6 @@ import {
 	CollapsibleTrigger,
 } from '~/components/ui/collapsible'
 import {
-	SidebarGroup,
 	SidebarGroupLabel,
 	SidebarMenu,
 	SidebarMenuButton,
@@ -68,7 +67,10 @@ export function NavMain({
 	const pathname = usePathname()
 
 	return (
-		<SidebarGroup>
+		<nav
+			aria-label={groupLabel}
+			className="relative flex w-full min-w-0 flex-col p-2"
+		>
 			<SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
 			<SidebarMenu>
 				{items.map((item) =>
@@ -143,6 +145,6 @@ export function NavMain({
 					),
 				)}
 			</SidebarMenu>
-		</SidebarGroup>
+		</nav>
 	)
 }

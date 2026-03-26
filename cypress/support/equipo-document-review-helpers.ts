@@ -3,23 +3,52 @@ export const EQUIPO_APPLICATION_DETAIL_LOAD_MS = 15_000
 /** Pre-auth package has 3 document types; server refresh must run before authorize unlocks. */
 export const EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT = 3
 
-export const EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE =
-	'[data-equipo-application-detail] [data-documents-review-form]'
+const EQUIPO_APPLICATION_DETAIL_ROOT =
+	'[aria-labelledby="equipo-application-detail-title"]'
+
+export const EQUIPO_DOCUMENTS_CARD_SCOPE = '#equipo-application-documents-card'
+
+export const EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE = `${EQUIPO_DOCUMENTS_CARD_SCOPE} form`
+
+function documentRowStatusPattern(
+	status: 'pending' | 'approved' | 'rejected',
+): RegExp {
+	switch (status) {
+		case 'pending':
+			return /pendiente/i
+		case 'approved':
+			return /aprobado/i
+		case 'rejected':
+			return /rechazado/i
+	}
+}
 
 export function assertEquipoApplicationDetailLoaded() {
-	cy.contains(/detalle de solicitud/i).should('be.visible')
+	cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+}
+
+export function assertEquipoApplicationShowsAppStatus(
+	pattern: RegExp,
+	options?: { timeout?: number },
+) {
+	cy.get(EQUIPO_APPLICATION_DETAIL_ROOT, options)
+		.find('[role="status"]')
+		.first()
+		.should('be.visible')
+		.invoke('text')
+		.should('match', pattern)
 }
 
 export function openEquipoApplicationActions() {
-	cy.get('[data-equipo-application-detail]', {
+	cy.get(EQUIPO_APPLICATION_DETAIL_ROOT, {
 		timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 	}).should('be.visible')
-	cy.get('[data-equipo-application-primary-actions="trigger"]', {
-		timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
+	cy.get(EQUIPO_APPLICATION_DETAIL_ROOT).within(() => {
+		cy.contains('button', /acciones/i)
+			.first()
+			.should('be.visible')
+			.click()
 	})
-		.first()
-		.should('be.visible')
-		.click()
 }
 
 export function dismissEquipoApplicationActionsMenu() {
@@ -29,19 +58,22 @@ export function dismissEquipoApplicationActionsMenu() {
 
 export function assertEquipoDocumentRowStatus(
 	fileName: string,
-	status: string,
+	status: 'pending' | 'approved' | 'rejected',
 	containSubstring?: string,
 	getOptions?: { timeout?: number },
 ) {
-	const row = cy
-		.get(
-			`[data-equipo-application-documents-list] li[data-document-file-name="${fileName}"]`,
-			getOptions,
-		)
-		.first()
-		.should('have.attr', 'data-status', status)
+	const pattern = documentRowStatusPattern(status)
+	cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE, getOptions).within(() => {
+		cy.contains('li', fileName)
+			.first()
+			.within(() => {
+				cy.contains(pattern).should('be.visible')
+			})
+	})
 	if (containSubstring !== undefined) {
-		row.and('contain', containSubstring)
+		cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE, getOptions).within(() => {
+			cy.contains('li', fileName).first().should('contain', containSubstring)
+		})
 	}
 }
 
@@ -49,13 +81,15 @@ export function withinEquipoDocumentRowByFileName(
 	fileName: string,
 	fn: () => void,
 ) {
-	cy.get(
-		`[data-equipo-application-documents-list] li[data-document-file-name="${fileName}"]`,
-	)
-		.first()
+	cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE)
 		.should('be.visible')
-		.scrollIntoView()
-		.within(fn)
+		.within(() => {
+			cy.contains('li', fileName)
+				.first()
+				.should('be.visible')
+				.scrollIntoView()
+				.within(fn)
+		})
 }
 
 export function selectDocumentDecisionInRow(
@@ -65,8 +99,9 @@ export function selectDocumentDecisionInRow(
 	if (value === 'unchanged') {
 		return
 	}
+	const ariaLabel = value === 'approve' ? 'Aprobar' : 'Rechazar'
 	withinEquipoDocumentRowByFileName(fileName, () => {
-		cy.get(`[data-document-decision-button="${value}"]`)
+		cy.get(`button[aria-label="${ariaLabel}"]`)
 			.should('be.visible')
 			.click({ force: true })
 		if (value === 'reject') {
@@ -74,7 +109,7 @@ export function selectDocumentDecisionInRow(
 				'be.visible',
 			)
 		} else {
-			cy.get(`[data-document-decision-button="${value}"]`).should(
+			cy.get(`button[aria-label="${ariaLabel}"]`).should(
 				'have.attr',
 				'aria-pressed',
 				'true',
@@ -91,10 +126,14 @@ export function approveAuthorizationPackageDocumentsInOneSubmit(
 		selectDocumentDecisionInRow(fileName, 'approve')
 	}
 	cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
-		.find('[data-documents-review-submit]')
+		.find('.border-t.pt-4 button[type="submit"]')
 		.first()
-		.should('have.attr', 'data-documents-review-kind', 'save-and-authorize')
 		.should('be.visible')
+		.should('not.be.disabled')
+		.should(($btn) => {
+			const label = $btn.text().replace(/\s+/g, ' ').trim()
+			expect(label).to.match(/guardar y autorizar/i)
+		})
 		.click()
 	for (const fileName of fileNames) {
 		assertEquipoDocumentRowStatus(fileName, 'approved', undefined, {
@@ -114,7 +153,7 @@ export function typeDocumentRejectionReasonInRow(
 
 export function submitEquipoDocumentReviewForm() {
 	cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
-		.find('[data-documents-review-submit]')
+		.find('.border-t.pt-4 button[type="submit"]')
 		.first()
 		.should('be.visible')
 		.should('not.be.disabled')
@@ -125,11 +164,12 @@ export function clickDocumentReviewAuthorizeOnly() {
 	cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE, {
 		timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 	})
-		.find(
-			'[data-documents-review-submit][data-documents-review-kind="authorize-only"]',
-		)
+		.find('.border-t.pt-4 button[type="submit"]')
 		.first()
 		.should('be.visible')
 		.should('not.be.disabled')
+		.should(($el) => {
+			expect($el.text().trim()).to.match(/^autorizar$/i)
+		})
 		.click()
 }

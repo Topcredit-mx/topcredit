@@ -168,19 +168,21 @@ export default async function CuentaApplicationDetailPage({
 							/>
 						</span>
 					</div>
-					<Badge
-						className={getApplicationStatusBadgeClass(
-							application.status,
-							rejectedDocumentsCount > 0,
-						)}
-						data-current-application-status={application.status}
-					>
-						{t(
-							application.status === 'pending' && rejectedDocumentsCount > 0
-								? 'status-invalid-documentation'
-								: CUENTA_APPLICATION_STATUS_KEYS[application.status],
-						)}
-					</Badge>
+					{/* biome-ignore lint/a11y/useSemanticElements: live region for application status */}
+					<div role="status" className="inline-flex shrink-0">
+						<Badge
+							className={getApplicationStatusBadgeClass(
+								application.status,
+								rejectedDocumentsCount > 0,
+							)}
+						>
+							{t(
+								application.status === 'pending' && rejectedDocumentsCount > 0
+									? 'status-invalid-documentation'
+									: CUENTA_APPLICATION_STATUS_KEYS[application.status],
+							)}
+						</Badge>
+					</div>
 				</div>
 
 				{application.denialReason ? (

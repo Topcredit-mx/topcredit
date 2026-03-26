@@ -363,9 +363,11 @@ describe('Admin Companies List', () => {
 			cy.get('input[name="rate"]').should('have.value', '2.5')
 			cy.get('input[name="borrowingCapacityRate"]').should('have.value', '30')
 			cy.contains('label', /frecuencia de pago/i)
-				.closest('[data-slot="field"]')
-				.find('[data-slot="select-trigger"]')
-				.should('contain', 'Mensual')
+				.invoke('attr', 'for')
+				.then((htmlFor) => {
+					expect(htmlFor).to.be.a('string')
+					cy.get(`#${htmlFor as string}`).should('contain', 'Mensual')
+				})
 		})
 
 		it('toggles active status', () => {

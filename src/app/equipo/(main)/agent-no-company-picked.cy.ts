@@ -27,21 +27,19 @@ describe('Agent with no company picked', () => {
 	})
 
 	it('keeps sidebar navigation enabled so agent can navigate', () => {
-		cy.get('[data-slot="sidebar-content"]')
-			.contains('a', 'Solicitudes')
+		cy.get('nav[aria-label="Navegación"]')
+			.contains('a', /^Solicitudes$/i)
 			.should('be.visible')
 			.click()
 		cy.url().should('include', '/equipo/applications')
 	})
 
 	it('keeps company switcher enabled so user can pick a company', () => {
-		cy.get('[data-slot="sidebar"]')
-			.find('[data-slot="dropdown-menu-trigger"]')
-			.first()
+		cy.get('#company-switcher-trigger')
 			.should('be.visible')
 			.and('not.be.disabled')
 			.click()
-		cy.get('[data-slot="dropdown-menu-content"]').should('be.visible')
+		cy.get('[role="menu"]').should('be.visible')
 		cy.contains(companyAssignedActive.name).should('be.visible')
 	})
 })

@@ -21,7 +21,11 @@ import {
 	isAuthorizationPackageFullyApproved,
 	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
-import { EQUIPO_DOCUMENT_TYPE_KEYS, isDocumentType } from '~/lib/i18n-keys'
+import {
+	EQUIPO_DOCUMENT_STATUS_KEYS,
+	EQUIPO_DOCUMENT_TYPE_KEYS,
+	isDocumentType,
+} from '~/lib/i18n-keys'
 import {
 	getResolvedError,
 	useResolveValidationError,
@@ -342,26 +346,12 @@ export function ApplicationDocumentsReviewForm({
 		return 'secondary' as const
 	})()
 
-	const reviewKind = (() => {
-		const { plan } = submitPlan
-		if (plan.kind === 'request-changes') return 'request-changes'
-		if (plan.kind === 'authorize-only') return 'authorize-only'
-		if (plan.kind === 'approve-only') return 'approve-only'
-		if (plan.kind === 'save-and-authorize') return 'save-and-authorize'
-		if (plan.kind === 'save-and-approve') return 'save-and-approve'
-		return 'save'
-	})()
-
 	return (
-		<form
-			data-documents-review-form
-			onSubmit={handleSubmit}
-			className="space-y-4"
-		>
+		<form onSubmit={handleSubmit} className="space-y-4">
 			{combinedError ? (
 				<FieldError message={combinedError} className="text-sm" role="alert" />
 			) : null}
-			<ul className="space-y-3" data-equipo-application-documents-list>
+			<ul className="space-y-3">
 				{documents.map((doc) => (
 					<DocumentReviewRow
 						key={doc.id}
@@ -382,8 +372,6 @@ export function ApplicationDocumentsReviewForm({
 					type="submit"
 					variant={buttonVariant}
 					disabled={pending || !submitPlan.submitEnabled}
-					data-documents-review-submit
-					data-documents-review-kind={reviewKind}
 				>
 					{pending
 						? t('applications-documents-review-submitting')
@@ -416,6 +404,13 @@ function DocumentReviewRow({
 		? t(EQUIPO_DOCUMENT_TYPE_KEYS[doc.documentType])
 		: doc.documentType
 	const documentLinkLabel = t('applications-document-link')
+	const displayStatus: DocumentStatus =
+		decision === 'approve'
+			? 'approved'
+			: decision === 'reject'
+				? 'rejected'
+				: doc.status
+	const rowStatusLabel = t(EQUIPO_DOCUMENT_STATUS_KEYS[displayStatus])
 
 	const approveLooksActive =
 		decision === 'approve' ||
@@ -425,13 +420,7 @@ function DocumentReviewRow({
 		(decision === 'unchanged' && doc.status === 'rejected')
 
 	return (
-		<li
-			className="flex flex-col gap-2 border-border/60 border-b py-3 last:border-b-0"
-			data-document-review-row={doc.id}
-			data-document-file-name={doc.fileName}
-			data-document-type={doc.documentType}
-			data-status={doc.status}
-		>
+		<li className="flex flex-col gap-2 border-border/60 border-b py-3 last:border-b-0">
 			<div className="flex min-h-8 w-full flex-col gap-3 text-sm sm:flex-row sm:items-center sm:gap-3">
 				<div className="flex min-h-8 min-w-0 flex-1 items-center gap-3">
 					<FileText
@@ -461,6 +450,9 @@ function DocumentReviewRow({
 							</Button>
 						) : null}
 					</span>
+					<span className="shrink-0 text-muted-foreground text-xs sm:ml-auto">
+						{rowStatusLabel}
+					</span>
 				</div>
 				<fieldset className="flex shrink-0 items-center gap-1 self-end border-0 p-0 sm:self-auto">
 					<legend className="sr-only">{`${decisionLabel} (${typeLabel})`}</legend>
@@ -470,7 +462,6 @@ function DocumentReviewRow({
 						size="icon"
 						className="size-9 shrink-0"
 						aria-pressed={approveLooksActive}
-						data-document-decision-button="approve"
 						aria-label={t('applications-document-action-approve')}
 						onClick={() => {
 							if (decision === 'approve') {
@@ -488,7 +479,6 @@ function DocumentReviewRow({
 						size="icon"
 						className="size-9 shrink-0"
 						aria-pressed={rejectLooksActive}
-						data-document-decision-button="reject"
 						aria-label={t('applications-document-action-reject')}
 						onClick={() => {
 							if (decision === 'reject') {

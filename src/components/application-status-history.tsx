@@ -34,13 +34,16 @@ export function ApplicationStatusHistoryCard({
 			<SectionTitleRow
 				headingId={STATUS_HISTORY_HEADING_ID}
 				icon={History}
-				title={<span data-application-status-history-title>{title}</span>}
+				title={title}
 				description={description}
 			/>
 			{items.length === 0 ? (
 				<p className="text-slate-600 text-sm">{emptyMessage}</p>
 			) : (
-				<ul data-application-status-history>
+				<ol
+					className="list-none space-y-0 p-0"
+					aria-labelledby={STATUS_HISTORY_HEADING_ID}
+				>
 					{items.map((item, index) => {
 						const actorLabel = item.setByUser
 							? (item.setByUser.name ?? item.setByUser.email ?? systemLabel)
@@ -48,12 +51,7 @@ export function ApplicationStatusHistoryCard({
 						const isLast = index === items.length - 1
 
 						return (
-							<li
-								key={item.id}
-								data-status-history-item
-								data-status-history-status={item.status}
-								className="flex items-stretch gap-3"
-							>
+							<li key={item.id} className="flex items-stretch gap-3">
 								<div className="flex w-4 shrink-0 flex-col items-center">
 									<div
 										className="mt-1.5 size-2.5 shrink-0 rounded-full border-2 border-slate-300 bg-background"
@@ -87,7 +85,7 @@ export function ApplicationStatusHistoryCard({
 							</li>
 						)
 					})}
-				</ul>
+				</ol>
 			)}
 		</section>
 	)
