@@ -189,7 +189,7 @@ describe('Admin Companies List', () => {
 				.click()
 
 			cy.get('main').should('be.visible')
-			cy.get('table', { timeout: 10000 }).should('be.visible')
+			cy.get('table').should('be.visible')
 			cy.findTableRow(newCompany.name)
 				.scrollIntoView()
 				.within(() => {
@@ -220,7 +220,7 @@ describe('Admin Companies List', () => {
 				.click()
 
 			cy.get('main').should('be.visible')
-			cy.get('table', { timeout: 10000 }).should('be.visible')
+			cy.get('table').should('be.visible')
 			cy.findTableRow(newCompany.name)
 				.scrollIntoView()
 				.within(() => {
@@ -384,7 +384,7 @@ describe('Admin Companies List', () => {
 				.click()
 
 			cy.get('main').should('be.visible')
-			cy.get('table', { timeout: 10000 }).should('be.visible')
+			cy.get('table').should('be.visible')
 			cy.findTableRow(editCompany.name)
 				.scrollIntoView()
 				.within(() => {
@@ -402,7 +402,7 @@ describe('Admin Companies List', () => {
 				.click()
 
 			cy.get('main').should('be.visible')
-			cy.get('table', { timeout: 10000 }).should('be.visible')
+			cy.get('table').should('be.visible')
 			cy.findTableRow(editCompany.name)
 				.scrollIntoView()
 				.within(() => {

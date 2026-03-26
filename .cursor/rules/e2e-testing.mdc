@@ -49,6 +49,7 @@ cy.contains('h2', /solicitante/i)
 - Use **`.should()`** for assertions (Cypress retries). Avoid **`.then()`** for assertions — it runs once and does not retry.
 - Never **`cy.wait(ms)`** (e.g. `cy.wait(2000)`). Use **route aliases** (`cy.intercept(...).as('getUsers')` then `cy.wait('@getUsers')`) or **assertions** (e.g. `cy.get(...).should('be.visible')`).
 - Prefer **positive assertions** after actions (assert the new state) instead of "element no longer exists" (races with animation/server).
+- Rely on Cypress **default command timeout** (do not raise `defaultCommandTimeout` globally). Avoid **`{ timeout: N }`** on commands unless **CI** shows a specific step is still flaky after stable selectors and `cy.visit` where needed; add a **short comment** at that call site when you introduce a timeout.
 
 ```typescript
 // ❌ BAD

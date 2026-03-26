@@ -9,8 +9,6 @@ const preAuthAgentEmail = preAuthAgentForReview.email
 
 const EXPECTED_PREAUTH_MAX_MXN = '$139,941.69'
 
-const EQUIPO_APPLICATION_DETAIL_LOAD_MS = 15_000
-
 describe('Pre-authorizations agents', () => {
 	let seed: SeedApplicationsReviewResult
 
@@ -33,9 +31,7 @@ describe('Pre-authorizations agents', () => {
 
 	it('disables pre-authorizar when amount exceeds borrowing capacity', () => {
 		cy.visit(`/equipo/applications/${seed.preAuthApplicationId}`)
-		assertEquipoApplicationShowsAppStatus(/aprobada/i, {
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		})
+		assertEquipoApplicationShowsAppStatus(/aprobada/i)
 		cy.contains('button', /acciones/i)
 			.should('be.visible')
 			.click()
@@ -64,9 +60,7 @@ describe('Pre-authorizations agents', () => {
 
 	it('can assign amount and term before pre-authorizing an approved application', () => {
 		cy.visit(`/equipo/applications/${seed.preAuthApplicationId}`)
-		assertEquipoApplicationShowsAppStatus(/aprobada/i, {
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		})
+		assertEquipoApplicationShowsAppStatus(/aprobada/i)
 		cy.get('section[aria-labelledby="application-status-history-heading"]')
 			.should('be.visible')
 			.within(() => {
@@ -102,9 +96,7 @@ describe('Pre-authorizations agents', () => {
 			.should('be.enabled')
 			.click()
 
-		assertEquipoApplicationShowsAppStatus(/preautorizado/i, {
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		})
+		assertEquipoApplicationShowsAppStatus(/preautorizado/i)
 		cy.get(
 			'section[aria-labelledby="application-status-history-heading"]',
 		).within(() => {
@@ -143,9 +135,7 @@ describe('Pre-authorizations admin', () => {
 
 	it('can pre-authorize above borrowing capacity (admin override)', () => {
 		cy.visit(`/equipo/applications/${seed.preAuthApplicationId}`)
-		assertEquipoApplicationShowsAppStatus(/aprobada/i, {
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		})
+		assertEquipoApplicationShowsAppStatus(/aprobada/i)
 		cy.contains('button', /acciones/i)
 			.should('be.visible')
 			.click()
@@ -163,8 +153,6 @@ describe('Pre-authorizations admin', () => {
 		cy.get('[role="dialog"]')
 			.contains('button', /^pre-autorizar$/i)
 			.click()
-		assertEquipoApplicationShowsAppStatus(/preautorizado/i, {
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		})
+		assertEquipoApplicationShowsAppStatus(/preautorizado/i)
 	})
 })

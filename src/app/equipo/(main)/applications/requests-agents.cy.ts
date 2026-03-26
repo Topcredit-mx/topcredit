@@ -3,7 +3,6 @@ import {
 	assertEquipoApplicationDetailLoaded,
 	assertEquipoApplicationShowsAppStatus,
 	assertEquipoDocumentRowStatus,
-	EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 	EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
 	EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE,
 	EQUIPO_DOCUMENTS_CARD_SCOPE,
@@ -429,9 +428,7 @@ describe('Requests agents', () => {
 		describe('Cross-role access (requests vs authorization stage)', () => {
 			it('hides application actions and document decisions on awaiting-authorization', () => {
 				cy.visit(`/equipo/applications/${seed.authzApplicationId}`)
-				assertEquipoApplicationShowsAppStatus(/en revisión de autorización/i, {
-					timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-				})
+				assertEquipoApplicationShowsAppStatus(/en revisión de autorización/i)
 				cy.get('[aria-labelledby="equipo-application-detail-title"]').within(
 					() => {
 						cy.contains('button', /acciones/i).should('not.exist')

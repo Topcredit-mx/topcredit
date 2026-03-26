@@ -1,5 +1,3 @@
-export const EQUIPO_APPLICATION_DETAIL_LOAD_MS = 15_000
-
 /** Pre-auth package has 3 document types; server refresh must run before authorize unlocks. */
 export const EQUIPO_AUTHZ_PACKAGE_DOCUMENT_COUNT = 3
 
@@ -21,11 +19,8 @@ export function assertEquipoApplicationDetailLoaded() {
 	cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 }
 
-export function assertEquipoApplicationShowsAppStatus(
-	pattern: RegExp,
-	options?: { timeout?: number },
-) {
-	cy.get(EQUIPO_APPLICATION_DETAIL_ROOT, options)
+export function assertEquipoApplicationShowsAppStatus(pattern: RegExp) {
+	cy.get(EQUIPO_APPLICATION_DETAIL_ROOT)
 		.find('[role="status"]')
 		.first()
 		.should('be.visible')
@@ -34,9 +29,7 @@ export function assertEquipoApplicationShowsAppStatus(
 }
 
 export function openEquipoApplicationActions() {
-	cy.get(EQUIPO_APPLICATION_DETAIL_ROOT, {
-		timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-	}).should('be.visible')
+	cy.get(EQUIPO_APPLICATION_DETAIL_ROOT).should('be.visible')
 	cy.get(EQUIPO_APPLICATION_DETAIL_ROOT).within(() => {
 		cy.contains('button', /acciones/i)
 			.first()
@@ -54,9 +47,8 @@ export function assertEquipoDocumentRowStatus(
 	fileName: string,
 	status: 'pending' | 'approved' | 'rejected',
 	containSubstring?: string,
-	getOptions?: { timeout?: number },
 ) {
-	cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE, getOptions).within(() => {
+	cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE).within(() => {
 		cy.contains('li', fileName)
 			.first()
 			.within(() => {
@@ -87,7 +79,7 @@ export function assertEquipoDocumentRowStatus(
 			})
 	})
 	if (containSubstring !== undefined) {
-		cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE, getOptions).within(() => {
+		cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE).within(() => {
 			cy.contains('li', fileName).first().should('contain', containSubstring)
 		})
 	}
@@ -147,9 +139,7 @@ export function selectDocumentDecisionInRow(
 			.should('be.visible')
 			.click({ force: true })
 		if (value === 'reject') {
-			cy.get('textarea', { timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS }).should(
-				'be.visible',
-			)
+			cy.get('textarea').should('be.visible')
 		} else {
 			cy.get(`button[aria-label="${ariaLabel}"]`).should(
 				'have.attr',
@@ -178,9 +168,7 @@ export function approveInitialIntakeDocumentsInOneSubmit(
 		})
 		.click()
 	for (const fileName of fileNames) {
-		assertEquipoDocumentRowStatus(fileName, 'approved', undefined, {
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		})
+		assertEquipoDocumentRowStatus(fileName, 'approved')
 	}
 }
 
@@ -202,9 +190,7 @@ export function approveAuthorizationPackageDocumentsInOneSubmit(
 		})
 		.click()
 	for (const fileName of fileNames) {
-		assertEquipoDocumentRowStatus(fileName, 'approved', undefined, {
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		})
+		assertEquipoDocumentRowStatus(fileName, 'approved')
 	}
 }
 
@@ -227,9 +213,7 @@ export function submitEquipoDocumentReviewForm() {
 }
 
 export function clickDocumentReviewAuthorizeOnly() {
-	cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE, {
-		timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-	})
+	cy.get(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
 		.find('.border-t.pt-4 button[type="submit"]')
 		.first()
 		.should('be.visible')

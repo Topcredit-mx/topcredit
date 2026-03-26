@@ -2,7 +2,6 @@ import {
 	approveAuthorizationPackageDocumentsInOneSubmit,
 	assertEquipoApplicationShowsAppStatus,
 	assertEquipoDocumentRowStatus,
-	EQUIPO_APPLICATION_DETAIL_LOAD_MS,
 	EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
 	EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE,
 	EQUIPO_DOCUMENTS_CARD_SCOPE,
@@ -55,9 +54,7 @@ describe('Dual queue agent (requests + authorizations)', () => {
 			`seed-payroll-authz-${authzId}.pdf`,
 		] as const
 		cy.visit(`/equipo/applications/${authzId}`)
-		assertEquipoApplicationShowsAppStatus(/en revisión de autorización/i, {
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		})
+		assertEquipoApplicationShowsAppStatus(/en revisión de autorización/i)
 		cy.get(`${EQUIPO_DOCUMENTS_CARD_SCOPE} ul > li`).should(
 			'have.length',
 			EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
@@ -67,8 +64,6 @@ describe('Dual queue agent (requests + authorizations)', () => {
 			.first()
 			.should('be.disabled')
 		approveAuthorizationPackageDocumentsInOneSubmit(authzPackageFiles)
-		assertEquipoApplicationShowsAppStatus(/autorizado/i, {
-			timeout: EQUIPO_APPLICATION_DETAIL_LOAD_MS,
-		})
+		assertEquipoApplicationShowsAppStatus(/autorizado/i)
 	})
 })
