@@ -427,6 +427,7 @@ describe('Cuenta applications', () => {
 				cy.visit('/cuenta/applications')
 				cy.get('main').should('be.visible')
 				cy.get(`a[href="/cuenta/applications/${app.id}"]`)
+					.scrollIntoView()
 					.should('be.visible')
 					.click()
 				cy.contains('h1', /resumen de tu solicitud/i)
