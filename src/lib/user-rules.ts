@@ -3,6 +3,7 @@ import type { Role } from '~/server/auth/session'
 export const ASSIGNABLE_ROLES: Role[] = [
 	'requests',
 	'pre-authorizations',
+	'authorizations',
 	'admin',
 ]
 

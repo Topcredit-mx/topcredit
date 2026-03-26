@@ -1,5 +1,5 @@
 import { EventSchemas, Inngest } from 'inngest'
-import type { ApplicationStatus } from '~/server/db/schema'
+import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
 
 type EmailApplicationSubmitted = {
 	data: {
@@ -23,9 +23,17 @@ type EmailOtp = {
 	data: { email: string; code: string; ipAddress: string }
 }
 
+type EmailApplicationDocumentsRejected = {
+	data: {
+		email: string
+		items: { documentType: DocumentType; reason: string }[]
+	}
+}
+
 type Events = {
 	'email/application.submitted': EmailApplicationSubmitted
 	'email/application.status': EmailApplicationStatus
+	'email/application.documentsRejected': EmailApplicationDocumentsRejected
 	'email/otp': EmailOtp
 }
 
@@ -37,6 +45,10 @@ export type EmailEventPayload =
 	| {
 			name: 'email/application.status'
 			data: Events['email/application.status']['data']
+	  }
+	| {
+			name: 'email/application.documentsRejected'
+			data: Events['email/application.documentsRejected']['data']
 	  }
 	| { name: 'email/otp'; data: Events['email/otp']['data'] }
 

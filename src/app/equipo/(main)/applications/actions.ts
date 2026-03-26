@@ -8,36 +8,30 @@ import {
 } from '~/lib/application-rules'
 import { ValidationCode } from '~/lib/validation-codes'
 import {
-	approveApplicationDocument,
+	applyApplicationDocumentDecisions,
 	preAuthorizeApplication,
-	rejectApplicationDocument,
 	updateApplicationStatus,
 } from '~/server/mutations'
 
 export { updateApplicationStatus }
 
-export type ApproveDocumentState = { error?: string } | null
+export type ApplyDocumentDecisionsState = { error?: string } | null
 
-export async function approveDocumentAction(
-	_prevState: ApproveDocumentState,
+export async function applyDocumentDecisionsAction(
+	_prevState: ApplyDocumentDecisionsState,
 	formData: FormData,
-): Promise<ApproveDocumentState> {
-	const result = await approveApplicationDocument({
-		documentId: formData.get('documentId'),
-	})
-	return result.error != null ? { error: result.error } : {}
-}
-
-export type RejectDocumentState = { error?: string } | null
-
-export async function rejectDocumentAction(
-	_prevState: RejectDocumentState,
-	formData: FormData,
-): Promise<RejectDocumentState> {
-	const result = await rejectApplicationDocument({
-		documentId: formData.get('documentId'),
-		rejectionReason: formData.get('rejectionReason'),
-	})
+): Promise<ApplyDocumentDecisionsState> {
+	const raw = formData.get('payload')
+	if (typeof raw !== 'string') {
+		return { error: ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+	let parsedJson: unknown
+	try {
+		parsedJson = JSON.parse(raw)
+	} catch {
+		return { error: ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+	const result = await applyApplicationDocumentDecisions(parsedJson)
 	return result.error != null ? { error: result.error } : {}
 }
 

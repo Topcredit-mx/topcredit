@@ -70,6 +70,16 @@ export function sanitizeApplicationDocumentFileName(fileName: string): string {
 	return rawName.slice(0, APPLICATION_DOCUMENT_FILE_NAME_MAX_LENGTH)
 }
 
+export type DocumentRowWithUploadFlag = {
+	hasBlobContent: boolean
+}
+
+export function filterDocumentsWithUploadedFile<
+	T extends DocumentRowWithUploadFlag,
+>(documents: readonly T[]): T[] {
+	return documents.filter((d) => d.hasBlobContent)
+}
+
 export type DocumentRowForLatestByType = {
 	documentType: DocumentType
 	createdAt: Date
@@ -99,4 +109,21 @@ export function getLatestDocumentByType<
 		}
 	}
 	return best
+}
+
+export function filterToLatestDocumentsPerType<
+	T extends DocumentRowForLatestByType & {
+		id?: number
+	} & DocumentRowWithUploadFlag,
+>(documents: readonly T[]): T[] {
+	const uploaded = filterDocumentsWithUploadedFile(documents)
+	const types = [...new Set(uploaded.map((d) => d.documentType))].sort((a, b) =>
+		a.localeCompare(b),
+	)
+	const out: T[] = []
+	for (const documentType of types) {
+		const latest = getLatestDocumentByType(uploaded, documentType)
+		if (latest != null) out.push(latest)
+	}
+	return out
 }

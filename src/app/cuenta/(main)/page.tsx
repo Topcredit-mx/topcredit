@@ -35,14 +35,13 @@ function formatRelativeDayEs(date: Date): string {
 	return rtf.format(-diffDays, 'day')
 }
 
-function applicationProgressPercent(status: ApplicationStatus): number {
+function applicationProgressPercent(
+	status: ApplicationStatus,
+	hasRejectedDocuments: boolean,
+): number {
 	switch (status) {
-		case 'new':
-			return 28
 		case 'pending':
-			return 62
-		case 'invalid-documentation':
-			return 45
+			return hasRejectedDocuments ? 45 : 62
 		case 'pre-authorized':
 			return 88
 		case 'awaiting-authorization':
@@ -62,11 +61,14 @@ function isApprovedLikeStatus(status: ApplicationStatus): boolean {
 	)
 }
 
-function applicationBadgeSurfaceClass(status: ApplicationStatus): string {
+function applicationBadgeSurfaceClass(
+	status: ApplicationStatus,
+	hasRejectedDocuments: boolean,
+): string {
 	if (isApprovedLikeStatus(status)) {
 		return 'bg-emerald-100 text-emerald-900'
 	}
-	if (status === 'invalid-documentation') {
+	if (status === 'pending' && hasRejectedDocuments) {
 		return 'bg-amber-100 text-amber-950'
 	}
 	return 'bg-sky-100 text-brand'
@@ -74,6 +76,7 @@ function applicationBadgeSurfaceClass(status: ApplicationStatus): string {
 
 function applicationInProgressBadgeLabel(
 	status: ApplicationStatus,
+	hasRejectedDocuments: boolean,
 	tCuenta: Awaited<ReturnType<typeof getTranslations>>,
 ): string {
 	switch (status) {
@@ -83,8 +86,11 @@ function applicationInProgressBadgeLabel(
 			return tCuenta('applications.status-pre-authorized')
 		case 'awaiting-authorization':
 			return tCuenta('applications.status-awaiting-authorization')
-		case 'invalid-documentation':
-			return tCuenta('applications.status-invalid-documentation')
+		case 'pending':
+			if (hasRejectedDocuments) {
+				return tCuenta('applications.status-invalid-documentation')
+			}
+			return tCuenta('applications-in-progress-badge-review')
 		default:
 			return tCuenta('applications-in-progress-badge-review')
 	}
@@ -259,11 +265,18 @@ export default async function CuentaHomePage() {
 						<ul className="flex list-none flex-col gap-4 p-0">
 							{applicationsInProgress.map((app, index) => {
 								const Icon = index % 2 === 0 ? Briefcase : CreditCard
-								const pct = applicationProgressPercent(app.status)
+								const pct = applicationProgressPercent(
+									app.status,
+									app.hasRejectedDocuments,
+								)
 								const barComplete = isApprovedLikeStatus(app.status)
-								const badgeClass = applicationBadgeSurfaceClass(app.status)
+								const badgeClass = applicationBadgeSurfaceClass(
+									app.status,
+									app.hasRejectedDocuments,
+								)
 								const badgeLabel = applicationInProgressBadgeLabel(
 									app.status,
+									app.hasRejectedDocuments,
 									tCuenta,
 								)
 								const when = formatRelativeDayEs(app.createdAt)

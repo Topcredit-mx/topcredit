@@ -55,6 +55,7 @@ function RoleCheckbox({
 		agent: t('users-role-agent'),
 		requests: t('users-role-requests'),
 		'pre-authorizations': t('users-role-pre-authorizations'),
+		authorizations: t('users-role-authorizations'),
 		admin: t('users-role-admin'),
 	}
 	const roleLabel = roleLabels[role]
@@ -280,6 +281,7 @@ export function createColumns(
 		agent: t('users-role-agent'),
 		requests: t('users-role-requests'),
 		'pre-authorizations': t('users-role-pre-authorizations'),
+		authorizations: t('users-role-authorizations'),
 		admin: t('users-role-admin'),
 	}
 

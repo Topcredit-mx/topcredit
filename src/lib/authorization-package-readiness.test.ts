@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { isAuthorizationPackageReadyForSubmit } from './authorization-package-readiness'
+import {
+	isAuthorizationPackageFullyApproved,
+	isAuthorizationPackageReadyForSubmit,
+	isInitialIntakeFullyApproved,
+} from './authorization-package-readiness'
 
 const baseDate = new Date('2025-01-15T12:00:00Z')
 
@@ -11,11 +15,13 @@ test('isAuthorizationPackageReadyForSubmit: false when a package type is missing
 				documentType: 'contract',
 				status: 'pending',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 			{
 				documentType: 'authorization',
 				status: 'pending',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 		]),
 		false,
@@ -29,16 +35,19 @@ test('isAuthorizationPackageReadyForSubmit: false when latest for a type is reje
 				documentType: 'payroll-receipt',
 				status: 'rejected',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 			{
 				documentType: 'contract',
 				status: 'pending',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 			{
 				documentType: 'authorization',
 				status: 'pending',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 		]),
 		false,
@@ -52,16 +61,19 @@ test('isAuthorizationPackageReadyForSubmit: false when latest is approved not pe
 				documentType: 'payroll-receipt',
 				status: 'approved',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 			{
 				documentType: 'contract',
 				status: 'pending',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 			{
 				documentType: 'authorization',
 				status: 'pending',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 		]),
 		false,
@@ -75,16 +87,19 @@ test('isAuthorizationPackageReadyForSubmit: true when all three latest are pendi
 				documentType: 'payroll-receipt',
 				status: 'pending',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 			{
 				documentType: 'contract',
 				status: 'pending',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 			{
 				documentType: 'authorization',
 				status: 'pending',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 		]),
 		true,
@@ -100,21 +115,195 @@ test('isAuthorizationPackageReadyForSubmit: uses latest row per type by createdA
 				documentType: 'payroll-receipt',
 				status: 'rejected',
 				createdAt: older,
+				hasBlobContent: true,
 			},
 			{
 				documentType: 'payroll-receipt',
 				status: 'pending',
 				createdAt: newer,
+				hasBlobContent: true,
 			},
 			{
 				documentType: 'contract',
 				status: 'pending',
 				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 			{
 				documentType: 'authorization',
 				status: 'pending',
 				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+		]),
+		true,
+	)
+})
+
+test('isAuthorizationPackageFullyApproved: false when a package type is missing', () => {
+	assert.equal(
+		isAuthorizationPackageFullyApproved([
+			{
+				documentType: 'contract',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+			{
+				documentType: 'authorization',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+		]),
+		false,
+	)
+})
+
+test('isAuthorizationPackageFullyApproved: false when latest is not approved', () => {
+	assert.equal(
+		isAuthorizationPackageFullyApproved([
+			{
+				documentType: 'payroll-receipt',
+				status: 'pending',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+			{
+				documentType: 'contract',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+			{
+				documentType: 'authorization',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+		]),
+		false,
+	)
+})
+
+test('isAuthorizationPackageFullyApproved: true when all three latest are approved', () => {
+	assert.equal(
+		isAuthorizationPackageFullyApproved([
+			{
+				documentType: 'payroll-receipt',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+			{
+				documentType: 'contract',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+			{
+				documentType: 'authorization',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+		]),
+		true,
+	)
+})
+
+test('isAuthorizationPackageReadyForSubmit: ignores rows without uploaded file', () => {
+	assert.equal(
+		isAuthorizationPackageReadyForSubmit([
+			{
+				documentType: 'payroll-receipt',
+				status: 'pending',
+				createdAt: baseDate,
+				hasBlobContent: false,
+			},
+			{
+				documentType: 'contract',
+				status: 'pending',
+				createdAt: baseDate,
+				hasBlobContent: false,
+			},
+			{
+				documentType: 'authorization',
+				status: 'pending',
+				createdAt: baseDate,
+				hasBlobContent: false,
+			},
+		]),
+		false,
+	)
+})
+
+test('isAuthorizationPackageFullyApproved: ignores rows without uploaded file', () => {
+	assert.equal(
+		isAuthorizationPackageFullyApproved([
+			{
+				documentType: 'payroll-receipt',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: false,
+			},
+			{
+				documentType: 'contract',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: false,
+			},
+			{
+				documentType: 'authorization',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: false,
+			},
+		]),
+		false,
+	)
+})
+
+test('isInitialIntakeFullyApproved: false when a required type is missing', () => {
+	assert.equal(
+		isInitialIntakeFullyApproved([
+			{
+				documentType: 'official-id',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+			{
+				documentType: 'proof-of-address',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+		]),
+		false,
+	)
+})
+
+test('isInitialIntakeFullyApproved: true when all three intake types are approved', () => {
+	assert.equal(
+		isInitialIntakeFullyApproved([
+			{
+				documentType: 'official-id',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+			{
+				documentType: 'proof-of-address',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
+			},
+			{
+				documentType: 'bank-statement',
+				status: 'approved',
+				createdAt: baseDate,
+				hasBlobContent: true,
 			},
 		]),
 		true,

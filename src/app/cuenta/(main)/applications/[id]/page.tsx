@@ -19,7 +19,10 @@ import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { SectionCard, SectionTitleRow } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
-import { REQUIRED_INITIAL_APPLICATION_DOCUMENTS } from '~/lib/application-document-intake'
+import {
+	filterDocumentsWithUploadedFile,
+	REQUIRED_INITIAL_APPLICATION_DOCUMENTS,
+} from '~/lib/application-document-intake'
 import { CUENTA_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
@@ -57,9 +60,15 @@ function DetailField({
 	)
 }
 
-function getApplicationStatusBadgeClass(status: ApplicationStatus): string {
-	if (status === 'invalid-documentation' || status === 'denied') {
+function getApplicationStatusBadgeClass(
+	status: ApplicationStatus,
+	hasRejectedDocuments: boolean,
+): string {
+	if (status === 'denied') {
 		return 'border-transparent bg-destructive text-white'
+	}
+	if (status === 'pending' && hasRejectedDocuments) {
+		return 'border-transparent bg-amber-600 text-white'
 	}
 	if (
 		status === 'approved' ||
@@ -90,7 +99,9 @@ export default async function CuentaApplicationDetailPage({
 	}
 
 	const documentList = await getApplicationDocuments(applicationId)
-	const rejectedDocumentsCount = documentList.filter(
+	const documentsWithUploadedFile =
+		filterDocumentsWithUploadedFile(documentList)
+	const rejectedDocumentsCount = documentsWithUploadedFile.filter(
 		(document) => document.status === 'rejected',
 	).length
 	const t = await getTranslations('cuenta.applications')
@@ -157,12 +168,21 @@ export default async function CuentaApplicationDetailPage({
 							/>
 						</span>
 					</div>
-					<Badge
-						className={getApplicationStatusBadgeClass(application.status)}
-						data-current-application-status={application.status}
-					>
-						{t(CUENTA_APPLICATION_STATUS_KEYS[application.status])}
-					</Badge>
+					{/* biome-ignore lint/a11y/useSemanticElements: live region for application status */}
+					<div role="status" className="inline-flex shrink-0">
+						<Badge
+							className={getApplicationStatusBadgeClass(
+								application.status,
+								rejectedDocumentsCount > 0,
+							)}
+						>
+							{t(
+								application.status === 'pending' && rejectedDocumentsCount > 0
+									? 'status-invalid-documentation'
+									: CUENTA_APPLICATION_STATUS_KEYS[application.status],
+							)}
+						</Badge>
+					</div>
 				</div>
 
 				{application.denialReason ? (
@@ -210,7 +230,7 @@ export default async function CuentaApplicationDetailPage({
 							{t('detail-documents-count')}
 						</p>
 						<p className="mt-2 font-semibold text-lg text-slate-900">
-							{documentList.length}
+							{documentsWithUploadedFile.length}
 						</p>
 						<p className="mt-1 text-slate-600 text-xs">
 							{t('detail-documents-to-fix')}: {rejectedDocumentsCount}
@@ -332,7 +352,7 @@ export default async function CuentaApplicationDetailPage({
 				<ApplicantDocumentSlots
 					applicationId={applicationId}
 					documentTypes={initialDocumentTypes}
-					documents={documentList}
+					documents={documentsWithUploadedFile}
 					reuploadWhenLatestNotRejected={false}
 				/>
 			</section>

@@ -89,7 +89,7 @@ export default async function ApplicationsListPage() {
 										<td className="px-5 py-3.5 text-slate-800">
 											{t(
 												CUENTA_APPLICATION_STATUS_KEYS[app.status] ??
-													'status-new',
+													'status-pending',
 											)}
 										</td>
 										<td className="px-5 py-3.5 text-slate-800">

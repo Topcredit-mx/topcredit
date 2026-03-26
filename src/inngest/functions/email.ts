@@ -29,6 +29,18 @@ export const sendApplicationStatusEmail = inngest.createFunction(
 	},
 )
 
+export const sendApplicationDocumentsRejectedEmail = inngest.createFunction(
+	{ id: 'email-application-documents-rejected', retries: 2 },
+	{ event: 'email/application.documentsRejected' },
+	async ({ event }) => {
+		await sendEmailFromEventData({
+			type: 'application-documents-rejected',
+			email: event.data.email,
+			items: event.data.items,
+		})
+	},
+)
+
 export const sendOtpEmail = inngest.createFunction(
 	{ id: 'email-otp', retries: 2 },
 	{ event: 'email/otp' },

@@ -7,15 +7,9 @@ import {
 	APPLICATION_DOCUMENT_ALLOWED_MIME_VALUES,
 	APPLICATION_DOCUMENT_MAX_BYTES,
 } from '~/lib/application-document-intake'
-import {
-	canTransitionToApplicationStatus,
-	INACTIVE_APPLICATION_STATUSES,
-} from '~/lib/application-rules'
+import { INACTIVE_APPLICATION_STATUSES } from '~/lib/application-rules'
 import { ValidationCode } from '~/lib/validation-codes'
-import {
-	createApplicationWithStatusHistory,
-	updateApplicationWithStatusHistory,
-} from '~/server/application-status-history'
+import { createApplicationWithStatusHistory } from '~/server/application-status-history'
 import {
 	cleanupApplicationWithUploadedBlobs,
 	uploadAndInsertApplicationDocumentRow,
@@ -161,7 +155,7 @@ export async function createApplicationWithInitialDocumentsAction(
 				country: applicationData.country,
 				postalCode: applicationData.postalCode,
 				phoneNumber: applicationData.phoneNumber,
-				status: 'new',
+				status: 'pending',
 				denialReason: null,
 			},
 			setByUserId: user.id,
@@ -215,7 +209,7 @@ export async function uploadApplicationDocumentAction(
 	_prevState: UploadDocumentFormState,
 	formData: FormData,
 ): Promise<UploadDocumentFormState> {
-	const user = await getRequiredApplicantUser()
+	await getRequiredApplicantUser()
 	const { ability } = await getAbility()
 
 	const file = formData.get('file')
@@ -290,29 +284,6 @@ export async function uploadApplicationDocumentAction(
 			file,
 			mime: detected.mime,
 		})
-
-		if (app.status === 'invalid-documentation') {
-			const remainingRejectedDocument =
-				await db.query.applicationDocuments.findFirst({
-					where: and(
-						eq(applicationDocuments.applicationId, data.applicationId),
-						eq(applicationDocuments.status, 'rejected'),
-					),
-					columns: { id: true },
-				})
-
-			if (
-				!remainingRejectedDocument &&
-				canTransitionToApplicationStatus(app.status, 'pending')
-			) {
-				await updateApplicationWithStatusHistory({
-					applicationId: data.applicationId,
-					status: 'pending',
-					setByUserId: user.id,
-					denialReason: null,
-				})
-			}
-		}
 
 		revalidatePath('/cuenta/applications')
 		revalidatePath(`/cuenta/applications/${data.applicationId}`)

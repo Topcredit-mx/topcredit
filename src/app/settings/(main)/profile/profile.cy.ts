@@ -8,6 +8,10 @@ describe('Settings Profile', () => {
 		cy.task('seedProfile')
 	})
 
+	after(() => {
+		cy.task('cleanupProfile')
+	})
+
 	it('redirects to login when accessing applicant settings profile unauthenticated', () => {
 		cy.visit(applicantSettingsProfile)
 		cy.url().should('not.include', '/cuenta/settings')

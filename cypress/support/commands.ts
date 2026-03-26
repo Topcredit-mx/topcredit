@@ -14,15 +14,16 @@ Cypress.Commands.add('selectRadix', (selector: string, optionText: string) => {
 		cy.get(`[name="${selector}"]:not(input[type="hidden"])`).first().click()
 	} else {
 		cy.contains('label', new RegExp(labelText, 'i'))
-			.closest('[data-slot="field"]')
-			.find('[data-slot="select-trigger"], button')
-			.first()
-			.click()
+			.invoke('attr', 'for')
+			.then((htmlFor) => {
+				expect(htmlFor, 'label must have htmlFor').to.be.a('string')
+				cy.get(`#${htmlFor as string}`).click()
+			})
 	}
 
-	cy.get('[data-slot="select-content"]').should('be.visible').first()
+	cy.get('[role="listbox"]').should('be.visible').first()
 
-	cy.contains('[data-slot="select-item"]', optionText).first().click()
+	cy.contains('[role="option"]', optionText).first().click()
 })
 
 Cypress.Commands.add('findTableRow', (name: string) => {

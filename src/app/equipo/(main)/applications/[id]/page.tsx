@@ -15,8 +15,14 @@ import { ApplicationStatusHistoryCard } from '~/components/application-status-hi
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { filterToLatestDocumentsPerType } from '~/lib/application-document-intake'
 import { canTransitionApplicationFrom } from '~/lib/application-rules'
 import { EQUIPO_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import {
+	isAuthorizationPackageFullyApproved,
+	isInitialIntakeFullyApproved,
+} from '~/lib/authorization-package-readiness'
+import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, subject } from '~/server/auth/ability'
 import type { ApplicationStatus } from '~/server/db/schema'
@@ -27,7 +33,7 @@ import {
 } from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
-import { ApplicationDocumentRow } from '../application-document-row'
+import { ApplicationDocumentsReviewForm } from '../application-documents-review-form'
 import { formatApplicationTerm } from '../constants'
 
 function statusBadgeVariant(
@@ -40,7 +46,6 @@ function statusBadgeVariant(
 		case 'awaiting-authorization':
 			return 'default'
 		case 'denied':
-		case 'invalid-documentation':
 			return 'destructive'
 		default:
 			return 'secondary'
@@ -80,43 +85,44 @@ export default async function AppApplicationDetailPage({
 		companyId: application.companyId,
 		status: application.status,
 	})
-	const hasRejectedDocuments = documentList.some((d) => d.status === 'rejected')
 	const canPreAuthorize = ability.can('setStatusPreAuthorized', appSubject)
 	const canAuthorize = ability.can('setStatusAuthorized', appSubject)
 	const canApprove = ability.can('setStatusApproved', appSubject)
 	const canDeny = ability.can('setStatusDenied', appSubject)
-	const canSetInvalidDocumentation = ability.can(
-		'setStatusInvalidDocumentation',
-		appSubject,
-	)
-	const showActionControls =
-		canApprove ||
-		canAuthorize ||
-		canDeny ||
-		canSetInvalidDocumentation ||
-		canPreAuthorize
+	const canUpdateDocuments = ability.can('update', appSubject)
+	const canReadApplication = ability.can('read', appSubject)
+	const documentsForDisplay = filterToLatestDocumentsPerType(documentList)
+	const authorizationPackageFullyApproved =
+		isAuthorizationPackageFullyApproved(documentList)
+	const initialIntakeFullyApproved = isInitialIntakeFullyApproved(documentList)
+	const showActionControls = canDeny || canPreAuthorize
 	const termOfferings =
 		canPreAuthorize && application.status === 'approved'
 			? await getTermOfferingsForCompany(application.companyId)
 			: []
 
 	return (
-		<div
+		<section
 			className="mx-auto grid max-w-4xl gap-3 px-1 py-1 sm:px-1.5 sm:py-1.5"
-			data-equipo-application-detail
+			aria-labelledby="equipo-application-detail-title"
 		>
+			<h1
+				id="equipo-application-detail-title"
+				className="font-semibold text-2xl text-foreground tracking-tight"
+			>
+				{t('applications-detail-title')}
+			</h1>
 			<div className="-mb-1 flex items-center gap-2">
 				<span className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
 					<FileText className="size-3.5" aria-hidden />
 					{t('applications-detail-status')}
 				</span>
-				<Badge
-					variant={statusBadgeVariant(application.status)}
-					className="shrink-0"
-					data-current-application-status={application.status}
-				>
-					{t(EQUIPO_APPLICATION_STATUS_KEYS[application.status])}
-				</Badge>
+				{/* biome-ignore lint/a11y/useSemanticElements: live region for application status; <output> is for form results */}
+				<div role="status" className="inline-flex shrink-0">
+					<Badge variant={statusBadgeVariant(application.status)}>
+						{t(EQUIPO_APPLICATION_STATUS_KEYS[application.status])}
+					</Badge>
+				</div>
 			</div>
 
 			{/* Main overview card: applicant + key data */}
@@ -187,14 +193,10 @@ export default async function AppApplicationDetailPage({
 							<ApplicationActions
 								applicationId={application.id}
 								isAdmin={isAdmin}
-								canApprove={canApprove}
-								canAuthorize={canAuthorize}
 								canPreAuthorize={
 									canPreAuthorize && application.status === 'approved'
 								}
 								canDeny={canDeny}
-								canSetInvalidDocumentation={canSetInvalidDocumentation}
-								hasRejectedDocuments={hasRejectedDocuments}
 								preAuthorizeDialogProps={
 									canPreAuthorize && application.status === 'approved'
 										? {
@@ -253,10 +255,14 @@ export default async function AppApplicationDetailPage({
 			</div>
 
 			{/* Documents */}
-			<Card className={DETAIL_CARD_CLASS}>
+			<Card
+				id="equipo-application-documents-card"
+				className={DETAIL_CARD_CLASS}
+				aria-labelledby="equipo-application-documents-heading"
+			>
 				<CardHeader className={`border-b ${DETAIL_CARD_HEADER_CLASS}`}>
 					<CardTitle asChild className="flex items-center gap-2 text-base">
-						<h2>
+						<h2 id="equipo-application-documents-heading">
 							<FolderOpen
 								className="size-4 text-muted-foreground"
 								aria-hidden
@@ -266,21 +272,40 @@ export default async function AppApplicationDetailPage({
 					</CardTitle>
 				</CardHeader>
 				<CardContent className={`pt-4 ${DETAIL_CARD_CONTENT_CLASS}`}>
-					{documentList.length > 0 ? (
-						<ul className="space-y-3">
-							{documentList.map((doc) => (
-								<ApplicationDocumentRow
-									key={doc.id}
-									id={doc.id}
-									documentType={doc.documentType}
-									status={doc.status}
-									fileName={doc.fileName}
-									url={doc.url}
-									hasBlobContent={doc.hasBlobContent}
-									rejectionReason={doc.rejectionReason}
-								/>
-							))}
-						</ul>
+					{documentsForDisplay.length > 0 ? (
+						canReadApplication ? (
+							<ApplicationDocumentsReviewForm
+								applicationId={application.id}
+								applicationStatus={application.status}
+								canApplyFollowUpActions={canUpdateDocuments}
+								canFollowUpApprove={
+									canApprove && application.status === 'pending'
+								}
+								canFollowUpAuthorize={
+									canAuthorize &&
+									application.status === 'awaiting-authorization'
+								}
+								authorizationPackageFullyApproved={
+									authorizationPackageFullyApproved
+								}
+								initialIntakeFullyApproved={initialIntakeFullyApproved}
+								documents={documentsForDisplay.map((doc) => ({
+									id: doc.id,
+									documentType: doc.documentType,
+									status: doc.status,
+									fileName: doc.fileName,
+									url: doc.url,
+									hasBlobContent: doc.hasBlobContent,
+									rejectionReason: doc.rejectionReason,
+									createdAt: doc.createdAt,
+									canSetStatus: canSetApplicationDocumentReviewStatus(
+										ability,
+										doc.documentType,
+										application,
+									),
+								}))}
+							/>
+						) : null
 					) : (
 						<div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-8 text-center">
 							<FileText
@@ -304,6 +329,6 @@ export default async function AppApplicationDetailPage({
 				items={application.statusHistory}
 				getStatusLabel={(status) => t(EQUIPO_APPLICATION_STATUS_KEYS[status])}
 			/>
-		</div>
+		</section>
 	)
 }

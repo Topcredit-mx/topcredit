@@ -1,4 +1,14 @@
-import { and, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm'
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	ilike,
+	inArray,
+	or,
+	type SQL,
+	sql,
+} from 'drizzle-orm'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -361,6 +371,7 @@ export type ApplicationListItem = {
 	denialReason: string | null
 	createdAt: Date
 	updatedAt: Date
+	hasRejectedDocuments: boolean
 }
 
 export type ApplicationStatusHistoryItem = {
@@ -435,10 +446,28 @@ export async function getApplicationsByApplicantId(
 		},
 	})
 
+	const ids = list.map((a) => a.id)
+	const rejectedRows =
+		ids.length === 0
+			? []
+			: await db
+					.selectDistinct({
+						applicationId: applicationDocuments.applicationId,
+					})
+					.from(applicationDocuments)
+					.where(
+						and(
+							inArray(applicationDocuments.applicationId, ids),
+							eq(applicationDocuments.status, 'rejected'),
+						),
+					)
+	const rejectedSet = new Set(rejectedRows.map((r) => r.applicationId))
+
 	return list.map((row) => ({
 		...row,
 		creditAmount: row.creditAmount,
 		salaryAtApplication: row.salaryAtApplication,
+		hasRejectedDocuments: rejectedSet.has(row.id),
 	}))
 }
 
@@ -616,7 +645,10 @@ export async function getApplicationDocuments(
 		})
 		.from(applicationDocuments)
 		.where(eq(applicationDocuments.applicationId, applicationId))
-		.orderBy(desc(applicationDocuments.createdAt))
+		.orderBy(
+			asc(applicationDocuments.documentType),
+			asc(applicationDocuments.id),
+		)
 
 	return rows.map((row) => ({
 		id: row.id,

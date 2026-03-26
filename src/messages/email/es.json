@@ -57,5 +57,23 @@
 		"labelStatus": "Estado",
 		"reasonLabel": "Motivo / detalle:",
 		"footer": "Puedes ver el detalle de tu solicitud en tu panel de Topcredit."
+	},
+	"documentsRejected": {
+		"subject": "Actualización sobre tu documentación - Topcredit",
+		"heading": "Documentación en Topcredit",
+		"greeting": "Hola",
+		"intro": "Se rechazó uno o más documentos en tu expediente. Por favor sube versiones corregidas desde tu panel en Topcredit.",
+		"sectionInitial": "Solicitud inicial",
+		"sectionAuthorization": "Paquete de autorización",
+		"reasonLabel": "Motivo:",
+		"footer": "Puedes ver el detalle y subir documentos nuevos desde tu panel de Topcredit.",
+		"documentTypes": {
+			"official-id": "Identificación oficial (INE o pasaporte)",
+			"proof-of-address": "Comprobante de domicilio",
+			"bank-statement": "Estado de cuenta bancario",
+			"authorization": "Carta de autorización",
+			"contract": "Contrato",
+			"payroll-receipt": "Recibo de nómina"
+		}
 	}
 }

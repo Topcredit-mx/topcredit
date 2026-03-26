@@ -2,6 +2,7 @@ import {
 	adminUser,
 	agentOnlyUser,
 	applicantOnlyUser,
+	clickRoleCheckbox,
 	companies,
 	companyList,
 	findRoleCheckbox,
@@ -12,6 +13,10 @@ describe('Admin Users', () => {
 	before(() => {
 		cy.task('cleanupAdminUsers')
 		cy.task('seedAdminUsers')
+	})
+
+	after(() => {
+		cy.task('cleanupAdminUsers')
 	})
 
 	describe('Access Control', () => {
@@ -52,6 +57,7 @@ describe('Admin Users', () => {
 			cy.contains('th', /email/i).should('exist')
 			cy.contains('th', /solicitudes/i).should('exist')
 			cy.contains('th', /preautorizaciones/i).should('exist')
+			cy.contains('th', /autorizaciones/i).should('exist')
 			cy.contains('th', /admin/i).should('exist')
 			cy.contains('th', /fecha de creación/i).should('exist')
 			cy.get('table').within(() => {
@@ -64,9 +70,9 @@ describe('Admin Users', () => {
 			cy.contains(users.bob.name).should('exist')
 		})
 
-		it('displays checkboxes for requests, pre-authorizations and admin roles', () => {
+		it('displays checkboxes for requests, pre-authorizations, authorizations and admin roles', () => {
 			cy.findTableRow(users.jane.name).within(() => {
-				cy.get('button[role="checkbox"]').should('have.length', 3)
+				cy.get('button[role="checkbox"]').should('have.length', 4)
 			})
 		})
 	})
@@ -108,26 +114,26 @@ describe('Admin Users', () => {
 			cy.findTableRow(users.jane.name)
 				.scrollIntoView()
 				.within(() => {
-					findRoleCheckbox(cy.root(), 'Admin').should('be.visible').click()
+					clickRoleCheckbox(cy.root(), 'Admin')
 				})
 			cy.findTableRow(users.jane.name).within(() => {
 				findRoleCheckbox(cy.root(), 'Admin').should(
 					'have.attr',
-					'data-state',
-					'checked',
+					'aria-checked',
+					'true',
 				)
 			})
 
 			cy.findTableRow(users.jane.name)
 				.scrollIntoView()
 				.within(() => {
-					findRoleCheckbox(cy.root(), 'Admin').should('be.visible').click()
+					clickRoleCheckbox(cy.root(), 'Admin')
 				})
 			cy.findTableRow(users.jane.name).within(() => {
 				findRoleCheckbox(cy.root(), 'Admin').should(
 					'have.attr',
-					'data-state',
-					'unchecked',
+					'aria-checked',
+					'false',
 				)
 			})
 		})
@@ -136,10 +142,13 @@ describe('Admin Users', () => {
 			cy.findTableRow(users.jane.name).within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Solicitudes role"]',
-				).should('have.attr', 'data-state', 'checked')
+				).should('have.attr', 'aria-checked', 'true')
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Preautorizaciones role"]',
-				).should('have.attr', 'data-state', 'unchecked')
+				).should('have.attr', 'aria-checked', 'false')
+				cy.get(
+					'button[role="checkbox"][aria-label="Toggle Autorizaciones role"]',
+				).should('have.attr', 'aria-checked', 'false')
 			})
 		})
 	})
@@ -177,7 +186,7 @@ describe('Admin Users', () => {
 			cy.findTableRow('Admin User')
 				.scrollIntoView()
 				.within(() => {
-					findRoleCheckbox(cy.root(), 'Admin').should('be.visible').click()
+					clickRoleCheckbox(cy.root(), 'Admin')
 				})
 
 			cy.get('[role="alertdialog"]').should('be.visible')
@@ -189,7 +198,7 @@ describe('Admin Users', () => {
 			cy.findTableRow('Admin User')
 				.scrollIntoView()
 				.within(() => {
-					findRoleCheckbox(cy.root(), 'Admin').should('be.visible').click()
+					clickRoleCheckbox(cy.root(), 'Admin')
 				})
 
 			cy.get('[role="alertdialog"]')
@@ -199,7 +208,7 @@ describe('Admin Users', () => {
 			cy.findTableRow('Admin User').within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Admin role"]',
-				).should('have.attr', 'data-state', 'checked')
+				).should('have.attr', 'aria-checked', 'true')
 			})
 		})
 
@@ -207,13 +216,13 @@ describe('Admin Users', () => {
 			cy.findTableRow(users.bob.name)
 				.scrollIntoView()
 				.within(() => {
-					findRoleCheckbox(cy.root(), 'Admin').should('be.visible').click()
+					clickRoleCheckbox(cy.root(), 'Admin')
 				})
 
 			cy.findTableRow(users.bob.name).within(() => {
 				cy.get(
 					'button[role="checkbox"][aria-label="Toggle Admin role"]',
-				).should('have.attr', 'data-state', 'unchecked')
+				).should('have.attr', 'aria-checked', 'false')
 			})
 
 			cy.task('assignRole', { email: users.bob.email, role: 'admin' })
@@ -223,7 +232,7 @@ describe('Admin Users', () => {
 			cy.findTableRow('Admin User')
 				.scrollIntoView()
 				.within(() => {
-					findRoleCheckbox(cy.root(), 'Admin').should('be.visible').click()
+					clickRoleCheckbox(cy.root(), 'Admin')
 				})
 
 			cy.get('[role="alertdialog"]')
@@ -246,7 +255,7 @@ describe('Admin Users', () => {
 			cy.findTableRow(agentOnlyUser.name)
 				.scrollIntoView()
 				.within(() => {
-					findRoleCheckbox(cy.root(), 'Admin').should('be.visible').click()
+					clickRoleCheckbox(cy.root(), 'Admin')
 				})
 
 			cy.url().should('include', '/unauthorized')
@@ -380,7 +389,7 @@ describe('Admin Users', () => {
 				cy.contains('label', companies.acme.name)
 					.parent()
 					.find('button[role="checkbox"]')
-					.should('have.attr', 'data-state', 'checked')
+					.should('have.attr', 'aria-checked', 'true')
 			})
 
 			cy.task('deleteUserCompanyAssignmentsByEmail', [agentOnlyUser.email])

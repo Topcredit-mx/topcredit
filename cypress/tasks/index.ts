@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import {
 	applicantB,
@@ -19,12 +19,19 @@ import {
 	agentForReview,
 	allReviewApplicants,
 	allReviewCompanies,
+	applicantA3,
 	applicantA4,
 	applicantA5,
+	applicantAuthzAdmin,
+	applicantAuthzAwaiting,
+	applicantAuthzDeny,
+	applicantForReview,
 	applicantForReviewB,
 	applicantPreAuth,
+	authorizationsAgentForReview,
 	companyForReview,
 	companyForReviewD,
+	dualQueueAgentForReview,
 	preAuthAgentForReview,
 	reviewApplicationConfigs,
 } from '~/app/equipo/(main)/applications/applications-review.fixtures'
@@ -62,6 +69,7 @@ import {
 	applicationStatusHistory,
 	applications,
 	companies,
+	emailOtps,
 	termOfferings,
 	terms,
 	userCompanies,
@@ -73,6 +81,7 @@ import {
 	E2E_PRE_AUTH_INITIAL_INTAKE_APPROVED,
 	E2E_PRE_AUTH_PACKAGE_PENDING,
 	E2E_PRE_AUTH_PAYROLL_APPROVED_LATEST,
+	type E2ePreAuthDocumentSeedRow,
 	type SeedPreAuthorizedPackageVariant,
 } from '../fixtures/pre-authorized-package'
 import { getDb } from './cypress-db'
@@ -473,18 +482,58 @@ export const insertApplicationDocument = async (
 	return doc
 }
 
+export type UpdateLatestApplicationDocumentByTypeTaskParams = {
+	applicationId: number
+	documentType: DocumentType
+	status: 'pending' | 'approved' | 'rejected'
+	rejectionReason?: string | null
+}
+
+export const updateLatestApplicationDocumentByType = async (
+	params: UpdateLatestApplicationDocumentByTypeTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	if (
+		params.status === 'rejected' &&
+		(params.rejectionReason == null || params.rejectionReason.trim() === '')
+	) {
+		throw new Error('Rejected documents require a non-empty rejectionReason')
+	}
+	const [latest] = await db
+		.select({ id: applicationDocuments.id })
+		.from(applicationDocuments)
+		.where(
+			and(
+				eq(applicationDocuments.applicationId, params.applicationId),
+				eq(applicationDocuments.documentType, params.documentType),
+			),
+		)
+		.orderBy(desc(applicationDocuments.createdAt))
+		.limit(1)
+	if (!latest) {
+		throw new Error(
+			`No document row for application ${params.applicationId} and type ${params.documentType}`,
+		)
+	}
+	await db
+		.update(applicationDocuments)
+		.set({
+			status: params.status,
+			rejectionReason:
+				params.status === 'rejected' ? params.rejectionReason : null,
+			updatedAt: new Date(),
+		})
+		.where(eq(applicationDocuments.id, latest.id))
+	return null
+}
+
 export const seedPreAuthorizedPackageDocuments = async (
 	params: SeedPreAuthorizedPackageDocumentsTaskParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	const { applicationId, variant } = params
 
-	const rows: {
-		documentType: DocumentType
-		fileName: string
-		storageKey: string
-		status: 'pending' | 'approved' | 'rejected'
-	}[] = []
+	const rows: E2ePreAuthDocumentSeedRow[] = []
 
 	if (variant === 'initialIntakeApprovedOnly') {
 		rows.push(...E2E_PRE_AUTH_INITIAL_INTAKE_APPROVED)
@@ -499,11 +548,12 @@ export const seedPreAuthorizedPackageDocuments = async (
 	}
 
 	for (const row of rows) {
+		const storageKey = `application-documents/${applicationId}/${row.documentType}/${row.fileName}`
 		await db.insert(applicationDocuments).values({
 			applicationId,
 			documentType: row.documentType,
 			fileName: row.fileName,
-			storageKey: row.storageKey,
+			storageKey,
 			status: row.status,
 			rejectionReason: null,
 		})
@@ -534,38 +584,21 @@ function getDefaultSeedStatusHistory(
 	defaultActorUserId: number | null,
 ): readonly SeedStatusHistoryStep[] {
 	switch (finalStatus) {
-		case 'new':
-			return [{ status: 'new', setByUserId: defaultActorUserId }]
 		case 'pending':
-			return [
-				{ status: 'new', setByUserId: defaultActorUserId },
-				{ status: 'pending', setByUserId: defaultActorUserId },
-			]
+			return [{ status: 'pending', setByUserId: defaultActorUserId }]
 		case 'approved':
 			return [
-				{ status: 'new', setByUserId: defaultActorUserId },
 				{ status: 'pending', setByUserId: defaultActorUserId },
 				{ status: 'approved', setByUserId: defaultActorUserId },
 			]
-		case 'invalid-documentation':
-			return [
-				{ status: 'new', setByUserId: defaultActorUserId },
-				{ status: 'pending', setByUserId: defaultActorUserId },
-				{
-					status: 'invalid-documentation',
-					setByUserId: defaultActorUserId,
-				},
-			]
 		case 'pre-authorized':
 			return [
-				{ status: 'new', setByUserId: defaultActorUserId },
 				{ status: 'pending', setByUserId: defaultActorUserId },
 				{ status: 'approved', setByUserId: defaultActorUserId },
 				{ status: 'pre-authorized', setByUserId: defaultActorUserId },
 			]
 		case 'awaiting-authorization':
 			return [
-				{ status: 'new', setByUserId: defaultActorUserId },
 				{ status: 'pending', setByUserId: defaultActorUserId },
 				{ status: 'approved', setByUserId: defaultActorUserId },
 				{ status: 'pre-authorized', setByUserId: defaultActorUserId },
@@ -576,7 +609,6 @@ function getDefaultSeedStatusHistory(
 			]
 		case 'authorized':
 			return [
-				{ status: 'new', setByUserId: defaultActorUserId },
 				{ status: 'pending', setByUserId: defaultActorUserId },
 				{ status: 'approved', setByUserId: defaultActorUserId },
 				{ status: 'pre-authorized', setByUserId: defaultActorUserId },
@@ -588,10 +620,13 @@ function getDefaultSeedStatusHistory(
 			]
 		case 'denied':
 			return [
-				{ status: 'new', setByUserId: defaultActorUserId },
 				{ status: 'pending', setByUserId: defaultActorUserId },
 				{ status: 'denied', setByUserId: defaultActorUserId },
 			]
+		case 'invalid-documentation':
+			throw new Error(
+				'invalid-documentation is no longer a supported seed application status',
+			)
 	}
 }
 
@@ -620,9 +655,7 @@ export type ResetApplicantApplicationTaskParams = {
 	salaryFrequency?: 'monthly' | 'bi-monthly'
 	statusHistory?: readonly ApplicationStatus[]
 	status?:
-		| 'new'
 		| 'pending'
-		| 'invalid-documentation'
 		| 'pre-authorized'
 		| 'awaiting-authorization'
 		| 'authorized'
@@ -633,7 +666,7 @@ export const resetApplicantApplication = async (
 	params: ResetApplicantApplicationTaskParams,
 ) => {
 	const db = getDb(process.env.DATABASE_URL || '')
-	const finalStatus = params.status ?? 'new'
+	const finalStatus = params.status ?? 'pending'
 	const offering = await db.query.termOfferings.findFirst({
 		where: eq(termOfferings.id, params.termOfferingId),
 		columns: { companyId: true },
@@ -781,7 +814,7 @@ export const seedLoginFlow = async (): Promise<SeedLoginFlowResult> => {
 			creditAmount: '10000',
 			salaryAtApplication: '100000',
 			salaryFrequency: 'monthly',
-			status: 'new',
+			status: 'pending',
 		})
 		.returning()
 
@@ -790,7 +823,7 @@ export const seedLoginFlow = async (): Promise<SeedLoginFlowResult> => {
 	await db.insert(applicationStatusHistory).values([
 		{
 			applicationId: loginApplication.id,
-			status: 'new',
+			status: 'pending',
 			setByUserId: applicant.id,
 			createdAt: loginHistoryBaseTime,
 		},
@@ -808,9 +841,11 @@ export type CleanupLoginFlowParams = { termId: number }
 export const cleanupLoginFlow = async (params: CleanupLoginFlowParams) => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	const allUsers = [loginApplicantUser, loginAgentUser, loginNoRoleUser]
+	const loginEmails = allUsers.map((u) => u.email)
 	await Promise.all(
 		allUsers.map((u) => db.delete(users).where(eq(users.email, u.email))),
 	)
+	await db.delete(emailOtps).where(inArray(emailOtps.email, loginEmails))
 	await db.delete(companies).where(eq(companies.domain, LOGIN_DOMAIN))
 	await db.delete(terms).where(eq(terms.id, params.termId))
 	return null
@@ -1380,6 +1415,8 @@ export const seedSecurity = async () => {
 
 export const cleanupSecurity = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	const securityEmails = [loginApplicantUser.email, TOTP_USER.email]
+	await db.delete(emailOtps).where(inArray(emailOtps.email, securityEmails))
 	await Promise.all([
 		db.delete(users).where(eq(users.email, loginApplicantUser.email)),
 		db.delete(users).where(eq(users.email, TOTP_USER.email)),
@@ -1414,6 +1451,9 @@ export const seedProfile = async () => {
 
 export const cleanupProfile = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	await db
+		.delete(emailOtps)
+		.where(eq(emailOtps.email, loginApplicantUser.email))
 	await db.delete(users).where(eq(users.email, loginApplicantUser.email))
 	return null
 }
@@ -1424,9 +1464,13 @@ export type SeedApplicationsReviewResult = {
 	termId: number
 	companyBApplicationId: number
 	applicationId: number
+	applicantA3ApplicationId: number
 	applicantA4ApplicationId: number
 	applicantA5ApplicationId: number
 	preAuthApplicationId: number
+	authzApplicationId: number
+	authzDenyApplicationId: number
+	authzAdminApplicationId: number
 }
 
 const OTHER_E2E_APPLICATION_DOMAINS = [
@@ -1456,6 +1500,8 @@ export const seedApplicationsReview =
 		const allUserFixtures = [
 			agentForReview,
 			preAuthAgentForReview,
+			authorizationsAgentForReview,
+			dualQueueAgentForReview,
 			adminForReview,
 			...allReviewApplicants,
 		]
@@ -1519,6 +1565,8 @@ export const seedApplicationsReview =
 
 		const requestsAgent = findUser(agentForReview.email)
 		const preAuthAgent = findUser(preAuthAgentForReview.email)
+		const authorizationsAgent = findUser(authorizationsAgentForReview.email)
+		const dualQueueAgent = findUser(dualQueueAgentForReview.email)
 
 		const [, offerings] = await Promise.all([
 			db.insert(userRoles).values(
@@ -1540,7 +1588,12 @@ export const seedApplicationsReview =
 				)
 				.returning(),
 			db.insert(userCompanies).values(
-				[requestsAgent, preAuthAgent].flatMap((user) =>
+				[
+					requestsAgent,
+					preAuthAgent,
+					authorizationsAgent,
+					dualQueueAgent,
+				].flatMap((user) =>
 					agentCompanyDomains.map((domain) => ({
 						userId: user.id,
 						companyId: findCompany(domain).id,
@@ -1595,12 +1648,24 @@ export const seedApplicationsReview =
 			.values(preparedApplications.map((item) => item.insertValues))
 			.returning()
 
+		function appForApplicantEmail(email: string) {
+			const applicant = findUser(email)
+			const app = apps.find((a) => a.applicantId === applicant.id)
+			if (!app) {
+				throw new Error(
+					`Seed: application row for applicant ${email} not found`,
+				)
+			}
+			return app
+		}
+
 		await db.insert(applicationStatusHistory).values(
-			apps.flatMap((app, index) => {
-				const prepared = preparedApplications[index]
-				if (!prepared) {
-					throw new Error('Seed: missing prepared application timeline')
+			preparedApplications.flatMap((prepared, index) => {
+				const cfg = reviewApplicationConfigs[index]
+				if (!cfg) {
+					throw new Error('Seed: missing review application config')
 				}
+				const app = appForApplicantEmail(cfg.applicantEmail)
 
 				return prepared.timeline.map((entry, entryIndex) => ({
 					applicationId: app.id,
@@ -1613,94 +1678,152 @@ export const seedApplicationsReview =
 			}),
 		)
 
-		const preAuthAppForDocsIdx = reviewApplicationConfigs.findIndex(
-			(cfg) => cfg.applicantEmail === applicantPreAuth.email,
-		)
-		const preAuthAppForDocs = apps[preAuthAppForDocsIdx]
-		if (preAuthAppForDocsIdx >= 0 && preAuthAppForDocs) {
-			const id = preAuthAppForDocs.id
-			await db.insert(applicationDocuments).values([
+		const preAuthApp = appForApplicantEmail(applicantPreAuth.email)
+		await db.insert(applicationDocuments).values([
+			{
+				applicationId: preAuthApp.id,
+				documentType: 'official-id',
+				status: 'approved',
+				fileName: 'seed-ine.pdf',
+				storageKey: `application-documents/${preAuthApp.id}/official-id/seed-ine.pdf`,
+			},
+			{
+				applicationId: preAuthApp.id,
+				documentType: 'proof-of-address',
+				status: 'approved',
+				fileName: 'seed-address.pdf',
+				storageKey: `application-documents/${preAuthApp.id}/proof-of-address/seed-address.pdf`,
+			},
+			{
+				applicationId: preAuthApp.id,
+				documentType: 'bank-statement',
+				status: 'approved',
+				fileName: 'seed-bank.pdf',
+				storageKey: `application-documents/${preAuthApp.id}/bank-statement/seed-bank.pdf`,
+			},
+		])
+
+		const authzAwaitingApplicants = [
+			applicantAuthzAwaiting,
+			applicantAuthzDeny,
+			applicantAuthzAdmin,
+		] as const
+		let authzAppForDocs: (typeof apps)[number] | undefined
+		let authzDenyAppForDocs: (typeof apps)[number] | undefined
+		let authzAdminAppForDocs: (typeof apps)[number] | undefined
+		for (const applicant of authzAwaitingApplicants) {
+			const appRow = appForApplicantEmail(applicant.email)
+			if (applicant.email === applicantAuthzAwaiting.email)
+				authzAppForDocs = appRow
+			if (applicant.email === applicantAuthzDeny.email)
+				authzDenyAppForDocs = appRow
+			if (applicant.email === applicantAuthzAdmin.email)
+				authzAdminAppForDocs = appRow
+			const id = appRow.id
+			const approvedInitialIntake = [
 				{
 					applicationId: id,
-					documentType: 'official-id',
-					status: 'approved',
-					fileName: 'seed-ine.pdf',
-					storageKey: `application-documents/${id}/official-id/seed-ine.pdf`,
+					documentType: 'official-id' as const,
+					status: 'approved' as const,
+					fileName: `seed-intake-ine-authz-${id}.pdf`,
+					storageKey: `application-documents/${id}/official-id/seed-intake-ine-authz-${id}.pdf`,
 				},
 				{
 					applicationId: id,
-					documentType: 'proof-of-address',
-					status: 'approved',
-					fileName: 'seed-address.pdf',
-					storageKey: `application-documents/${id}/proof-of-address/seed-address.pdf`,
+					documentType: 'proof-of-address' as const,
+					status: 'approved' as const,
+					fileName: `seed-intake-address-authz-${id}.pdf`,
+					storageKey: `application-documents/${id}/proof-of-address/seed-intake-address-authz-${id}.pdf`,
 				},
 				{
 					applicationId: id,
-					documentType: 'bank-statement',
-					status: 'approved',
-					fileName: 'seed-bank.pdf',
-					storageKey: `application-documents/${id}/bank-statement/seed-bank.pdf`,
+					documentType: 'bank-statement' as const,
+					status: 'approved' as const,
+					fileName: `seed-intake-bank-authz-${id}.pdf`,
+					storageKey: `application-documents/${id}/bank-statement/seed-intake-bank-authz-${id}.pdf`,
 				},
-				{
-					applicationId: id,
-					documentType: 'payroll-receipt',
-					status: 'pending',
-					fileName: 'seed-payroll.pdf',
-					storageKey: `application-documents/${id}/payroll-receipt/seed-payroll.pdf`,
-				},
-				{
-					applicationId: id,
-					documentType: 'contract',
-					status: 'pending',
-					fileName: 'seed-contract.pdf',
-					storageKey: `application-documents/${id}/contract/seed-contract.pdf`,
-				},
-				{
-					applicationId: id,
-					documentType: 'authorization',
-					status: 'pending',
-					fileName: 'seed-authorization.pdf',
-					storageKey: `application-documents/${id}/authorization/seed-authorization.pdf`,
-				},
-			])
+			] as const
+			const packagePending =
+				applicant.email !== applicantAuthzAdmin.email
+					? ([
+							{
+								applicationId: id,
+								documentType: 'payroll-receipt' as const,
+								status: 'pending' as const,
+								fileName: `seed-payroll-authz-${id}.pdf`,
+								storageKey: `application-documents/${id}/payroll-receipt/seed-payroll-authz-${id}.pdf`,
+							},
+							{
+								applicationId: id,
+								documentType: 'contract' as const,
+								status: 'pending' as const,
+								fileName: `seed-contract-authz-${id}.pdf`,
+								storageKey: `application-documents/${id}/contract/seed-contract-authz-${id}.pdf`,
+							},
+							{
+								applicationId: id,
+								documentType: 'authorization' as const,
+								status: 'pending' as const,
+								fileName: `seed-authorization-authz-${id}.pdf`,
+								storageKey: `application-documents/${id}/authorization/seed-authorization-authz-${id}.pdf`,
+							},
+						] as const)
+					: ([
+							{
+								applicationId: id,
+								documentType: 'payroll-receipt' as const,
+								status: 'approved' as const,
+								fileName: `seed-payroll-authz-admin-${id}.pdf`,
+								storageKey: `application-documents/${id}/payroll-receipt/seed-payroll-authz-admin-${id}.pdf`,
+							},
+							{
+								applicationId: id,
+								documentType: 'contract' as const,
+								status: 'approved' as const,
+								fileName: `seed-contract-authz-admin-${id}.pdf`,
+								storageKey: `application-documents/${id}/contract/seed-contract-authz-admin-${id}.pdf`,
+							},
+							{
+								applicationId: id,
+								documentType: 'authorization' as const,
+								status: 'approved' as const,
+								fileName: `seed-authorization-authz-admin-${id}.pdf`,
+								storageKey: `application-documents/${id}/authorization/seed-authorization-authz-admin-${id}.pdf`,
+							},
+						] as const)
+			await db
+				.insert(applicationDocuments)
+				.values([...approvedInitialIntake, ...packagePending])
+		}
+		if (
+			authzAppForDocs == null ||
+			authzDenyAppForDocs == null ||
+			authzAdminAppForDocs == null
+		) {
+			throw new Error('Seed: authz awaiting applications missing after insert')
 		}
 
-		const companyBAppIdx = reviewApplicationConfigs.findIndex(
-			(cfg) => cfg.applicantEmail === applicantForReviewB.email,
+		const companyBApp = appForApplicantEmail(applicantForReviewB.email)
+		const applicationForReviewApp = appForApplicantEmail(
+			applicantForReview.email,
 		)
-		const companyBApp = apps[companyBAppIdx]
-		if (companyBAppIdx < 0 || !companyBApp)
-			throw new Error('Seed: company B app not found')
-		const firstApp = apps[0]
-		if (!firstApp) throw new Error('Seed: no application created')
-		const applicantA4AppIdx = reviewApplicationConfigs.findIndex(
-			(cfg) => cfg.applicantEmail === applicantA4.email,
-		)
-		const applicantA4App = apps[applicantA4AppIdx]
-		if (applicantA4AppIdx < 0 || !applicantA4App)
-			throw new Error('Seed: applicant A4 application not found')
-		const applicantA5AppIdx = reviewApplicationConfigs.findIndex(
-			(cfg) => cfg.applicantEmail === applicantA5.email,
-		)
-		const applicantA5App = apps[applicantA5AppIdx]
-		if (applicantA5AppIdx < 0 || !applicantA5App)
-			throw new Error('Seed: applicant A5 application not found')
-		const preAuthAppIdx = reviewApplicationConfigs.findIndex(
-			(cfg) => cfg.applicantEmail === applicantPreAuth.email,
-		)
-		const preAuthApp = apps[preAuthAppIdx]
-		if (preAuthAppIdx < 0 || !preAuthApp)
-			throw new Error('Seed: pre-auth application not found')
+		const applicantA3App = appForApplicantEmail(applicantA3.email)
+		const applicantA4App = appForApplicantEmail(applicantA4.email)
+		const applicantA5App = appForApplicantEmail(applicantA5.email)
 
 		return {
 			companyId: findCompany(companyForReview.domain).id,
 			companyDId: findCompany(companyForReviewD.domain).id,
 			termId: term.id,
 			companyBApplicationId: companyBApp.id,
-			applicationId: firstApp.id,
+			applicationId: applicationForReviewApp.id,
+			applicantA3ApplicationId: applicantA3App.id,
 			applicantA4ApplicationId: applicantA4App.id,
 			applicantA5ApplicationId: applicantA5App.id,
 			preAuthApplicationId: preAuthApp.id,
+			authzApplicationId: authzAppForDocs.id,
+			authzDenyApplicationId: authzDenyAppForDocs.id,
+			authzAdminApplicationId: authzAdminAppForDocs.id,
 		}
 	}
 
@@ -1716,6 +1839,8 @@ export const cleanupApplicationsReview = async (
 	const allUserFixtures = [
 		agentForReview,
 		preAuthAgentForReview,
+		authorizationsAgentForReview,
+		dualQueueAgentForReview,
 		adminForReview,
 		...allReviewApplicants,
 	]

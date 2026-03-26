@@ -83,6 +83,10 @@ declare namespace Cypress {
 			event: 'seedPreAuthorizedPackageDocuments',
 			params: import('../tasks').SeedPreAuthorizedPackageDocumentsTaskParams,
 		): Chainable<null>
+		task(
+			event: 'updateLatestApplicationDocumentByType',
+			params: import('../tasks').UpdateLatestApplicationDocumentByTypeTaskParams,
+		): Chainable<null>
 	}
 }
 
@@ -124,9 +128,7 @@ type ResetApplicantApplicationTaskParams = {
 	salaryAtApplication: string
 	salaryFrequency?: 'monthly' | 'bi-monthly'
 	status?:
-		| 'new'
 		| 'pending'
-		| 'invalid-documentation'
 		| 'pre-authorized'
 		| 'awaiting-authorization'
 		| 'authorized'

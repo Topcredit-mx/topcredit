@@ -14,6 +14,10 @@ describe('Settings Security', () => {
 		cy.task('seedSecurity')
 	})
 
+	after(() => {
+		cy.task('cleanupSecurity')
+	})
+
 	it('redirects to login when accessing applicant settings security unauthenticated', () => {
 		cy.visit(applicantSettingsSecurity)
 		cy.url().should('not.include', '/cuenta/settings')

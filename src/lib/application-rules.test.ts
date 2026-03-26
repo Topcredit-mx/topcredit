@@ -13,26 +13,20 @@ test('requires financial terms for pre-authorized, awaiting-authorization, and a
 	assert.equal(statusRequiresFinancialTerms('authorized'), true)
 })
 
-test('allows requests review transitions from both new and pending', () => {
-	assert.equal(canTransitionToApplicationStatus('new', 'approved'), true)
-	assert.equal(
-		canTransitionToApplicationStatus('new', 'invalid-documentation'),
-		true,
-	)
-	assert.equal(canTransitionToApplicationStatus('new', 'denied'), true)
+test('allows requests review transitions from pending', () => {
 	assert.equal(canTransitionToApplicationStatus('pending', 'approved'), true)
 	assert.equal(
 		canTransitionToApplicationStatus('pending', 'invalid-documentation'),
-		true,
+		false,
 	)
 	assert.equal(canTransitionToApplicationStatus('pending', 'denied'), true)
 	assert.equal(canTransitionToApplicationStatus('approved', 'approved'), false)
 })
 
-test('allows returning to pending after invalid documentation is corrected', () => {
+test('does not use invalid-documentation status; denied cannot return to pending', () => {
 	assert.equal(
 		canTransitionToApplicationStatus('invalid-documentation', 'pending'),
-		true,
+		false,
 	)
 	assert.equal(canTransitionToApplicationStatus('denied', 'pending'), false)
 })
@@ -52,12 +46,16 @@ test('allows pre-authorization only from approved', () => {
 	)
 })
 
-test('allows awaiting-authorization only from pre-authorized', () => {
+test('allows awaiting-authorization from pre-authorized or authorized (reopen)', () => {
 	assert.equal(
 		canTransitionToApplicationStatus(
 			'pre-authorized',
 			'awaiting-authorization',
 		),
+		true,
+	)
+	assert.equal(
+		canTransitionToApplicationStatus('authorized', 'awaiting-authorization'),
 		true,
 	)
 	assert.equal(

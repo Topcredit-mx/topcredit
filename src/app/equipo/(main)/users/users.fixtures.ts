@@ -61,3 +61,6 @@ export const companyList = Object.values(companies)
 
 export const findRoleCheckbox = (row: Cypress.Chainable, roleLabel: string) =>
 	row.find(`button[role="checkbox"][aria-label="Toggle ${roleLabel} role"]`)
+
+export const clickRoleCheckbox = (row: Cypress.Chainable, roleLabel: string) =>
+	findRoleCheckbox(row, roleLabel).scrollIntoView().click({ force: true })

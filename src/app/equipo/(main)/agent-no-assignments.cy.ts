@@ -8,6 +8,10 @@ describe('Agent without assignments', () => {
 		cy.task('seedAgentNoAssignments')
 	})
 
+	after(() => {
+		cy.task('cleanupAgentNoAssignments')
+	})
+
 	beforeEach(() => {
 		cy.login(email)
 	})

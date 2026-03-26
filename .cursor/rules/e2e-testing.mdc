@@ -10,21 +10,37 @@ Apply when writing or refactoring Cypress E2E tests. Keep tests isolated, stable
 
 ---
 
-## Selectors — no data-testid
+## Selectors — accessibility first
 
-Do **not** use `data-testid` or `get('[data-testid="..."]')`. Use what the user sees or the accessibility tree: **visible text** (`cy.contains(...)`), **roles** (`role="..."`, `aria-label`), **semantic elements** (`main`, `nav`, `button`, `h1`).
+**Tests should resemble real usage and lean on accessibility, not on hooks that only exist for tests.**
+
+Do **not** use:
+
+- `data-testid` / `get('[data-testid="..."]')`
+- **App-specific** `data-*` attributes as selectors (e.g. `data-equipo-*`, `data-document-*`, `data-current-application-status`, custom `data-preauth-*`, etc.). Prefer removing those from components when refactoring; drive tests from what users and assistive tech can use.
+- **`data-slot` in Cypress selectors.** Shadcn/Radix primitives may keep `data-slot` for styling; tests should still target **roles, names, labels, and visible text** (e.g. `nav`, `button` + name, `dialog` + title, `menuitem` + text).
+
+Prefer: **visible text** (`cy.contains(...)`), **roles** (`cy.get('[role="dialog"]')`, `role="menuitem"`), **accessible names** (`cy.get('button', { name: /acciones/i })` where supported), **semantic regions** (`main`, `nav`, headings), **placeholders** and **associated labels** for form fields.
 
 ```typescript
 // ❌ BAD
 cy.get('[data-testid="breadcrumb"]').contains('Mi Cuenta')
+cy.get('[data-equipo-application-detail] [data-current-application-status="pending"]')
 
 // ✅ GOOD
 cy.contains('Mi Cuenta').should('be.visible')
 cy.get('nav[aria-label="Breadcrumb"]').contains('Mi Cuenta').should('be.visible')
+cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+cy.contains('h2', /solicitante/i)
+	.should('be.visible')
+	.closest('section')
+	.within(() => {
+		cy.contains('button', /acciones/i).should('be.visible').click()
+	})
 ```
 
-- **Prefer role + name over attributes.** Follow Kent C. Dodds–style queries: e.g. `cy.contains('h2', /solicitante/i).closest('[data-slot="card-header"]').within(() => cy.contains('button', /acciones/i).click())` instead of matching on `aria-*` or `data-*` directly.
-- **Use `asChild` for semantic headings.** When a UI primitive like `CardTitle` supports `asChild`, render real headings (`<h2>Solicitante</h2>`) and then query by that heading level in tests.
+- **Prefer role + name over `data-*`.** Scope with `.within()` using a **heading**, **`main`**, or **`[role="dialog"]`** so queries stay unique without implementation attributes.
+- **Use `asChild` for semantic headings.** When a UI primitive like `CardTitle` supports `asChild`, render real headings (`<h2>…</h2>`) and query by that level in tests.
 
 ---
 
@@ -41,7 +57,7 @@ cy.get('[role="dialog"]').should('not.exist')
 
 // ✅ GOOD
 cy.contains('button', /confirmar/i).click()
-cy.get('[data-status="rejected"]').should('be.visible')
+cy.contains(/rechazado/i).should('be.visible')
 ```
 
 ---
@@ -112,7 +128,7 @@ cy.contains(/autorizado/i).should('be.visible')
 
 ## Don’t
 
-- **Selectors**: `data-testid`, fragile class/id/tag selectors.
+- **Selectors**: `data-testid`; app-specific `data-*` used only for tests; `data-slot` (or other implementation attributes) as the primary way to find elements in specs; fragile class-only selectors.
 - **Waits**: `cy.wait(ms)`; use aliases or `.should()`.
 - **State**: shared state between tests; required cleanup in `afterEach`/`after`; unnecessary manual clear of cookies/localStorage (Cypress clears when isolation is on).
 - **Auth**: UI login every time when API/session is possible; depending on social/OAuth UIs.

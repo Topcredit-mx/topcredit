@@ -71,20 +71,14 @@ jobs:
         id: e2e-otp
         run: echo "code=$(shuf -i 100000-999999 -n 1)" >> $GITHUB_OUTPUT
 
-      - name: Build app
-        run: pnpm build
+      - name: Start app (next dev)
+        run: pnpm dev &
         env:
-          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
-
-      - name: Start app
-        run: pnpm start &
-        env:
-          NODE_ENV: test
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
 
       - name: Wait for app
-        run: pnpm dlx wait-on http://localhost:3000 --timeout 60000 --strict
+        run: pnpm dlx wait-on http://localhost:3000 --timeout 120000 --strict
 
       - name: Cypress run
         uses: cypress-io/github-action@v7
@@ -100,6 +94,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_NO_WARNINGS: 1
           TERM: xterm
+
+      - name: Verify E2E database is empty
+        if: success()
+        run: pnpm exec tsx scripts/e2e-db-snapshot.ts --strict
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
 
       - name: Delete neon branch
         if: always()

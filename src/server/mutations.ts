@@ -3,11 +3,21 @@
 import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import {
+	filterToLatestDocumentsPerType,
+	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
+} from '~/lib/application-document-intake'
+import {
 	canTransitionToApplicationStatus,
 	statusRequiresFinancialTerms,
 	statusRequiresReason,
 } from '~/lib/application-rules'
-import { isAuthorizationPackageReadyForSubmit } from '~/lib/authorization-package-readiness'
+import {
+	type DocumentRowForPackageCheck,
+	isAuthorizationPackageFullyApproved,
+	isAuthorizationPackageReadyForSubmit,
+	isInitialIntakeFullyApproved,
+} from '~/lib/authorization-package-readiness'
+import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import {
 	isPreAuthOverCapacity,
 	maxDebtCapacityForLoanPeriod,
@@ -31,7 +41,11 @@ import {
 	type Role,
 } from '~/server/auth/session'
 import { db } from '~/server/db'
-import type { ApplicationStatus } from '~/server/db/schema'
+import type {
+	ApplicationStatus,
+	DocumentStatus,
+	DocumentType,
+} from '~/server/db/schema'
 import {
 	applicationDocuments,
 	companies,
@@ -40,14 +54,17 @@ import {
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
-import { sendApplicationStatusEvent } from '~/server/email'
+import {
+	sendApplicationDocumentsRejectedEvent,
+	sendApplicationStatusEvent,
+} from '~/server/email'
 import { getApplicationDocuments } from '~/server/queries'
 import {
-	approveApplicationDocumentSchema,
+	applyApplicationDocumentDecisionsSchema,
 	preAuthorizeApplicationSchema,
-	rejectApplicationDocumentSchema,
 	updateApplicationStatusSchema,
 } from '~/server/schemas'
+import { isBlobStorageKey } from '~/server/storage'
 
 // ---- User ----
 
@@ -175,69 +192,344 @@ export async function deleteCompany(id: number) {
 
 // ---- Application (solicitud) ----
 
-async function setDocumentStatus(
-	documentId: number,
-	updates: { status: 'approved' | 'rejected'; rejectionReason: string | null },
+type ApplicationRowForSubject = {
+	id: number
+	applicantId: number
+	companyId: number
+	status: ApplicationStatus
+	termOfferingId: number | null
+	creditAmount: string | null
+}
+
+const AUTHORIZATION_PACKAGE_TYPE_SET = new Set<DocumentType>(
+	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
+)
+
+function decisionsRejectAuthorizationPackageDocument(
+	decisions: readonly { documentId: number; status: 'approved' | 'rejected' }[],
+	rowById: Map<number, { documentType: DocumentType }>,
+): boolean {
+	for (const d of decisions) {
+		if (d.status !== 'rejected') continue
+		const row = rowById.get(d.documentId)
+		if (row != null && AUTHORIZATION_PACKAGE_TYPE_SET.has(row.documentType)) {
+			return true
+		}
+	}
+	return false
+}
+
+function mergeDocumentDecisionsIntoRows<
+	T extends {
+		id: number
+		documentType: DocumentType
+		status: DocumentStatus
+		rejectionReason: string | null
+		createdAt: Date
+		hasBlobContent: boolean
+	},
+>(
+	rows: readonly T[],
+	decisions: readonly {
+		documentId: number
+		status: 'approved' | 'rejected'
+		rejectionReason: string | null
+	}[],
+): T[] {
+	const decisionById = new Map(decisions.map((d) => [d.documentId, d] as const))
+	return rows.map((row) => {
+		const d = decisionById.get(row.id)
+		if (d == null) return row
+		return {
+			...row,
+			status: d.status,
+			rejectionReason: d.status === 'rejected' ? d.rejectionReason : null,
+		}
+	})
+}
+
+function followUpPackageValidationError(
+	followUpStatus: 'approved' | 'authorized',
+	documents: DocumentRowForPackageCheck[],
+): (typeof ValidationCode)[keyof typeof ValidationCode] | null {
+	if (followUpStatus === 'authorized') {
+		if (!isAuthorizationPackageFullyApproved(documents)) {
+			return ValidationCode.APPLICATIONS_AUTHORIZATION_PACKAGE_NOT_APPROVED
+		}
+		return null
+	}
+	if (!isInitialIntakeFullyApproved(documents)) {
+		return ValidationCode.APPLICATIONS_ERROR_TRANSITION
+	}
+	return null
+}
+
+async function applyFollowUpStatusIfValid(
+	applicationId: number,
+	followUpStatus: 'approved' | 'authorized',
+	application: ApplicationRowForSubject,
 ): Promise<{ error?: string }> {
 	const { ability } = await getAbility()
-	const doc = await db.query.applicationDocuments.findFirst({
-		where: (d, { eq }) => eq(d.id, documentId),
-		columns: { id: true, applicationId: true, status: true },
+	const user = await getRequiredUser()
+
+	if (!canTransitionToApplicationStatus(application.status, followUpStatus)) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	if (statusRequiresFinancialTerms(followUpStatus)) {
+		if (
+			application.termOfferingId == null ||
+			application.creditAmount == null
+		) {
+			return { error: ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED }
+		}
+	}
+
+	const action = getActionForApplicationStatus(followUpStatus)
+	if (action == null) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	if (!ability.can(action, toApplicationSubject(application))) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	const documents = await getApplicationDocuments(applicationId)
+	const packageError = followUpPackageValidationError(followUpStatus, documents)
+	if (packageError != null) {
+		return { error: packageError }
+	}
+
+	await updateApplicationWithStatusHistory({
+		applicationId,
+		status: followUpStatus,
+		setByUserId: user.id,
+		denialReason: null,
+	})
+
+	await sendApplicationStatusEmail(applicationId, followUpStatus)
+
+	return {}
+}
+
+export async function applyApplicationDocumentDecisions(
+	payload: unknown,
+): Promise<{ error?: string }> {
+	const parsed = applyApplicationDocumentDecisionsSchema.safeParse(payload)
+	if (!parsed.success) {
+		const msg = parsed.error.issues[0]?.message
+		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
+	}
+	const { applicationId, decisions, followUpStatus } = parsed.data
+	const { ability } = await getAbility()
+
+	const application = await db.query.applications.findFirst({
+		where: (a, { eq: eqA }) => eqA(a.id, applicationId),
+		columns: {
+			id: true,
+			applicantId: true,
+			companyId: true,
+			status: true,
+			termOfferingId: true,
+			creditAmount: true,
+		},
+	})
+	if (!application) {
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+
+	const appSubject = subject('Application', {
+		id: application.id,
+		applicantId: application.applicantId,
+		companyId: application.companyId,
+		status: application.status,
+	})
+
+	if (decisions.length === 0) {
+		if (followUpStatus == null) {
+			return { error: ValidationCode.APPLICATIONS_DOCUMENT_DECISIONS_REQUIRED }
+		}
+		requireAbility(ability, 'update', appSubject)
+		const followUpResult = await applyFollowUpStatusIfValid(
+			applicationId,
+			followUpStatus,
+			application,
+		)
+		if (followUpResult.error != null) {
+			return { error: followUpResult.error }
+		}
+		revalidatePath('/equipo/applications')
+		revalidatePath(`/equipo/applications/${applicationId}`)
+		revalidatePath('/cuenta/applications')
+		revalidatePath(`/cuenta/applications/${applicationId}`)
+		return {}
+	}
+
+	requireAbility(ability, 'read', appSubject)
+
+	const docIds = decisions.map((d) => d.documentId)
+	const rows = await db.query.applicationDocuments.findMany({
+		where: (d, { inArray: inArr }) => inArr(d.id, docIds),
+		columns: {
+			id: true,
+			applicationId: true,
+			documentType: true,
+			status: true,
+			rejectionReason: true,
+			createdAt: true,
+			storageKey: true,
+		},
 		with: {
 			application: {
 				columns: { id: true, applicantId: true, companyId: true, status: true },
 			},
 		},
 	})
-	if (!doc?.application) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
-	const companyId = doc.application.companyId
-	requireAbility(
-		ability,
-		'update',
-		subject('Application', {
-			id: doc.application.id,
-			applicantId: doc.application.applicantId,
-			companyId,
-			status: doc.application.status,
-		}),
-	)
-	await db
-		.update(applicationDocuments)
-		.set({ ...updates, updatedAt: new Date() })
-		.where(eq(applicationDocuments.id, documentId))
+	if (rows.length !== docIds.length) {
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+	const byId = new Map(rows.map((r) => [r.id, r]))
+	for (const id of docIds) {
+		if (!byId.has(id)) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+	const applicationIds = new Set(rows.map((r) => r.applicationId))
+	if (applicationIds.size !== 1 || !applicationIds.has(applicationId)) {
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+	const first = rows[0]
+	if (!first?.application) {
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+	for (const decision of decisions) {
+		const row = byId.get(decision.documentId)
+		if (!row?.application) {
+			return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+		}
+		if (
+			!canSetApplicationDocumentReviewStatus(
+				ability,
+				row.documentType,
+				application,
+			)
+		) {
+			return { error: ValidationCode.APPLICATIONS_DOCUMENT_REVIEW_FORBIDDEN }
+		}
+	}
+
+	if (followUpStatus != null) {
+		if (decisions.some((d) => d.status === 'rejected')) {
+			return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+		}
+		const allRows = await db
+			.select({
+				id: applicationDocuments.id,
+				documentType: applicationDocuments.documentType,
+				status: applicationDocuments.status,
+				createdAt: applicationDocuments.createdAt,
+				rejectionReason: applicationDocuments.rejectionReason,
+				storageKey: applicationDocuments.storageKey,
+			})
+			.from(applicationDocuments)
+			.where(eq(applicationDocuments.applicationId, applicationId))
+
+		const rowsForMerge = allRows.map((r) => ({
+			...r,
+			hasBlobContent: isBlobStorageKey(r.storageKey),
+		}))
+		const merged = mergeDocumentDecisionsIntoRows(rowsForMerge, decisions)
+		const latest = filterToLatestDocumentsPerType(merged)
+		const preWritePackageError = followUpPackageValidationError(
+			followUpStatus,
+			latest,
+		)
+		if (preWritePackageError != null) {
+			return { error: preWritePackageError }
+		}
+	}
+
+	const rejectedForEmail: { documentType: DocumentType; reason: string }[] = []
+	for (const decision of decisions) {
+		const row = byId.get(decision.documentId)
+		if (!row) return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+		const rejectionReason =
+			decision.status === 'rejected'
+				? (decision.rejectionReason?.trim() ?? '')
+				: null
+		await db
+			.update(applicationDocuments)
+			.set({
+				status: decision.status,
+				rejectionReason,
+				updatedAt: new Date(),
+			})
+			.where(eq(applicationDocuments.id, decision.documentId))
+		if (decision.status === 'rejected' && rejectionReason !== null) {
+			rejectedForEmail.push({
+				documentType: row.documentType,
+				reason: rejectionReason,
+			})
+		}
+	}
+
+	const applicationForEmail = await db.query.applications.findFirst({
+		where: (a, { eq: eqA }) => eqA(a.id, applicationId),
+		with: { applicant: { columns: { email: true } } },
+	})
+	const applicantEmail = applicationForEmail?.applicant?.email
+	if (applicantEmail && rejectedForEmail.length > 0) {
+		await sendApplicationDocumentsRejectedEvent(
+			applicantEmail,
+			rejectedForEmail,
+		)
+	}
+
+	if (
+		application.status === 'authorized' &&
+		decisionsRejectAuthorizationPackageDocument(decisions, byId)
+	) {
+		const reopenSubject = subject('Application', {
+			id: application.id,
+			applicantId: application.applicantId,
+			companyId: application.companyId,
+			status: 'authorized',
+		} as const)
+		if (!ability.can('reopenAuthorizationReview', reopenSubject)) {
+			return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+		}
+		if (
+			!canTransitionToApplicationStatus(
+				application.status,
+				'awaiting-authorization',
+			)
+		) {
+			return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+		}
+		const reopenUser = await getRequiredUser()
+		await updateApplicationWithStatusHistory({
+			applicationId,
+			status: 'awaiting-authorization',
+			setByUserId: reopenUser.id,
+			denialReason: null,
+		})
+		await sendApplicationStatusEmail(applicationId, 'awaiting-authorization')
+	}
+
+	if (followUpStatus != null) {
+		const followUpResult = await applyFollowUpStatusIfValid(
+			applicationId,
+			followUpStatus,
+			application,
+		)
+		if (followUpResult.error != null) {
+			return { error: followUpResult.error }
+		}
+	}
+
 	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${doc.applicationId}`)
+	revalidatePath(`/equipo/applications/${applicationId}`)
 	revalidatePath('/cuenta/applications')
-	revalidatePath(`/cuenta/applications/${doc.applicationId}`)
+	revalidatePath(`/cuenta/applications/${applicationId}`)
 	return {}
-}
-
-export async function approveApplicationDocument(
-	payload: unknown,
-): Promise<{ error?: string }> {
-	const parsed = approveApplicationDocumentSchema.safeParse(payload)
-	if (!parsed.success) {
-		const msg = parsed.error.issues[0]?.message
-		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
-	}
-	return setDocumentStatus(parsed.data.documentId, {
-		status: 'approved',
-		rejectionReason: null,
-	})
-}
-
-export async function rejectApplicationDocument(
-	payload: unknown,
-): Promise<{ error?: string }> {
-	const parsed = rejectApplicationDocumentSchema.safeParse(payload)
-	if (!parsed.success) {
-		const msg = parsed.error.issues[0]?.message
-		return { error: msg ?? ValidationCode.APPLICATIONS_ERROR_GENERIC }
-	}
-	return setDocumentStatus(parsed.data.documentId, {
-		status: 'rejected',
-		rejectionReason: parsed.data.rejectionReason.trim(),
-	})
 }
 
 type ApplicationStatusContext = {
@@ -545,6 +837,22 @@ export async function updateApplicationStatus(
 	if (statusRequiresFinancialTerms(data.status)) {
 		if (app.termOfferingId == null || app.creditAmount == null) {
 			return { error: ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED }
+		}
+	}
+
+	if (data.status === 'authorized') {
+		const documents = await getApplicationDocuments(applicationId)
+		if (!isAuthorizationPackageFullyApproved(documents)) {
+			return {
+				error: ValidationCode.APPLICATIONS_AUTHORIZATION_PACKAGE_NOT_APPROVED,
+			}
+		}
+	}
+
+	if (data.status === 'approved' && app.status === 'pending') {
+		const documents = await getApplicationDocuments(applicationId)
+		if (!isInitialIntakeFullyApproved(documents)) {
+			return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
 		}
 	}
 

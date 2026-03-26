@@ -6,7 +6,10 @@ import { Badge } from '~/components/ui/badge'
 import { Card } from '~/components/ui/card'
 import { SectionTitleRow } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
-import { PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES } from '~/lib/application-document-intake'
+import {
+	filterDocumentsWithUploadedFile,
+	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
+} from '~/lib/application-document-intake'
 import { CUENTA_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import { isAuthorizationPackageReadyForSubmit } from '~/lib/authorization-package-readiness'
 import { cuentaHeroSurfaceStyle } from '~/lib/cuenta-hero-surface-style'
@@ -22,9 +25,26 @@ import { formatApplicationTerm } from '../../constants'
 import { ApplicantDocumentSlots } from '../applicant-document-slots'
 import { SubmitAuthorizationPackageForm } from '../submit-authorization-package-form'
 
-function getApplicationStatusBadgeClass(status: ApplicationStatus): string {
-	if (status === 'invalid-documentation' || status === 'denied') {
+function packageHasRejectedAuthorizationDocs(
+	documentList: Awaited<ReturnType<typeof getApplicationDocuments>>,
+): boolean {
+	return documentList.some(
+		(d) =>
+			(PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES as readonly string[]).includes(
+				d.documentType,
+			) && d.status === 'rejected',
+	)
+}
+
+function getApplicationStatusBadgeClass(
+	status: ApplicationStatus,
+	hasRejectedPackageDocs: boolean,
+): string {
+	if (status === 'denied') {
 		return 'border-transparent bg-destructive text-white'
+	}
+	if (status === 'awaiting-authorization' && hasRejectedPackageDocs) {
+		return 'border-transparent bg-amber-600 text-white'
 	}
 	if (
 		status === 'approved' ||
@@ -65,6 +85,11 @@ export default async function CuentaPreAuthorizedOfferPage({
 	}
 
 	const documentList = await getApplicationDocuments(applicationId)
+	const documentsWithUploadedFile =
+		filterDocumentsWithUploadedFile(documentList)
+	const hasRejectedPackageDocs = packageHasRejectedAuthorizationDocs(
+		documentsWithUploadedFile,
+	)
 	const packageReadyForSubmit =
 		isAuthorizationPackageReadyForSubmit(documentList)
 	const t = await getTranslations('cuenta.applications')
@@ -94,15 +119,20 @@ export default async function CuentaPreAuthorizedOfferPage({
 						<p className="m-0 min-w-0 truncate font-semibold text-[11px] text-white/80 uppercase leading-none tracking-wide">
 							{t('pre-authorized-offer-summary-label')}
 						</p>
-						<Badge
-							className={cn(
-								getApplicationStatusBadgeClass(application.status),
-								'h-5 max-w-44 shrink-0 truncate px-2 py-0 font-semibold text-[10px] uppercase leading-none tracking-wide',
-							)}
-							data-current-application-status={application.status}
-						>
-							{t(CUENTA_APPLICATION_STATUS_KEYS[application.status])}
-						</Badge>
+						{/* biome-ignore lint/a11y/useSemanticElements: live region for application status */}
+						<div role="status" className="inline-flex max-w-44 shrink-0">
+							<Badge
+								className={cn(
+									getApplicationStatusBadgeClass(
+										application.status,
+										hasRejectedPackageDocs,
+									),
+									'h-5 max-w-44 shrink-0 truncate px-2 py-0 font-semibold text-[10px] uppercase leading-none tracking-wide',
+								)}
+							>
+								{t(CUENTA_APPLICATION_STATUS_KEYS[application.status])}
+							</Badge>
+						</div>
 					</div>
 					<div className="space-y-5 px-6 pt-5 pb-7">
 						<div>
@@ -195,7 +225,7 @@ export default async function CuentaPreAuthorizedOfferPage({
 				<ApplicantDocumentSlots
 					applicationId={applicationId}
 					documentTypes={PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES}
-					documents={documentList}
+					documents={documentsWithUploadedFile}
 					reuploadWhenLatestNotRejected
 				/>
 				{application.status === 'pre-authorized' ? (

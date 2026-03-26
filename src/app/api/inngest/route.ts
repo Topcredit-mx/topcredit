@@ -1,6 +1,7 @@
 import { serve } from 'inngest/next'
 import { inngest } from '~/inngest/client'
 import {
+	sendApplicationDocumentsRejectedEmail,
 	sendApplicationStatusEmail,
 	sendApplicationSubmittedEmail,
 	sendOtpEmail,
@@ -11,6 +12,7 @@ export const { GET, POST, PUT } = serve({
 	functions: [
 		sendApplicationSubmittedEmail,
 		sendApplicationStatusEmail,
+		sendApplicationDocumentsRejectedEmail,
 		sendOtpEmail,
 	],
 })

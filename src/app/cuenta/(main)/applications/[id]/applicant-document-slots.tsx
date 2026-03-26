@@ -56,19 +56,23 @@ export async function ApplicantDocumentSlots({
 			{documentTypes.map((documentType) => {
 				const doc = getLatestDocumentByType(documents, documentType)
 				const documentTypeKey = CUENTA_DOCUMENT_TYPE_KEYS[documentType]
+				const slotHeadingId = `cuenta-application-doc-${documentType}`
 
 				if (doc == null) {
 					return (
-						<div
+						<section
 							key={documentType}
-							data-document-slot={documentType}
+							aria-labelledby={slotHeadingId}
 							className={cn(shell.applicantDocumentUploadTile, 'py-3')}
 						>
 							<div className={shell.applicantDocumentTileIconWell} aria-hidden>
 								<FileText className="size-6" />
 							</div>
 							<div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
-								<p className="max-w-full text-center font-semibold text-slate-900 text-sm leading-snug">
+								<p
+									id={slotHeadingId}
+									className="max-w-full text-center font-semibold text-slate-900 text-sm leading-snug"
+								>
 									{t(documentTypeKey)}
 								</p>
 								<Badge className={getDocumentNotUploadedBadgeClass()}>
@@ -81,7 +85,7 @@ export async function ApplicantDocumentSlots({
 								pickFileButtonLabel={t('browse-files')}
 								embedInTileChrome
 							/>
-						</div>
+						</section>
 					)
 				}
 
@@ -93,9 +97,9 @@ export async function ApplicantDocumentSlots({
 					reuploadWhenLatestNotRejected && doc.status !== 'rejected'
 
 				return (
-					<div
+					<section
 						key={`${documentType}-${doc.id}`}
-						data-document-slot={documentType}
+						aria-labelledby={slotHeadingId}
 						className={cn(
 							shell.applicantDocumentStatusTileBase,
 							getDocumentDetailTileSurfaceClass(doc.status),
@@ -105,7 +109,10 @@ export async function ApplicantDocumentSlots({
 							<FileText className="size-6" />
 						</div>
 						<div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
-							<p className="max-w-full text-center font-semibold text-slate-900 text-sm leading-snug">
+							<p
+								id={slotHeadingId}
+								className="max-w-full text-center font-semibold text-slate-900 text-sm leading-snug"
+							>
 								{t(
 									isDocumentType(doc.documentType)
 										? CUENTA_DOCUMENT_TYPE_KEYS[doc.documentType]
@@ -170,7 +177,7 @@ export async function ApplicantDocumentSlots({
 								/>
 							</div>
 						) : null}
-					</div>
+					</section>
 				)
 			})}
 		</div>
