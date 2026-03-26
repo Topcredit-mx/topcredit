@@ -11,7 +11,7 @@ const EQUIPO_APPLICATION_DETAIL_LOAD_MS = 15_000
 describe('Pre-authorizations agents', () => {
 	let seed: SeedApplicationsReviewResult
 
-	before(() => {
+	beforeEach(() => {
 		cy.task<SeedApplicationsReviewResult>('seedApplicationsReview').then(
 			(result) => {
 				seed = result
@@ -19,7 +19,7 @@ describe('Pre-authorizations agents', () => {
 		)
 	})
 
-	after(() => {
+	afterEach(() => {
 		cy.task('cleanupApplicationsReview', { termId: seed.termId })
 	})
 

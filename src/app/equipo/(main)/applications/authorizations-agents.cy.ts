@@ -21,7 +21,7 @@ import {
 describe('Authorizations agents', () => {
 	let seed: SeedApplicationsReviewResult
 
-	before(() => {
+	beforeEach(() => {
 		cy.task<SeedApplicationsReviewResult>('seedApplicationsReview').then(
 			(result) => {
 				seed = result
@@ -29,7 +29,7 @@ describe('Authorizations agents', () => {
 		)
 	})
 
-	after(() => {
+	afterEach(() => {
 		cy.task('cleanupApplicationsReview', { termId: seed.termId })
 	})
 

@@ -23,7 +23,7 @@ const applicantEmail = applicantForReview.email
 describe('Requests agents', () => {
 	let seed: SeedApplicationsReviewResult
 
-	before(() => {
+	beforeEach(() => {
 		cy.task<SeedApplicationsReviewResult>('seedApplicationsReview').then(
 			(result) => {
 				seed = result
@@ -31,7 +31,7 @@ describe('Requests agents', () => {
 		)
 	})
 
-	after(() => {
+	afterEach(() => {
 		cy.task('cleanupApplicationsReview', { termId: seed.termId })
 	})
 
@@ -58,16 +58,16 @@ describe('Requests agents', () => {
 			it('shows documents section read-only with list and no upload form', () => {
 				cy.task('insertApplicationDocument', {
 					applicationId: seed.applicantA4ApplicationId,
-					documentType: 'contract',
-					fileName: 'contract-e2e.pdf',
-					storageKey: 'application-documents/e2e-contract.pdf',
+					documentType: 'official-id',
+					fileName: 'official-id-readonly-e2e.pdf',
+					storageKey: 'application-documents/e2e-official-id-readonly.pdf',
 				})
 				cy.visit(`/equipo/applications/${seed.applicantA4ApplicationId}`)
 				assertEquipoApplicationDetailLoaded()
 				cy.get('main').within(() => {
 					cy.contains(/documentos/i).should('be.visible')
-					cy.contains(/contrato/i).should('be.visible')
-					cy.contains('contract-e2e.pdf').should('be.visible')
+					cy.contains(/identificación oficial/i).should('be.visible')
+					cy.contains('official-id-readonly-e2e.pdf').should('be.visible')
 					cy.get('input[name="file"]').should('not.exist')
 				})
 			})
@@ -75,21 +75,21 @@ describe('Requests agents', () => {
 			it('shows approved state when agent approves a pending document', () => {
 				cy.task('insertApplicationDocument', {
 					applicationId: seed.applicantA4ApplicationId,
-					documentType: 'authorization',
-					fileName: 'auth-approve-e2e.pdf',
-					storageKey: 'application-documents/e2e-auth-approve.pdf',
+					documentType: 'bank-statement',
+					fileName: 'bank-approve-e2e.pdf',
+					storageKey: 'application-documents/e2e-bank-approve.pdf',
 				})
 				cy.visit(`/equipo/applications/${seed.applicantA4ApplicationId}`)
 				assertEquipoApplicationDetailLoaded()
-				selectDocumentDecisionInRow('auth-approve-e2e.pdf', 'approve')
+				selectDocumentDecisionInRow('bank-approve-e2e.pdf', 'approve')
 				submitEquipoDocumentReviewForm()
-				assertEquipoDocumentRowStatus('auth-approve-e2e.pdf', 'approved')
+				assertEquipoDocumentRowStatus('bank-approve-e2e.pdf', 'approved')
 			})
 
 			it('shows validation error when agent submits reject without reason', () => {
 				cy.task('insertApplicationDocument', {
 					applicationId: seed.applicantA4ApplicationId,
-					documentType: 'contract',
+					documentType: 'proof-of-address',
 					fileName: 'reject-validation-e2e.pdf',
 					storageKey: 'application-documents/e2e-reject-validation.pdf',
 				})
@@ -104,7 +104,7 @@ describe('Requests agents', () => {
 				const reason = 'Documento ilegible en la página 2'
 				cy.task('insertApplicationDocument', {
 					applicationId: seed.applicantA4ApplicationId,
-					documentType: 'authorization',
+					documentType: 'official-id',
 					fileName: 'reject-with-reason-e2e.pdf',
 					storageKey: 'application-documents/e2e-reject-reason.pdf',
 				})
@@ -124,7 +124,7 @@ describe('Requests agents', () => {
 				const rejectReason = 'Rechazado por error'
 				cy.task('insertApplicationDocument', {
 					applicationId: seed.applicantA4ApplicationId,
-					documentType: 'payroll-receipt',
+					documentType: 'bank-statement',
 					fileName: 'deny-then-approve-e2e.pdf',
 					storageKey: 'application-documents/e2e-deny-approve.pdf',
 				})
@@ -249,7 +249,7 @@ describe('Requests agents', () => {
 		it('can reject a document while the application stays pending', () => {
 			cy.task('insertApplicationDocument', {
 				applicationId: seed.applicantA3ApplicationId,
-				documentType: 'contract',
+				documentType: 'proof-of-address',
 				fileName: 'e2e-40k-reject-doc.pdf',
 				storageKey: 'application-documents/e2e-40k-reject-doc.pdf',
 			})
@@ -294,14 +294,22 @@ describe('Requests agents', () => {
 		})
 
 		it('requests agent sees only deny in actions menu when the application has documents', () => {
+			const menuProbeFileName = 'e2e-a3-actions-menu-only-deny.pdf'
+			cy.task('insertApplicationDocument', {
+				applicationId: seed.applicantA3ApplicationId,
+				documentType: 'official-id',
+				fileName: menuProbeFileName,
+				storageKey: `application-documents/${seed.applicantA3ApplicationId}/official-id/${menuProbeFileName}`,
+			})
 			cy.visit(`/equipo/applications/${seed.applicantA3ApplicationId}`)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			assertEquipoApplicationShowsAppStatus(/pendiente/i)
+			cy.get(EQUIPO_DOCUMENTS_CARD_SCOPE)
+				.should('be.visible')
+				.and('contain', menuProbeFileName)
 			openEquipoApplicationActions()
-			cy.get('[role="menu"]').within(() => {
-				cy.get('[role="menuitem"]').should('have.length', 1)
-				cy.contains('[role="menuitem"]', /rechazar/i).should('be.visible')
-			})
+			cy.contains('[role="menuitem"]', /rechazar/i).should('be.visible')
+			cy.contains('[role="menuitem"]', /aprobar/i).should('not.exist')
 		})
 
 		it('filter by status shows matching applications', () => {
