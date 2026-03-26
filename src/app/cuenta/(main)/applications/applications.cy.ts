@@ -396,9 +396,9 @@ describe('Cuenta applications', () => {
 				.should('be.visible')
 				.should('have.attr', 'href', '/cuenta/applications/new')
 				.click()
-			cy.url().should('include', '/cuenta/applications/new')
+			cy.contains('h1', /nueva solicitud de crédito/i).should('be.visible')
 			cy.contains(
-				/nueva solicitud de crédito|completa la información|información personal y financiera|salario|rfc|clabe/i,
+				/completa la información|información personal y financiera|salario|rfc|clabe/i,
 			).should('be.visible')
 		})
 
@@ -425,11 +425,9 @@ describe('Cuenta applications', () => {
 				cy.get(`a[href="/cuenta/applications/${app.id}"]`)
 					.should('be.visible')
 					.click()
-				cy.url().should('include', `/cuenta/applications/${app.id}`)
+				cy.contains('h1', /resumen de tu solicitud/i).should('be.visible')
 				cy.contains('10,000').should('be.visible')
-				cy.contains(/detalle de solicitud|estado|monto del crédito/i).should(
-					'be.visible',
-				)
+				cy.contains(/monto del crédito/i).should('be.visible')
 			})
 		})
 	})
