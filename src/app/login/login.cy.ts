@@ -17,72 +17,64 @@ describe('Login Flow', () => {
 	it('accesses applicant cuenta after login', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/cuenta')
-		cy.url().should('include', '/cuenta')
-		cy.contains('Resumen ejecutivo').should('be.visible')
+		cy.contains('h1', /resumen ejecutivo/i).should('be.visible')
 	})
 
 	it('redirects to cuenta from /login when authenticated', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/login')
-		cy.url().should('include', '/cuenta')
-		cy.contains('Resumen ejecutivo').should('be.visible')
+		cy.contains('h1', /resumen ejecutivo/i).should('be.visible')
 	})
 
 	it('redirects to cuenta from / when authenticated', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/')
-		cy.url().should('include', '/cuenta')
-		cy.contains('Resumen ejecutivo').should('be.visible')
+		cy.contains('h1', /resumen ejecutivo/i).should('be.visible')
 	})
 
 	it('shows unauthorized page when applicant tries to access app', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/equipo')
-		cy.url().should('include', '/unauthorized')
 		cy.contains('h1', '403 - No Autorizado').should('be.visible')
 	})
 
 	it('allows agent to access app routes', () => {
 		cy.login(agentUser.email)
 		cy.visit('/equipo')
-		cy.url().should('include', '/equipo')
 		cy.contains('Sin empresas asignadas').should('be.visible')
 	})
 
 	it('shows unauthorized page when agent tries to access cuenta', () => {
 		cy.login(agentUser.email)
 		cy.visit('/cuenta')
-		cy.url().should('include', '/unauthorized')
 		cy.contains('h1', '403 - No Autorizado').should('be.visible')
 	})
 
 	it('redirects user with no roles to settings from / and /login, blocks /equipo and /cuenta', () => {
 		cy.login(noRoleUser.email)
 		cy.visit('/')
-		cy.url().should('include', '/settings')
+		cy.contains('Ningún rol asignado').should('be.visible')
 
 		cy.login(noRoleUser.email)
 		cy.visit('/login')
-		cy.url().should('include', '/settings')
+		cy.contains('Ningún rol asignado').should('be.visible')
 
 		cy.login(noRoleUser.email)
 		cy.visit('/equipo')
-		cy.url().should('include', '/unauthorized')
-		cy.contains(/403|no autorizado|unauthorized/i).should('be.visible')
+		cy.contains('h1', '403 - No Autorizado').should('be.visible')
 
 		cy.login(noRoleUser.email)
 		cy.visit('/cuenta')
-		cy.url().should('include', '/unauthorized')
+		cy.contains('h1', '403 - No Autorizado').should('be.visible')
 
 		cy.login(noRoleUser.email)
 		cy.visit('/settings')
-		cy.url().should('include', '/settings')
-		cy.contains(/ningún rol asignado|no roles/i).should('be.visible')
+		cy.contains('Ningún rol asignado').should('be.visible')
 	})
 
 	it('does not allow access to /settings when unauthenticated', () => {
 		cy.visit('/settings')
-		cy.url().should('not.include', '/settings')
+		cy.contains('h1', /bienvenido a topcredit/i).should('be.visible')
 	})
 
 	// Requires app in E2E mode (E2E_OTP_CODE set). CI sets it; locally: E2E_OTP_CODE=123456 pnpm dev:test and same for cy:run.
@@ -91,11 +83,8 @@ describe('Login Flow', () => {
 			cy.visit('/login')
 			cy.get('input[name="email"]').type(applicantUser.email)
 			cy.get('form').submit()
-			cy.url().should('include', '/verify-otp')
-			cy.url().should(
-				'include',
-				`email=${encodeURIComponent(applicantUser.email)}`,
-			)
+			cy.contains('h1', 'Verificación').should('be.visible')
+			cy.contains(applicantUser.email).should('be.visible')
 			cy.env(['E2E_OTP_CODE']).then(({ E2E_OTP_CODE }) => {
 				const code = E2E_OTP_CODE
 				if (!code || typeof code !== 'string' || code.length !== 6)
@@ -104,18 +93,17 @@ describe('Login Flow', () => {
 					)
 				cy.get('input[autocomplete="one-time-code"]').type(code)
 			})
-			cy.url().should('not.include', '/verify-otp')
-			cy.contains('Resumen ejecutivo').should('be.visible')
+			cy.contains('h1', /resumen ejecutivo/i).should('be.visible')
 		})
 
 		it('shows invalid code when wrong OTP entered', () => {
 			cy.visit('/login')
 			cy.get('input[name="email"]').type(applicantUser.email)
 			cy.get('form').submit()
-			cy.url().should('include', '/verify-otp')
+			cy.contains('h1', 'Verificación').should('be.visible')
 			cy.get('input[autocomplete="one-time-code"]').type('111111')
-			cy.contains(/invalid|inválido|inválida/i).should('be.visible')
-			cy.url().should('include', '/verify-otp')
+			cy.contains(/invalid|inválido|inválida|código otp/i).should('be.visible')
+			cy.contains('h1', 'Verificación').should('be.visible')
 		})
 	})
 

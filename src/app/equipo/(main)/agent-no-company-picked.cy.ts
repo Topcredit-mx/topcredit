@@ -31,7 +31,7 @@ describe('Agent with no company picked', () => {
 			.contains('a', /^Solicitudes$/i)
 			.should('be.visible')
 			.click()
-		cy.url().should('include', '/equipo/applications')
+		cy.get('#applications-status-filter').should('be.visible')
 	})
 
 	it('keeps company switcher enabled so user can pick a company', () => {

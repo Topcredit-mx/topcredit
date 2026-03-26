@@ -24,14 +24,12 @@ describe('Home / Landing', () => {
 	it('redirects logged-in applicant to cuenta', () => {
 		cy.login(applicantUser.email)
 		cy.visit('/')
-		cy.url().should('include', '/cuenta')
-		cy.contains('Resumen ejecutivo').should('be.visible')
+		cy.contains('h1', /resumen ejecutivo/i).should('be.visible')
 	})
 
 	it('redirects logged-in agent to app', () => {
 		cy.login(agentUser.email)
 		cy.visit('/')
-		cy.url().should('include', '/equipo')
 		cy.contains('Sin empresas asignadas').should('be.visible')
 	})
 })

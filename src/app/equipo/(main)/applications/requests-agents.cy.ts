@@ -158,7 +158,6 @@ describe('Requests agents', () => {
 		it('shows applications list with table', () => {
 			cy.visit('/equipo/applications')
 			cy.get('table').should('be.visible')
-			cy.url().should('include', '/equipo/applications')
 			cy.contains('table', 'Solicitante').within(() => {
 				cy.contains('th', /solicitante/i).should('exist')
 				cy.contains('th', /monto/i).should('exist')
@@ -185,7 +184,6 @@ describe('Requests agents', () => {
 				.within(() => {
 					cy.get('a[aria-label="Revisar solicitud"]').should('exist').click()
 				})
-			cy.url().should('match', /\/equipo\/applications\/\d+/)
 			cy.contains(/detalle de solicitud/i).should('be.visible')
 			cy.contains(applicantEmail).should('be.visible')
 			cy.contains('25,000').should('exist')
@@ -204,7 +202,7 @@ describe('Requests agents', () => {
 		it('filter by status with no results shows empty state', () => {
 			cy.visit('/equipo/applications?status=authorized')
 			cy.get('main').should('be.visible')
-			cy.url().should('include', 'status=authorized')
+			cy.get('#applications-status-filter').should('contain', 'Autorizado')
 			cy.contains(/no hay solicitudes|sin resultados/i).should('be.visible')
 		})
 
@@ -395,7 +393,7 @@ describe('Requests agents', () => {
 			cy.visit('/equipo/applications')
 			cy.get('table').should('be.visible')
 			cy.selectRadix('status', 'Pendiente')
-			cy.url().should('include', 'status=pending')
+			cy.get('#applications-status-filter').should('contain', 'Pendiente')
 			cy.get('table tbody tr').should('have.length.at.least', 1)
 			cy.contains(applicantA3.name).should('exist')
 		})

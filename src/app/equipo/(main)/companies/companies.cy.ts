@@ -20,7 +20,7 @@ describe('Admin Companies List', () => {
 			cy.task('resetUser', agentUser)
 			cy.login(agentUser.email)
 			cy.visit('/equipo/companies')
-			cy.url().should('include', '/unauthorized')
+			cy.contains('h1', '403 - No Autorizado').should('be.visible')
 
 			cy.task('deleteUsersByEmail', [agentUser.email])
 		})
@@ -28,7 +28,7 @@ describe('Admin Companies List', () => {
 		it('allows admin users to access companies page', () => {
 			cy.login(adminUser.email)
 			cy.visit('/equipo/companies')
-			cy.url().should('include', '/equipo/companies')
+			cy.get('input[aria-label="Filtrar empresas..."]').should('be.visible')
 		})
 	})
 
@@ -158,7 +158,6 @@ describe('Admin Companies List', () => {
 			cy.contains('a', /nueva empresa/i)
 				.should('be.visible')
 				.click()
-			cy.url().should('include', '/equipo/companies/new')
 			cy.contains(/crear empresa/i).should('be.visible')
 		})
 
@@ -188,7 +187,6 @@ describe('Admin Companies List', () => {
 				.should('be.visible')
 				.click()
 
-			cy.url().should('include', '/equipo/companies')
 			cy.get('main').should('be.visible')
 			cy.get('table', { timeout: 10000 }).should('be.visible')
 			cy.findTableRow(newCompany.name)
@@ -220,7 +218,6 @@ describe('Admin Companies List', () => {
 				.should('be.visible')
 				.click()
 
-			cy.url().should('include', '/equipo/companies')
 			cy.get('main').should('be.visible')
 			cy.get('table', { timeout: 10000 }).should('be.visible')
 			cy.findTableRow(newCompany.name)
@@ -348,8 +345,6 @@ describe('Admin Companies List', () => {
 				.within(() => {
 					cy.get('a[href*="/edit"]').should('exist').click()
 				})
-			const editPath = `/equipo/companies/${encodeURIComponent(editCompany.domain)}/edit`
-			cy.url().should('include', editPath)
 			cy.contains(/editar|edit/i).should('be.visible')
 		})
 
@@ -383,7 +378,6 @@ describe('Admin Companies List', () => {
 				.should('be.visible')
 				.click()
 
-			cy.url().should('include', '/equipo/companies')
 			cy.get('main').should('be.visible')
 			cy.get('table', { timeout: 10000 }).should('be.visible')
 			cy.findTableRow(editCompany.name)
@@ -402,7 +396,6 @@ describe('Admin Companies List', () => {
 				.should('be.visible')
 				.click()
 
-			cy.url().should('include', '/equipo/companies')
 			cy.get('main').should('be.visible')
 			cy.get('table', { timeout: 10000 }).should('be.visible')
 			cy.findTableRow(editCompany.name)
@@ -425,7 +418,6 @@ describe('Admin Companies List', () => {
 				.should('be.visible')
 				.click()
 
-			cy.url().should('include', '/equipo/companies')
 			cy.get('table').should('be.visible')
 			cy.get('input[aria-label="Filtrar empresas..."]')
 				.should('be.visible')

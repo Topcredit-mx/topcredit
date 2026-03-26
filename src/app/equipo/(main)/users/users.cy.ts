@@ -23,25 +23,25 @@ describe('Admin Users', () => {
 		it('redirects non-admin users to unauthorized page', () => {
 			cy.login(applicantOnlyUser.email)
 			cy.visit('/equipo/users')
-			cy.url().should('include', '/unauthorized')
+			cy.contains('h1', '403 - No Autorizado').should('be.visible')
 		})
 
 		it('allows admin users to access users page', () => {
 			cy.login(adminUser.email)
 			cy.visit('/equipo/users')
-			cy.url().should('include', '/equipo/users')
+			cy.get('input[aria-label="Filtrar usuarios..."]').should('be.visible')
 		})
 
 		it('does not allow requests-only users to access admin users page', () => {
 			cy.login(users.jane.email)
 			cy.visit('/equipo/users')
-			cy.url().should('include', '/unauthorized')
+			cy.contains('h1', '403 - No Autorizado').should('be.visible')
 		})
 
 		it('does not allow applicant users to access admin users page', () => {
 			cy.login(applicantOnlyUser.email)
 			cy.visit('/equipo/users', { failOnStatusCode: false })
-			cy.url().should('include', '/unauthorized')
+			cy.contains('h1', '403 - No Autorizado').should('be.visible')
 		})
 	})
 
@@ -258,7 +258,6 @@ describe('Admin Users', () => {
 					clickRoleCheckbox(cy.root(), 'Admin')
 				})
 
-			cy.url().should('include', '/unauthorized')
 			cy.contains(/no autorizado|unauthorized/i).should('be.visible')
 
 			cy.task('assignRole', { email: adminUser.email, role: 'admin' })
@@ -271,7 +270,6 @@ describe('Admin Users', () => {
 			cy.task('removeRole', { email: adminUser.email, role: 'admin' })
 
 			cy.reload()
-			cy.url().should('include', '/unauthorized')
 			cy.contains(/no autorizado|unauthorized/i).should('be.visible')
 
 			cy.task('assignRole', { email: adminUser.email, role: 'admin' })

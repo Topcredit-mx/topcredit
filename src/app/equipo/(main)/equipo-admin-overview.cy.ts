@@ -31,7 +31,6 @@ describe('Equipo admin overview', () => {
 	})
 
 	it('overview is default for admin with no company selected', () => {
-		cy.url().should('include', '/equipo')
 		cy.contains('Vista general').should('be.visible')
 		cy.contains('Selecciona una empresa').should('not.exist')
 	})

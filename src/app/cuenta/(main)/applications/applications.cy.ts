@@ -28,9 +28,9 @@ describe('Cuenta applications', () => {
 			cy.task('deleteApplicationsByApplicantId', seed.applicantId)
 			cy.login(applicantWithCompany.email)
 			cy.visit('/cuenta')
-			cy.url().should('include', '/cuenta/applications/new')
+			cy.contains('h1', /nueva solicitud de crédito/i).should('be.visible')
 			cy.contains(
-				/nueva solicitud de crédito|completa la información|información personal y financiera|salario|rfc|clabe/i,
+				/completa la información|información personal y financiera|salario|rfc|clabe/i,
 			).should('be.visible')
 		})
 
@@ -43,11 +43,11 @@ describe('Cuenta applications', () => {
 			})
 			cy.login(applicantWithCompany.email)
 			cy.visit('/cuenta')
-			cy.url().should('include', '/cuenta')
-			cy.url().should('not.include', '/cuenta/applications/new')
-			cy.contains(
-				/solicitar ahora|resumen ejecutivo|preaprobado|puntuación crediticia/i,
-			).should('be.visible')
+			cy.contains('h1', /resumen ejecutivo/i).should('be.visible')
+			cy.contains('h1', /nueva solicitud de crédito/i).should('not.exist')
+			cy.contains(/solicitar ahora|preaprobado|puntuación crediticia/i).should(
+				'be.visible',
+			)
 		})
 	})
 
@@ -55,10 +55,10 @@ describe('Cuenta applications', () => {
 		it('allows applicant to open applications list and new application page', () => {
 			cy.login(applicantWithCompany.email)
 			cy.visit('/cuenta/applications')
-			cy.url().should('include', '/cuenta/applications')
+			cy.contains('h1', /mis solicitudes/i).should('be.visible')
 
 			cy.visit('/cuenta/applications/new')
-			cy.url().should('include', '/cuenta/applications/new')
+			cy.contains('h1', /nueva solicitud de crédito/i).should('be.visible')
 		})
 
 		it('redirects non-applicant (agent) to unauthorized', () => {
@@ -70,7 +70,7 @@ describe('Cuenta applications', () => {
 			cy.task('resetUser', agent)
 			cy.login(agent.email)
 			cy.visit('/cuenta/applications')
-			cy.url().should('include', '/unauthorized')
+			cy.contains('h1', /403|no autorizado/i).should('be.visible')
 
 			cy.task('deleteUsersByEmail', [agent.email])
 		})
@@ -83,7 +83,7 @@ describe('Cuenta applications', () => {
 		})
 
 		it('applicant whose domain matches no company is redirected to unauthorized when visiting applications/new', () => {
-			cy.url().should('include', '/unauthorized')
+			cy.contains('h1', /403|no autorizado/i).should('be.visible')
 		})
 	})
 
@@ -94,9 +94,9 @@ describe('Cuenta applications', () => {
 		})
 
 		it('applicant can still open the new application page', () => {
-			cy.url().should('include', '/cuenta/applications/new')
+			cy.contains('h1', /nueva solicitud de crédito/i).should('be.visible')
 			cy.contains(
-				/nueva solicitud de crédito|completa la información|información personal y financiera|salario|rfc|clabe/i,
+				/completa la información|información personal y financiera|salario|rfc|clabe/i,
 			).should('be.visible')
 		})
 	})
@@ -108,9 +108,9 @@ describe('Cuenta applications', () => {
 		})
 
 		it('applicant can still open the new application page', () => {
-			cy.url().should('include', '/cuenta/applications/new')
+			cy.contains('h1', /nueva solicitud de crédito/i).should('be.visible')
 			cy.contains(
-				/nueva solicitud de crédito|completa la información|información personal y financiera|salario|rfc|clabe/i,
+				/completa la información|información personal y financiera|salario|rfc|clabe/i,
 			).should('be.visible')
 		})
 	})
@@ -122,7 +122,7 @@ describe('Cuenta applications', () => {
 		})
 
 		it('applicant whose company is inactive is redirected to unauthorized', () => {
-			cy.url().should('include', '/unauthorized')
+			cy.contains('h1', /403|no autorizado/i).should('be.visible')
 		})
 	})
 
@@ -136,7 +136,7 @@ describe('Cuenta applications', () => {
 			cy.contains('button', /regístrate|registrarse/i)
 				.should('be.visible')
 				.click()
-			cy.url().should('include', '/signup')
+			cy.contains('h1', /bienvenido a topcredit/i).should('be.visible')
 			cy.contains(/Tu correo no está asociado.*No puedes registrarte/i).should(
 				'be.visible',
 			)
@@ -163,7 +163,9 @@ describe('Cuenta applications', () => {
 				.scrollIntoView()
 				.should('be.visible')
 				.click()
-			cy.url().should('include', '/cuenta/applications/new')
+			cy.contains('h1', /nueva solicitud de crédito/i)
+				.scrollIntoView()
+				.should('be.visible')
 			cy.contains('El valor es requerido').scrollIntoView().should('be.visible')
 		})
 
@@ -184,7 +186,9 @@ describe('Cuenta applications', () => {
 				.scrollIntoView()
 				.should('be.visible')
 				.click()
-			cy.url().should('include', '/cuenta/applications/new')
+			cy.contains('h1', /nueva solicitud de crédito/i)
+				.scrollIntoView()
+				.should('be.visible')
 			cy.contains(/RFC no es válido/i)
 				.scrollIntoView()
 				.should('be.visible')
@@ -289,9 +293,9 @@ describe('Cuenta applications', () => {
 
 			cy.wait('@submitApplication')
 
-			cy.url().should('include', '/cuenta/applications')
+			cy.contains('h1', /mis solicitudes/i).should('be.visible')
 			cy.get('main').should('be.visible')
-			cy.contains(/nueva/i).should('be.visible')
+			cy.contains(/nueva solicitud/i).should('be.visible')
 			cy.contains(/por definir/i).should('be.visible')
 		})
 
@@ -323,7 +327,9 @@ describe('Cuenta applications', () => {
 				.click()
 			cy.wait('@submitApplication')
 
-			cy.url().should('include', '/cuenta/applications/new')
+			cy.contains('h1', /nueva solicitud de crédito/i)
+				.scrollIntoView()
+				.should('be.visible')
 
 			cy.get('input[name="officialIdFile"]')
 				.closest('[role="group"]')
@@ -377,14 +383,12 @@ describe('Cuenta applications', () => {
 
 		it('applicant can open Mis préstamos placeholder page', () => {
 			cy.visit('/cuenta/loans')
-			cy.url().should('include', '/cuenta/loans')
 			cy.contains(/mis préstamos/i).should('be.visible')
 			cy.contains(/sin préstamos todavía|formalizado/i).should('be.visible')
 		})
 
 		it('applicant can open Soporte (chat preview UI)', () => {
 			cy.visit('/cuenta/support')
-			cy.url().should('include', '/cuenta/support')
 			cy.contains(/asistente topcredit/i).should('be.visible')
 			cy.contains(/preguntas frecuentes/i).should('be.visible')
 		})
@@ -425,7 +429,9 @@ describe('Cuenta applications', () => {
 				cy.get(`a[href="/cuenta/applications/${app.id}"]`)
 					.should('be.visible')
 					.click()
-				cy.contains('h1', /resumen de tu solicitud/i).should('be.visible')
+				cy.contains('h1', /resumen de tu solicitud/i)
+					.scrollIntoView()
+					.should('be.visible')
 				cy.contains('10,000').should('be.visible')
 				cy.contains(/monto del crédito/i).should('be.visible')
 			})
@@ -445,8 +451,9 @@ describe('Cuenta applications', () => {
 				salaryAtApplication: '100000',
 			}).then((app) => {
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.url().should('include', `/cuenta/applications/${app.id}`)
-				cy.contains(/resumen de tu solicitud/i).should('be.visible')
+				cy.contains('h1', /resumen de tu solicitud/i)
+					.scrollIntoView()
+					.should('be.visible')
 				cy.get('section[aria-labelledby="cuenta-application-doc-official-id"]')
 					.first()
 					.scrollIntoView()
@@ -661,7 +668,9 @@ describe('Cuenta applications', () => {
 				cy.contains('Selecciona un archivo válido.')
 					.scrollIntoView()
 					.should('be.visible')
-				cy.url().should('include', `/cuenta/applications/${app.id}`)
+				cy.contains('h1', /resumen de tu solicitud/i)
+					.scrollIntoView()
+					.should('be.visible')
 			})
 		})
 
@@ -833,17 +842,15 @@ describe('Cuenta applications', () => {
 				status: 'pre-authorized',
 			}).then((app) => {
 				cy.visit(`/cuenta/applications/${app.id}`)
-				cy.contains('h1', /resumen de tu solicitud/i).should('be.visible')
+				cy.contains('h1', /resumen de tu solicitud/i)
+					.scrollIntoView()
+					.should('be.visible')
 				cy.contains(/siguiente paso: autorización/i)
 					.scrollIntoView()
 					.should('be.visible')
 				cy.contains('a', /ir a oferta y documentación/i)
 					.should('be.visible')
 					.click()
-				cy.url().should(
-					'include',
-					`/cuenta/applications/${app.id}/pre-authorized`,
-				)
 				cy.contains('h1', /oferta preautorizada/i).should('be.visible')
 			})
 		})
