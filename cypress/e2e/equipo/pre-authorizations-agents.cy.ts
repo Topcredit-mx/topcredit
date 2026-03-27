@@ -1,5 +1,5 @@
-import { assertEquipoApplicationShowsAppStatus } from '../../../../../cypress/support/equipo-document-review-helpers'
-import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
+import { assertEquipoApplicationShowsAppStatus } from '~/cypress/support/equipo-document-review-helpers'
+import type { SeedApplicationsReviewResult } from '~/cypress/tasks'
 import {
 	adminForReview,
 	preAuthAgentForReview,

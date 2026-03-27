@@ -13,7 +13,7 @@ This section is an **inventory of what already exists** so “Up next” starts 
 - Applicant **pre-authorized package** on cuenta: detail CTA plus dedicated offer page (amount, term, copy); required authorization-package uploads enforced before submit; **Submit for review** moves the application to `awaiting-authorization`.
 - **`authorizations`** role (DB enum, CASL, company assignments with `agent`), equipo detail: document actions when allowed; **Authorize** gated on all three package documents **approved** (visible hint + tooltip when blocked); **Deny** at `awaiting-authorization`; server rejects `authorized` if the package is incomplete.
 - **Equipo document review UX** (requests + authorizations stages): primary actions live on the document form (e.g. save + approve / save + authorize where applicable); **Acciones** trimmed to match (e.g. deny, pre-auth when applicable; approve in menu only when there are no documents to review).
-- **E2E (Cypress)** — main paths covered: cuenta applicant flow in **`applications.cy.ts`** (list, new application, navigation, **application detail documents**, **pre-authorized package**); equipo **`requests-agents`**, **`pre-authorizations-agents`**, **`authorizations-agents`** for role-appropriate flows. Specs live next to the routes they exercise.
+- **E2E (Cypress)** — main paths covered: cuenta applicant flow in **`cypress/e2e/cuenta/applications.cy.ts`** (list, new application, navigation, **application detail documents**, **pre-authorized package**); equipo **`requests-agents`**, **`pre-authorizations-agents`**, **`authorizations-agents`** under **`cypress/e2e/equipo/`** for role-appropriate flows; admin and other areas under **`cypress/e2e/admin/`** and **`cypress/e2e/other/`** (e.g. **`landing.cy.ts`** for `/`).
 
 ---
 
@@ -38,4 +38,4 @@ This section is an **inventory of what already exists** so “Up next” starts 
 
 - Rename fixtures/copy that still imply deprecated “company not ready” gating.
 - Update this doc and operational docs when new roles or queues ship.
-- When adding flows, keep **Cypress specs colocated** with the App Router routes they cover (same pattern as merged cuenta `applications.cy.ts` and equipo application specs).
+- When adding flows, add or extend specs under **`cypress/e2e/{cuenta,equipo,admin,other}/`** (flat per folder; use descriptive filenames). Import shared helpers via **`~/cypress/support/...`** and **`~/cypress/tasks`** as needed.

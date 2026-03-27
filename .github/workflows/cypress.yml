@@ -85,7 +85,7 @@ jobs:
         with:
           browser: electron
           record: true
-          parallel: true
+          parallel: false
           group: 'Electron'
         env:
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
@@ -94,12 +94,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_NO_WARNINGS: 1
           TERM: xterm
-
-      - name: Verify E2E database is empty
-        if: success()
-        run: pnpm exec tsx scripts/e2e-db-snapshot.ts --strict
-        env:
-          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
 
       - name: Delete neon branch
         if: always()

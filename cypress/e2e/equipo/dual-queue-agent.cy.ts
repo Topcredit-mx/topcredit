@@ -6,8 +6,8 @@ import {
 	EQUIPO_DOCUMENTS_CARD_SCOPE,
 	selectDocumentDecisionInRow,
 	submitEquipoDocumentReviewForm,
-} from '../../../../../cypress/support/equipo-document-review-helpers'
-import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
+} from '~/cypress/support/equipo-document-review-helpers'
+import type { SeedApplicationsReviewResult } from '~/cypress/tasks'
 import { dualQueueAgentForReview } from './applications-review.fixtures'
 
 describe('Dual queue agent (requests + authorizations)', () => {

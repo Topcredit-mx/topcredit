@@ -8,7 +8,7 @@ Review every PR according to these project standards. Primary focus: **E2E test 
 
 - List all **new or meaningfully changed** files in the PR. Ignore docs, config, lockfiles.
 - For each new or changed **feature code** under `src/` (pages, server actions, app routes, components that affect user flows):
-  - Check if there is a corresponding E2E spec. We use **Cypress** with specs in `src/**/*.cy.{js,ts}` (co-located or under the same feature area).
+  - Check if there is a corresponding E2E spec. We use **Cypress** with specs in `cypress/e2e/**/*.cy.{js,ts}` (grouped under `cuenta/`, `equipo/`, `admin/`, or `other/`).
   - If there is **no clear E2E coverage** for new user-facing behavior, request adding or extending a `.cy.ts` spec and explain what should be covered (happy path + important edge cases).
 - **Do not** require E2E for:
   - Pure refactors

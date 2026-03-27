@@ -1,4 +1,4 @@
-import { applicantUser } from '../../../login/login.fixtures'
+import { applicantUser } from './login.fixtures'
 
 const applicantSettingsProfile = '/cuenta/settings/profile'
 

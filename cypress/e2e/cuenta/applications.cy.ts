@@ -1,4 +1,4 @@
-import type { SeedCuentaApplicationsResult } from '../../../../../cypress/tasks'
+import type { SeedCuentaApplicationsResult } from '~/cypress/tasks'
 import {
 	applicantB,
 	applicantInactiveCompany,

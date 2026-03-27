@@ -9,8 +9,8 @@ import {
 	selectDocumentDecisionInRow,
 	submitEquipoDocumentReviewForm,
 	typeDocumentRejectionReasonInRow,
-} from '../../../../../cypress/support/equipo-document-review-helpers'
-import type { SeedApplicationsReviewResult } from '../../../../../cypress/tasks'
+} from '~/cypress/support/equipo-document-review-helpers'
+import type { SeedApplicationsReviewResult } from '~/cypress/tasks'
 import {
 	adminForReview,
 	agentForReview,

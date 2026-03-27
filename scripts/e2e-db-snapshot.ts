@@ -54,8 +54,20 @@ export async function getTableCounts(
 	}
 }
 
-function totalRows(counts: TableCounts): number {
+export function totalRows(counts: TableCounts): number {
 	return TABLES.reduce((sum, t) => sum + counts[t], 0)
+}
+
+export async function assertE2eDatabaseEmpty(
+	databaseUrl: string,
+): Promise<void> {
+	const counts = await getTableCounts(databaseUrl)
+	const total = totalRows(counts)
+	if (total > 0) {
+		const msg = `E2E database is not empty (expected all row counts to be 0).\n${JSON.stringify(counts, null, 2)}`
+		console.error(msg)
+		throw new Error(msg)
+	}
 }
 
 async function main() {
@@ -64,19 +76,11 @@ async function main() {
 		console.error('DATABASE_URL is required')
 		process.exit(1)
 	}
-	const strict = process.argv.includes('--strict')
 	const counts = await getTableCounts(url)
 	const total = totalRows(counts)
-	console.log(JSON.stringify(counts, null, 2))
-	console.log(`total_rows=${total}`)
-	if (strict && total > 0) {
-		console.error(
-			'::error::E2E database is not empty after Cypress (expected all row counts to be 0).',
-		)
-		console.error(
-			'Expected empty database (all counts 0). See JSON counts printed above.',
-		)
-		process.exit(1)
+	if (total > 0) {
+		console.log(JSON.stringify(counts, null, 2))
+		console.log(`total_rows=${total}`)
 	}
 }
 

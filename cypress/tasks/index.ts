@@ -1,6 +1,21 @@
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import {
+	adminUser as companiesAdminUser,
+	companyList as companiesCompanyList,
+} from '~/cypress/e2e/admin/companies.fixtures'
+import {
+	adminOverviewAdmin,
+	overviewCompanyList,
+} from '~/cypress/e2e/admin/equipo-admin-overview.fixtures'
+import {
+	agentOnlyUser,
+	applicantOnlyUser,
+	userList,
+	adminUser as usersAdminUser,
+	companyList as usersCompanyList,
+} from '~/cypress/e2e/admin/users.fixtures'
+import {
 	applicantB,
 	applicantInactiveCompany,
 	applicantNoCompany,
@@ -11,8 +26,8 @@ import {
 	companyWithoutCapacityRate,
 	companyWithoutTermOfferings,
 	companyWithTerms,
-} from '~/app/cuenta/(main)/applications/applications.fixtures'
-import { agentNoAssignments } from '~/app/equipo/(main)/agent-no-assignments.fixtures'
+} from '~/cypress/e2e/cuenta/applications.fixtures'
+import { agentNoAssignments } from '~/cypress/e2e/equipo/agent-no-assignments.fixtures'
 import {
 	adminForReview,
 	agentCompanyDomains,
@@ -35,34 +50,19 @@ import {
 	dualQueueAgentForReview,
 	preAuthAgentForReview,
 	reviewApplicationConfigs,
-} from '~/app/equipo/(main)/applications/applications-review.fixtures'
-import {
-	adminUser as companiesAdminUser,
-	companyList as companiesCompanyList,
-} from '~/app/equipo/(main)/companies/companies.fixtures'
+} from '~/cypress/e2e/equipo/applications-review.fixtures'
 import {
 	agentWithAssignments,
 	companyAssignedActive,
 	companyAssignedActive2,
 	companyAssignedInactive,
 	switcherCompanyList,
-} from '~/app/equipo/(main)/company-switcher.fixtures'
-import {
-	adminOverviewAdmin,
-	overviewCompanyList,
-} from '~/app/equipo/(main)/equipo-admin-overview.fixtures'
-import {
-	agentOnlyUser,
-	applicantOnlyUser,
-	userList,
-	adminUser as usersAdminUser,
-	companyList as usersCompanyList,
-} from '~/app/equipo/(main)/users/users.fixtures'
+} from '~/cypress/e2e/equipo/company-switcher.fixtures'
 import {
 	agentUser as loginAgentUser,
 	applicantUser as loginApplicantUser,
 	noRoleUser as loginNoRoleUser,
-} from '~/app/login/login.fixtures'
+} from '~/cypress/e2e/other/login.fixtures'
 import type { Role } from '~/server/auth/session'
 import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
 import {

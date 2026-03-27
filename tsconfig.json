@@ -28,7 +28,8 @@
 		/* Path Aliases */
 		"baseUrl": ".",
 		"paths": {
-			"~/*": ["./src/*"]
+			"~/*": ["./src/*"],
+			"~/cypress/*": ["./cypress/*"]
 		}
 	},
 	"include": [

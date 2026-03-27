@@ -1,5 +1,5 @@
-import type { SeedLoginFlowResult } from '../../cypress/tasks'
-import { agentUser, applicantUser } from './login/login.fixtures'
+import type { SeedLoginFlowResult } from '~/cypress/tasks'
+import { agentUser, applicantUser } from './login.fixtures'
 
 describe('Home / Landing', () => {
 	let seed: SeedLoginFlowResult
