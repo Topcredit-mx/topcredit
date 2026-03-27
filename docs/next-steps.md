@@ -13,14 +13,15 @@ This section is an **inventory of what already exists** so “Up next” starts 
 - Applicant **pre-authorized package** on cuenta: detail CTA plus dedicated offer page (amount, term, copy); required authorization-package uploads enforced before submit; **Submit for review** moves the application to `awaiting-authorization`.
 - **`authorizations`** role (DB enum, CASL, company assignments with `agent`), equipo detail: document actions when allowed; **Authorize** gated on all three package documents **approved** (visible hint + tooltip when blocked); **Deny** at `awaiting-authorization`; server rejects `authorized` if the package is incomplete.
 - **Equipo document review UX** (requests + authorizations stages): primary actions live on the document form (e.g. save + approve / save + authorize where applicable); **Acciones** trimmed to match (e.g. deny, pre-auth when applicable; approve in menu only when there are no documents to review).
+- **Role-based queue navigation** — Each agent role gets a dedicated sidebar link pre-filtered to their queue's status: `requests` → `?status=pending`, `pre-authorizations` → `?status=approved`, `authorizations` → `?status=awaiting-authorization`. Multi-role agents see all applicable links. E2E in **`cypress/e2e/equipo/role-queue-nav.cy.ts`**.
 - **E2E (Cypress)** — main paths covered: cuenta applicant flow in **`cypress/e2e/cuenta/applications.cy.ts`** (list, new application, navigation, **application detail documents**, **pre-authorized package**); equipo **`requests-agents`**, **`pre-authorizations-agents`**, **`authorizations-agents`** under **`cypress/e2e/equipo/`** for role-appropriate flows; admin and other areas under **`cypress/e2e/admin/`** and **`cypress/e2e/other/`** (e.g. **`landing.cy.ts`** for `/`).
 
 ---
 
 ## Up next
 
-- **Queue + navigation** — Filtered list and/or dedicated nav for **`awaiting-authorization`** if product wants an authorizations **inbox** distinct from the shared applications list (today authorizations specialists use the same list + filters/detail as requests; E2E already exercises specialist behavior on detail).
-- When authorizations inbox/navigation is decided (or deferred), the next major build block is **HR** (`hrStatus`, first discount date), then **disbursements** (transfer + receipt → create **Credit**).
+- **HR** (`hrStatus`, first discount date) — After authorization, an HR agent (`agent` + `hr` role) reviews the application, sets `firstDiscountDate`, and approves. `hrStatus` is a field on the application; the application status stays `authorized`. New roles `hr` and `dispersions` need to be added to the DB enum.
+- **Disbursements** (transfer + receipt → create **Credit**) — After HR approves, a disbursements agent (`agent` + `dispersions`) fills bank transfer data, attaches a receipt, and creates a Credit record from the authorized application.
 
 ---
 

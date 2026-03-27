@@ -59,6 +59,10 @@ import {
 	switcherCompanyList,
 } from '~/cypress/e2e/equipo/company-switcher.fixtures'
 import {
+	allNavAgents,
+	navCompany,
+} from '~/cypress/e2e/equipo/role-queue-nav.fixtures'
+import {
 	agentUser as loginAgentUser,
 	applicantUser as loginApplicantUser,
 	noRoleUser as loginNoRoleUser,
@@ -1900,5 +1904,75 @@ export const cleanupApplicationsReview = async (
 	)
 	await db.delete(terms).where(eq(terms.id, params.termId))
 
+	return null
+}
+
+export type SeedRoleQueueNavResult = {
+	companyId: number
+}
+
+export const seedRoleQueueNav = async (): Promise<SeedRoleQueueNavResult> => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	await Promise.all(
+		allNavAgents.map((a) => db.delete(users).where(eq(users.email, a.email))),
+	)
+	await db.delete(companies).where(eq(companies.domain, navCompany.domain))
+
+	const now = new Date()
+	const [[company], createdAgents] = await Promise.all([
+		db
+			.insert(companies)
+			.values({
+				name: navCompany.name,
+				domain: navCompany.domain,
+				rate: navCompany.rate,
+				employeeSalaryFrequency: navCompany.employeeSalaryFrequency,
+				active: navCompany.active,
+			})
+			.returning(),
+		db
+			.insert(users)
+			.values(
+				allNavAgents.map((a) => ({
+					email: a.email,
+					name: a.name,
+					emailVerified: now,
+				})),
+			)
+			.returning(),
+	])
+
+	if (!company) throw new Error('Seed: nav company not created')
+
+	await Promise.all(
+		createdAgents.flatMap((agent) => {
+			const fixture = allNavAgents.find((a) => a.email === agent.email)
+			if (!fixture)
+				throw new Error(`Seed: fixture not found for ${agent.email}`)
+			return [
+				db.insert(userRoles).values(
+					fixture.roles.map((role) => ({
+						userId: agent.id,
+						role,
+					})),
+				),
+				db.insert(userCompanies).values({
+					userId: agent.id,
+					companyId: company.id,
+				}),
+			]
+		}),
+	)
+
+	return { companyId: company.id }
+}
+
+export const cleanupRoleQueueNav = async () => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	await Promise.all(
+		allNavAgents.map((a) => db.delete(users).where(eq(users.email, a.email))),
+	)
+	await db.delete(companies).where(eq(companies.domain, navCompany.domain))
 	return null
 }

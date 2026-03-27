@@ -40,9 +40,14 @@ function normalizePath(path: string) {
 	return path.endsWith('/') ? path.slice(0, -1) : path
 }
 
+function stripQueryString(path: string) {
+	const idx = path.indexOf('?')
+	return idx === -1 ? path : path.slice(0, idx)
+}
+
 function isPathActive(pathname: string, itemUrl: string) {
 	const currentPath = normalizePath(pathname)
-	const targetPath = normalizePath(itemUrl)
+	const targetPath = normalizePath(stripQueryString(itemUrl))
 
 	if (currentPath === targetPath) {
 		return true
