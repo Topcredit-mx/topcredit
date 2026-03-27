@@ -1,6 +1,14 @@
 'use client'
 
-import { Building2, CreditCard, FileText, Home, Users } from 'lucide-react'
+import {
+	Building2,
+	CheckSquare,
+	CreditCard,
+	FileText,
+	Home,
+	ShieldCheck,
+	Users,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { CompanySwitcher } from '~/components/app/company-switcher'
@@ -38,6 +46,8 @@ export function AgentSidebar({
 	const isAdmin = user.roles?.includes('admin')
 	const disableNav = !isAdmin && companies.length === 0
 
+	const roles = user.roles ?? []
+
 	const navigationItems: NavItem[] = isAdmin
 		? [
 				{ title: t('nav-home'), url: '/equipo', icon: Home },
@@ -60,11 +70,33 @@ export function AgentSidebar({
 			]
 		: [
 				{ title: t('nav-home'), url: '/equipo', icon: Home },
-				{
-					title: t('nav-requests'),
-					url: '/equipo/applications',
-					icon: FileText,
-				},
+				...(roles.includes('requests')
+					? [
+							{
+								title: t('nav-requests'),
+								url: '/equipo/applications?status=pending',
+								icon: FileText,
+							},
+						]
+					: []),
+				...(roles.includes('pre-authorizations')
+					? [
+							{
+								title: t('nav-pre-authorizations'),
+								url: '/equipo/applications?status=approved',
+								icon: CheckSquare,
+							},
+						]
+					: []),
+				...(roles.includes('authorizations')
+					? [
+							{
+								title: t('nav-authorizations'),
+								url: '/equipo/applications?status=awaiting-authorization',
+								icon: ShieldCheck,
+							},
+						]
+					: []),
 			]
 
 	return (
