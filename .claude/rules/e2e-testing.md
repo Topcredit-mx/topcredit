@@ -1,0 +1,157 @@
+---
+paths:
+  - "**/*.cy.ts"
+  - "**/cypress/**/*"
+---
+
+# Cypress E2E Best Practices
+
+Apply when writing or refactoring Cypress E2E tests. Keep tests isolated, stable, and readable.
+
+---
+
+## Simplicity — specs over indirection
+
+- **A spec should read like a script** someone can follow without opening other files. **Repetition is fine** if each block is obvious (visit -> assert heading -> click -> fill -> submit -> assert).
+- **Avoid sprawl of small `export function` helpers** (`assertFoo`, `openBar`, `submitBaz`) that hide multi-step Cypress chains. Every extra name is a context switch. Prefer the same steps **inlined in the spec** when a flow is only used once or twice.
+- **`Cypress.Commands.add` is the preferred reuse mechanism** for steps that repeat many times across specs: one place (`cypress/support/commands.ts`, or split by domain only if that file becomes huge), **`cy.` discoverability**, and typings in `cypress/support/index.d.ts`. Commands should map to **one clear user action** (e.g. "open Acciones menu on equipo application detail"), not whole scenarios.
+- **TS modules beside specs** (under `cypress/e2e/<area>/`, same folder as the `.cy.ts` that uses them) are best for **data tied to seeds** (e.g. predictable blob file names from an application id) or **shared constants** — not for orchestrating long DOM sequences. If only one describe block needs a builder, keep it in that file.
+- **Imports:** use **`~/cypress/support/...`** and **`~/cypress/tasks`** for shared Cypress code (tsconfig `paths`); use **`./`** imports for co-located fixture modules next to the spec. Cypress 15 resolves these aliases when bundling specs.
+- **Smell:** two helpers that differ only by button label / post-condition (`approveInitialIntake...` vs `approveAuthorizationPackage...`) — merge into one parameterized command or **duplicate the loop inline** so the spec shows exactly which submit label is expected.
+- **Current concentration:** `cypress/support/equipo-document-review-helpers.ts` bundles many flows for equipo application documents; new work should **not add more exports there** without trimming or moving to `cy.*` commands. Refactors can **inline** or **command-ify** incrementally when touching those specs.
+
+---
+
+## Selectors — accessibility first
+
+**Tests should resemble real usage and lean on accessibility, not on hooks that only exist for tests.**
+
+Do **not** use:
+
+- `data-testid` / `get('[data-testid="..."]')`
+- **App-specific** `data-*` attributes as selectors (e.g. `data-equipo-*`, `data-document-*`, `data-current-application-status`, custom `data-preauth-*`, etc.). Prefer removing those from components when refactoring; drive tests from what users and assistive tech can use.
+- **`data-slot` in Cypress selectors.** Shadcn/Radix primitives may keep `data-slot` for styling; tests should still target **roles, names, labels, and visible text** (e.g. `nav`, `button` + name, `dialog` + title, `menuitem` + text).
+
+Prefer: **visible text** (`cy.contains(...)`), **roles** (`cy.get('[role="dialog"]')`, `role="menuitem"`), **accessible names** (`cy.get('button', { name: /acciones/i })` where supported), **semantic regions** (`main`, `nav`, headings), **placeholders** and **associated labels** for form fields.
+
+```typescript
+// BAD
+cy.get('[data-testid="breadcrumb"]').contains('Mi Cuenta')
+cy.get('[data-equipo-application-detail] [data-current-application-status="pending"]')
+
+// GOOD
+cy.contains('Mi Cuenta').should('be.visible')
+cy.get('nav[aria-label="Breadcrumb"]').contains('Mi Cuenta').should('be.visible')
+cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+cy.contains('h2', /solicitante/i)
+	.should('be.visible')
+	.closest('section')
+	.within(() => {
+		cy.contains('button', /acciones/i).should('be.visible').click()
+	})
+```
+
+- **Prefer role + name over `data-*`.** Scope with `.within()` using a **heading**, **`main`**, or **`[role="dialog"]`** so queries stay unique without implementation attributes.
+- **Use `asChild` for semantic headings.** When a UI primitive like `CardTitle` supports `asChild`, render real headings (`<h2>...</h2>`) and query by that level in tests.
+
+---
+
+## Assertions and waiting
+
+- Use **`.should()`** for assertions (Cypress retries). Avoid **`.then()`** for assertions — it runs once and does not retry.
+- Never **`cy.wait(ms)`** (e.g. `cy.wait(2000)`). Use **route aliases** (`cy.intercept(...).as('getUsers')` then `cy.wait('@getUsers')`) or **assertions** (e.g. `cy.get(...).should('be.visible')`).
+- Prefer **positive assertions** after actions (assert the new state) instead of "element no longer exists" (races with animation/server).
+- Rely on Cypress **default command timeout** (do not raise `defaultCommandTimeout` globally). Avoid **`{ timeout: N }`** on commands unless **CI** shows a specific step is still flaky after stable selectors and `cy.visit` where needed; add a **short comment** at that call site when you introduce a timeout.
+
+```typescript
+// BAD
+cy.contains('button', /confirmar/i).click()
+cy.get('[role="dialog"]').should('not.exist')
+
+// GOOD
+cy.contains('button', /confirmar/i).click()
+cy.contains(/rechazado/i).should('be.visible')
+```
+
+---
+
+## Test isolation and state
+
+- Each test must **pass in isolation** (e.g. with `it.only`). No relying on state from a previous test.
+- Put **setup in `beforeEach`** (visit, login, seed). Put **required cleanup in `beforeEach`**, not `afterEach`/`after` — if the run is stopped or refreshed, after hooks may not run.
+- **Cleanup must remove all shared data** that other specs or previous runs might leave. If a spec only cleans "its own" seed (e.g. 3 companies), the DB can still contain data from other specs (e.g. company-switcher, applications-review). Lists/tables then get polluted and tests that assert "new row appears" or "find row X" can fail because the target row is off-screen, paginated, or lost among many rows. In `before()` cleanup, delete every E2E entity domain/ID used by any spec (e.g. all E2E company domains), then seed only what this spec needs.
+- Prefer **programmatic setup** (`cy.request()`, `cy.task('db:seed')`) over doing everything through the UI.
+- Use **`baseUrl`** in config; use **`cy.env()`** for secrets (never hardcode; never `Cypress.expose()` for sensitive values).
+- **DB leak checks around each spec:** On any `cypress run` **without** `--parallel`, Cypress runs [`assertE2eDatabaseEmpty`](scripts/e2e-db-snapshot.ts) **before and after** each spec. Skipped when `DATABASE_URL` is unset. Parallel runs (`--parallel`) skip these hooks—use an isolated database per machine if you need per-spec checks there too. For ad-hoc inspection, run `pnpm exec tsx scripts/e2e-db-snapshot.ts` (prints counts only when `total_rows > 0`).
+
+---
+
+## Auth
+
+- **Log in via API** (`cy.request()`) and set cookies/session; then `cy.visit()`. Use **`cy.session()`** to cache login across tests.
+- Use a **dedicated E2E user** with fixed permissions. Do not depend on third-party login UIs you don't control.
+
+---
+
+## Next.js App Router — streaming / Suspense
+
+`cy.visit()` resolves on `load`; with `loading.tsx`, the skeleton may still be showing. **Always wait for content unique to the real page** before interacting.
+
+- **`next/link` client navigation vs `cy.visit()`:** A click on `<Link>` does **not** provide the same load barrier as `cy.visit()`. In **headless / CI**, the pathname may **never** update after `cy.click()` even though Cypress clicked the anchor. **Stable pattern:** assert the UI exposes the right target (e.g. `cy.get('a[href="/cuenta/applications/42"]').scrollIntoView().should('be.visible')` or a template-literal `href` built from seed data), then **`cy.visit`** that path for assertions on the destination — same as the rest of the suite. **Name the test** for what you verify (list link target + destination content), not only "user clicked link".
+- After **navigate** (`cy.visit` or, when you intentionally use client nav and it is reliable locally, click): assert on something that exists **only on the destination** (e.g. `cy.contains('h1', /detalle de solicitud/i).should('be.visible')`), then interact. If you used `cy.visit`, you may still need `.scrollIntoView()` on headings clipped by overflow before `.should('be.visible')`.
+- **Before every click** on buttons/links/menus: chain `.should('be.visible')` then `.click()` so Cypress retries until visible.
+- **Tables / scrollable lists**: wait for table, find row, `.scrollIntoView()`, then within row use `.should('exist').click()` (not `.should('be.visible').click()`) to avoid viewport flakiness. When **asserting that a row exists** after a create/edit (e.g. "new company appears in list"), use `findTableRow(name).scrollIntoView().within(() => { ... })` so the row is brought into view before asserting; otherwise the row may exist but be off-screen or on another page and the assertion can fail. **Inside a row's `.within()` callback**, the subject is that row (`tr`). Do **not** use `cy.get('tr')` to get the row — it looks for a descendant `tr`, and a `tr` has none, so the command fails. Use **`cy.root()`** to reference the row (e.g. `findRoleCheckbox(cy.root(), 'Admin')`).
+- **After redirect/reload** (server action): wait for URL if changed, then a **stable element on the new page** (e.g. `cy.get('table').should('be.visible')` or `cy.contains('h1', /detalle de solicitud/i).should('be.visible')`), then the new state (e.g. `cy.contains(/autorizado/i).should('be.visible')`).
+
+```typescript
+// After visit — guard on content unique to page
+cy.visit(`/equipo/applications/${id}`)
+cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+cy.contains('button', /acciones/i).should('be.visible').click()
+
+// Table row action — scroll into view, exist then click
+cy.get('table').should('be.visible')
+cy.findTableRow(editCompany.name).scrollIntoView().within(() => {
+  cy.get('a[href*="/edit"]').should('exist').click()
+})
+
+// Inside row .within(): use cy.root() for the row, not cy.get('tr')
+cy.findTableRow(users.jane.name).scrollIntoView().within(() => {
+  findRoleCheckbox(cy.root(), 'Admin').should('be.visible').click()
+})
+
+// After same-URL redirect (e.g. status update)
+cy.get('[role="menuitem"]').contains('Autorizar').should('be.visible').click()
+cy.contains('h1', /detalle de solicitud/i).should('be.visible')
+cy.contains(/autorizado/i).should('be.visible')
+
+// List row <Link> -> detail: href check then visit (reliable in CI)
+cy.visit('/cuenta/applications')
+cy.get('main').should('be.visible')
+cy.get(`a[href="${detailPath}"]`).scrollIntoView().should('be.visible')
+cy.visit(detailPath)
+cy.contains('h1', /resumen de tu solicitud/i).scrollIntoView().should('be.visible')
+```
+
+---
+
+## Test titles (describe / it)
+
+- **Describe behavior**, not implementation: "shows empty state when cart has no items", not "updates state".
+- **Include the trigger**: "shows error when email is invalid", not "shows error".
+- **Nested describe for context**: `describe('Feature', () => { describe('when unauthenticated', () => { ... }) })`.
+- **State changes**: "changes status from pending to approved", not "changes status".
+- **Specific errors/async**: "shows skeleton while loading", "shows 'Invalid card' when card number is wrong".
+- Use **domain language**, not technical: "saves application", not "calls API".
+- **Avoid**: "works", "test form", "test 1", "checks X"; no duplicate titles; title must match what the test does.
+- **No internal IDs in titles**: Do not put README/todo numbers, user-story IDs (e.g. US-2.2.5), phase numbers (e.g. Phase 3), or version-like refs (e.g. 3.1.1) in `describe()` or `it()` strings. Use behavior-focused text only; keep traceability in file comments if needed.
+
+---
+
+## Don't
+
+- **Selectors**: `data-testid`; app-specific `data-*` used only for tests; `data-slot` (or other implementation attributes) as the primary way to find elements in specs; fragile class-only selectors.
+- **Waits**: `cy.wait(ms)`; use aliases or `.should()`.
+- **State**: shared state between tests; required cleanup in `afterEach`/`after`; unnecessary manual clear of cookies/localStorage (Cypress clears when isolation is on).
+- **Auth**: UI login every time when API/session is possible; depending on social/OAuth UIs.
+- **Titles**: vague ("works"), no trigger, implementation-focused, "test/check" as verb.
