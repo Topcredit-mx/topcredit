@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, notExists } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import {
 	adminUser as companiesAdminUser,
@@ -750,6 +750,19 @@ export const seedLoginFlow = async (): Promise<SeedLoginFlowResult> => {
 	)
 	await db.delete(companies).where(eq(companies.domain, LOGIN_DOMAIN))
 
+	// Delete orphaned terms left by retries (company cascade-deletes
+	// term_offerings, but the term row stays).
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
+
 	const now = new Date()
 	const [createdUsers, [company], [term]] = await Promise.all([
 		db
@@ -901,6 +914,19 @@ async function wipeCuentaApplicationsE2EFixtureState(
 			await db.delete(terms).where(eq(terms.id, termId))
 		}
 	}
+
+	// Delete orphaned terms left by retries (company cascade-deletes
+	// term_offerings, but the term row stays).
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
 }
 
 export type SeedCuentaApplicationsResult = {
@@ -1518,6 +1544,19 @@ export const seedApplicationsReview =
 				db.delete(companies).where(eq(companies.domain, c.domain)),
 			),
 		)
+
+		// Delete orphaned terms left by retries (company cascade-deletes
+		// term_offerings, but the term row stays).
+		await db
+			.delete(terms)
+			.where(
+				notExists(
+					db
+						.select({ id: termOfferings.id })
+						.from(termOfferings)
+						.where(eq(termOfferings.termId, terms.id)),
+				),
+			)
 
 		const now = new Date()
 		const [createdUsers, createdCompanies, createdTerms] = await Promise.all([
