@@ -7,6 +7,7 @@ import {
 	FileText,
 	Home,
 	ShieldCheck,
+	UserCheck,
 	Users,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -94,6 +95,15 @@ export function AgentSidebar({
 								title: t('nav-authorizations'),
 								url: '/equipo/applications?status=awaiting-authorization',
 								icon: ShieldCheck,
+							},
+						]
+					: []),
+				...(roles.includes('hr')
+					? [
+							{
+								title: t('nav-hr'),
+								url: '/equipo/applications?status=authorized&hrPending=true',
+								icon: UserCheck,
 							},
 						]
 					: []),

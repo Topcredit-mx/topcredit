@@ -676,6 +676,7 @@ export type ApplicationForReview = {
 	companyBorrowingCapacityRate: string | null
 	status: ApplicationStatus
 	denialReason: string | null
+	firstDiscountDate: Date | null
 	createdAt: Date
 	updatedAt: Date
 	applicant: { id: number; name: string; email: string }
@@ -695,8 +696,9 @@ export type ApplicationForReviewDetail = ApplicationForReview & {
 export async function getApplicationsForReview(params: {
 	scope: CompanyScope
 	statusFilter?: ApplicationStatus[]
+	hrPending?: boolean
 }): Promise<ApplicationForReview[]> {
-	const { scope, statusFilter } = params
+	const { scope, statusFilter, hrPending } = params
 
 	let companyCondition: SQL
 	if (scope.type === 'single') {
@@ -723,6 +725,7 @@ export async function getApplicationsForReview(params: {
 			companyBorrowingCapacityRate: companies.borrowingCapacityRate,
 			status: applications.status,
 			denialReason: applications.denialReason,
+			firstDiscountDate: applications.firstDiscountDate,
 			createdAt: applications.createdAt,
 			updatedAt: applications.updatedAt,
 			applicantName: users.name,
@@ -744,6 +747,9 @@ export async function getApplicationsForReview(params: {
 				statusFilter && statusFilter.length > 0
 					? inArray(applications.status, statusFilter)
 					: sql`1=1`,
+				hrPending === true
+					? sql`${applications.firstDiscountDate} IS NULL`
+					: sql`1=1`,
 			),
 		)
 		.orderBy(desc(applications.createdAt), applications.id)
@@ -761,6 +767,7 @@ export async function getApplicationsForReview(params: {
 		companyBorrowingCapacityRate: row.companyBorrowingCapacityRate,
 		status: row.status,
 		denialReason: row.denialReason,
+		firstDiscountDate: row.firstDiscountDate,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 		applicant: {
@@ -812,6 +819,7 @@ export async function getApplicationForReview(
 			companyBorrowingCapacityRate: companies.borrowingCapacityRate,
 			status: applications.status,
 			denialReason: applications.denialReason,
+			firstDiscountDate: applications.firstDiscountDate,
 			createdAt: applications.createdAt,
 			updatedAt: applications.updatedAt,
 			applicantName: users.name,
@@ -851,6 +859,7 @@ export async function getApplicationForReview(
 		companyBorrowingCapacityRate: row.companyBorrowingCapacityRate,
 		status: row.status,
 		denialReason: row.denialReason,
+		firstDiscountDate: row.firstDiscountDate,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 		statusHistory,

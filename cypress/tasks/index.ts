@@ -58,6 +58,7 @@ import {
 	companyAssignedInactive,
 	switcherCompanyList,
 } from '~/cypress/e2e/equipo/company-switcher.fixtures'
+import { allHrUsers, hrCompany } from '~/cypress/e2e/equipo/hr-agents.fixtures'
 import {
 	allNavAgents,
 	navCompany,
@@ -1974,5 +1975,199 @@ export const cleanupRoleQueueNav = async () => {
 		allNavAgents.map((a) => db.delete(users).where(eq(users.email, a.email))),
 	)
 	await db.delete(companies).where(eq(companies.domain, navCompany.domain))
+	return null
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// HR agents
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type SeedHrReviewResult = {
+	companyId: number
+	applicationId: number
+	adminApplicationId: number
+	differentDateApplicationId: number
+	termId: number
+}
+
+export const seedHrReview = async (): Promise<SeedHrReviewResult> => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	// Cleanup first
+	await Promise.all(
+		allHrUsers.map((u) => db.delete(users).where(eq(users.email, u.email))),
+	)
+	await db.delete(companies).where(eq(companies.domain, hrCompany.domain))
+
+	const now = new Date()
+
+	// Create company, users, and term in parallel
+	const [[company], createdUsers] = await Promise.all([
+		db
+			.insert(companies)
+			.values({
+				name: hrCompany.name,
+				domain: hrCompany.domain,
+				rate: hrCompany.rate,
+				employeeSalaryFrequency: hrCompany.employeeSalaryFrequency,
+				active: hrCompany.active,
+			})
+			.returning(),
+		db
+			.insert(users)
+			.values(
+				allHrUsers.map((u) => ({
+					email: u.email,
+					name: u.name,
+					emailVerified: now,
+				})),
+			)
+			.returning(),
+	])
+
+	if (!company) throw new Error('Seed HR: company not created')
+
+	const findUser = (email: string) => {
+		const u = createdUsers.find((r) => r.email === email)
+		if (!u) throw new Error(`Seed HR: user ${email} not found`)
+		return u
+	}
+
+	// Create term + offering
+	const [term] = await db
+		.insert(terms)
+		.values({
+			durationType: 'monthly',
+			duration: 12,
+		})
+		.returning()
+
+	if (!term) throw new Error('Seed HR: term not created')
+
+	const [offering] = await db
+		.insert(termOfferings)
+		.values({
+			termId: term.id,
+			companyId: company.id,
+		})
+		.returning()
+
+	if (!offering) throw new Error('Seed HR: offering not created')
+
+	// Assign roles and company associations
+	await Promise.all(
+		createdUsers.flatMap((agent) => {
+			const fixture = allHrUsers.find((u) => u.email === agent.email)
+			if (!fixture)
+				throw new Error(`Seed HR: fixture not found for ${agent.email}`)
+			return [
+				db.insert(userRoles).values(
+					fixture.roles.map((role) => ({
+						userId: agent.id,
+						role,
+					})),
+				),
+				...(new Set<string>(fixture.roles).has('agent')
+					? [
+							db.insert(userCompanies).values({
+								userId: agent.id,
+								companyId: company.id,
+							}),
+						]
+					: []),
+			]
+		}),
+	)
+
+	const applicant = findUser('applicant@hrcompany.com')
+
+	// Create 3 authorized applications (firstDiscountDate = null → HR pending)
+	const appValues = [
+		{ creditAmount: '50000.00', salaryAtApplication: '40000' },
+		{ creditAmount: '60000.00', salaryAtApplication: '45000' },
+		{ creditAmount: '70000.00', salaryAtApplication: '50000' },
+	]
+	const createdApps = await db
+		.insert(applications)
+		.values(
+			appValues.map((v) => ({
+				applicantId: applicant.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: v.creditAmount,
+				salaryAtApplication: v.salaryAtApplication,
+				salaryFrequency: hrCompany.employeeSalaryFrequency,
+				status: 'authorized' as const,
+			})),
+		)
+		.returning()
+
+	if (createdApps.length !== 3)
+		throw new Error('Seed HR: expected 3 applications')
+	const [app, adminApp, differentDateApp] = createdApps
+	if (!app || !adminApp || !differentDateApp)
+		throw new Error('Seed HR: applications not created')
+
+	// Status history + documents for all 3 apps
+	const docTypes = [
+		'official-id',
+		'proof-of-address',
+		'bank-statement',
+		'payroll-receipt',
+		'contract',
+		'authorization',
+	] as const
+
+	const timeline = createOrderedSeedStatusHistory({
+		finalStatus: 'authorized',
+		defaultActorUserId: applicant.id,
+	})
+	const baseTime = new Date(now.getTime() - 60 * 60_000)
+
+	for (const a of createdApps) {
+		await db.insert(applicationStatusHistory).values(
+			timeline.map((entry, index) => ({
+				applicationId: a.id,
+				status: entry.status,
+				setByUserId: entry.setByUserId,
+				createdAt: new Date(baseTime.getTime() + index * 60_000),
+			})),
+		)
+		await db.insert(applicationDocuments).values(
+			docTypes.map((docType) => ({
+				applicationId: a.id,
+				documentType: docType,
+				status: 'approved' as const,
+				fileName: `hr-seed-${docType}-${a.id}.pdf`,
+				storageKey: `application-documents/${a.id}/${docType}/hr-seed-${docType}-${a.id}.pdf`,
+			})),
+		)
+	}
+
+	return {
+		companyId: company.id,
+		applicationId: app.id,
+		adminApplicationId: adminApp.id,
+		differentDateApplicationId: differentDateApp.id,
+		termId: term.id,
+	}
+}
+
+export const cleanupHrReview = async () => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	await Promise.all(
+		allHrUsers.map((u) => db.delete(users).where(eq(users.email, u.email))),
+	)
+	await db.delete(companies).where(eq(companies.domain, hrCompany.domain))
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
 	return null
 }

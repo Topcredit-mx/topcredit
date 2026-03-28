@@ -80,6 +80,10 @@ declare namespace Cypress {
 		): Chainable<import('../tasks').SeedRoleQueueNavResult>
 		task(event: 'cleanupRoleQueueNav'): Chainable<null>
 		task(
+			event: 'seedHrReview',
+		): Chainable<import('../tasks').SeedHrReviewResult>
+		task(event: 'cleanupHrReview'): Chainable<null>
+		task(
 			event: 'insertApplicationDocument',
 			params: import('../tasks').InsertApplicationDocumentTaskParams,
 		): Chainable<{ id: number }>

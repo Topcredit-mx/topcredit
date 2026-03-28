@@ -2,6 +2,7 @@ import type { SeedRoleQueueNavResult } from '~/cypress/tasks'
 import {
 	authorizationsAgent,
 	dualQueueAgent,
+	hrAgent,
 	preAuthAgent,
 	requestsAgent,
 } from './role-queue-nav.fixtures'
@@ -96,6 +97,35 @@ describe('Role-based queue navigation', () => {
 			navScope().within(() => {
 				cy.contains('Solicitudes').should('not.exist')
 				cy.contains('Pre-autorizaciones').should('not.exist')
+			})
+		})
+	})
+
+	describe('HR agent', () => {
+		beforeEach(() => {
+			cy.login(hrAgent.email)
+			cy.setCookie('selected_company_id', String(seed.companyId))
+			cy.visit('/equipo')
+			navScope().should('be.visible')
+		})
+
+		it('sees RH nav link pointing to authorized + hrPending filter', () => {
+			navScope().within(() => {
+				cy.contains('a', 'RH')
+					.should('be.visible')
+					.and(
+						'have.attr',
+						'href',
+						'/equipo/applications?status=authorized&hrPending=true',
+					)
+			})
+		})
+
+		it('does not see Solicitudes, Pre-autorizaciones, or Autorizaciones nav links', () => {
+			navScope().within(() => {
+				cy.contains('Solicitudes').should('not.exist')
+				cy.contains('Pre-autorizaciones').should('not.exist')
+				cy.contains('Autorizaciones').should('not.exist')
 			})
 		})
 	})

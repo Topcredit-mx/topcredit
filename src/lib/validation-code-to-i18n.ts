@@ -261,6 +261,18 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'auth',
 		key: 'error-otp-expired',
 	},
+	[ValidationCode.HR_FIRST_DISCOUNT_DATE_REQUIRED]: {
+		namespace: 'equipo',
+		key: 'HR_FIRST_DISCOUNT_DATE_REQUIRED',
+	},
+	[ValidationCode.HR_FIRST_DISCOUNT_DATE_INVALID]: {
+		namespace: 'equipo',
+		key: 'HR_FIRST_DISCOUNT_DATE_INVALID',
+	},
+	[ValidationCode.HR_ALREADY_APPROVED]: {
+		namespace: 'equipo',
+		key: 'HR_ALREADY_APPROVED',
+	},
 }
 
 function isValidationCode(s: string): s is ValidationCodeType {

@@ -43,7 +43,9 @@ export const getAbility = cache(async (): Promise<AbilityResult> => {
 		: roles.includes('agent') &&
 				(roles.includes('requests') ||
 					roles.includes('pre-authorizations') ||
-					roles.includes('authorizations'))
+					roles.includes('authorizations') ||
+					roles.includes('hr') ||
+					roles.includes('dispersions'))
 			? (await getUserCompanyAssignments(userId)).map((c) => c.id)
 			: []
 
