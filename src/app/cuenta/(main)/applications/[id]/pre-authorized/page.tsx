@@ -50,7 +50,8 @@ function getApplicationStatusBadgeClass(
 		status === 'approved' ||
 		status === 'pre-authorized' ||
 		status === 'awaiting-authorization' ||
-		status === 'authorized'
+		status === 'authorized' ||
+		status === 'disbursed'
 	) {
 		return 'border-transparent bg-emerald-600 text-white'
 	}

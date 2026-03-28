@@ -79,6 +79,15 @@ function getDefaultSeedStatusHistory(
 				{ status: 'awaiting-authorization', setByUserId },
 				{ status: 'authorized', setByUserId },
 			]
+		case 'disbursed':
+			return [
+				{ status: 'pending', setByUserId },
+				{ status: 'approved', setByUserId },
+				{ status: 'pre-authorized', setByUserId },
+				{ status: 'awaiting-authorization', setByUserId },
+				{ status: 'authorized', setByUserId },
+				{ status: 'disbursed', setByUserId },
+			]
 		case 'denied':
 			return [
 				{ status: 'pending', setByUserId },

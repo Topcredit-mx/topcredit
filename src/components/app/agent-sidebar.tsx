@@ -1,6 +1,7 @@
 'use client'
 
 import {
+	Banknote,
 	Building2,
 	CheckSquare,
 	CreditCard,
@@ -104,6 +105,15 @@ export function AgentSidebar({
 								title: t('nav-hr'),
 								url: '/equipo/applications?status=authorized&hrPending=true',
 								icon: UserCheck,
+							},
+						]
+					: []),
+				...(roles.includes('dispersions')
+					? [
+							{
+								title: t('nav-dispersions'),
+								url: '/equipo/applications?status=authorized&disbursementPending=true',
+								icon: Banknote,
 							},
 						]
 					: []),

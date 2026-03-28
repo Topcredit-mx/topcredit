@@ -60,6 +60,7 @@ export function statusRequiresFinancialTerms(
 
 export const INACTIVE_APPLICATION_STATUSES = [
 	'authorized',
+	'disbursed',
 	'denied',
 ] as const satisfies readonly ApplicationStatus[]
 
@@ -104,6 +105,10 @@ export function canTransitionToApplicationStatus(
 
 	if (nextStatus === 'authorized') {
 		return currentStatus === 'awaiting-authorization'
+	}
+
+	if (nextStatus === 'disbursed') {
+		return currentStatus === 'authorized'
 	}
 
 	if (nextStatus === 'denied') {
