@@ -1,42 +1,62 @@
-# App flow proposal — next steps
-
-Based on [app-flow-proposal.md](./app-flow-proposal.md): where the product already matches the doc, what to build next, and later phases.
-
----
-
-## Implemented today (baseline, not gaps)
-
-This section is an **inventory of what already exists** so “Up next” starts from a clear line in the sand. It is **not** a missing-coverage checklist; polish and test tightening for older flows live under **Ongoing** below.
-
-- Requests queue; applicant resubmits via **rejected document rows** while the application stays `pending` (no separate `invalid-documentation` application status for that flow).
-- Pre-authorizations role, approved-only queue, amount + term from offerings, borrowing-capacity rules (with admin override where implemented), `pre-authorized` / `denied`, and E2E for the main pre-auth paths.
-- Applicant **pre-authorized package** on cuenta: detail CTA plus dedicated offer page (amount, term, copy); required authorization-package uploads enforced before submit; **Submit for review** moves the application to `awaiting-authorization`.
-- **`authorizations`** role (DB enum, CASL, company assignments with `agent`), equipo detail: document actions when allowed; **Authorize** gated on all three package documents **approved** (visible hint + tooltip when blocked); **Deny** at `awaiting-authorization`; server rejects `authorized` if the package is incomplete.
-- **Equipo document review UX** (requests + authorizations stages): primary actions live on the document form (e.g. save + approve / save + authorize where applicable); **Acciones** trimmed to match (e.g. deny, pre-auth when applicable; approve in menu only when there are no documents to review).
-- **Role-based queue navigation** — Each agent role gets a dedicated sidebar link pre-filtered to their queue's status: `requests` → `?status=pending`, `pre-authorizations` → `?status=approved`, `authorizations` → `?status=awaiting-authorization`, `hr` → `?status=authorized&hrPending=true`. Multi-role agents see all applicable links. E2E in **`cypress/e2e/equipo/role-queue-nav.cy.ts`**.
-- **HR review** (`firstDiscountDate`) — After authorization, an HR agent (`agent` + `hr` role) reviews the application and sets `firstDiscountDate` (constrained to valid payday dates based on salary frequency). No separate `hrStatus` — `firstDiscountDate IS NULL` = HR pending, `IS NOT NULL` = HR approved. HR queue filter: `status=authorized&hrPending=true`. Payday logic in **`src/lib/first-discount-date.ts`** (unit-tested). E2E in **`cypress/e2e/equipo/hr-agents.cy.ts`**.
-- **E2E (Cypress)** — main paths covered: cuenta applicant flow in **`cypress/e2e/cuenta/applications.cy.ts`** (list, new application, navigation, **application detail documents**, **pre-authorized package**); equipo **`requests-agents`**, **`pre-authorizations-agents`**, **`authorizations-agents`** under **`cypress/e2e/equipo/`** for role-appropriate flows; admin and other areas under **`cypress/e2e/admin/`** and **`cypress/e2e/other/`** (e.g. **`landing.cy.ts`** for `/`).
-
----
-
 ## Up next
 
-- **Disbursements** (transfer + receipt → create **Credit**) — After HR approves, a disbursements agent (`agent` + `dispersions`) fills bank transfer data, attaches a receipt, and creates a Credit record from the authorized application.
+### Dispersions agent sees their queue
 
----
+A dispersions agent (`agent` + `dispersions`) logs in, sees a "Dispersiones" sidebar link, clicks it, and sees only `authorized` applications where HR has approved (`firstDiscountDate IS NOT NULL`).
 
-## Later phases
+- Add `'disbursed'` to `applicationStatusEnum` (application final state).
+- CASL: dispersions read rules (company-scoped).
+- Query: `disbursementPending=true` filter on `getApplicationsForReview` (`firstDiscountDate IS NOT NULL`).
+- Sidebar: "Dispersiones" nav link → `/equipo/applications?status=authorized&disbursementPending=true`.
+- Application rules: `authorized` → `disbursed` transition; `disbursed` in inactive statuses.
+- E2E in **`cypress/e2e/equipo/disbursement-agents.cy.ts`**.
 
-**Automated application-status email tests** — Add regression tests that assert the email pipeline when an application transitions status (e.g. to `authorized`), in a dedicated PR; keep relying on code review for email behavior until then.
+### Dispersions agent can disburse an application
 
-**Post-authorization operations** — When an **Application** becomes a **Credit**, disbursement queue, transfer + receipt capture, payment schedule generation.
+A dispersions agent opens an authorized+HR-approved application, sees a disbursement form, fills transfer reference + amount, attaches a receipt, submits — the application moves to `disbursed` and disappears from the queue.
 
-**Credits and payments** — Credits and schedule models, applicant **My credits** + payment history, HR payment confirmation, payments/reporting views for agents.
+- CASL: `'disburse'` action on Application, dispersions + admin.
+- Schema: add `transferReference`, `receiptStorageKey`, `receiptFileName` to `applications` table.
+- Mutation: `disburseApplication` — verify authorized + HR approved, update status to `disbursed` via `updateApplicationWithStatusHistory`, store transfer data.
+- Server action + form component (`disburse-form.tsx`): transfer reference input, amount (pre-filled, read-only), receipt file upload, submit.
+- Detail page: show form when canDisburse; show read-only info when `disbursed`.
+- E2E extends **`cypress/e2e/equipo/disbursement-agents.cy.ts`**.
 
----
+### Applicant sees disbursed application
 
-## Ongoing
+After disbursement, the applicant sees their application marked as **"Dispersado"** in cuenta — on the dashboard, the applications list, and the application detail page.
 
-- Rename fixtures/copy that still imply deprecated “company not ready” gating.
-- Update this doc and operational docs when new roles or queues ship.
-- When adding flows, add or extend specs under **`cypress/e2e/{cuenta,equipo,admin,other}/`** (flat per folder; use descriptive filenames). Import shared helpers via **`~/cypress/support/...`** and **`~/cypress/tasks`** as needed.
+- Update `getApplicationStatusBadgeClass()` in the cuenta application detail page to handle `disbursed` (green/success color).
+- Add i18n key `status-disbursed` → "Dispersado".
+- Dashboard home page (`/cuenta`): `disbursed` applications no longer show in "in progress" (already inactive via `INACTIVE_APPLICATION_STATUSES`).
+- Application detail: show read-only disbursement info (transfer reference, receipt) when status is `disbursed`.
+- E2E in **`cypress/e2e/cuenta/applications.cy.ts`** (applicant views disbursed application).
+
+### Credit schema + creation from disbursed applications
+
+When an application is disbursed, the system also creates a **Credit** record linking the application to its financial lifecycle.
+
+- `credits` table: `id`, `applicationId` (FK unique), `status` (`dispersed`), `disbursementDate`, `transferAmount`, `disbursedByUserId`, `createdAt`, `updatedAt`.
+- Credit creation triggered inside the existing `disburseApplication` mutation.
+- Credit inherits financial data from the application (amount, term, transfer info).
+
+### Applicant views active credit
+
+The applicant sees their active credit in **Mis Préstamos** (`/cuenta/loans`) — the page and sidebar link already exist as a placeholder.
+
+- Query: fetch credits for the authenticated applicant (join credits → applications where `applicantId = userId`).
+- `/cuenta/loans` page: list active credits with amount, term, status (`dispersed`), disbursement date, and next payment due.
+- Credit detail page (`/cuenta/loans/[id]`): show credit summary — amount, term, rate, first discount date, disbursement date, and payment schedule overview.
+- CASL: applicants can read their own credits (`applicantId` check via the linked application).
+- E2E in **`cypress/e2e/cuenta/loans.cy.ts`**.
+
+### Payment history for active credit
+
+The applicant opens a credit and sees their full payment schedule with status per payment.
+
+- `credit_payments` table: `id`, `creditId` (FK), `dueDate`, `amount`, `status` (`pending` / `confirmed`), `hrConfirmedAt`, `confirmedByUserId`, `createdAt`.
+- Payment schedule generation: triggered when the Credit is created, based on term duration, frequency, first discount date, and credit amount + rate.
+- `/cuenta/loans/[id]` detail page: payment history table showing due date, amount, and status (pending / confirmed) per installment.
+- HR payment confirmation flow (`hrConfirmedAt`): HR agent marks each payment as confirmed when payroll deduction is applied.
+- Payments/reporting views for agents.
+- E2E in **`cypress/e2e/cuenta/loans.cy.ts`** (applicant views payment history).
