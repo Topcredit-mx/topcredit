@@ -21,6 +21,8 @@ export const rolesEnum = pgEnum('roles', [
 	'requests',
 	'pre-authorizations',
 	'authorizations',
+	'hr',
+	'dispersions',
 	'admin',
 ])
 
@@ -235,6 +237,10 @@ export const applications = pgTable(
 		phoneNumber: text('phone_number'),
 		status: applicationStatusEnum('status').notNull(),
 		denialReason: text('denial_reason'),
+		firstDiscountDate: timestamp('first_discount_date', {
+			mode: 'date',
+			withTimezone: false,
+		}),
 		createdAt: timestamp('created_at', { withTimezone: true })
 			.defaultNow()
 			.notNull(),

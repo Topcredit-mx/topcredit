@@ -13,14 +13,14 @@ This section is an **inventory of what already exists** so “Up next” starts 
 - Applicant **pre-authorized package** on cuenta: detail CTA plus dedicated offer page (amount, term, copy); required authorization-package uploads enforced before submit; **Submit for review** moves the application to `awaiting-authorization`.
 - **`authorizations`** role (DB enum, CASL, company assignments with `agent`), equipo detail: document actions when allowed; **Authorize** gated on all three package documents **approved** (visible hint + tooltip when blocked); **Deny** at `awaiting-authorization`; server rejects `authorized` if the package is incomplete.
 - **Equipo document review UX** (requests + authorizations stages): primary actions live on the document form (e.g. save + approve / save + authorize where applicable); **Acciones** trimmed to match (e.g. deny, pre-auth when applicable; approve in menu only when there are no documents to review).
-- **Role-based queue navigation** — Each agent role gets a dedicated sidebar link pre-filtered to their queue's status: `requests` → `?status=pending`, `pre-authorizations` → `?status=approved`, `authorizations` → `?status=awaiting-authorization`. Multi-role agents see all applicable links. E2E in **`cypress/e2e/equipo/role-queue-nav.cy.ts`**.
+- **Role-based queue navigation** — Each agent role gets a dedicated sidebar link pre-filtered to their queue's status: `requests` → `?status=pending`, `pre-authorizations` → `?status=approved`, `authorizations` → `?status=awaiting-authorization`, `hr` → `?status=authorized&hrPending=true`. Multi-role agents see all applicable links. E2E in **`cypress/e2e/equipo/role-queue-nav.cy.ts`**.
+- **HR review** (`firstDiscountDate`) — After authorization, an HR agent (`agent` + `hr` role) reviews the application and sets `firstDiscountDate` (constrained to valid payday dates based on salary frequency). No separate `hrStatus` — `firstDiscountDate IS NULL` = HR pending, `IS NOT NULL` = HR approved. HR queue filter: `status=authorized&hrPending=true`. Payday logic in **`src/lib/first-discount-date.ts`** (unit-tested). E2E in **`cypress/e2e/equipo/hr-agents.cy.ts`**.
 - **E2E (Cypress)** — main paths covered: cuenta applicant flow in **`cypress/e2e/cuenta/applications.cy.ts`** (list, new application, navigation, **application detail documents**, **pre-authorized package**); equipo **`requests-agents`**, **`pre-authorizations-agents`**, **`authorizations-agents`** under **`cypress/e2e/equipo/`** for role-appropriate flows; admin and other areas under **`cypress/e2e/admin/`** and **`cypress/e2e/other/`** (e.g. **`landing.cy.ts`** for `/`).
 
 ---
 
 ## Up next
 
-- **HR** (`hrStatus`, first discount date) — After authorization, an HR agent (`agent` + `hr` role) reviews the application, sets `firstDiscountDate`, and approves. `hrStatus` is a field on the application; the application status stays `authorized`. New roles `hr` and `dispersions` need to be added to the DB enum.
 - **Disbursements** (transfer + receipt → create **Credit**) — After HR approves, a disbursements agent (`agent` + `dispersions`) fills bank transfer data, attaches a receipt, and creates a Credit record from the authorized application.
 
 ---
@@ -29,7 +29,7 @@ This section is an **inventory of what already exists** so “Up next” starts 
 
 **Automated application-status email tests** — Add regression tests that assert the email pipeline when an application transitions status (e.g. to `authorized`), in a dedicated PR; keep relying on code review for email behavior until then.
 
-**Post-authorization operations** — HR fields (`hrStatus`, `first discount date`), when an **Application** becomes a **Credit**, disbursement queue, transfer + receipt capture, payment schedule generation.
+**Post-authorization operations** — When an **Application** becomes a **Credit**, disbursement queue, transfer + receipt capture, payment schedule generation.
 
 **Credits and payments** — Credits and schedule models, applicant **My credits** + payment history, HR payment confirmation, payments/reporting views for agents.
 

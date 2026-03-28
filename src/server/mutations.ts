@@ -48,6 +48,7 @@ import type {
 } from '~/server/db/schema'
 import {
 	applicationDocuments,
+	applications,
 	companies,
 	termOfferings,
 	terms,
@@ -539,6 +540,7 @@ type ApplicationStatusContext = {
 	status: ApplicationStatus
 	termOfferingId: number | null
 	creditAmount: string | null
+	firstDiscountDate?: Date | null
 }
 
 function toApplicationSubject(app: ApplicationStatusContext) {
@@ -547,6 +549,7 @@ function toApplicationSubject(app: ApplicationStatusContext) {
 		applicantId: app.applicantId,
 		companyId: app.companyId,
 		status: app.status,
+		firstDiscountDate: app.firstDiscountDate ?? null,
 	})
 }
 
@@ -870,6 +873,80 @@ export async function updateApplicationStatus(
 	})
 
 	await sendApplicationStatusEmail(applicationId, data.status)
+
+	revalidatePath('/equipo/applications')
+	revalidatePath(`/equipo/applications/${applicationId}`)
+	revalidatePath('/cuenta/applications')
+	revalidatePath(`/cuenta/applications/${applicationId}`)
+	return {}
+}
+
+export async function hrApproveApplication(payload: {
+	applicationId: number
+	firstDiscountDate: string
+}): Promise<{ error?: string }> {
+	const { ability } = await getAbility()
+	const { applicationId, firstDiscountDate: dateStr } = payload
+
+	if (!dateStr) {
+		return { error: ValidationCode.HR_FIRST_DISCOUNT_DATE_REQUIRED }
+	}
+
+	const parts = dateStr.split('-')
+	if (parts.length !== 3) {
+		return { error: ValidationCode.HR_FIRST_DISCOUNT_DATE_INVALID }
+	}
+	const [yearStr, monthStr, dayStr] = parts
+	if (!yearStr || !monthStr || !dayStr) {
+		return { error: ValidationCode.HR_FIRST_DISCOUNT_DATE_INVALID }
+	}
+	const parsed = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr))
+	if (Number.isNaN(parsed.getTime())) {
+		return { error: ValidationCode.HR_FIRST_DISCOUNT_DATE_INVALID }
+	}
+
+	const rows = await db
+		.select({
+			id: applications.id,
+			applicantId: applications.applicantId,
+			companyId: applications.companyId,
+			status: applications.status,
+			salaryFrequency: applications.salaryFrequency,
+			firstDiscountDate: applications.firstDiscountDate,
+			termOfferingId: applications.termOfferingId,
+			creditAmount: applications.creditAmount,
+		})
+		.from(applications)
+		.where(eq(applications.id, applicationId))
+
+	const app = rows[0]
+	if (!app) {
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+
+	if (app.firstDiscountDate != null) {
+		return { error: ValidationCode.HR_ALREADY_APPROVED }
+	}
+
+	if (!ability.can('setFirstDiscountDate', toApplicationSubject(app))) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	const { isValidFirstDiscountDate } = await import('~/lib/first-discount-date')
+
+	const today = new Date()
+	today.setHours(0, 0, 0, 0)
+	if (!isValidFirstDiscountDate(app.salaryFrequency, parsed, today)) {
+		return { error: ValidationCode.HR_FIRST_DISCOUNT_DATE_INVALID }
+	}
+
+	await db
+		.update(applications)
+		.set({
+			firstDiscountDate: parsed,
+			updatedAt: new Date(),
+		})
+		.where(eq(applications.id, applicationId))
 
 	revalidatePath('/equipo/applications')
 	revalidatePath(`/equipo/applications/${applicationId}`)

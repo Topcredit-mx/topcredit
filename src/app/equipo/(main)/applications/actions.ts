@@ -9,6 +9,7 @@ import {
 import { ValidationCode } from '~/lib/validation-codes'
 import {
 	applyApplicationDocumentDecisions,
+	hrApproveApplication,
 	preAuthorizeApplication,
 	updateApplicationStatus,
 } from '~/server/mutations'
@@ -100,6 +101,31 @@ export async function updateApplicationStatusWithReasonFormAction(
 	const result = await updateApplicationStatus(applicationId, {
 		status: statusRaw,
 		reason: reason.trim(),
+	})
+	if (result.error) {
+		return { error: result.error }
+	}
+	revalidatePath('/equipo/applications')
+	revalidatePath(`/equipo/applications/${applicationId}`)
+	revalidatePath('/cuenta/applications')
+	revalidatePath(`/cuenta/applications/${applicationId}`)
+	redirect(`/equipo/applications/${applicationId}`)
+}
+
+export type HrApproveFormState = { error?: string }
+
+export async function hrApproveApplicationFormAction(
+	_prevState: HrApproveFormState,
+	formData: FormData,
+): Promise<HrApproveFormState> {
+	const applicationId = Number(formData.get('applicationId'))
+	const firstDiscountDate = formData.get('firstDiscountDate')
+	if (typeof firstDiscountDate !== 'string') {
+		return { error: ValidationCode.HR_FIRST_DISCOUNT_DATE_REQUIRED }
+	}
+	const result = await hrApproveApplication({
+		applicationId,
+		firstDiscountDate,
 	})
 	if (result.error) {
 		return { error: result.error }

@@ -23,6 +23,10 @@ import {
 	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
+import {
+	getValidFirstDiscountDates,
+	suggestFirstDiscountDate,
+} from '~/lib/first-discount-date'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, subject } from '~/server/auth/ability'
 import type { ApplicationStatus } from '~/server/db/schema'
@@ -35,6 +39,7 @@ import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
 import { ApplicationDocumentsReviewForm } from '../application-documents-review-form'
 import { formatApplicationTerm } from '../constants'
+import { HrApproveForm } from '../hr-approve-form'
 
 function statusBadgeVariant(
 	status: ApplicationStatus,
@@ -84,6 +89,7 @@ export default async function AppApplicationDetailPage({
 		applicantId: application.applicantId,
 		companyId: application.companyId,
 		status: application.status,
+		firstDiscountDate: application.firstDiscountDate,
 	})
 	const canPreAuthorize = ability.can('setStatusPreAuthorized', appSubject)
 	const canAuthorize = ability.can('setStatusAuthorized', appSubject)
@@ -95,6 +101,10 @@ export default async function AppApplicationDetailPage({
 	const authorizationPackageFullyApproved =
 		isAuthorizationPackageFullyApproved(documentList)
 	const initialIntakeFullyApproved = isInitialIntakeFullyApproved(documentList)
+	const canSetFirstDiscountDate = ability.can(
+		'setFirstDiscountDate',
+		appSubject,
+	)
 	const showActionControls = canDeny || canPreAuthorize
 	const termOfferings =
 		canPreAuthorize && application.status === 'approved'
@@ -123,6 +133,13 @@ export default async function AppApplicationDetailPage({
 						{t(EQUIPO_APPLICATION_STATUS_KEYS[application.status])}
 					</Badge>
 				</div>
+				{application.status === 'authorized' &&
+				application.firstDiscountDate == null ? (
+					<Badge variant="outline">{t('hr-status-pending')}</Badge>
+				) : null}
+				{application.firstDiscountDate != null ? (
+					<Badge variant="default">{t('hr-status-approved')}</Badge>
+				) : null}
 			</div>
 
 			{/* Main overview card: applicant + key data */}
@@ -319,6 +336,56 @@ export default async function AppApplicationDetailPage({
 					)}
 				</CardContent>
 			</Card>
+
+			{/* HR: First discount date display or approve form */}
+			{application.firstDiscountDate != null ? (
+				<Card className={DETAIL_STAT_CARD_CLASS}>
+					<CardContent className={DETAIL_STAT_CONTENT_CLASS}>
+						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+							<CalendarDays className="size-3.5" aria-hidden />
+							{t('hr-first-discount-date')}
+						</p>
+						<p className="mt-1.5 font-medium">
+							<FormattedDate
+								value={application.firstDiscountDate.toISOString()}
+								format="date"
+							/>
+						</p>
+					</CardContent>
+				</Card>
+			) : canSetFirstDiscountDate ? (
+				<Card className={DETAIL_CARD_CLASS}>
+					<CardHeader className={`border-b ${DETAIL_CARD_HEADER_CLASS}`}>
+						<CardTitle asChild className="flex items-center gap-2 text-base">
+							<h2>
+								<CalendarDays
+									className="size-4 text-muted-foreground"
+									aria-hidden
+								/>
+								{t('hr-approve-title')}
+							</h2>
+						</CardTitle>
+					</CardHeader>
+					<CardContent className={`pt-4 ${DETAIL_CARD_CONTENT_CLASS}`}>
+						<HrApproveForm
+							applicationId={application.id}
+							validDates={getValidFirstDiscountDates(
+								application.salaryFrequency,
+								new Date(),
+								6,
+							).map((d) => d.toISOString().split('T')[0] ?? '')}
+							suggestedDate={
+								suggestFirstDiscountDate(
+									application.salaryFrequency,
+									new Date(),
+								)
+									.toISOString()
+									.split('T')[0] ?? ''
+							}
+						/>
+					</CardContent>
+				</Card>
+			) : null}
 
 			<ApplicationStatusHistoryCard
 				title={t('applications-history-title')}

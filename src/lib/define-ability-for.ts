@@ -30,6 +30,7 @@ export type AppAction =
 	| 'setStatusPreAuthorized'
 	| 'setStatusAwaitingAuthorization'
 	| 'setStatusAuthorized'
+	| 'setFirstDiscountDate'
 	| 'reopenAuthorizationReview'
 export type AppSubject =
 	| 'Company'
@@ -46,6 +47,7 @@ export type ApplicationSubject = {
 	applicantId: number
 	companyId?: number
 	status?: ApplicationStatus
+	firstDiscountDate?: Date | null
 } & ForcedSubject<'Application'>
 
 export type ApplicationDocumentSubject = {
@@ -112,6 +114,10 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 	if (isAdmin) {
 		can('manage', 'all')
 		can('reopenAuthorizationReview', 'Application')
+		can('setFirstDiscountDate', 'Application', {
+			status: 'authorized',
+			firstDiscountDate: null,
+		})
 		can('setApplicationDocumentStatus', 'ApplicationDocument')
 		can('setStatusApproved', 'Application', {
 			status: 'pending',
@@ -182,6 +188,18 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 			documentType: { $in: [...PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES] },
 			companyId: { $in: ctx.assignedCompanyIds },
 			applicationStatus: { $in: ['approved', 'pre-authorized'] },
+		})
+	}
+
+	const isHr = ctx.roles.includes('hr')
+
+	if (isHr && isAgent && hasCompanyAssignments) {
+		can('read', 'Company', { id: { $in: ctx.assignedCompanyIds } })
+		can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
+		can('setFirstDiscountDate', 'Application', {
+			companyId: { $in: ctx.assignedCompanyIds },
+			status: 'authorized',
+			firstDiscountDate: null,
 		})
 	}
 

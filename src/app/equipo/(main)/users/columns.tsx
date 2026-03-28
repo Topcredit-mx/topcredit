@@ -56,6 +56,8 @@ function RoleCheckbox({
 		requests: t('users-role-requests'),
 		'pre-authorizations': t('users-role-pre-authorizations'),
 		authorizations: t('users-role-authorizations'),
+		hr: t('users-role-hr'),
+		dispersions: t('users-role-dispersions'),
 		admin: t('users-role-admin'),
 	}
 	const roleLabel = roleLabels[role]
@@ -282,6 +284,8 @@ export function createColumns(
 		requests: t('users-role-requests'),
 		'pre-authorizations': t('users-role-pre-authorizations'),
 		authorizations: t('users-role-authorizations'),
+		hr: t('users-role-hr'),
+		dispersions: t('users-role-dispersions'),
 		admin: t('users-role-admin'),
 	}
 

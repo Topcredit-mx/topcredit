@@ -53,6 +53,8 @@ export const PROFILE_ROLE_KEYS: Record<
 	requests: 'role-requests',
 	'pre-authorizations': 'role-pre-authorizations',
 	authorizations: 'role-authorizations',
+	hr: 'role-hr',
+	dispersions: 'role-dispersions',
 	admin: 'role-admin',
 }
 

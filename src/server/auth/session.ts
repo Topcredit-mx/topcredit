@@ -8,6 +8,8 @@ export type Role =
 	| 'requests'
 	| 'pre-authorizations'
 	| 'authorizations'
+	| 'hr'
+	| 'dispersions'
 	| 'admin'
 
 export async function requireAuth() {

@@ -30,16 +30,18 @@ function parseStatusParam(
 export default async function AppApplicationsPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ status?: string | string[] }>
+	searchParams: Promise<{ status?: string | string[]; hrPending?: string }>
 }) {
 	getRequiredAgentUser()
 	const scope = await getEffectiveCompanyScope()
 	const params = await searchParams
 	const currentStatus = parseStatusParam(params.status)
+	const hrPending = params.hrPending === 'true'
 
 	const applications = await getApplicationsForReview({
 		scope,
 		statusFilter: currentStatus !== undefined ? [currentStatus] : undefined,
+		hrPending: hrPending || undefined,
 	})
 	const t = await getTranslations('equipo')
 
