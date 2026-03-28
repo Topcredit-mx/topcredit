@@ -697,8 +697,9 @@ export async function getApplicationsForReview(params: {
 	scope: CompanyScope
 	statusFilter?: ApplicationStatus[]
 	hrPending?: boolean
+	disbursementPending?: boolean
 }): Promise<ApplicationForReview[]> {
-	const { scope, statusFilter, hrPending } = params
+	const { scope, statusFilter, hrPending, disbursementPending } = params
 
 	let companyCondition: SQL
 	if (scope.type === 'single') {
@@ -749,6 +750,9 @@ export async function getApplicationsForReview(params: {
 					: sql`1=1`,
 				hrPending === true
 					? sql`${applications.firstDiscountDate} IS NULL`
+					: sql`1=1`,
+				disbursementPending === true
+					? sql`${applications.firstDiscountDate} IS NOT NULL`
 					: sql`1=1`,
 			),
 		)

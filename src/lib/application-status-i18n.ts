@@ -7,6 +7,7 @@ const EQUIPO_STATUS_KEYS = [
 	'applications-status-pre-authorized',
 	'applications-status-awaiting-authorization',
 	'applications-status-authorized',
+	'applications-status-disbursed',
 	'applications-status-denied',
 ] as const
 
@@ -17,6 +18,7 @@ const CUENTA_STATUS_KEYS = [
 	'status-pre-authorized',
 	'status-awaiting-authorization',
 	'status-authorized',
+	'status-disbursed',
 	'status-denied',
 ] as const
 
@@ -30,6 +32,7 @@ export const EQUIPO_APPLICATION_STATUS_KEYS: Record<
 	'pre-authorized': 'applications-status-pre-authorized',
 	'awaiting-authorization': 'applications-status-awaiting-authorization',
 	authorized: 'applications-status-authorized',
+	disbursed: 'applications-status-disbursed',
 	denied: 'applications-status-denied',
 }
 
@@ -43,5 +46,6 @@ export const CUENTA_APPLICATION_STATUS_KEYS: Record<
 	'pre-authorized': 'status-pre-authorized',
 	'awaiting-authorization': 'status-awaiting-authorization',
 	authorized: 'status-authorized',
+	disbursed: 'status-disbursed',
 	denied: 'status-denied',
 }

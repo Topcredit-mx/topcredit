@@ -43,6 +43,7 @@ export const APPLICATION_STATUS_VALUES = [
 	'pre-authorized',
 	'awaiting-authorization',
 	'authorized',
+	'disbursed',
 	'denied',
 ] as const
 

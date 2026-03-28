@@ -203,6 +203,13 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		})
 	}
 
+	const isDispersions = ctx.roles.includes('dispersions')
+
+	if (isDispersions && isAgent && hasCompanyAssignments) {
+		can('read', 'Company', { id: { $in: ctx.assignedCompanyIds } })
+		can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
+	}
+
 	if (isAuthorizations && isAgent && hasCompanyAssignments) {
 		can('read', 'Company', { id: { $in: ctx.assignedCompanyIds } })
 		can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
