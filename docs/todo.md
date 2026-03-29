@@ -1,16 +1,5 @@
 ## Up next
 
-### Dispersions agent sees their queue
-
-A dispersions agent (`agent` + `dispersions`) logs in, sees a "Dispersiones" sidebar link, clicks it, and sees only `authorized` applications where HR has approved (`firstDiscountDate IS NOT NULL`).
-
-- Add `'disbursed'` to `applicationStatusEnum` (application final state).
-- CASL: dispersions read rules (company-scoped).
-- Query: `disbursementPending=true` filter on `getApplicationsForReview` (`firstDiscountDate IS NOT NULL`).
-- Sidebar: "Dispersiones" nav link → `/equipo/applications?status=authorized&disbursementPending=true`.
-- Application rules: `authorized` → `disbursed` transition; `disbursed` in inactive statuses.
-- E2E in **`cypress/e2e/equipo/disbursement-agents.cy.ts`**.
-
 ### Dispersions agent can disburse an application
 
 A dispersions agent opens an authorized+HR-approved application, sees a disbursement form, fills transfer reference + amount, attaches a receipt, submits — the application moves to `disbursed` and disappears from the queue.
