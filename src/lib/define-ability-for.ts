@@ -32,6 +32,7 @@ export type AppAction =
 	| 'setStatusAuthorized'
 	| 'setFirstDiscountDate'
 	| 'reopenAuthorizationReview'
+	| 'disburse'
 export type AppSubject =
 	| 'Company'
 	| 'User'
@@ -118,6 +119,7 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 			status: 'authorized',
 			firstDiscountDate: null,
 		})
+		can('disburse', 'Application', { status: 'authorized' })
 		can('setApplicationDocumentStatus', 'ApplicationDocument')
 		can('setStatusApproved', 'Application', {
 			status: 'pending',
@@ -208,6 +210,10 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 	if (isDispersions && isAgent && hasCompanyAssignments) {
 		can('read', 'Company', { id: { $in: ctx.assignedCompanyIds } })
 		can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
+		can('disburse', 'Application', {
+			companyId: { $in: ctx.assignedCompanyIds },
+			status: 'authorized',
+		})
 	}
 
 	if (isAuthorizations && isAgent && hasCompanyAssignments) {

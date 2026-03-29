@@ -45,6 +45,9 @@ export async function updateApplicationWithStatusHistory(params: {
 	denialReason: string | null
 	termOfferingId?: number | null
 	creditAmount?: string | null
+	transferReference?: string | null
+	receiptStorageKey?: string | null
+	receiptFileName?: string | null
 	updatedAt?: Date
 }) {
 	const updatedAt = params.updatedAt ?? new Date()
@@ -54,6 +57,9 @@ export async function updateApplicationWithStatusHistory(params: {
 		updatedAt: Date
 		termOfferingId?: number | null
 		creditAmount?: string | null
+		transferReference?: string | null
+		receiptStorageKey?: string | null
+		receiptFileName?: string | null
 	} = {
 		status: params.status,
 		denialReason: params.denialReason,
@@ -66,6 +72,18 @@ export async function updateApplicationWithStatusHistory(params: {
 
 	if (params.creditAmount !== undefined) {
 		updateValues.creditAmount = params.creditAmount
+	}
+
+	if (params.transferReference !== undefined) {
+		updateValues.transferReference = params.transferReference
+	}
+
+	if (params.receiptStorageKey !== undefined) {
+		updateValues.receiptStorageKey = params.receiptStorageKey
+	}
+
+	if (params.receiptFileName !== undefined) {
+		updateValues.receiptFileName = params.receiptFileName
 	}
 
 	await db

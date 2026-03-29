@@ -83,6 +83,7 @@ const STATUS_TO_ACTION: Partial<Record<ApplicationStatus, AppAction>> = {
 	denied: 'setStatusDenied',
 	'pre-authorized': 'setStatusPreAuthorized',
 	authorized: 'setStatusAuthorized',
+	disbursed: 'disburse',
 }
 
 export function getActionForApplicationStatus(

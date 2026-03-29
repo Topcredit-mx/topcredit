@@ -6,6 +6,7 @@ import {
 	Clock,
 	FileText,
 	FolderOpen,
+	Receipt,
 	User,
 	Wallet,
 } from 'lucide-react'
@@ -39,6 +40,7 @@ import { getEffectiveCompanyScope } from '~/server/scopes'
 import { ApplicationActions } from '../application-actions'
 import { ApplicationDocumentsReviewForm } from '../application-documents-review-form'
 import { formatApplicationTerm } from '../constants'
+import { DisburseForm } from '../disburse-form'
 import { HrApproveForm } from '../hr-approve-form'
 
 function statusBadgeVariant(
@@ -105,6 +107,10 @@ export default async function AppApplicationDetailPage({
 		'setFirstDiscountDate',
 		appSubject,
 	)
+	const canDisburse =
+		ability.can('disburse', appSubject) &&
+		application.firstDiscountDate != null &&
+		application.status === 'authorized'
 	const showActionControls = canDeny || canPreAuthorize
 	const termOfferings =
 		canPreAuthorize && application.status === 'approved'
@@ -382,6 +388,56 @@ export default async function AppApplicationDetailPage({
 									.toISOString()
 									.split('T')[0] ?? ''
 							}
+						/>
+					</CardContent>
+				</Card>
+			) : null}
+
+			{/* Disbursement: form or read-only info */}
+			{application.status === 'disbursed' &&
+			application.transferReference != null ? (
+				<Card className={DETAIL_CARD_CLASS}>
+					<CardHeader className={`border-b ${DETAIL_CARD_HEADER_CLASS}`}>
+						<CardTitle asChild className="flex items-center gap-2 text-base">
+							<h2>
+								<Receipt className="size-4 text-muted-foreground" aria-hidden />
+								{t('disburse-readonly-title')}
+							</h2>
+						</CardTitle>
+					</CardHeader>
+					<CardContent
+						className={`space-y-3 pt-4 ${DETAIL_CARD_CONTENT_CLASS}`}
+					>
+						<div>
+							<p className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+								{t('disburse-readonly-transfer-reference')}
+							</p>
+							<p className="mt-1 text-sm">{application.transferReference}</p>
+						</div>
+						{application.receiptFileName != null ? (
+							<div>
+								<p className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+									{t('disburse-readonly-receipt')}
+								</p>
+								<p className="mt-1 text-sm">{application.receiptFileName}</p>
+							</div>
+						) : null}
+					</CardContent>
+				</Card>
+			) : canDisburse && application.creditAmount != null ? (
+				<Card className={DETAIL_CARD_CLASS}>
+					<CardHeader className={`border-b ${DETAIL_CARD_HEADER_CLASS}`}>
+						<CardTitle asChild className="flex items-center gap-2 text-base">
+							<h2>
+								<Receipt className="size-4 text-muted-foreground" aria-hidden />
+								{t('disburse-title')}
+							</h2>
+						</CardTitle>
+					</CardHeader>
+					<CardContent className={`pt-4 ${DETAIL_CARD_CONTENT_CLASS}`}>
+						<DisburseForm
+							applicationId={application.id}
+							creditAmount={formatCurrencyMxn(application.creditAmount)}
 						/>
 					</CardContent>
 				</Card>

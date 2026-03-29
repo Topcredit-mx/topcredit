@@ -676,6 +676,8 @@ export type ApplicationForReview = {
 	companyBorrowingCapacityRate: string | null
 	status: ApplicationStatus
 	denialReason: string | null
+	transferReference: string | null
+	receiptFileName: string | null
 	firstDiscountDate: Date | null
 	createdAt: Date
 	updatedAt: Date
@@ -726,6 +728,8 @@ export async function getApplicationsForReview(params: {
 			companyBorrowingCapacityRate: companies.borrowingCapacityRate,
 			status: applications.status,
 			denialReason: applications.denialReason,
+			transferReference: applications.transferReference,
+			receiptFileName: applications.receiptFileName,
 			firstDiscountDate: applications.firstDiscountDate,
 			createdAt: applications.createdAt,
 			updatedAt: applications.updatedAt,
@@ -771,6 +775,8 @@ export async function getApplicationsForReview(params: {
 		companyBorrowingCapacityRate: row.companyBorrowingCapacityRate,
 		status: row.status,
 		denialReason: row.denialReason,
+		transferReference: row.transferReference,
+		receiptFileName: row.receiptFileName,
 		firstDiscountDate: row.firstDiscountDate,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
@@ -823,6 +829,8 @@ export async function getApplicationForReview(
 			companyBorrowingCapacityRate: companies.borrowingCapacityRate,
 			status: applications.status,
 			denialReason: applications.denialReason,
+			transferReference: applications.transferReference,
+			receiptFileName: applications.receiptFileName,
 			firstDiscountDate: applications.firstDiscountDate,
 			createdAt: applications.createdAt,
 			updatedAt: applications.updatedAt,
@@ -863,6 +871,8 @@ export async function getApplicationForReview(
 		companyBorrowingCapacityRate: row.companyBorrowingCapacityRate,
 		status: row.status,
 		denialReason: row.denialReason,
+		transferReference: row.transferReference,
+		receiptFileName: row.receiptFileName,
 		firstDiscountDate: row.firstDiscountDate,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
