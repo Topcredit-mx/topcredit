@@ -16,21 +16,19 @@ export default defineConfig({
 		specPattern: ['cypress/e2e/**/*.cy.{js,ts}'],
 		setupNodeEvents(on, cypressConfig) {
 			on('task', tasks)
-			const parallelRun = process.argv.includes('--parallel')
-			if (!parallelRun) {
-				const runE2eDbEmptyAssert = async () => {
-					const url = process.env.DATABASE_URL
-					if (!url) {
-						console.warn(
-							'[cypress] Skipping assertE2eDatabaseEmpty: DATABASE_URL is not set',
-						)
-						return
-					}
-					await assertE2eDatabaseEmpty(url)
+			// Safe for parallel runs: CI creates an isolated Neon branch per matrix container.
+			const runE2eDbEmptyAssert = async () => {
+				const url = process.env.DATABASE_URL
+				if (!url) {
+					console.warn(
+						'[cypress] Skipping assertE2eDatabaseEmpty: DATABASE_URL is not set',
+					)
+					return
 				}
-				on('before:spec', runE2eDbEmptyAssert)
-				on('after:spec', runE2eDbEmptyAssert)
+				await assertE2eDatabaseEmpty(url)
 			}
+			on('before:spec', runE2eDbEmptyAssert)
+			on('after:spec', runE2eDbEmptyAssert)
 			return cypressConfig
 		},
 	},
