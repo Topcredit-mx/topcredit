@@ -6,6 +6,7 @@ import {
 	FileText,
 	FolderOpen,
 	MapPin,
+	Receipt,
 	Wallet,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -239,6 +240,26 @@ export default async function CuentaApplicationDetailPage({
 					</div>
 				</div>
 			</div>
+
+			{application.status === 'disbursed' &&
+			application.transferReference != null ? (
+				<SectionCard
+					className="mt-8"
+					icon={Receipt}
+					title={t('disburse-readonly-title')}
+				>
+					<dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+						<DetailField label={t('disburse-readonly-transfer-reference')}>
+							{application.transferReference}
+						</DetailField>
+						{application.receiptFileName != null ? (
+							<DetailField label={t('disburse-readonly-receipt')}>
+								{application.receiptFileName}
+							</DetailField>
+						) : null}
+					</dl>
+				</SectionCard>
+			) : null}
 
 			<SectionCard
 				className="mt-8"

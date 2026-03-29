@@ -950,6 +950,35 @@ describe('Cuenta applications', () => {
 		})
 	})
 
+	describe('Disbursed application detail', () => {
+		beforeEach(() => {
+			cy.login(applicantWithCompany.email)
+		})
+
+		it('shows disbursement info with transfer reference and receipt when status is disbursed', () => {
+			cy.task('resetApplicantApplication', {
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '25000',
+				salaryAtApplication: '100000',
+				status: 'disbursed',
+				transferReference: 'REF-123456',
+				receiptFileName: 'comprobante.pdf',
+			}).then((app) => {
+				cy.visit(`/cuenta/applications/${app.id}`)
+				cy.contains('h1', /resumen de tu solicitud/i)
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains('[role="status"]', /dispersado/i).should('be.visible')
+				cy.contains('h2', /información de dispersión/i)
+					.scrollIntoView()
+					.should('be.visible')
+				cy.contains('REF-123456').scrollIntoView().should('be.visible')
+				cy.contains('comprobante.pdf').scrollIntoView().should('be.visible')
+			})
+		})
+	})
+
 	describe('Application detail isolation', () => {
 		it('applicant cannot open another applicant application by id', () => {
 			cy.task('resetApplicantApplication', {

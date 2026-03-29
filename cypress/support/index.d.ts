@@ -140,5 +140,8 @@ type ResetApplicantApplicationTaskParams = {
 		| 'pre-authorized'
 		| 'awaiting-authorization'
 		| 'authorized'
+		| 'disbursed'
 		| 'denied'
+	transferReference?: string
+	receiptFileName?: string
 }

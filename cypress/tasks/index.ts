@@ -681,7 +681,10 @@ export type ResetApplicantApplicationTaskParams = {
 		| 'pre-authorized'
 		| 'awaiting-authorization'
 		| 'authorized'
+		| 'disbursed'
 		| 'denied'
+	transferReference?: string
+	receiptFileName?: string
 }
 
 export const resetApplicantApplication = async (
@@ -734,6 +737,8 @@ export const resetApplicantApplication = async (
 			salaryAtApplication: params.salaryAtApplication,
 			salaryFrequency: params.salaryFrequency ?? 'monthly',
 			status: finalStatus,
+			transferReference: params.transferReference,
+			receiptFileName: params.receiptFileName,
 		})
 		.returning()
 	if (!app) throw new Error('Failed to create application')
