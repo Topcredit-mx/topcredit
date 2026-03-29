@@ -1,15 +1,5 @@
 ## Up next
 
-### Applicant sees disbursed application
-
-After disbursement, the applicant sees their application marked as **"Dispersado"** in cuenta — on the dashboard, the applications list, and the application detail page.
-
-- Update `getApplicationStatusBadgeClass()` in the cuenta application detail page to handle `disbursed` (green/success color).
-- Add i18n key `status-disbursed` → "Dispersado".
-- Dashboard home page (`/cuenta`): `disbursed` applications no longer show in "in progress" (already inactive via `INACTIVE_APPLICATION_STATUSES`).
-- Application detail: show read-only disbursement info (transfer reference, receipt) when status is `disbursed`.
-- E2E in **`cypress/e2e/cuenta/applications.cy.ts`** (applicant views disbursed application).
-
 ### Credit schema + creation from disbursed applications
 
 When an application is disbursed, the system also creates a **Credit** record linking the application to its financial lifecycle.

@@ -488,6 +488,8 @@ export type ApplicationDetailForApplicant = {
 	postalCode: string | null
 	phoneNumber: string | null
 	denialReason: string | null
+	transferReference: string | null
+	receiptFileName: string | null
 	createdAt: Date
 	updatedAt: Date
 	statusHistory: ApplicationStatusHistoryItem[]
@@ -534,6 +536,8 @@ export async function getApplicationByApplicantId(
 			postalCode: applications.postalCode,
 			phoneNumber: applications.phoneNumber,
 			denialReason: applications.denialReason,
+			transferReference: applications.transferReference,
+			receiptFileName: applications.receiptFileName,
 			createdAt: applications.createdAt,
 			updatedAt: applications.updatedAt,
 			durationType: terms.durationType,
@@ -576,6 +580,8 @@ export async function getApplicationByApplicantId(
 		postalCode: row.postalCode,
 		phoneNumber: row.phoneNumber,
 		denialReason: row.denialReason,
+		transferReference: row.transferReference,
+		receiptFileName: row.receiptFileName,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 		statusHistory,

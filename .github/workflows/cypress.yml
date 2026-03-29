@@ -85,7 +85,7 @@ jobs:
         with:
           browser: electron
           record: true
-          parallel: false
+          parallel: true
           group: 'Electron'
         env:
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}

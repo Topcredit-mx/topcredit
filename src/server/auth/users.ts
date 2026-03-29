@@ -34,21 +34,22 @@ export async function getUserByEmail(email: string) {
 	}
 }
 
-const isE2ETestMode = () => !!env.E2E_OTP_CODE
+function isE2EOtpCode(code: string | undefined): code is string {
+	const nodeEnv = process.env.NODE_ENV
+	return (nodeEnv === 'development' || nodeEnv === 'test') && !!code
+}
+
+const getOtpCode = () => {
+	if (isE2EOtpCode(env.E2E_OTP_CODE)) {
+		return env.E2E_OTP_CODE
+	}
+	return String(randomInt(100000, 999999))
+}
 
 export async function sendOtp(email: string, ipAddress: string) {
 	await db.delete(emailOtps).where(eq(emailOtps.email, email))
 
-	const otp = isE2ETestMode()
-		? (() => {
-				const code = env.E2E_OTP_CODE
-				if (!code)
-					throw new Error(
-						'E2E_OTP_CODE must be set when running E2E login tests',
-					)
-				return code
-			})()
-		: String(randomInt(100000, 999999))
+	const otp = getOtpCode()
 	const hashedOtp = await bcrypt.hash(otp, 12)
 
 	await db.insert(emailOtps).values({
