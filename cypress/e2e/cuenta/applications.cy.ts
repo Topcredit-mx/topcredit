@@ -955,7 +955,7 @@ describe('Cuenta applications', () => {
 			cy.login(applicantWithCompany.email)
 		})
 
-		it('shows disbursement info with transfer reference and receipt when status is disbursed', () => {
+		it('shows disbursement info and filled-in applicant data when status is disbursed', () => {
 			cy.task('resetApplicantApplication', {
 				applicantId: seed.applicantId,
 				termOfferingId: seed.termOfferingId,
@@ -964,6 +964,16 @@ describe('Cuenta applications', () => {
 				status: 'disbursed',
 				transferReference: 'REF-123456',
 				receiptFileName: 'comprobante.pdf',
+				phoneNumber: '8112345678',
+				payrollNumber: 'EMP-001',
+				rfc: 'GODE561231GR8',
+				clabe: '032180000118359719',
+				streetAndNumber: 'Av. Revolucion 123',
+				interiorNumber: '1206 Torre 4',
+				city: 'Monterrey',
+				state: 'Nuevo León',
+				country: 'México',
+				postalCode: '64000',
 			}).then((app) => {
 				cy.visit(`/cuenta/applications/${app.id}`)
 				cy.contains('h1', /resumen de tu solicitud/i)
@@ -975,6 +985,10 @@ describe('Cuenta applications', () => {
 					.should('be.visible')
 				cy.contains('REF-123456').scrollIntoView().should('be.visible')
 				cy.contains('comprobante.pdf').scrollIntoView().should('be.visible')
+				cy.contains('8112345678').scrollIntoView().should('be.visible')
+				cy.contains('GODE561231GR8').scrollIntoView().should('be.visible')
+				cy.contains('Av. Revolucion 123').scrollIntoView().should('be.visible')
+				cy.contains('Monterrey').scrollIntoView().should('be.visible')
 			})
 		})
 	})

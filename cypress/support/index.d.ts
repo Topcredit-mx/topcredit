@@ -144,4 +144,14 @@ type ResetApplicantApplicationTaskParams = {
 		| 'denied'
 	transferReference?: string
 	receiptFileName?: string
+	phoneNumber?: string
+	payrollNumber?: string
+	rfc?: string
+	clabe?: string
+	streetAndNumber?: string
+	interiorNumber?: string
+	city?: string
+	state?: string
+	country?: string
+	postalCode?: string
 }
