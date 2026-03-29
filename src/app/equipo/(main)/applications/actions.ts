@@ -9,6 +9,7 @@ import {
 import { ValidationCode } from '~/lib/validation-codes'
 import {
 	applyApplicationDocumentDecisions,
+	disburseApplication,
 	hrApproveApplication,
 	preAuthorizeApplication,
 	updateApplicationStatus,
@@ -126,6 +127,36 @@ export async function hrApproveApplicationFormAction(
 	const result = await hrApproveApplication({
 		applicationId,
 		firstDiscountDate,
+	})
+	if (result.error) {
+		return { error: result.error }
+	}
+	revalidatePath('/equipo/applications')
+	revalidatePath(`/equipo/applications/${applicationId}`)
+	revalidatePath('/cuenta/applications')
+	revalidatePath(`/cuenta/applications/${applicationId}`)
+	redirect(`/equipo/applications/${applicationId}`)
+}
+
+export type DisburseFormState = { error?: string }
+
+export async function disburseApplicationFormAction(
+	_prevState: DisburseFormState,
+	formData: FormData,
+): Promise<DisburseFormState> {
+	const applicationId = Number(formData.get('applicationId'))
+	const transferReference = formData.get('transferReference')
+	const receiptFile = formData.get('receipt')
+	if (typeof transferReference !== 'string') {
+		return { error: ValidationCode.DISBURSE_TRANSFER_REFERENCE_REQUIRED }
+	}
+	if (!(receiptFile instanceof File) || receiptFile.size === 0) {
+		return { error: ValidationCode.DISBURSE_RECEIPT_REQUIRED }
+	}
+	const result = await disburseApplication({
+		applicationId,
+		transferReference,
+		receiptFile,
 	})
 	if (result.error) {
 		return { error: result.error }

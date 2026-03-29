@@ -1,16 +1,5 @@
 ## Up next
 
-### Dispersions agent can disburse an application
-
-A dispersions agent opens an authorized+HR-approved application, sees a disbursement form, fills transfer reference + amount, attaches a receipt, submits — the application moves to `disbursed` and disappears from the queue.
-
-- CASL: `'disburse'` action on Application, dispersions + admin.
-- Schema: add `transferReference`, `receiptStorageKey`, `receiptFileName` to `applications` table.
-- Mutation: `disburseApplication` — verify authorized + HR approved, update status to `disbursed` via `updateApplicationWithStatusHistory`, store transfer data.
-- Server action + form component (`disburse-form.tsx`): transfer reference input, amount (pre-filled, read-only), receipt file upload, submit.
-- Detail page: show form when canDisburse; show read-only info when `disbursed`.
-- E2E extends **`cypress/e2e/equipo/disbursement-agents.cy.ts`**.
-
 ### Applicant sees disbursed application
 
 After disbursement, the applicant sees their application marked as **"Dispersado"** in cuenta — on the dashboard, the applications list, and the application detail page.

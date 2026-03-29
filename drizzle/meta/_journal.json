@@ -22,6 +22,13 @@
 			"when": 1774734103631,
 			"tag": "0002_uneven_sinister_six",
 			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "7",
+			"when": 1774743817380,
+			"tag": "0003_rainy_beast",
+			"breakpoints": true
 		}
 	]
 }

@@ -954,3 +954,75 @@ export async function hrApproveApplication(payload: {
 	revalidatePath(`/cuenta/applications/${applicationId}`)
 	return {}
 }
+
+export async function disburseApplication(payload: {
+	applicationId: number
+	transferReference: string
+	receiptFile: File
+}): Promise<{ error?: string }> {
+	const { ability } = await getAbility()
+	const { applicationId, transferReference, receiptFile } = payload
+
+	if (!transferReference.trim()) {
+		return { error: ValidationCode.DISBURSE_TRANSFER_REFERENCE_REQUIRED }
+	}
+
+	if (receiptFile.size === 0) {
+		return { error: ValidationCode.DISBURSE_RECEIPT_REQUIRED }
+	}
+
+	const rows = await db
+		.select({
+			id: applications.id,
+			applicantId: applications.applicantId,
+			companyId: applications.companyId,
+			status: applications.status,
+			termOfferingId: applications.termOfferingId,
+			creditAmount: applications.creditAmount,
+			firstDiscountDate: applications.firstDiscountDate,
+		})
+		.from(applications)
+		.where(eq(applications.id, applicationId))
+
+	const app = rows[0]
+	if (!app) {
+		return { error: ValidationCode.APPLICATIONS_NOT_FOUND }
+	}
+
+	if (app.firstDiscountDate == null) {
+		return { error: ValidationCode.DISBURSE_HR_NOT_APPROVED }
+	}
+
+	if (!ability.can('disburse', toApplicationSubject(app))) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	if (!canTransitionToApplicationStatus(app.status, 'disbursed')) {
+		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
+	}
+
+	const { uploadBlob } = await import('~/server/storage')
+	const receiptPathname = `disbursement-receipts/${applicationId}/${receiptFile.name}`
+	const { pathname: receiptStorageKey } = await uploadBlob(
+		receiptPathname,
+		receiptFile,
+	)
+
+	const user = await getRequiredUser()
+
+	await updateApplicationWithStatusHistory({
+		applicationId,
+		status: 'disbursed',
+		setByUserId: user.id,
+		denialReason: null,
+		transferReference: transferReference.trim(),
+		receiptStorageKey,
+		receiptFileName: receiptFile.name,
+	})
+
+	revalidatePath('/equipo/applications')
+	revalidatePath(`/equipo/applications/${applicationId}`)
+	revalidatePath('/cuenta/applications')
+	revalidatePath(`/cuenta/applications/${applicationId}`)
+	return {}
+}

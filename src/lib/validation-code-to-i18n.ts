@@ -273,6 +273,18 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'HR_ALREADY_APPROVED',
 	},
+	[ValidationCode.DISBURSE_TRANSFER_REFERENCE_REQUIRED]: {
+		namespace: 'equipo',
+		key: 'DISBURSE_TRANSFER_REFERENCE_REQUIRED',
+	},
+	[ValidationCode.DISBURSE_RECEIPT_REQUIRED]: {
+		namespace: 'equipo',
+		key: 'DISBURSE_RECEIPT_REQUIRED',
+	},
+	[ValidationCode.DISBURSE_HR_NOT_APPROVED]: {
+		namespace: 'equipo',
+		key: 'DISBURSE_HR_NOT_APPROVED',
+	},
 }
 
 function isValidationCode(s: string): s is ValidationCodeType {
