@@ -238,6 +238,9 @@ export const applications = pgTable(
 		phoneNumber: text('phone_number'),
 		status: applicationStatusEnum('status').notNull(),
 		denialReason: text('denial_reason'),
+		transferReference: text('transfer_reference'),
+		receiptStorageKey: text('receipt_storage_key'),
+		receiptFileName: text('receipt_file_name'),
 		firstDiscountDate: timestamp('first_discount_date', {
 			mode: 'date',
 			withTimezone: false,
