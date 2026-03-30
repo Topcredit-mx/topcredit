@@ -27,6 +27,12 @@ Defaults for how to write and test code in this repository.
 - Before adding a new function or module, check whether something shared already exists.
 - Before adding new code, look for existing **constants**, **duplicate values**, **type guards/narrows**, **queries** (API, DB, or data-fetch), and shared utilities—reuse or extend instead of duplicating.
 
+## Change size
+
+- Each planned task should result in **at most ~300 lines of changed code**.
+- If a task would exceed this limit, split it into smaller tasks and rebuild the plan around the smaller scope.
+- **Exception:** database migration snapshot files are exempt from this limit, as they are auto-generated and can be large.
+
 ## Test-driven development
 
 - **Write tests first**, then implement code to make them pass.
