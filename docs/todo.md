@@ -1,22 +1,20 @@
 ## Up next
 
-### Credit schema + creation from disbursed applications
+### Credit schema + creation + applicant views active credit
 
-When an application is disbursed, the system also creates a **Credit** record linking the application to its financial lifecycle.
+When an application is disbursed, the system creates a **Credit** record. The applicant sees their active credits on `/cuenta/credits`.
 
 - `credits` table: `id`, `applicationId` (FK unique), `status` (`dispersed`), `disbursementDate`, `transferAmount`, `disbursedByUserId`, `createdAt`, `updatedAt`.
 - Credit creation triggered inside the existing `disburseApplication` mutation.
 - Credit inherits financial data from the application (amount, term, transfer info).
-
-### Applicant views active credit
-
-The applicant sees their active credit in **Mis Préstamos** (`/cuenta/loans`) — the page and sidebar link already exist as a placeholder.
-
 - Query: fetch credits for the authenticated applicant (join credits → applications where `applicantId = userId`).
-- `/cuenta/loans` page: list active credits with amount, term, status (`dispersed`), disbursement date, and next payment due.
-- Credit detail page (`/cuenta/loans/[id]`): show credit summary — amount, term, rate, first discount date, disbursement date, and payment schedule overview.
+- `/cuenta/credits` page: list active credits with amount, status (`dispersed`), and disbursement date.
 - CASL: applicants can read their own credits (`applicantId` check via the linked application).
-- E2E in **`cypress/e2e/cuenta/loans.cy.ts`**.
+- E2E in **`cypress/e2e/cuenta/credits.cy.ts`**.
+
+### Credit detail page
+
+- Credit detail page (`/cuenta/credits/[id]`): show credit summary — amount, term, rate, first discount date, disbursement date, and payment schedule overview.
 
 ### Payment history for active credit
 
@@ -24,7 +22,7 @@ The applicant opens a credit and sees their full payment schedule with status pe
 
 - `credit_payments` table: `id`, `creditId` (FK), `dueDate`, `amount`, `status` (`pending` / `confirmed`), `hrConfirmedAt`, `confirmedByUserId`, `createdAt`.
 - Payment schedule generation: triggered when the Credit is created, based on term duration, frequency, first discount date, and credit amount + rate.
-- `/cuenta/loans/[id]` detail page: payment history table showing due date, amount, and status (pending / confirmed) per installment.
+- `/cuenta/credits/[id]` detail page: payment history table showing due date, amount, and status (pending / confirmed) per installment.
 - HR payment confirmation flow (`hrConfirmedAt`): HR agent marks each payment as confirmed when payroll deduction is applied.
 - Payments/reporting views for agents.
-- E2E in **`cypress/e2e/cuenta/loans.cy.ts`** (applicant views payment history).
+- E2E in **`cypress/e2e/cuenta/credits.cy.ts`** (applicant views payment history).
