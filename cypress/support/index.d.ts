@@ -95,6 +95,13 @@ declare namespace Cypress {
 			event: 'updateLatestApplicationDocumentByType',
 			params: import('../tasks').UpdateLatestApplicationDocumentByTypeTaskParams,
 		): Chainable<null>
+		task(
+			event: 'seedCuentaCredits',
+		): Chainable<import('../tasks').SeedCuentaCreditsResult>
+		task(
+			event: 'seedCuentaCreditsEmpty',
+		): Chainable<import('../tasks').SeedCuentaCreditsResult>
+		task(event: 'cleanupCuentaCredits'): Chainable<null>
 	}
 }
 

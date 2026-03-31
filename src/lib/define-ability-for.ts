@@ -39,6 +39,7 @@ export type AppSubject =
 	| 'Admin'
 	| 'Application'
 	| 'ApplicationDocument'
+	| 'Credit'
 	| 'all'
 
 export type CompanySubject = { id: number } & ForcedSubject<'Company'>
@@ -59,6 +60,11 @@ export type ApplicationDocumentSubject = {
 	applicationStatus: ApplicationStatus
 } & ForcedSubject<'ApplicationDocument'>
 
+export type CreditSubject = {
+	id: number
+	applicantId: number
+} & ForcedSubject<'Credit'>
+
 export type AppAbility = MongoAbility<
 	[
 		AppAction,
@@ -68,6 +74,7 @@ export type AppAbility = MongoAbility<
 			| UserSubject
 			| ApplicationSubject
 			| ApplicationDocumentSubject
+			| CreditSubject
 		),
 	]
 >
@@ -104,6 +111,7 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 			can('create', 'Application')
 		}
 		can('read', 'Application', { applicantId: ctx.userId })
+		can('read', 'Credit', { applicantId: ctx.userId })
 		can('uploadDocument', 'Application', { applicantId: ctx.userId })
 		can('setStatusAwaitingAuthorization', 'Application', {
 			applicantId: ctx.userId,

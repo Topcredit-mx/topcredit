@@ -22,6 +22,7 @@ import {
 	applicationStatusHistory,
 	applications,
 	companies,
+	credits,
 	termOfferings,
 	terms,
 	userCompanies,
@@ -981,4 +982,40 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
 		usersTotal: Number(usersTotalResult[0]?.count ?? 0),
 		agentsTotal,
 	}
+}
+
+export type CreditListItem = {
+	id: number
+	applicationId: number
+	status: 'dispersed'
+	disbursementDate: Date
+	transferAmount: string
+	createdAt: Date
+}
+
+export async function getCreditsByApplicantId(
+	userId: number,
+): Promise<CreditListItem[]> {
+	const { ability } = await getAbility()
+	requireAbility(
+		ability,
+		'read',
+		subject('Credit', { id: 0, applicantId: userId }),
+	)
+
+	const rows = await db
+		.select({
+			id: credits.id,
+			applicationId: credits.applicationId,
+			status: credits.status,
+			disbursementDate: credits.disbursementDate,
+			transferAmount: credits.transferAmount,
+			createdAt: credits.createdAt,
+		})
+		.from(credits)
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.where(eq(applications.applicantId, userId))
+		.orderBy(desc(credits.createdAt))
+
+	return rows
 }

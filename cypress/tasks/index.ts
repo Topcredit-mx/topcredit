@@ -27,6 +27,11 @@ import {
 	companyWithoutTermOfferings,
 	companyWithTerms,
 } from '~/cypress/e2e/cuenta/applications.fixtures'
+import {
+	allCreditsUsers,
+	creditsApplicant,
+	creditsCompany,
+} from '~/cypress/e2e/cuenta/credits.fixtures'
 import { agentNoAssignments } from '~/cypress/e2e/equipo/agent-no-assignments.fixtures'
 import {
 	adminForReview,
@@ -79,6 +84,7 @@ import {
 	applicationStatusHistory,
 	applications,
 	companies,
+	credits,
 	emailOtps,
 	termOfferings,
 	terms,
@@ -2399,6 +2405,155 @@ export const cleanupDisbursementReview = async () => {
 		allDisbUsers.map((u) => db.delete(users).where(eq(users.email, u.email))),
 	)
 	await db.delete(companies).where(eq(companies.domain, disbCompany.domain))
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
+	return null
+}
+
+// --- Cuenta Credits ---
+
+export type SeedCuentaCreditsResult = {
+	companyId: number
+	applicationId: number
+	creditAmount: string
+}
+
+async function seedCuentaCreditsBase(
+	withCredit: boolean,
+): Promise<SeedCuentaCreditsResult> {
+	const db = getDb(process.env.DATABASE_URL || '')
+	const now = new Date()
+
+	await Promise.all(
+		allCreditsUsers.map((u) =>
+			db.delete(users).where(eq(users.email, u.email)),
+		),
+	)
+	await db.delete(companies).where(eq(companies.domain, creditsCompany.domain))
+
+	const [[company], createdUsers] = await Promise.all([
+		db
+			.insert(companies)
+			.values({
+				name: creditsCompany.name,
+				domain: creditsCompany.domain,
+				rate: creditsCompany.rate,
+				employeeSalaryFrequency: creditsCompany.employeeSalaryFrequency,
+				active: creditsCompany.active,
+			})
+			.returning(),
+		db
+			.insert(users)
+			.values(
+				allCreditsUsers.map((u) => ({
+					email: u.email,
+					name: u.name,
+					emailVerified: now,
+				})),
+			)
+			.returning(),
+	])
+
+	if (!company) throw new Error('Seed Credits: company not created')
+
+	const applicantUser = createdUsers.find(
+		(u) => u.email === creditsApplicant.email,
+	)
+	if (!applicantUser) throw new Error('Seed Credits: applicant user not found')
+
+	await db.insert(userRoles).values(
+		creditsApplicant.roles.map((role) => ({
+			userId: applicantUser.id,
+			role,
+		})),
+	)
+
+	const [term] = await db
+		.insert(terms)
+		.values({ durationType: 'monthly', duration: 12 })
+		.returning()
+	if (!term) throw new Error('Seed Credits: term not created')
+
+	const [offering] = await db
+		.insert(termOfferings)
+		.values({ termId: term.id, companyId: company.id })
+		.returning()
+	if (!offering) throw new Error('Seed Credits: offering not created')
+
+	const creditAmount = '50000.00'
+	const status = withCredit ? ('disbursed' as const) : ('authorized' as const)
+
+	const [app] = await db
+		.insert(applications)
+		.values({
+			applicantId: applicantUser.id,
+			companyId: company.id,
+			termOfferingId: offering.id,
+			creditAmount,
+			salaryAtApplication: '40000',
+			salaryFrequency: creditsCompany.employeeSalaryFrequency,
+			status,
+			firstDiscountDate: new Date(now.getTime() + 30 * 24 * 60 * 60_000),
+		})
+		.returning()
+	if (!app) throw new Error('Seed Credits: application not created')
+
+	const timeline = createOrderedSeedStatusHistory({
+		finalStatus: status,
+		defaultActorUserId: applicantUser.id,
+	})
+	const baseTime = new Date(now.getTime() - 60 * 60_000)
+	await db.insert(applicationStatusHistory).values(
+		timeline.map((entry, index) => ({
+			applicationId: app.id,
+			status: entry.status,
+			setByUserId: entry.setByUserId,
+			createdAt: new Date(baseTime.getTime() + index * 60_000),
+		})),
+	)
+
+	if (withCredit) {
+		await db.insert(credits).values({
+			applicationId: app.id,
+			status: 'dispersed',
+			disbursementDate: now,
+			transferAmount: creditAmount,
+			disbursedByUserId: applicantUser.id,
+		})
+	}
+
+	return {
+		companyId: company.id,
+		applicationId: app.id,
+		creditAmount,
+	}
+}
+
+export const seedCuentaCredits = async (): Promise<SeedCuentaCreditsResult> => {
+	return seedCuentaCreditsBase(true)
+}
+
+export const seedCuentaCreditsEmpty =
+	async (): Promise<SeedCuentaCreditsResult> => {
+		return seedCuentaCreditsBase(false)
+	}
+
+export const cleanupCuentaCredits = async () => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	await Promise.all(
+		allCreditsUsers.map((u) =>
+			db.delete(users).where(eq(users.email, u.email)),
+		),
+	)
+	await db.delete(companies).where(eq(companies.domain, creditsCompany.domain))
 	await db
 		.delete(terms)
 		.where(

@@ -377,14 +377,14 @@ describe('Cuenta applications', () => {
 			cy.get('a[href="/cuenta"]').should('be.visible')
 			cy.get('a[href="/cuenta/applications/new"]').should('be.visible')
 			cy.get('a[href="/cuenta/applications"]').should('be.visible')
-			cy.get('a[href="/cuenta/loans"]').should('be.visible')
+			cy.get('a[href="/cuenta/credits"]').should('be.visible')
 			cy.get('a[href="/cuenta/support"]').should('be.visible')
 		})
 
-		it('applicant can open Mis préstamos placeholder page', () => {
-			cy.visit('/cuenta/loans')
-			cy.contains(/mis préstamos/i).should('be.visible')
-			cy.contains(/sin préstamos todavía|formalizado/i).should('be.visible')
+		it('applicant can open Mis créditos placeholder page', () => {
+			cy.visit('/cuenta/credits')
+			cy.contains(/mis créditos/i).should('be.visible')
+			cy.contains(/sin créditos todavía|formalizado/i).should('be.visible')
 		})
 
 		it('applicant can open Soporte (chat preview UI)', () => {
