@@ -58,8 +58,8 @@ function isMySolicitudesActive(pathname: string) {
 	)
 }
 
-function isMyLoansActive(pathname: string) {
-	return pathname === '/cuenta/loans'
+function isMyCreditsActive(pathname: string) {
+	return pathname === '/cuenta/credits'
 }
 
 function isSupportActive(pathname: string) {
@@ -95,10 +95,10 @@ export function ApplicantSidebar({ user }: ApplicantSidebarProps) {
 			isActive: isMySolicitudesActive,
 		},
 		{
-			title: tCuenta('nav-my-loans'),
-			url: '/cuenta/loans',
+			title: tCuenta('nav-my-credits'),
+			url: '/cuenta/credits',
 			icon: Landmark,
-			isActive: isMyLoansActive,
+			isActive: isMyCreditsActive,
 		},
 		{
 			title: tCuenta('nav-support'),

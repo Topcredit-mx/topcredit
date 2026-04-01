@@ -4,7 +4,7 @@
 		"cuenta-applications": "Mis Solicitudes",
 		"cuenta-applications-new": "Nueva Solicitud",
 		"cuenta-applications-detail": "Detalle de solicitud",
-		"cuenta-loans": "Mis préstamos",
+		"cuenta-credits": "Mis créditos",
 		"equipo-home": "Panel",
 		"equipo-applications": "Solicitudes",
 		"equipo-applications-detail": "Detalle de solicitud",
@@ -486,7 +486,7 @@
 		"notifications-aria": "Notificaciones",
 		"nav-new-application": "Nueva solicitud",
 		"nav-my-solicitudes": "Mis solicitudes",
-		"nav-my-loans": "Mis préstamos",
+		"nav-my-credits": "Mis créditos",
 		"nav-support": "Soporte",
 		"nav-aria": "Navegación principal del portal",
 		"hero-pre-approved": "Preaprobado",
@@ -569,10 +569,14 @@
 			"disclaimer": "¿Cuenta y seguridad?",
 			"settings-link": "Ir a configuración"
 		},
-		"loans": {
-			"title": "Mis préstamos",
+		"credits": {
+			"title": "Mis créditos",
 			"description": "Consulta aquí tus créditos formalizados, saldos y pagos. Las solicitudes en trámite siguen en Mis solicitudes.",
-			"empty-title": "Sin préstamos todavía",
+			"th-amount": "Monto",
+			"th-status": "Estado",
+			"th-date": "Fecha de dispersión",
+			"status-dispersed": "Dispersado",
+			"empty-title": "Sin créditos todavía",
 			"empty-body": "Cuando un crédito quede formalizado después de tu solicitud, lo verás en esta pantalla.",
 			"empty-applications-cta": "Ir a mis solicitudes"
 		},

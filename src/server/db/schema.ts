@@ -314,11 +314,42 @@ export const applicationDocuments = pgTable(
 	],
 )
 
+export const CREDIT_STATUS_VALUES = ['dispersed'] as const
+export type CreditStatus = (typeof CREDIT_STATUS_VALUES)[number]
+export const creditStatusEnum = pgEnum('credit_status', CREDIT_STATUS_VALUES)
+
+export const credits = pgTable('credits', {
+	id: serial('id').primaryKey(),
+	applicationId: integer('application_id')
+		.notNull()
+		.unique()
+		.references(() => applications.id, { onDelete: 'cascade' }),
+	status: creditStatusEnum('status').notNull(),
+	disbursementDate: timestamp('disbursement_date', {
+		withTimezone: true,
+	}).notNull(),
+	transferAmount: numeric('transfer_amount', {
+		precision: 12,
+		scale: 2,
+	}).notNull(),
+	disbursedByUserId: integer('disbursed_by_user_id').references(
+		() => users.id,
+		{ onDelete: 'set null' },
+	),
+	createdAt: timestamp('created_at', { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+})
+
 export const usersRelations = relations(users, ({ many }) => ({
 	roles: many(userRoles),
 	companies: many(userCompanies),
 	applications: many(applications),
 	applicationStatusHistory: many(applicationStatusHistory),
+	disbursedCredits: many(credits),
 }))
 
 export const companiesRelations = relations(companies, ({ many }) => ({
@@ -362,6 +393,7 @@ export const applicationsRelations = relations(
 		}),
 		documents: many(applicationDocuments),
 		statusHistory: many(applicationStatusHistory),
+		credit: one(credits),
 	}),
 )
 
@@ -378,6 +410,17 @@ export const applicationStatusHistoryRelations = relations(
 		}),
 	}),
 )
+
+export const creditsRelations = relations(credits, ({ one }) => ({
+	application: one(applications, {
+		fields: [credits.applicationId],
+		references: [applications.id],
+	}),
+	disbursedByUser: one(users, {
+		fields: [credits.disbursedByUserId],
+		references: [users.id],
+	}),
+}))
 
 export const applicationDocumentsRelations = relations(
 	applicationDocuments,

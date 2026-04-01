@@ -50,6 +50,7 @@ import {
 	applicationDocuments,
 	applications,
 	companies,
+	credits,
 	termOfferings,
 	terms,
 	userCompanies,
@@ -1020,9 +1021,20 @@ export async function disburseApplication(payload: {
 		receiptFileName: receiptFile.name,
 	})
 
+	if (app.creditAmount != null) {
+		await db.insert(credits).values({
+			applicationId,
+			status: 'dispersed',
+			disbursementDate: new Date(),
+			transferAmount: app.creditAmount,
+			disbursedByUserId: user.id,
+		})
+	}
+
 	revalidatePath('/equipo/applications')
 	revalidatePath(`/equipo/applications/${applicationId}`)
 	revalidatePath('/cuenta/applications')
 	revalidatePath(`/cuenta/applications/${applicationId}`)
+	revalidatePath('/cuenta/credits')
 	return {}
 }

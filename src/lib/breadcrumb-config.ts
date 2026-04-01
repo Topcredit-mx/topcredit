@@ -3,7 +3,7 @@ export const BREADCRUMB_LABEL_KEYS = [
 	'cuenta-applications',
 	'cuenta-applications-new',
 	'cuenta-applications-detail',
-	'cuenta-loans',
+	'cuenta-credits',
 	'equipo-home',
 	'equipo-applications',
 	'equipo-applications-detail',
@@ -27,10 +27,10 @@ export function getCuentaBreadcrumbSegments(
 	if (pathname === base) {
 		return [{ href: base, labelKey: 'cuenta-home' }]
 	}
-	if (pathname === `${base}/loans`) {
+	if (pathname === `${base}/credits`) {
 		return [
 			{ href: base, labelKey: 'cuenta-home' },
-			{ href: `${base}/loans`, labelKey: 'cuenta-loans' },
+			{ href: `${base}/credits`, labelKey: 'cuenta-credits' },
 		]
 	}
 	if (pathname === `${base}/applications`) {
