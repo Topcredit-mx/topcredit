@@ -2425,6 +2425,7 @@ export type SeedCuentaCreditsResult = {
 	companyId: number
 	applicationId: number
 	creditAmount: string
+	creditId: number | null
 }
 
 async function seedCuentaCreditsBase(
@@ -2531,20 +2532,27 @@ async function seedCuentaCreditsBase(
 		})),
 	)
 
+	let creditId: number | null = null
 	if (withCredit) {
-		await db.insert(credits).values({
-			applicationId: app.id,
-			status: 'dispersed',
-			disbursementDate: now,
-			transferAmount: creditAmount,
-			disbursedByUserId: applicantUser.id,
-		})
+		const [credit] = await db
+			.insert(credits)
+			.values({
+				applicationId: app.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: creditAmount,
+				disbursedByUserId: applicantUser.id,
+			})
+			.returning()
+		if (!credit) throw new Error('Seed Credits: credit not created')
+		creditId = credit.id
 	}
 
 	return {
 		companyId: company.id,
 		applicationId: app.id,
 		creditAmount,
+		creditId,
 	}
 }
 

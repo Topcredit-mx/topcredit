@@ -2,9 +2,13 @@ import type { SeedCuentaCreditsResult } from '~/cypress/tasks'
 import { creditsApplicant, creditsOtherApplicant } from './credits.fixtures'
 
 describe('Applicant views active credits', () => {
+	let seedResult: SeedCuentaCreditsResult
+
 	before(() => {
 		cy.task('cleanupCuentaCredits')
-		cy.task<SeedCuentaCreditsResult>('seedCuentaCredits')
+		cy.task<SeedCuentaCreditsResult>('seedCuentaCredits').then((result) => {
+			seedResult = result
+		})
 	})
 
 	after(() => {
@@ -21,6 +25,27 @@ describe('Applicant views active credits', () => {
 		cy.contains('$50,000.00').should('be.visible')
 		cy.contains(/dispersado/i).should('be.visible')
 	})
+
+	it('shows credit detail with amount, term, rate, and dates', () => {
+		cy.visit('/cuenta/credits')
+		cy.contains('h1', /mis créditos/i).should('be.visible')
+
+		cy.get(`a[href="/cuenta/credits/${seedResult.creditId}"]`)
+			.scrollIntoView()
+			.should('be.visible')
+
+		cy.visit(`/cuenta/credits/${seedResult.creditId}`)
+		cy.contains('h1', /detalle de tu crédito/i)
+			.scrollIntoView()
+			.should('be.visible')
+
+		cy.contains('$50,000.00').should('be.visible')
+		cy.contains('12 meses').should('be.visible')
+		cy.contains('2.50%').should('be.visible')
+		cy.contains(/dispersado/i).should('be.visible')
+		cy.contains(/calendario de pagos/i).should('be.visible')
+	})
+
 	it('shows 404 for non-existent credit', () => {
 		cy.visit('/cuenta/credits/999999', { failOnStatusCode: false })
 		cy.contains(
