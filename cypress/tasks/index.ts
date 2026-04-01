@@ -31,6 +31,7 @@ import {
 	allCreditsUsers,
 	creditsApplicant,
 	creditsCompany,
+	creditsOtherApplicant,
 } from '~/cypress/e2e/cuenta/credits.fixtures'
 import { agentNoAssignments } from '~/cypress/e2e/equipo/agent-no-assignments.fixtures'
 import {
@@ -2469,12 +2470,22 @@ async function seedCuentaCreditsBase(
 	)
 	if (!applicantUser) throw new Error('Seed Credits: applicant user not found')
 
-	await db.insert(userRoles).values(
-		creditsApplicant.roles.map((role) => ({
+	const otherApplicantUser = createdUsers.find(
+		(u) => u.email === creditsOtherApplicant.email,
+	)
+	if (!otherApplicantUser)
+		throw new Error('Seed Credits: other applicant user not found')
+
+	await db.insert(userRoles).values([
+		...creditsApplicant.roles.map((role) => ({
 			userId: applicantUser.id,
 			role,
 		})),
-	)
+		...creditsOtherApplicant.roles.map((role) => ({
+			userId: otherApplicantUser.id,
+			role,
+		})),
+	])
 
 	const [term] = await db
 		.insert(terms)

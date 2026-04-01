@@ -4,7 +4,13 @@ export const creditsApplicant = {
 	roles: ['applicant'] as const,
 }
 
-export const allCreditsUsers = [creditsApplicant]
+export const creditsOtherApplicant = {
+	name: 'Credits Other Applicant',
+	email: 'credits.other@creditscompany.com',
+	roles: ['applicant'] as const,
+}
+
+export const allCreditsUsers = [creditsApplicant, creditsOtherApplicant]
 
 export const creditsCompany = {
 	name: 'Credits E2E Company',
