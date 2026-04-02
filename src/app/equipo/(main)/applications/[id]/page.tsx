@@ -84,6 +84,10 @@ export default async function AppApplicationDetailPage({
 	if (!application) {
 		notFound()
 	}
+	const now = new Date()
+	const todayUTC = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+	)
 	const t = await getTranslations('equipo')
 	const canTransition = canTransitionApplicationFrom(application.status)
 	const appSubject = subject('Application', {
@@ -377,14 +381,11 @@ export default async function AppApplicationDetailPage({
 							applicationId={application.id}
 							validDates={getValidFirstDiscountDates(
 								application.salaryFrequency,
-								new Date(),
+								todayUTC,
 								6,
 							).map((d) => d.toISOString().split('T')[0] ?? '')}
 							suggestedDate={
-								suggestFirstDiscountDate(
-									application.salaryFrequency,
-									new Date(),
-								)
+								suggestFirstDiscountDate(application.salaryFrequency, todayUTC)
 									.toISOString()
 									.split('T')[0] ?? ''
 							}

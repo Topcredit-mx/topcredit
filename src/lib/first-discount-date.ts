@@ -1,7 +1,11 @@
 type SalaryFrequency = 'bi-monthly' | 'monthly'
 
-function lastDayOfMonth(year: number, month: number): Date {
-	return new Date(year, month + 1, 0)
+function utcDate(year: number, month: number, day: number): Date {
+	return new Date(Date.UTC(year, month, day))
+}
+
+function lastDayOfMonthUTC(year: number, month: number): Date {
+	return new Date(Date.UTC(year, month + 1, 0))
 }
 
 function isSameOrAfter(date: Date, reference: Date): boolean {
@@ -12,20 +16,19 @@ export function suggestFirstDiscountDate(
 	frequency: SalaryFrequency,
 	today: Date,
 ): Date {
-	const year = today.getFullYear()
-	const month = today.getMonth()
-	const day = today.getDate()
+	const year = today.getUTCFullYear()
+	const month = today.getUTCMonth()
+	const day = today.getUTCDate()
 
 	if (frequency === 'monthly') {
-		const monthEnd = lastDayOfMonth(year, month)
-		return monthEnd
+		return lastDayOfMonthUTC(year, month)
 	}
 
 	// bi-monthly: 15th or last day of month
 	if (day <= 15) {
-		return new Date(year, month, 15)
+		return utcDate(year, month, 15)
 	}
-	return lastDayOfMonth(year, month)
+	return lastDayOfMonthUTC(year, month)
 }
 
 export function getValidFirstDiscountDates(
@@ -34,19 +37,18 @@ export function getValidFirstDiscountDates(
 	count: number,
 ): Date[] {
 	const dates: Date[] = []
-	let year = today.getFullYear()
-	let month = today.getMonth()
-	const day = today.getDate()
+	let year = today.getUTCFullYear()
+	let month = today.getUTCMonth()
+	const day = today.getUTCDate()
 
 	if (frequency === 'monthly') {
-		// Start from current month's end if it's today or later
-		let cursor = lastDayOfMonth(year, month)
+		let cursor = lastDayOfMonthUTC(year, month)
 		if (!isSameOrAfter(cursor, today)) {
 			month += 1
-			cursor = lastDayOfMonth(year + Math.floor(month / 12), month % 12)
+			cursor = lastDayOfMonthUTC(year + Math.floor(month / 12), month % 12)
 		}
 		while (dates.length < count) {
-			const endOfMonth = lastDayOfMonth(year, month)
+			const endOfMonth = lastDayOfMonthUTC(year, month)
 			if (isSameOrAfter(endOfMonth, today)) {
 				dates.push(endOfMonth)
 			}
@@ -60,20 +62,18 @@ export function getValidFirstDiscountDates(
 	}
 
 	// bi-monthly: alternate between 15th and end-of-month
-	// Find the first valid date >= today
 	let nextIs15th = day <= 15
 
 	while (dates.length < count) {
 		const candidate = nextIs15th
-			? new Date(year, month, 15)
-			: lastDayOfMonth(year, month)
+			? utcDate(year, month, 15)
+			: lastDayOfMonthUTC(year, month)
 
 		if (isSameOrAfter(candidate, today)) {
 			dates.push(candidate)
 		}
 
 		if (!nextIs15th) {
-			// Move to next month
 			month += 1
 			if (month > 11) {
 				month = 0
@@ -95,11 +95,11 @@ export function isValidFirstDiscountDate(
 		return false
 	}
 
-	const year = date.getFullYear()
-	const month = date.getMonth()
-	const day = date.getDate()
-	const endOfMonth = lastDayOfMonth(year, month)
-	const isEndOfMonth = day === endOfMonth.getDate()
+	const year = date.getUTCFullYear()
+	const month = date.getUTCMonth()
+	const day = date.getUTCDate()
+	const endOfMonth = lastDayOfMonthUTC(year, month)
+	const isEndOfMonth = day === endOfMonth.getUTCDate()
 
 	if (frequency === 'monthly') {
 		return isEndOfMonth
