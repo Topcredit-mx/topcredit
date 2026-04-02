@@ -1,9 +1,5 @@
 ## Up next
 
-### Credit detail page
-
-- Credit detail page (`/cuenta/credits/[id]`): show credit summary — amount, term, rate, first discount date, disbursement date, and payment schedule overview.
-
 ### Payment history for active credit
 
 The applicant opens a credit and sees their full payment schedule with status per payment.
