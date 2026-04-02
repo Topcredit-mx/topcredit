@@ -578,7 +578,20 @@
 			"status-dispersed": "Dispersado",
 			"empty-title": "Sin créditos todavía",
 			"empty-body": "Cuando un crédito quede formalizado después de tu solicitud, lo verás en esta pantalla.",
-			"empty-applications-cta": "Ir a mis solicitudes"
+			"empty-applications-cta": "Ir a mis solicitudes",
+			"back-to-list": "Mis créditos",
+			"detail-title": "Detalle de tu crédito",
+			"detail-amount": "Monto dispersado",
+			"detail-term": "Plazo",
+			"detail-rate": "Tasa",
+			"detail-first-discount": "Fecha de primer descuento",
+			"detail-disbursement": "Fecha de dispersión",
+			"detail-company": "Empresa",
+			"detail-status": "Estado",
+			"detail-payment-schedule-title": "Calendario de pagos",
+			"detail-payment-schedule-placeholder": "El calendario de pagos estará disponible próximamente.",
+			"term-months": "meses",
+			"term-fortnights": "quincenas"
 		},
 		"applications": {
 			"title": "Mis solicitudes",

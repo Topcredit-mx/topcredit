@@ -52,14 +52,11 @@ function isMySolicitudesActive(pathname: string) {
 	if (pathname === '/cuenta/applications/new') {
 		return false
 	}
-	return (
-		pathname === '/cuenta/applications' ||
-		/^\/cuenta\/applications\/\d+$/.test(pathname)
-	)
+	return pathname.startsWith('/cuenta/applications')
 }
 
 function isMyCreditsActive(pathname: string) {
-	return pathname === '/cuenta/credits'
+	return pathname.startsWith('/cuenta/credits')
 }
 
 function isSupportActive(pathname: string) {

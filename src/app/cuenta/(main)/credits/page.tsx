@@ -46,7 +46,12 @@ export default async function CreditsPage() {
 									className="border-slate-50 border-b last:border-0"
 								>
 									<td className="px-6 py-4 font-medium text-slate-900">
-										{formatCurrencyMxn(credit.transferAmount)}
+										<Link
+											href={`/cuenta/credits/${credit.id}`}
+											className="text-brand underline-offset-2 hover:underline"
+										>
+											{formatCurrencyMxn(credit.transferAmount)}
+										</Link>
 									</td>
 									<td className="px-6 py-4 text-slate-600">
 										{t('status-dispersed')}

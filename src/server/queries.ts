@@ -1019,3 +1019,48 @@ export async function getCreditsByApplicantId(
 
 	return rows
 }
+
+export type CreditDetail = {
+	id: number
+	status: 'dispersed'
+	transferAmount: string
+	disbursementDate: Date
+	firstDiscountDate: Date | null
+	companyName: string
+	rate: string
+	durationType: 'monthly' | 'bi-monthly'
+	duration: number
+}
+
+export async function getCreditDetailByApplicantId(
+	creditId: number,
+	userId: number,
+): Promise<CreditDetail | null> {
+	const { ability } = await getAbility()
+	requireAbility(
+		ability,
+		'read',
+		subject('Credit', { id: creditId, applicantId: userId }),
+	)
+
+	const [row] = await db
+		.select({
+			id: credits.id,
+			status: credits.status,
+			transferAmount: credits.transferAmount,
+			disbursementDate: credits.disbursementDate,
+			firstDiscountDate: applications.firstDiscountDate,
+			companyName: companies.name,
+			rate: companies.rate,
+			durationType: terms.durationType,
+			duration: terms.duration,
+		})
+		.from(credits)
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.innerJoin(companies, eq(applications.companyId, companies.id))
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.where(and(eq(credits.id, creditId), eq(applications.applicantId, userId)))
+
+	return row ?? null
+}
