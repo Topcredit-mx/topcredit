@@ -1,0 +1,1 @@
+ALTER TYPE "public"."credit_status" ADD VALUE 'settled';

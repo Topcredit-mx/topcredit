@@ -15,6 +15,7 @@ import { db } from '~/server/db'
 import type {
 	ApplicationStatus,
 	CreditPaymentStatus,
+	CreditStatus,
 	DocumentStatus,
 	DocumentType,
 } from '~/server/db/schema'
@@ -989,7 +990,7 @@ export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
 export type CreditListItem = {
 	id: number
 	applicationId: number
-	status: 'dispersed'
+	status: CreditStatus
 	disbursementDate: Date
 	transferAmount: string
 	createdAt: Date
@@ -1024,7 +1025,7 @@ export async function getCreditsByApplicantId(
 
 export type CreditDetail = {
 	id: number
-	status: 'dispersed'
+	status: CreditStatus
 	transferAmount: string
 	disbursementDate: Date
 	firstDiscountDate: Date | null

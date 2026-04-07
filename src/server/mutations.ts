@@ -1,6 +1,6 @@
 'use server'
 
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import {
 	filterToLatestDocumentsPerType,
@@ -19,6 +19,11 @@ import {
 } from '~/lib/authorization-package-readiness'
 import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
+import {
+	allPaymentsConfirmed,
+	canConfirmPayment,
+	parseCsvPaymentConfirmations,
+} from '~/lib/payment-confirmation'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
 	isPreAuthOverCapacity,
@@ -32,6 +37,7 @@ import { formatCurrencyMxn } from '~/lib/utils'
 import { ValidationCode } from '~/lib/validation-codes'
 import { updateApplicationWithStatusHistory } from '~/server/application-status-history'
 import {
+	type CreditPaymentSubject,
 	getAbility,
 	getActionForApplicationStatus,
 	requireAbility,
@@ -66,6 +72,7 @@ import {
 import { getApplicationDocuments } from '~/server/queries'
 import {
 	applyApplicationDocumentDecisionsSchema,
+	confirmPaymentsBulkSchema,
 	preAuthorizeApplicationSchema,
 	updateApplicationStatusSchema,
 } from '~/server/schemas'
@@ -1075,4 +1082,267 @@ export async function disburseApplication(payload: {
 	revalidatePath(`/cuenta/applications/${applicationId}`)
 	revalidatePath('/cuenta/credits')
 	return {}
+}
+
+// ---- Payments ----
+
+type PaymentWithContext = {
+	paymentId: number
+	paymentStatus: 'pending' | 'confirmed'
+	creditId: number
+	companyId: number
+}
+
+async function fetchPaymentsWithContext(
+	paymentIds: number[],
+): Promise<PaymentWithContext[]> {
+	return db
+		.select({
+			paymentId: creditPayments.id,
+			paymentStatus: creditPayments.status,
+			creditId: creditPayments.creditId,
+			companyId: applications.companyId,
+		})
+		.from(creditPayments)
+		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.where(inArray(creditPayments.id, paymentIds))
+}
+
+async function settleCreditsIfFullyConfirmed(
+	creditIds: number[],
+	now: Date,
+): Promise<number[]> {
+	const settled: number[] = []
+	for (const creditId of creditIds) {
+		const remaining = await db
+			.select({ status: creditPayments.status })
+			.from(creditPayments)
+			.where(eq(creditPayments.creditId, creditId))
+
+		if (allPaymentsConfirmed(remaining)) {
+			await db
+				.update(credits)
+				.set({ status: 'settled', updatedAt: now })
+				.where(eq(credits.id, creditId))
+			settled.push(creditId)
+		}
+	}
+	return settled
+}
+
+function toCreditPaymentSubject(
+	payment: Pick<PaymentWithContext, 'paymentId' | 'companyId'>,
+): CreditPaymentSubject {
+	return subject('CreditPayment', {
+		id: payment.paymentId,
+		companyId: payment.companyId,
+	})
+}
+
+export async function confirmPayment(
+	paymentId: number,
+): Promise<{ error?: string }> {
+	const { ability } = await getAbility()
+	const user = await getRequiredUser()
+
+	const rows = await fetchPaymentsWithContext([paymentId])
+	const payment = rows[0]
+
+	if (!payment) {
+		return { error: ValidationCode.PAYMENT_NOT_FOUND }
+	}
+
+	if (!ability.can('confirmPayment', toCreditPaymentSubject(payment))) {
+		return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
+	}
+
+	if (!canConfirmPayment(payment.paymentStatus)) {
+		return { error: ValidationCode.PAYMENT_ALREADY_CONFIRMED }
+	}
+
+	const now = new Date()
+	await db
+		.update(creditPayments)
+		.set({
+			status: 'confirmed',
+			hrConfirmedAt: now,
+			confirmedByUserId: user.id,
+		})
+		.where(eq(creditPayments.id, paymentId))
+
+	await settleCreditsIfFullyConfirmed([payment.creditId], now)
+
+	revalidatePath('/equipo/payments')
+	revalidatePath('/cuenta/credits')
+	return {}
+}
+
+export async function confirmPayments(
+	paymentIds: number[],
+): Promise<{ error?: string }> {
+	const parsed = confirmPaymentsBulkSchema.safeParse({ paymentIds })
+	if (!parsed.success) {
+		const first = parsed.error.issues[0]
+		return { error: first?.message ?? ValidationCode.PAYMENT_BULK_EMPTY }
+	}
+
+	const { ability } = await getAbility()
+	const user = await getRequiredUser()
+
+	const rows = await fetchPaymentsWithContext(parsed.data.paymentIds)
+
+	if (rows.length === 0) {
+		return { error: ValidationCode.PAYMENT_NOT_FOUND }
+	}
+
+	for (const payment of rows) {
+		if (!ability.can('confirmPayment', toCreditPaymentSubject(payment))) {
+			return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
+		}
+	}
+
+	const pendingRows = rows.filter((r) => canConfirmPayment(r.paymentStatus))
+	if (pendingRows.length === 0) {
+		return { error: ValidationCode.PAYMENT_ALREADY_CONFIRMED }
+	}
+
+	const now = new Date()
+	await db
+		.update(creditPayments)
+		.set({
+			status: 'confirmed',
+			hrConfirmedAt: now,
+			confirmedByUserId: user.id,
+		})
+		.where(
+			inArray(
+				creditPayments.id,
+				pendingRows.map((r) => r.paymentId),
+			),
+		)
+
+	const uniqueCreditIds = [...new Set(pendingRows.map((r) => r.creditId))]
+	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
+
+	revalidatePath('/equipo/payments')
+	revalidatePath('/cuenta/credits')
+	return {}
+}
+
+export type ConfirmPaymentsFromCsvResult = {
+	confirmed: number
+	alreadyConfirmed: number
+	unmatched: number
+	settledCredits: number
+	error?: string
+}
+
+export async function confirmPaymentsFromCsv(
+	csvContent: string,
+): Promise<ConfirmPaymentsFromCsvResult> {
+	const empty: ConfirmPaymentsFromCsvResult = {
+		confirmed: 0,
+		alreadyConfirmed: 0,
+		unmatched: 0,
+		settledCredits: 0,
+	}
+
+	const { rows: csvRows, errors: parseErrors } =
+		parseCsvPaymentConfirmations(csvContent)
+
+	if (parseErrors.length > 0) {
+		return { ...empty, error: ValidationCode.PAYMENT_CSV_PARSE_ERROR }
+	}
+
+	if (csvRows.length === 0) {
+		return { ...empty, error: ValidationCode.PAYMENT_CSV_NO_MATCHES }
+	}
+
+	const { ability, assignedCompanyIds, isAdmin } = await getAbility()
+	const user = await getRequiredUser()
+
+	// Fetch all payments for the agent's companies (or all for admin) and match in memory.
+	const candidateRows = await db
+		.select({
+			paymentId: creditPayments.id,
+			paymentStatus: creditPayments.status,
+			creditId: creditPayments.creditId,
+			companyId: applications.companyId,
+			payrollNumber: applications.payrollNumber,
+			amount: creditPayments.amount,
+			dueDate: creditPayments.dueDate,
+		})
+		.from(creditPayments)
+		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.where(
+			isAdmin ? undefined : inArray(applications.companyId, assignedCompanyIds),
+		)
+
+	function makeKey(
+		payrollNumber: string,
+		amount: string,
+		dueDate: string,
+	): string {
+		return `${payrollNumber}|${amount}|${dueDate}`
+	}
+
+	const csvKeySet = new Set(
+		csvRows.map((r) => makeKey(r.payrollNumber, r.amount, r.dueDate)),
+	)
+
+	const matched = candidateRows.filter((row) => {
+		if (!row.payrollNumber) return false
+		const dueDateStr = row.dueDate.toISOString().slice(0, 10)
+		return csvKeySet.has(makeKey(row.payrollNumber, row.amount, dueDateStr))
+	})
+
+	const unmatched = csvRows.length - matched.length
+
+	const authorized = matched.filter((row) =>
+		ability.can('confirmPayment', toCreditPaymentSubject(row)),
+	)
+
+	const toConfirm = authorized.filter((r) => canConfirmPayment(r.paymentStatus))
+	const alreadyConfirmed = authorized.filter(
+		(r) => !canConfirmPayment(r.paymentStatus),
+	).length
+
+	if (toConfirm.length === 0 && alreadyConfirmed === 0) {
+		return { ...empty, unmatched, error: ValidationCode.PAYMENT_CSV_NO_MATCHES }
+	}
+
+	const now = new Date()
+	if (toConfirm.length > 0) {
+		await db
+			.update(creditPayments)
+			.set({
+				status: 'confirmed',
+				hrConfirmedAt: now,
+				confirmedByUserId: user.id,
+			})
+			.where(
+				inArray(
+					creditPayments.id,
+					toConfirm.map((r) => r.paymentId),
+				),
+			)
+	}
+
+	const uniqueCreditIds = [...new Set(toConfirm.map((r) => r.creditId))]
+	const settledCreditIds = await settleCreditsIfFullyConfirmed(
+		uniqueCreditIds,
+		now,
+	)
+
+	revalidatePath('/equipo/payments')
+	revalidatePath('/cuenta/credits')
+
+	return {
+		confirmed: toConfirm.length,
+		alreadyConfirmed,
+		unmatched,
+		settledCredits: settledCreditIds.length,
+	}
 }
