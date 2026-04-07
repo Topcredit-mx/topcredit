@@ -318,6 +318,13 @@ export const CREDIT_STATUS_VALUES = ['dispersed'] as const
 export type CreditStatus = (typeof CREDIT_STATUS_VALUES)[number]
 export const creditStatusEnum = pgEnum('credit_status', CREDIT_STATUS_VALUES)
 
+export const CREDIT_PAYMENT_STATUS_VALUES = ['pending', 'confirmed'] as const
+export type CreditPaymentStatus = (typeof CREDIT_PAYMENT_STATUS_VALUES)[number]
+export const creditPaymentStatusEnum = pgEnum(
+	'credit_payment_status',
+	CREDIT_PAYMENT_STATUS_VALUES,
+)
+
 export const credits = pgTable('credits', {
 	id: serial('id').primaryKey(),
 	applicationId: integer('application_id')
@@ -344,12 +351,34 @@ export const credits = pgTable('credits', {
 		.notNull(),
 })
 
+export const creditPayments = pgTable('credit_payments', {
+	id: serial('id').primaryKey(),
+	creditId: integer('credit_id')
+		.notNull()
+		.references(() => credits.id, { onDelete: 'cascade' }),
+	dueDate: timestamp('due_date', {
+		mode: 'date',
+		withTimezone: false,
+	}).notNull(),
+	amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+	status: creditPaymentStatusEnum('status').notNull().default('pending'),
+	hrConfirmedAt: timestamp('hr_confirmed_at', { withTimezone: true }),
+	confirmedByUserId: integer('confirmed_by_user_id').references(
+		() => users.id,
+		{ onDelete: 'set null' },
+	),
+	createdAt: timestamp('created_at', { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+})
+
 export const usersRelations = relations(users, ({ many }) => ({
 	roles: many(userRoles),
 	companies: many(userCompanies),
 	applications: many(applications),
 	applicationStatusHistory: many(applicationStatusHistory),
 	disbursedCredits: many(credits),
+	confirmedCreditPayments: many(creditPayments),
 }))
 
 export const companiesRelations = relations(companies, ({ many }) => ({
@@ -411,13 +440,25 @@ export const applicationStatusHistoryRelations = relations(
 	}),
 )
 
-export const creditsRelations = relations(credits, ({ one }) => ({
+export const creditsRelations = relations(credits, ({ one, many }) => ({
 	application: one(applications, {
 		fields: [credits.applicationId],
 		references: [applications.id],
 	}),
 	disbursedByUser: one(users, {
 		fields: [credits.disbursedByUserId],
+		references: [users.id],
+	}),
+	creditPayments: many(creditPayments),
+}))
+
+export const creditPaymentsRelations = relations(creditPayments, ({ one }) => ({
+	credit: one(credits, {
+		fields: [creditPayments.creditId],
+		references: [credits.id],
+	}),
+	confirmedByUser: one(users, {
+		fields: [creditPayments.confirmedByUserId],
 		references: [users.id],
 	}),
 }))
