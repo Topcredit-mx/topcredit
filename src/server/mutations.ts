@@ -17,6 +17,7 @@ import {
 	isAuthorizationPackageReadyForSubmit,
 	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
+import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
@@ -132,9 +133,9 @@ export async function insertCompany(data: CreateCompanyData): Promise<void> {
 	await db.insert(companies).values({
 		name: data.name,
 		domain: data.domain,
-		rate: (data.rate / 100).toFixed(4),
+		rate: new Decimal(data.rate).div(100).toFixed(4),
 		borrowingCapacityRate: data.borrowingCapacityRate
-			? (data.borrowingCapacityRate / 100).toFixed(2)
+			? new Decimal(data.borrowingCapacityRate).div(100).toFixed(2)
 			: null,
 		employeeSalaryFrequency: data.employeeSalaryFrequency,
 		active: data.active ?? true,
@@ -707,7 +708,7 @@ export async function preAuthorizeApplication(payload: unknown): Promise<{
 		return {
 			error: ValidationCode.APPLICATIONS_PREAUTH_EXCEEDS_CAPACITY,
 			errorValues: {
-				maxLoanAmount: formatCurrencyMxn(maxPrincipal.toFixed(2)),
+				maxLoanAmount: formatCurrencyMxn(new Decimal(maxPrincipal).toFixed(2)),
 			},
 		}
 	}
@@ -716,7 +717,7 @@ export async function preAuthorizeApplication(payload: unknown): Promise<{
 		status: 'pre-authorized',
 		setByUserId: user.id,
 		termOfferingId: data.termOfferingId,
-		creditAmount: String(creditAmount.toFixed(2)),
+		creditAmount: new Decimal(creditAmount).toFixed(2),
 		denialReason: null,
 	})
 

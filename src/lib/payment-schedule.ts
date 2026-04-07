@@ -1,3 +1,4 @@
+import { Decimal } from './decimal'
 import { financedCreditAmount } from './pre-authorization-capacity'
 
 export type PaymentScheduleEntry = { dueDate: Date; amount: string }
@@ -42,9 +43,8 @@ export function generatePaymentSchedule(params: {
 	const { loanPrincipal, rate, totalPayments, frequency, firstDiscountDate } =
 		params
 
-	const total = financedCreditAmount(loanPrincipal, rate)
-	const perPaymentCents = Math.floor((total * 100) / totalPayments)
-	const perPayment = perPaymentCents / 100
+	const total = new Decimal(financedCreditAmount(loanPrincipal, rate))
+	const perPayment = total.div(totalPayments).todp(2, Decimal.ROUND_DOWN)
 
 	const start = normalizeToUTCMidnight(firstDiscountDate)
 	const dates: Date[] = [start]
@@ -64,8 +64,8 @@ export function generatePaymentSchedule(params: {
 		if (i < totalPayments - 1) {
 			schedule.push({ dueDate, amount: perPayment.toFixed(2) })
 		} else {
-			const paid = perPayment * (totalPayments - 1)
-			const lastAmount = total - paid
+			const paid = perPayment.mul(totalPayments - 1)
+			const lastAmount = total.minus(paid)
 			schedule.push({ dueDate, amount: lastAmount.toFixed(2) })
 		}
 	}

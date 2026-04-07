@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
+import { Decimal } from './decimal'
 import { generatePaymentSchedule } from './payment-schedule'
 import { financedCreditAmount } from './pre-authorization-capacity'
 
@@ -143,6 +144,39 @@ describe('rounding correction', () => {
 			assert.equal(schedule[i]?.amount, firstAmount)
 		}
 		assert.equal(typeof lastAmount, 'string')
+	})
+})
+
+describe('decimal precision', () => {
+	test('payment amounts sum to financed total exactly via Decimal', () => {
+		// 50000 * (1 + 0.025 * 1.16) = 51450 — triggers float drift with vanilla JS
+		const schedule = generatePaymentSchedule({
+			loanPrincipal: 50000,
+			rate: 0.025,
+			totalPayments: 12,
+			frequency: 'monthly',
+			firstDiscountDate: utc(2026, 0, 31),
+		})
+		const sum = schedule.reduce((acc, e) => acc.plus(e.amount), new Decimal(0))
+		assert.equal(sum.toFixed(2), '51450.00')
+	})
+
+	test('all regular payments are identical and last adjusts remainder', () => {
+		const schedule = generatePaymentSchedule({
+			loanPrincipal: 50000,
+			rate: 0.025,
+			totalPayments: 7,
+			frequency: 'monthly',
+			firstDiscountDate: utc(2026, 0, 31),
+		})
+		const firstAmount = schedule[0]?.amount
+		if (!firstAmount) throw new Error('missing entry')
+		for (let i = 1; i < 6; i++) {
+			assert.equal(schedule[i]?.amount, firstAmount, `payment ${i} differs`)
+		}
+		// Sum must still equal financed total exactly
+		const sum = schedule.reduce((acc, e) => acc.plus(e.amount), new Decimal(0))
+		assert.equal(sum.toFixed(2), '51450.00')
 	})
 })
 

@@ -13,6 +13,7 @@ import {
 	DataTablePagination,
 } from '~/components/ui/data-table'
 import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
+import { Decimal } from '~/lib/decimal'
 import { getPrefetchStrategy } from '~/lib/prefetch-strategy'
 import type { Company } from '~/server/queries'
 
@@ -63,8 +64,8 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				/>
 			),
 			cell: ({ row }) => {
-				const rate = Number.parseFloat(row.getValue('rate'))
-				return <div>{(rate * 100).toFixed(2)}%</div>
+				const rate = row.getValue('rate')
+				return <div>{new Decimal(String(rate)).mul(100).toFixed(2)}%</div>
 			},
 		},
 		{
@@ -78,9 +79,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 			cell: ({ row }) => {
 				const rate = row.getValue('borrowingCapacityRate') as string | null
 				return (
-					<div>
-						{rate ? `${(Number.parseFloat(rate) * 100).toFixed(0)}%` : '-'}
-					</div>
+					<div>{rate ? `${new Decimal(rate).mul(100).toFixed(0)}%` : '-'}</div>
 				)
 			},
 		},

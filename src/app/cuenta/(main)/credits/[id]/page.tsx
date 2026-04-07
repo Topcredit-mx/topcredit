@@ -13,6 +13,7 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { SectionCard } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
+import { Decimal } from '~/lib/decimal'
 import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
@@ -123,7 +124,7 @@ export default async function CuentaCreditDetailPage({
 							{t('detail-rate')}
 						</p>
 						<p className="mt-2 font-semibold text-lg text-slate-900">
-							{(Number(credit.rate) * 100).toFixed(2)}%
+							{new Decimal(credit.rate).mul(100).toFixed(2)}%
 						</p>
 					</div>
 				</div>

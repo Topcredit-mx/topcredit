@@ -30,6 +30,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from '~/components/ui/tooltip'
+import { Decimal } from '~/lib/decimal'
 import {
 	amortizationPayment,
 	isPreAuthOverCapacity,
@@ -211,7 +212,7 @@ export function PreAuthorizeApplicationDialog({
 
 	const maxPrincipalFormatted =
 		capacityContext != null && hasCompanyCapacity
-			? formatCurrencyMxn(capacityContext.maxPrincipal.toFixed(2))
+			? formatCurrencyMxn(new Decimal(capacityContext.maxPrincipal).toFixed(2))
 			: null
 
 	const amountFieldInvalid =
@@ -222,8 +223,7 @@ export function PreAuthorizeApplicationDialog({
 			principal,
 			capacityContext.rateParsed,
 			capacityContext.totalPayments,
-		) >
-			capacityContext.maxDebt + 1e-9
+		) > capacityContext.maxDebt
 
 	const baseSubmitDisabled =
 		pending ||

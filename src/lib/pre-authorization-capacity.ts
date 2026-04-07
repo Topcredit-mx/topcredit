@@ -1,11 +1,17 @@
+import { Decimal } from './decimal'
+
 export const PRE_AUTH_IVA_FACTOR = 1.16
+
+function financedRateFactor(rate: number): Decimal {
+	return new Decimal(1).plus(new Decimal(rate).mul(PRE_AUTH_IVA_FACTOR))
+}
 
 export function monthlySalaryFromApplicant(
 	salaryAmount: number,
 	applicantSalaryFrequency: 'monthly' | 'bi-monthly',
 ): number {
 	if (applicantSalaryFrequency === 'bi-monthly') {
-		return salaryAmount * 2
+		return new Decimal(salaryAmount).mul(2).toNumber()
 	}
 	return salaryAmount
 }
@@ -47,7 +53,7 @@ export function financedCreditAmount(
 	loanPrincipal: number,
 	rate: number,
 ): number {
-	return loanPrincipal * (1 + rate * PRE_AUTH_IVA_FACTOR)
+	return new Decimal(loanPrincipal).mul(financedRateFactor(rate)).toNumber()
 }
 
 export function amortizationPayment(
@@ -58,7 +64,9 @@ export function amortizationPayment(
 	if (totalPayments <= 0) {
 		return Number.POSITIVE_INFINITY
 	}
-	return financedCreditAmount(loanPrincipal, rate) / totalPayments
+	return new Decimal(financedCreditAmount(loanPrincipal, rate))
+		.div(totalPayments)
+		.toNumber()
 }
 
 export function maxDebtCapacityForLoanPeriod(
@@ -66,11 +74,11 @@ export function maxDebtCapacityForLoanPeriod(
 	borrowingCapacityRate: number,
 	loanDurationType: 'monthly' | 'bi-monthly',
 ): number {
-	const monthlyCapacity = monthlySalary * borrowingCapacityRate
+	const monthlyCapacity = new Decimal(monthlySalary).mul(borrowingCapacityRate)
 	if (loanDurationType === 'monthly') {
-		return monthlyCapacity
+		return monthlyCapacity.toNumber()
 	}
-	return monthlyCapacity / 2
+	return monthlyCapacity.div(2).toNumber()
 }
 
 export function maxLoanPrincipalForCapacity(params: {
@@ -79,8 +87,10 @@ export function maxLoanPrincipalForCapacity(params: {
 	totalPayments: number
 }): number {
 	const { maxDebtCapacityPerLoanPeriod, rate, totalPayments } = params
-	const denom = 1 + rate * PRE_AUTH_IVA_FACTOR
-	return (maxDebtCapacityPerLoanPeriod * totalPayments) / denom
+	return new Decimal(maxDebtCapacityPerLoanPeriod)
+		.mul(totalPayments)
+		.div(financedRateFactor(rate))
+		.toNumber()
 }
 
 export function isPreAuthOverCapacity(params: {
@@ -101,5 +111,5 @@ export function isPreAuthOverCapacity(params: {
 		params.rate,
 		params.totalPayments,
 	)
-	return payment > maxDebt + 1e-9
+	return new Decimal(payment).gt(maxDebt)
 }
