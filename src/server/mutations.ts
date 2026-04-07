@@ -18,6 +18,7 @@ import {
 	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
+import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
 	isPreAuthOverCapacity,
 	maxDebtCapacityForLoanPeriod,
@@ -50,6 +51,7 @@ import {
 	applicationDocuments,
 	applications,
 	companies,
+	creditPayments,
 	credits,
 	termOfferings,
 	terms,
@@ -1023,14 +1025,47 @@ export async function disburseApplication(payload: {
 		receiptFileName: receiptFile.name,
 	})
 
-	if (app.creditAmount != null) {
-		await db.insert(credits).values({
-			applicationId,
-			status: 'dispersed',
-			disbursementDate: new Date(),
-			transferAmount: app.creditAmount,
-			disbursedByUserId: user.id,
-		})
+	if (app.creditAmount != null && app.termOfferingId != null) {
+		const [credit] = await db
+			.insert(credits)
+			.values({
+				applicationId,
+				status: 'dispersed',
+				disbursementDate: new Date(),
+				transferAmount: app.creditAmount,
+				disbursedByUserId: user.id,
+			})
+			.returning({ id: credits.id })
+
+		if (credit) {
+			const [termInfo] = await db
+				.select({
+					duration: terms.duration,
+					durationType: terms.durationType,
+					rate: companies.rate,
+				})
+				.from(termOfferings)
+				.innerJoin(terms, eq(termOfferings.termId, terms.id))
+				.innerJoin(companies, eq(termOfferings.companyId, companies.id))
+				.where(eq(termOfferings.id, app.termOfferingId))
+
+			if (termInfo && app.firstDiscountDate) {
+				const schedule = generatePaymentSchedule({
+					loanPrincipal: Number(app.creditAmount),
+					rate: Number(termInfo.rate),
+					totalPayments: termInfo.duration,
+					frequency: termInfo.durationType,
+					firstDiscountDate: app.firstDiscountDate,
+				})
+				await db.insert(creditPayments).values(
+					schedule.map((entry) => ({
+						creditId: credit.id,
+						dueDate: entry.dueDate,
+						amount: entry.amount,
+					})),
+				)
+			}
+		}
 	}
 
 	revalidatePath('/equipo/applications')

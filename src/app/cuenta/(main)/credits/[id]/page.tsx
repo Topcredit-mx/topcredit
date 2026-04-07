@@ -16,8 +16,20 @@ import { ShellBackLink } from '~/components/ui/shell-back-link'
 import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
-import { getCreditDetailByApplicantId } from '~/server/queries'
+import type { CreditPaymentStatus } from '~/server/db/schema'
+import {
+	getCreditDetailByApplicantId,
+	getCreditPaymentsByCreditId,
+} from '~/server/queries'
 import { formatApplicationTerm } from '../../applications/constants'
+
+const PAYMENT_STATUS_KEYS: Record<
+	CreditPaymentStatus,
+	'payment-status-pending' | 'payment-status-confirmed'
+> = {
+	pending: 'payment-status-pending',
+	confirmed: 'payment-status-confirmed',
+}
 
 function DetailField({
 	label,
@@ -55,7 +67,10 @@ export default async function CuentaCreditDetailPage({
 		notFound()
 	}
 
-	const t = await getTranslations('cuenta.credits')
+	const [t, payments] = await Promise.all([
+		getTranslations('cuenta.credits'),
+		getCreditPaymentsByCreditId(creditId, user.id),
+	])
 
 	return (
 		<main className={cn(shell.applicantMainMax, 'pb-8')}>
@@ -145,9 +160,57 @@ export default async function CuentaCreditDetailPage({
 				icon={Building2}
 				title={t('detail-payment-schedule-title')}
 			>
-				<p className="text-slate-600 text-sm">
-					{t('detail-payment-schedule-placeholder')}
-				</p>
+				{payments.length > 0 ? (
+					<table className="w-full">
+						<thead>
+							<tr className="border-slate-100 border-b bg-slate-50/80 text-left text-[11px] text-slate-500 uppercase tracking-wide">
+								<th className="px-5 py-3 font-semibold" scope="col">
+									{t('schedule-th-number')}
+								</th>
+								<th className="px-5 py-3 font-semibold" scope="col">
+									{t('schedule-th-due-date')}
+								</th>
+								<th className="px-5 py-3 font-semibold" scope="col">
+									{t('schedule-th-amount')}
+								</th>
+								<th className="px-5 py-3 font-semibold" scope="col">
+									{t('schedule-th-status')}
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							{payments.map((payment, index) => (
+								<tr key={payment.id} className="border-slate-100 border-b">
+									<td className="px-5 py-3.5 text-slate-800 text-sm">
+										{index + 1}
+									</td>
+									<td className="px-5 py-3.5 text-slate-800 text-sm">
+										<FormattedDate
+											value={payment.dueDate.toISOString()}
+											format="date"
+										/>
+									</td>
+									<td className="px-5 py-3.5 text-slate-800 text-sm">
+										{formatCurrencyMxn(payment.amount)}
+									</td>
+									<td className="px-5 py-3.5 text-sm">
+										<Badge
+											variant={
+												payment.status === 'confirmed' ? 'default' : 'secondary'
+											}
+										>
+											{t(PAYMENT_STATUS_KEYS[payment.status])}
+										</Badge>
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				) : (
+					<p className="text-slate-600 text-sm">
+						{t('detail-payment-schedule-placeholder')}
+					</p>
+				)}
 			</SectionCard>
 
 			<ApplicantPageFooter className="mt-16" />

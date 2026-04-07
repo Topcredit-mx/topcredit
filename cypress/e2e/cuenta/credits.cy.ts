@@ -63,6 +63,56 @@ describe('Applicant views active credits', () => {
 		).should('be.visible')
 	})
 
+	it('shows payment schedule table with correct installment count', () => {
+		cy.visit(`/cuenta/credits/${seedResult.creditId}`)
+		cy.contains('h1', /detalle de tu crédito/i).should('be.visible')
+		cy.contains('h2', /calendario de pagos/i)
+			.scrollIntoView()
+			.should('be.visible')
+			.closest('[data-slot="card"]')
+			.within(() => {
+				cy.get('table').should('be.visible')
+				cy.get('table tbody tr').should('have.length', 12)
+			})
+	})
+
+	it('shows correct payment amounts in schedule', () => {
+		cy.visit(`/cuenta/credits/${seedResult.creditId}`)
+		cy.contains('h1', /detalle de tu crédito/i).should('be.visible')
+		cy.contains('h2', /calendario de pagos/i)
+			.scrollIntoView()
+			.should('be.visible')
+			.closest('[data-slot="card"]')
+			.within(() => {
+				cy.get('table tbody tr').should('have.length', 12)
+				cy.get('table tbody tr')
+					.first()
+					.scrollIntoView()
+					.within(() => {
+						cy.contains('$4,287.49').should('be.visible')
+					})
+			})
+	})
+
+	it('shows due date and status columns in payment schedule', () => {
+		cy.visit(`/cuenta/credits/${seedResult.creditId}`)
+		cy.contains('h1', /detalle de tu crédito/i).should('be.visible')
+		cy.contains('h2', /calendario de pagos/i)
+			.scrollIntoView()
+			.should('be.visible')
+			.closest('[data-slot="card"]')
+			.within(() => {
+				cy.contains('th', /fecha de pago/i).should('be.visible')
+				cy.contains('th', /estado/i).should('be.visible')
+				cy.get('table tbody tr')
+					.first()
+					.scrollIntoView()
+					.within(() => {
+						cy.contains(/pendiente/i).should('be.visible')
+					})
+			})
+	})
+
 	it('shows empty state when applicant has no credits', () => {
 		cy.task('cleanupCuentaCredits')
 		cy.task<SeedCuentaCreditsResult>('seedCuentaCreditsEmpty')

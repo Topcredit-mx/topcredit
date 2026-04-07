@@ -14,6 +14,7 @@ import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
 import type {
 	ApplicationStatus,
+	CreditPaymentStatus,
 	DocumentStatus,
 	DocumentType,
 } from '~/server/db/schema'
@@ -22,6 +23,7 @@ import {
 	applicationStatusHistory,
 	applications,
 	companies,
+	creditPayments,
 	credits,
 	termOfferings,
 	terms,
@@ -1063,4 +1065,41 @@ export async function getCreditDetailByApplicantId(
 		.where(and(eq(credits.id, creditId), eq(applications.applicantId, userId)))
 
 	return row ?? null
+}
+
+type CreditPaymentRow = {
+	id: number
+	dueDate: Date
+	amount: string
+	status: CreditPaymentStatus
+}
+
+export async function getCreditPaymentsByCreditId(
+	creditId: number,
+	userId: number,
+): Promise<CreditPaymentRow[]> {
+	const { ability } = await getAbility()
+	requireAbility(
+		ability,
+		'read',
+		subject('Credit', { id: creditId, applicantId: userId }),
+	)
+
+	return db
+		.select({
+			id: creditPayments.id,
+			dueDate: creditPayments.dueDate,
+			amount: creditPayments.amount,
+			status: creditPayments.status,
+		})
+		.from(creditPayments)
+		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.where(
+			and(
+				eq(creditPayments.creditId, creditId),
+				eq(applications.applicantId, userId),
+			),
+		)
+		.orderBy(asc(creditPayments.dueDate))
 }

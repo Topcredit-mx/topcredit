@@ -78,6 +78,7 @@ import {
 	applicantUser as loginApplicantUser,
 	noRoleUser as loginNoRoleUser,
 } from '~/cypress/e2e/other/login.fixtures'
+import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import type { Role } from '~/server/auth/session'
 import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
 import {
@@ -85,6 +86,7 @@ import {
 	applicationStatusHistory,
 	applications,
 	companies,
+	creditPayments,
 	credits,
 	emailOtps,
 	termOfferings,
@@ -2546,6 +2548,22 @@ async function seedCuentaCreditsBase(
 			.returning()
 		if (!credit) throw new Error('Seed Credits: credit not created')
 		creditId = credit.id
+
+		const firstDiscountDate = new Date(now.getTime() + 30 * 24 * 60 * 60_000)
+		const schedule = generatePaymentSchedule({
+			loanPrincipal: Number(creditAmount),
+			rate: Number(creditsCompany.rate),
+			totalPayments: 12,
+			frequency: 'monthly',
+			firstDiscountDate,
+		})
+		await db.insert(creditPayments).values(
+			schedule.map((entry) => ({
+				creditId: credit.id,
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+			})),
+		)
 	}
 
 	return {
