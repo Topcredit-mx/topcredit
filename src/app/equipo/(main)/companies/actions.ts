@@ -3,6 +3,7 @@
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { Decimal } from '~/lib/decimal'
 import { ValidationCode } from '~/lib/validation-codes'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { db } from '~/server/db'
@@ -111,7 +112,7 @@ export async function updateCompanyAction(
 				.pick({ rate: true })
 				.parse({ rate: formRate })
 			if (parsed.rate !== undefined) {
-				updateData.rate = (parsed.rate / 100).toFixed(4)
+				updateData.rate = new Decimal(parsed.rate).div(100).toFixed(4)
 			}
 		}
 
@@ -123,7 +124,7 @@ export async function updateCompanyAction(
 				.pick({ borrowingCapacityRate: true })
 				.parse({ borrowingCapacityRate: formBorrowingCapacityRate })
 			updateData.borrowingCapacityRate = parsed.borrowingCapacityRate
-				? (parsed.borrowingCapacityRate / 100).toFixed(2)
+				? new Decimal(parsed.borrowingCapacityRate).div(100).toFixed(2)
 				: null
 		} else if (formBorrowingCapacityRate === '') {
 			updateData.borrowingCapacityRate = null

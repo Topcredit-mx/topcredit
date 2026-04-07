@@ -8,6 +8,7 @@ import {
 	APPLICATION_DOCUMENT_MAX_BYTES,
 } from '~/lib/application-document-intake'
 import { INACTIVE_APPLICATION_STATUSES } from '~/lib/application-rules'
+import { Decimal } from '~/lib/decimal'
 import { ValidationCode } from '~/lib/validation-codes'
 import { createApplicationWithStatusHistory } from '~/server/application-status-history'
 import {
@@ -107,7 +108,7 @@ export async function createApplicationWithInitialDocumentsAction(
 			where: and(
 				eq(applications.applicantId, user.id),
 				eq(applications.companyId, company.id),
-				eq(applications.salaryAtApplication, String(salary.toFixed(2))),
+				eq(applications.salaryAtApplication, new Decimal(salary).toFixed(2)),
 				eq(applications.salaryFrequency, applicationData.salaryFrequency),
 				eq(applications.rfc, applicationData.rfc),
 				eq(applications.payrollNumber, applicationData.payrollNumber),
@@ -143,7 +144,7 @@ export async function createApplicationWithInitialDocumentsAction(
 				companyId: company.id,
 				termOfferingId: null,
 				creditAmount: null,
-				salaryAtApplication: String(salary.toFixed(2)),
+				salaryAtApplication: new Decimal(salary).toFixed(2),
 				salaryFrequency: applicationData.salaryFrequency,
 				payrollNumber: applicationData.payrollNumber,
 				rfc: applicationData.rfc,

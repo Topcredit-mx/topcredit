@@ -89,7 +89,7 @@ describe('Applicant views active credits', () => {
 					.first()
 					.scrollIntoView()
 					.within(() => {
-						cy.contains('$4,287.49').should('be.visible')
+						cy.contains('$4,287.50').should('be.visible')
 					})
 			})
 	})
