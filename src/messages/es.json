@@ -590,6 +590,12 @@
 			"detail-status": "Estado",
 			"detail-payment-schedule-title": "Calendario de pagos",
 			"detail-payment-schedule-placeholder": "El calendario de pagos estará disponible próximamente.",
+			"schedule-th-number": "#",
+			"schedule-th-due-date": "Fecha de pago",
+			"schedule-th-amount": "Monto",
+			"schedule-th-status": "Estado",
+			"payment-status-pending": "Pendiente",
+			"payment-status-confirmed": "Confirmado",
 			"term-months": "meses",
 			"term-fortnights": "quincenas"
 		},
