@@ -33,6 +33,7 @@ export type AppAction =
 	| 'setFirstDiscountDate'
 	| 'reopenAuthorizationReview'
 	| 'disburse'
+	| 'confirmPayment'
 export type AppSubject =
 	| 'Company'
 	| 'User'
@@ -40,6 +41,7 @@ export type AppSubject =
 	| 'Application'
 	| 'ApplicationDocument'
 	| 'Credit'
+	| 'CreditPayment'
 	| 'all'
 
 export type CompanySubject = { id: number } & ForcedSubject<'Company'>
@@ -65,6 +67,11 @@ export type CreditSubject = {
 	applicantId: number
 } & ForcedSubject<'Credit'>
 
+export type CreditPaymentSubject = {
+	id: number
+	companyId: number
+} & ForcedSubject<'CreditPayment'>
+
 export type AppAbility = MongoAbility<
 	[
 		AppAction,
@@ -75,6 +82,7 @@ export type AppAbility = MongoAbility<
 			| ApplicationSubject
 			| ApplicationDocumentSubject
 			| CreditSubject
+			| CreditPaymentSubject
 		),
 	]
 >
@@ -122,6 +130,7 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 
 	if (isAdmin) {
 		can('manage', 'all')
+		can('confirmPayment', 'CreditPayment')
 		can('reopenAuthorizationReview', 'Application')
 		can('setFirstDiscountDate', 'Application', {
 			status: 'authorized',
@@ -210,6 +219,9 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 			companyId: { $in: ctx.assignedCompanyIds },
 			status: 'authorized',
 			firstDiscountDate: null,
+		})
+		can('confirmPayment', 'CreditPayment', {
+			companyId: { $in: ctx.assignedCompanyIds },
 		})
 	}
 

@@ -285,6 +285,30 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'DISBURSE_HR_NOT_APPROVED',
 	},
+	[ValidationCode.PAYMENT_NOT_FOUND]: {
+		namespace: 'equipo',
+		key: 'PAYMENT_NOT_FOUND',
+	},
+	[ValidationCode.PAYMENT_ALREADY_CONFIRMED]: {
+		namespace: 'equipo',
+		key: 'PAYMENT_ALREADY_CONFIRMED',
+	},
+	[ValidationCode.PAYMENT_CSV_PARSE_ERROR]: {
+		namespace: 'equipo',
+		key: 'PAYMENT_CSV_PARSE_ERROR',
+	},
+	[ValidationCode.PAYMENT_CSV_NO_MATCHES]: {
+		namespace: 'equipo',
+		key: 'PAYMENT_CSV_NO_MATCHES',
+	},
+	[ValidationCode.PAYMENT_BULK_EMPTY]: {
+		namespace: 'equipo',
+		key: 'PAYMENT_BULK_EMPTY',
+	},
+	[ValidationCode.PAYMENT_CONFIRM_FORBIDDEN]: {
+		namespace: 'equipo',
+		key: 'PAYMENT_CONFIRM_FORBIDDEN',
+	},
 }
 
 function isValidationCode(s: string): s is ValidationCodeType {

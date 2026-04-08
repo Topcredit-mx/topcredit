@@ -20,6 +20,7 @@ export {
 	type ApplicationSubject,
 	type AppSubject,
 	type CompanySubject,
+	type CreditPaymentSubject,
 	defineAbilityFor,
 	subject,
 	type UserSubject,

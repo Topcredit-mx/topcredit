@@ -43,6 +43,13 @@
 			"when": 1775519850509,
 			"tag": "0005_daily_grim_reaper",
 			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "7",
+			"when": 1775605750594,
+			"tag": "0006_gorgeous_sauron",
+			"breakpoints": true
 		}
 	]
 }

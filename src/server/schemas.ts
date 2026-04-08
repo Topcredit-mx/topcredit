@@ -196,6 +196,16 @@ export const applicationDocumentDecisionSchema = z
 		}
 	})
 
+export const confirmPaymentSchema = z.object({
+	paymentId: z.number().int().positive(ValidationCode.PAYMENT_NOT_FOUND),
+})
+
+export const confirmPaymentsBulkSchema = z.object({
+	paymentIds: z
+		.array(z.number().int().positive(ValidationCode.PAYMENT_NOT_FOUND))
+		.min(1, ValidationCode.PAYMENT_BULK_EMPTY),
+})
+
 export const applyApplicationDocumentDecisionsSchema = z
 	.object({
 		applicationId: z
