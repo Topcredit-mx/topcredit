@@ -14,7 +14,6 @@ import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
 import type {
 	ApplicationStatus,
-	CreditPaymentStatus,
 	CreditStatus,
 	DocumentStatus,
 	DocumentType,
@@ -1072,7 +1071,8 @@ type CreditPaymentRow = {
 	id: number
 	dueDate: Date
 	amount: string
-	status: CreditPaymentStatus
+	hrConfirmedAt: Date | null
+	paymentsConfirmedAt: Date | null
 }
 
 export async function getCreditPaymentsByCreditId(
@@ -1091,7 +1091,8 @@ export async function getCreditPaymentsByCreditId(
 			id: creditPayments.id,
 			dueDate: creditPayments.dueDate,
 			amount: creditPayments.amount,
-			status: creditPayments.status,
+			hrConfirmedAt: creditPayments.hrConfirmedAt,
+			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
 		})
 		.from(creditPayments)
 		.innerJoin(credits, eq(creditPayments.creditId, credits.id))

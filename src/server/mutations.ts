@@ -20,8 +20,9 @@ import {
 import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import {
-	allPaymentsConfirmed,
-	canConfirmPayment,
+	allPaymentsFullyConfirmed,
+	canConfirmReceipt,
+	canHrConfirm,
 	parseCsvPaymentConfirmations,
 } from '~/lib/payment-confirmation'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
@@ -72,7 +73,8 @@ import {
 import { getApplicationDocuments } from '~/server/queries'
 import {
 	applyApplicationDocumentDecisionsSchema,
-	confirmPaymentsBulkSchema,
+	confirmHrDeductionsBulkSchema,
+	confirmPaymentReceiptsBulkSchema,
 	preAuthorizeApplicationSchema,
 	updateApplicationStatusSchema,
 } from '~/server/schemas'
@@ -1088,7 +1090,8 @@ export async function disburseApplication(payload: {
 
 type PaymentWithContext = {
 	paymentId: number
-	paymentStatus: 'pending' | 'confirmed'
+	hrConfirmedAt: Date | null
+	paymentsConfirmedAt: Date | null
 	creditId: number
 	companyId: number
 }
@@ -1099,7 +1102,8 @@ async function fetchPaymentsWithContext(
 	return db
 		.select({
 			paymentId: creditPayments.id,
-			paymentStatus: creditPayments.status,
+			hrConfirmedAt: creditPayments.hrConfirmedAt,
+			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
 			creditId: creditPayments.creditId,
 			companyId: applications.companyId,
 		})
@@ -1116,11 +1120,14 @@ async function settleCreditsIfFullyConfirmed(
 	const settled: number[] = []
 	for (const creditId of creditIds) {
 		const remaining = await db
-			.select({ status: creditPayments.status })
+			.select({
+				hrConfirmedAt: creditPayments.hrConfirmedAt,
+				paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+			})
 			.from(creditPayments)
 			.where(eq(creditPayments.creditId, creditId))
 
-		if (allPaymentsConfirmed(remaining)) {
+		if (allPaymentsFullyConfirmed(remaining)) {
 			await db
 				.update(credits)
 				.set({ status: 'settled', updatedAt: now })
@@ -1140,7 +1147,7 @@ function toCreditPaymentSubject(
 	})
 }
 
-export async function confirmPayment(
+export async function confirmHrDeduction(
 	paymentId: number,
 ): Promise<{ error?: string }> {
 	const { ability } = await getAbility()
@@ -1153,11 +1160,11 @@ export async function confirmPayment(
 		return { error: ValidationCode.PAYMENT_NOT_FOUND }
 	}
 
-	if (!ability.can('confirmPayment', toCreditPaymentSubject(payment))) {
+	if (!ability.can('confirmHrDeduction', toCreditPaymentSubject(payment))) {
 		return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
 	}
 
-	if (!canConfirmPayment(payment.paymentStatus)) {
+	if (!canHrConfirm(payment)) {
 		return { error: ValidationCode.PAYMENT_ALREADY_CONFIRMED }
 	}
 
@@ -1165,23 +1172,20 @@ export async function confirmPayment(
 	await db
 		.update(creditPayments)
 		.set({
-			status: 'confirmed',
 			hrConfirmedAt: now,
-			confirmedByUserId: user.id,
+			hrConfirmedByUserId: user.id,
 		})
 		.where(eq(creditPayments.id, paymentId))
-
-	await settleCreditsIfFullyConfirmed([payment.creditId], now)
 
 	revalidatePath('/equipo/payments')
 	revalidatePath('/cuenta/credits')
 	return {}
 }
 
-export async function confirmPayments(
+export async function confirmHrDeductions(
 	paymentIds: number[],
 ): Promise<{ error?: string }> {
-	const parsed = confirmPaymentsBulkSchema.safeParse({ paymentIds })
+	const parsed = confirmHrDeductionsBulkSchema.safeParse({ paymentIds })
 	if (!parsed.success) {
 		const first = parsed.error.issues[0]
 		return { error: first?.message ?? ValidationCode.PAYMENT_BULK_EMPTY }
@@ -1197,13 +1201,13 @@ export async function confirmPayments(
 	}
 
 	for (const payment of rows) {
-		if (!ability.can('confirmPayment', toCreditPaymentSubject(payment))) {
+		if (!ability.can('confirmHrDeduction', toCreditPaymentSubject(payment))) {
 			return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
 		}
 	}
 
-	const pendingRows = rows.filter((r) => canConfirmPayment(r.paymentStatus))
-	if (pendingRows.length === 0) {
+	const toConfirm = rows.filter((r) => canHrConfirm(r))
+	if (toConfirm.length === 0) {
 		return { error: ValidationCode.PAYMENT_ALREADY_CONFIRMED }
 	}
 
@@ -1211,41 +1215,35 @@ export async function confirmPayments(
 	await db
 		.update(creditPayments)
 		.set({
-			status: 'confirmed',
 			hrConfirmedAt: now,
-			confirmedByUserId: user.id,
+			hrConfirmedByUserId: user.id,
 		})
 		.where(
 			inArray(
 				creditPayments.id,
-				pendingRows.map((r) => r.paymentId),
+				toConfirm.map((r) => r.paymentId),
 			),
 		)
-
-	const uniqueCreditIds = [...new Set(pendingRows.map((r) => r.creditId))]
-	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
 
 	revalidatePath('/equipo/payments')
 	revalidatePath('/cuenta/credits')
 	return {}
 }
 
-export type ConfirmPaymentsFromCsvResult = {
+export type ConfirmHrDeductionsFromCsvResult = {
 	confirmed: number
 	alreadyConfirmed: number
 	unmatched: number
-	settledCredits: number
 	error?: string
 }
 
-export async function confirmPaymentsFromCsv(
+export async function confirmHrDeductionsFromCsv(
 	csvContent: string,
-): Promise<ConfirmPaymentsFromCsvResult> {
-	const empty: ConfirmPaymentsFromCsvResult = {
+): Promise<ConfirmHrDeductionsFromCsvResult> {
+	const empty: ConfirmHrDeductionsFromCsvResult = {
 		confirmed: 0,
 		alreadyConfirmed: 0,
 		unmatched: 0,
-		settledCredits: 0,
 	}
 
 	const { rows: csvRows, errors: parseErrors } =
@@ -1266,7 +1264,8 @@ export async function confirmPaymentsFromCsv(
 	const candidateRows = await db
 		.select({
 			paymentId: creditPayments.id,
-			paymentStatus: creditPayments.status,
+			hrConfirmedAt: creditPayments.hrConfirmedAt,
+			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
 			creditId: creditPayments.creditId,
 			companyId: applications.companyId,
 			payrollNumber: applications.payrollNumber,
@@ -1301,13 +1300,11 @@ export async function confirmPaymentsFromCsv(
 	const unmatched = csvRows.length - matched.length
 
 	const authorized = matched.filter((row) =>
-		ability.can('confirmPayment', toCreditPaymentSubject(row)),
+		ability.can('confirmHrDeduction', toCreditPaymentSubject(row)),
 	)
 
-	const toConfirm = authorized.filter((r) => canConfirmPayment(r.paymentStatus))
-	const alreadyConfirmed = authorized.filter(
-		(r) => !canConfirmPayment(r.paymentStatus),
-	).length
+	const toConfirm = authorized.filter((r) => canHrConfirm(r))
+	const alreadyConfirmed = authorized.filter((r) => !canHrConfirm(r)).length
 
 	if (toConfirm.length === 0 && alreadyConfirmed === 0) {
 		return { ...empty, unmatched, error: ValidationCode.PAYMENT_CSV_NO_MATCHES }
@@ -1318,9 +1315,219 @@ export async function confirmPaymentsFromCsv(
 		await db
 			.update(creditPayments)
 			.set({
-				status: 'confirmed',
 				hrConfirmedAt: now,
-				confirmedByUserId: user.id,
+				hrConfirmedByUserId: user.id,
+			})
+			.where(
+				inArray(
+					creditPayments.id,
+					toConfirm.map((r) => r.paymentId),
+				),
+			)
+	}
+
+	revalidatePath('/equipo/payments')
+	revalidatePath('/cuenta/credits')
+
+	return {
+		confirmed: toConfirm.length,
+		alreadyConfirmed,
+		unmatched,
+	}
+}
+
+export async function confirmPaymentReceipt(
+	paymentId: number,
+): Promise<{ error?: string }> {
+	const { ability } = await getAbility()
+	const user = await getRequiredUser()
+
+	const rows = await fetchPaymentsWithContext([paymentId])
+	const payment = rows[0]
+
+	if (!payment) {
+		return { error: ValidationCode.PAYMENT_NOT_FOUND }
+	}
+
+	if (!ability.can('confirmPaymentReceipt', toCreditPaymentSubject(payment))) {
+		return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
+	}
+
+	if (!canConfirmReceipt(payment)) {
+		return payment.hrConfirmedAt === null
+			? { error: ValidationCode.PAYMENT_NOT_HR_CONFIRMED }
+			: { error: ValidationCode.PAYMENT_ALREADY_RECEIVED }
+	}
+
+	const now = new Date()
+	await db
+		.update(creditPayments)
+		.set({
+			paymentsConfirmedAt: now,
+			paymentsConfirmedByUserId: user.id,
+		})
+		.where(eq(creditPayments.id, paymentId))
+
+	await settleCreditsIfFullyConfirmed([payment.creditId], now)
+
+	revalidatePath('/equipo/payments')
+	revalidatePath('/cuenta/credits')
+	return {}
+}
+
+export async function confirmPaymentReceipts(
+	paymentIds: number[],
+): Promise<{ error?: string }> {
+	const parsed = confirmPaymentReceiptsBulkSchema.safeParse({ paymentIds })
+	if (!parsed.success) {
+		const first = parsed.error.issues[0]
+		return { error: first?.message ?? ValidationCode.PAYMENT_BULK_EMPTY }
+	}
+
+	const { ability } = await getAbility()
+	const user = await getRequiredUser()
+
+	const rows = await fetchPaymentsWithContext(parsed.data.paymentIds)
+
+	if (rows.length === 0) {
+		return { error: ValidationCode.PAYMENT_NOT_FOUND }
+	}
+
+	for (const payment of rows) {
+		if (
+			!ability.can('confirmPaymentReceipt', toCreditPaymentSubject(payment))
+		) {
+			return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
+		}
+	}
+
+	const toConfirm = rows.filter((r) => canConfirmReceipt(r))
+	if (toConfirm.length === 0) {
+		const hasNotHrConfirmed = rows.some((r) => r.hrConfirmedAt === null)
+		return {
+			error: hasNotHrConfirmed
+				? ValidationCode.PAYMENT_NOT_HR_CONFIRMED
+				: ValidationCode.PAYMENT_ALREADY_RECEIVED,
+		}
+	}
+
+	const now = new Date()
+	await db
+		.update(creditPayments)
+		.set({
+			paymentsConfirmedAt: now,
+			paymentsConfirmedByUserId: user.id,
+		})
+		.where(
+			inArray(
+				creditPayments.id,
+				toConfirm.map((r) => r.paymentId),
+			),
+		)
+
+	const uniqueCreditIds = [...new Set(toConfirm.map((r) => r.creditId))]
+	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
+
+	revalidatePath('/equipo/payments')
+	revalidatePath('/cuenta/credits')
+	return {}
+}
+
+export type ConfirmPaymentReceiptsFromCsvResult = {
+	confirmed: number
+	alreadyReceived: number
+	notHrConfirmed: number
+	unmatched: number
+	settledCredits: number
+	error?: string
+}
+
+export async function confirmPaymentReceiptsFromCsv(
+	csvContent: string,
+): Promise<ConfirmPaymentReceiptsFromCsvResult> {
+	const empty: ConfirmPaymentReceiptsFromCsvResult = {
+		confirmed: 0,
+		alreadyReceived: 0,
+		notHrConfirmed: 0,
+		unmatched: 0,
+		settledCredits: 0,
+	}
+
+	const { rows: csvRows, errors: parseErrors } =
+		parseCsvPaymentConfirmations(csvContent)
+
+	if (parseErrors.length > 0) {
+		return { ...empty, error: ValidationCode.PAYMENT_CSV_PARSE_ERROR }
+	}
+
+	if (csvRows.length === 0) {
+		return { ...empty, error: ValidationCode.PAYMENT_CSV_NO_MATCHES }
+	}
+
+	const { ability, assignedCompanyIds, isAdmin } = await getAbility()
+	const user = await getRequiredUser()
+
+	const candidateRows = await db
+		.select({
+			paymentId: creditPayments.id,
+			hrConfirmedAt: creditPayments.hrConfirmedAt,
+			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+			creditId: creditPayments.creditId,
+			companyId: applications.companyId,
+			payrollNumber: applications.payrollNumber,
+			amount: creditPayments.amount,
+			dueDate: creditPayments.dueDate,
+		})
+		.from(creditPayments)
+		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.where(
+			isAdmin ? undefined : inArray(applications.companyId, assignedCompanyIds),
+		)
+
+	function makeKey(
+		payrollNumber: string,
+		amount: string,
+		dueDate: string,
+	): string {
+		return `${payrollNumber}|${amount}|${dueDate}`
+	}
+
+	const csvKeySet = new Set(
+		csvRows.map((r) => makeKey(r.payrollNumber, r.amount, r.dueDate)),
+	)
+
+	const matched = candidateRows.filter((row) => {
+		if (!row.payrollNumber) return false
+		const dueDateStr = row.dueDate.toISOString().slice(0, 10)
+		return csvKeySet.has(makeKey(row.payrollNumber, row.amount, dueDateStr))
+	})
+
+	const unmatched = csvRows.length - matched.length
+
+	const authorized = matched.filter((row) =>
+		ability.can('confirmPaymentReceipt', toCreditPaymentSubject(row)),
+	)
+
+	const toConfirm = authorized.filter((r) => canConfirmReceipt(r))
+	const alreadyReceived = authorized.filter(
+		(r) => r.paymentsConfirmedAt !== null,
+	).length
+	const notHrConfirmed = authorized.filter(
+		(r) => r.hrConfirmedAt === null,
+	).length
+
+	if (toConfirm.length === 0 && alreadyReceived === 0 && notHrConfirmed === 0) {
+		return { ...empty, unmatched, error: ValidationCode.PAYMENT_CSV_NO_MATCHES }
+	}
+
+	const now = new Date()
+	if (toConfirm.length > 0) {
+		await db
+			.update(creditPayments)
+			.set({
+				paymentsConfirmedAt: now,
+				paymentsConfirmedByUserId: user.id,
 			})
 			.where(
 				inArray(
@@ -1341,7 +1548,8 @@ export async function confirmPaymentsFromCsv(
 
 	return {
 		confirmed: toConfirm.length,
-		alreadyConfirmed,
+		alreadyReceived,
+		notHrConfirmed,
 		unmatched,
 		settledCredits: settledCreditIds.length,
 	}

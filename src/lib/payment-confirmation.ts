@@ -1,13 +1,26 @@
-import type { CreditPaymentStatus } from '~/server/db/schema'
-
-export function canConfirmPayment(status: CreditPaymentStatus): boolean {
-	return status === 'pending'
+export type PaymentTimestamps = {
+	hrConfirmedAt: Date | null
+	paymentsConfirmedAt: Date | null
 }
 
-export function allPaymentsConfirmed(
-	payments: ReadonlyArray<{ status: CreditPaymentStatus }>,
+export function canHrConfirm(
+	p: Pick<PaymentTimestamps, 'hrConfirmedAt'>,
 ): boolean {
-	return payments.every((p) => p.status === 'confirmed')
+	return p.hrConfirmedAt === null
+}
+
+export function canConfirmReceipt(p: PaymentTimestamps): boolean {
+	return p.hrConfirmedAt !== null && p.paymentsConfirmedAt === null
+}
+
+export function isFullyConfirmed(p: PaymentTimestamps): boolean {
+	return p.hrConfirmedAt !== null && p.paymentsConfirmedAt !== null
+}
+
+export function allPaymentsFullyConfirmed(
+	payments: ReadonlyArray<PaymentTimestamps>,
+): boolean {
+	return payments.every(isFullyConfirmed)
 }
 
 export type CsvPaymentRow = {
