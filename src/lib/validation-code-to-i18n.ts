@@ -293,6 +293,14 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'PAYMENT_ALREADY_CONFIRMED',
 	},
+	[ValidationCode.PAYMENT_NOT_HR_CONFIRMED]: {
+		namespace: 'equipo',
+		key: 'PAYMENT_NOT_HR_CONFIRMED',
+	},
+	[ValidationCode.PAYMENT_ALREADY_RECEIVED]: {
+		namespace: 'equipo',
+		key: 'PAYMENT_ALREADY_RECEIVED',
+	},
 	[ValidationCode.PAYMENT_CSV_PARSE_ERROR]: {
 		namespace: 'equipo',
 		key: 'PAYMENT_CSV_PARSE_ERROR',

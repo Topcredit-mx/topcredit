@@ -1,43 +1,108 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import {
-	allPaymentsConfirmed,
-	canConfirmPayment,
+	allPaymentsFullyConfirmed,
+	canConfirmReceipt,
+	canHrConfirm,
+	isFullyConfirmed,
 	parseCsvPaymentConfirmations,
 } from './payment-confirmation'
 
-describe('canConfirmPayment', () => {
-	test('returns true for pending payment', () => {
-		assert.equal(canConfirmPayment('pending'), true)
+const NOW = new Date('2026-01-31T10:00:00Z')
+
+describe('canHrConfirm', () => {
+	test('returns true when hrConfirmedAt is null', () => {
+		assert.equal(canHrConfirm({ hrConfirmedAt: null }), true)
 	})
 
-	test('returns false for already confirmed payment', () => {
-		assert.equal(canConfirmPayment('confirmed'), false)
+	test('returns false when hrConfirmedAt is set', () => {
+		assert.equal(canHrConfirm({ hrConfirmedAt: NOW }), false)
 	})
 })
 
-describe('allPaymentsConfirmed', () => {
-	test('returns true for empty array', () => {
-		assert.equal(allPaymentsConfirmed([]), true)
+describe('canConfirmReceipt', () => {
+	test('returns false when hrConfirmedAt is null', () => {
+		assert.equal(
+			canConfirmReceipt({ hrConfirmedAt: null, paymentsConfirmedAt: null }),
+			false,
+		)
 	})
 
-	test('returns true when all payments are confirmed', () => {
+	test('returns true when hrConfirmedAt is set and paymentsConfirmedAt is null', () => {
 		assert.equal(
-			allPaymentsConfirmed([
-				{ status: 'confirmed' },
-				{ status: 'confirmed' },
-				{ status: 'confirmed' },
+			canConfirmReceipt({ hrConfirmedAt: NOW, paymentsConfirmedAt: null }),
+			true,
+		)
+	})
+
+	test('returns false when both timestamps are set', () => {
+		assert.equal(
+			canConfirmReceipt({ hrConfirmedAt: NOW, paymentsConfirmedAt: NOW }),
+			false,
+		)
+	})
+})
+
+describe('isFullyConfirmed', () => {
+	test('returns false when both timestamps are null', () => {
+		assert.equal(
+			isFullyConfirmed({ hrConfirmedAt: null, paymentsConfirmedAt: null }),
+			false,
+		)
+	})
+
+	test('returns false when only hrConfirmedAt is set', () => {
+		assert.equal(
+			isFullyConfirmed({ hrConfirmedAt: NOW, paymentsConfirmedAt: null }),
+			false,
+		)
+	})
+
+	test('returns false when only paymentsConfirmedAt is set', () => {
+		assert.equal(
+			isFullyConfirmed({ hrConfirmedAt: null, paymentsConfirmedAt: NOW }),
+			false,
+		)
+	})
+
+	test('returns true when both timestamps are set', () => {
+		assert.equal(
+			isFullyConfirmed({ hrConfirmedAt: NOW, paymentsConfirmedAt: NOW }),
+			true,
+		)
+	})
+})
+
+describe('allPaymentsFullyConfirmed', () => {
+	test('returns true for empty array', () => {
+		assert.equal(allPaymentsFullyConfirmed([]), true)
+	})
+
+	test('returns true when all payments have both timestamps set', () => {
+		assert.equal(
+			allPaymentsFullyConfirmed([
+				{ hrConfirmedAt: NOW, paymentsConfirmedAt: NOW },
+				{ hrConfirmedAt: NOW, paymentsConfirmedAt: NOW },
 			]),
 			true,
 		)
 	})
 
-	test('returns false when any payment is pending', () => {
+	test('returns false when any payment has no hrConfirmedAt', () => {
 		assert.equal(
-			allPaymentsConfirmed([
-				{ status: 'confirmed' },
-				{ status: 'pending' },
-				{ status: 'confirmed' },
+			allPaymentsFullyConfirmed([
+				{ hrConfirmedAt: NOW, paymentsConfirmedAt: NOW },
+				{ hrConfirmedAt: null, paymentsConfirmedAt: null },
+			]),
+			false,
+		)
+	})
+
+	test('returns false when any payment has hrConfirmedAt but no paymentsConfirmedAt', () => {
+		assert.equal(
+			allPaymentsFullyConfirmed([
+				{ hrConfirmedAt: NOW, paymentsConfirmedAt: NOW },
+				{ hrConfirmedAt: NOW, paymentsConfirmedAt: null },
 			]),
 			false,
 		)
@@ -45,7 +110,10 @@ describe('allPaymentsConfirmed', () => {
 
 	test('returns false when all payments are pending', () => {
 		assert.equal(
-			allPaymentsConfirmed([{ status: 'pending' }, { status: 'pending' }]),
+			allPaymentsFullyConfirmed([
+				{ hrConfirmedAt: null, paymentsConfirmedAt: null },
+				{ hrConfirmedAt: null, paymentsConfirmedAt: null },
+			]),
 			false,
 		)
 	})

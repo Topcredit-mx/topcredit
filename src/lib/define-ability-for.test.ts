@@ -114,3 +114,40 @@ test('admin can setStatusAuthorized at awaiting-authorization', () => {
 	})
 	assert.equal(ability.can('setStatusAuthorized', appAwaiting), true)
 })
+
+const paymentCompany10 = subject('CreditPayment', { id: 1, companyId: 10 })
+const paymentCompany99 = subject('CreditPayment', { id: 2, companyId: 99 })
+
+test('hr+agent can confirmHrDeduction for assigned company, cannot confirmPaymentReceipt', () => {
+	const ability = defineAbilityFor({
+		roles: ['agent', 'hr'],
+		assignedCompanyIds: [10],
+		userId: 99,
+	})
+	assert.equal(ability.can('confirmHrDeduction', paymentCompany10), true)
+	assert.equal(ability.can('confirmHrDeduction', paymentCompany99), false)
+	assert.equal(ability.can('confirmPaymentReceipt', paymentCompany10), false)
+})
+
+test('payments+agent can confirmPaymentReceipt for assigned company, cannot confirmHrDeduction', () => {
+	const ability = defineAbilityFor({
+		roles: ['agent', 'payments'],
+		assignedCompanyIds: [10],
+		userId: 99,
+	})
+	assert.equal(ability.can('confirmPaymentReceipt', paymentCompany10), true)
+	assert.equal(ability.can('confirmPaymentReceipt', paymentCompany99), false)
+	assert.equal(ability.can('confirmHrDeduction', paymentCompany10), false)
+})
+
+test('admin can both confirmHrDeduction and confirmPaymentReceipt on any company', () => {
+	const ability = defineAbilityFor({
+		roles: ['admin'],
+		assignedCompanyIds: [],
+		userId: 1,
+	})
+	assert.equal(ability.can('confirmHrDeduction', paymentCompany10), true)
+	assert.equal(ability.can('confirmHrDeduction', paymentCompany99), true)
+	assert.equal(ability.can('confirmPaymentReceipt', paymentCompany10), true)
+	assert.equal(ability.can('confirmPaymentReceipt', paymentCompany99), true)
+})

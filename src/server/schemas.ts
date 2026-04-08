@@ -196,11 +196,21 @@ export const applicationDocumentDecisionSchema = z
 		}
 	})
 
-export const confirmPaymentSchema = z.object({
+export const confirmHrDeductionSchema = z.object({
 	paymentId: z.number().int().positive(ValidationCode.PAYMENT_NOT_FOUND),
 })
 
-export const confirmPaymentsBulkSchema = z.object({
+export const confirmHrDeductionsBulkSchema = z.object({
+	paymentIds: z
+		.array(z.number().int().positive(ValidationCode.PAYMENT_NOT_FOUND))
+		.min(1, ValidationCode.PAYMENT_BULK_EMPTY),
+})
+
+export const confirmPaymentReceiptSchema = z.object({
+	paymentId: z.number().int().positive(ValidationCode.PAYMENT_NOT_FOUND),
+})
+
+export const confirmPaymentReceiptsBulkSchema = z.object({
 	paymentIds: z
 		.array(z.number().int().positive(ValidationCode.PAYMENT_NOT_FOUND))
 		.min(1, ValidationCode.PAYMENT_BULK_EMPTY),

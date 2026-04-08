@@ -17,20 +17,11 @@ import { Decimal } from '~/lib/decimal'
 import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
-import type { CreditPaymentStatus } from '~/server/db/schema'
 import {
 	getCreditDetailByApplicantId,
 	getCreditPaymentsByCreditId,
 } from '~/server/queries'
 import { formatApplicationTerm } from '../../applications/constants'
-
-const PAYMENT_STATUS_KEYS: Record<
-	CreditPaymentStatus,
-	'payment-status-pending' | 'payment-status-confirmed'
-> = {
-	pending: 'payment-status-pending',
-	confirmed: 'payment-status-confirmed',
-}
 
 function DetailField({
 	label,
@@ -195,13 +186,15 @@ export default async function CuentaCreditDetailPage({
 										{formatCurrencyMxn(payment.amount)}
 									</td>
 									<td className="px-5 py-3.5 text-sm">
-										<Badge
-											variant={
-												payment.status === 'confirmed' ? 'default' : 'secondary'
-											}
-										>
-											{t(PAYMENT_STATUS_KEYS[payment.status])}
-										</Badge>
+										{payment.paymentsConfirmedAt !== null ? (
+											<Badge variant="default">
+												{t('payment-status-confirmed')}
+											</Badge>
+										) : (
+											<Badge variant="secondary">
+												{t('payment-status-pending')}
+											</Badge>
+										)}
 									</td>
 								</tr>
 							))}

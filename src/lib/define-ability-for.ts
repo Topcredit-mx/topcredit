@@ -33,7 +33,8 @@ export type AppAction =
 	| 'setFirstDiscountDate'
 	| 'reopenAuthorizationReview'
 	| 'disburse'
-	| 'confirmPayment'
+	| 'confirmHrDeduction'
+	| 'confirmPaymentReceipt'
 export type AppSubject =
 	| 'Company'
 	| 'User'
@@ -130,7 +131,8 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 
 	if (isAdmin) {
 		can('manage', 'all')
-		can('confirmPayment', 'CreditPayment')
+		can('confirmHrDeduction', 'CreditPayment')
+		can('confirmPaymentReceipt', 'CreditPayment')
 		can('reopenAuthorizationReview', 'Application')
 		can('setFirstDiscountDate', 'Application', {
 			status: 'authorized',
@@ -220,7 +222,17 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 			status: 'authorized',
 			firstDiscountDate: null,
 		})
-		can('confirmPayment', 'CreditPayment', {
+		can('confirmHrDeduction', 'CreditPayment', {
+			companyId: { $in: ctx.assignedCompanyIds },
+		})
+	}
+
+	const isPayments = ctx.roles.includes('payments')
+
+	if (isPayments && isAgent && hasCompanyAssignments) {
+		can('read', 'Company', { id: { $in: ctx.assignedCompanyIds } })
+		can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
+		can('confirmPaymentReceipt', 'CreditPayment', {
 			companyId: { $in: ctx.assignedCompanyIds },
 		})
 	}
