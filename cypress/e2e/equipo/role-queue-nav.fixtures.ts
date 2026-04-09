@@ -28,12 +28,19 @@ export const hrAgent = {
 	roles: ['agent', 'hr'] as const,
 }
 
+export const paymentsAgent = {
+	name: 'Nav Payments Agent',
+	email: 'nav.payments@rolequeue.com',
+	roles: ['agent', 'payments'] as const,
+}
+
 export const allNavAgents = [
 	requestsAgent,
 	preAuthAgent,
 	authorizationsAgent,
 	dualQueueAgent,
 	hrAgent,
+	paymentsAgent,
 ]
 
 export const navCompany = {

@@ -1,4 +1,11 @@
-import type { SeedHrReviewResult } from '~/cypress/tasks'
+import type {
+	SeedDeductionsQueueResult,
+	SeedHrReviewResult,
+} from '~/cypress/tasks'
+import {
+	hrAgentDeductions,
+	nonHrAgentDeductions,
+} from './deductions-queue.fixtures'
 import {
 	adminForHr,
 	authorizationsAgentForHr,
@@ -108,6 +115,71 @@ describe('HR agent flow', () => {
 			cy.visit(`/equipo/applications/${seed.applicationId}`)
 			cy.contains('h1', /detalle de solicitud/i).should('be.visible')
 			cy.contains('button', /aprobar rh/i).should('not.exist')
+		})
+	})
+})
+
+describe('HR deductions queue', () => {
+	let seed: SeedDeductionsQueueResult
+
+	before(() => {
+		cy.task('cleanupDeductionsQueue')
+		cy.task<SeedDeductionsQueueResult>('seedDeductionsQueue').then((result) => {
+			seed = result
+		})
+	})
+
+	after(() => {
+		cy.task('cleanupDeductionsQueue')
+	})
+
+	describe('HR agent views deductions queue', () => {
+		beforeEach(() => {
+			cy.login(hrAgentDeductions.email)
+			cy.setCookie('selected_company_id', String(seed.companyId))
+		})
+
+		it('shows deductions queue page with table', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('main').should('be.visible')
+			cy.get('table').should('be.visible')
+		})
+
+		it('shows employee, amount, due date, HR status, and receipt status columns', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('table').should('be.visible')
+			cy.get('table thead').within(() => {
+				cy.contains('th', /empleado/i).should('be.visible')
+				cy.contains('th', /monto/i).should('be.visible')
+				cy.contains('th', /fecha/i).should('be.visible')
+				cy.contains('th', /deducción rh/i).should('be.visible')
+				cy.contains('th', /recepción/i).should('exist')
+			})
+		})
+
+		it('shows exactly one row per credit (one per applicant)', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('table').should('be.visible')
+			cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
+		})
+
+		it('shows both applicant names in the table', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('table').should('be.visible')
+			cy.contains(seed.applicant1Name).should('be.visible')
+			cy.contains(seed.applicant2Name).should('be.visible')
+		})
+	})
+
+	describe('Non-HR agent cannot access deductions queue', () => {
+		beforeEach(() => {
+			cy.login(nonHrAgentDeductions.email)
+			cy.setCookie('selected_company_id', String(seed.companyId))
+		})
+
+		it('redirects to unauthorized when accessing deductions queue', () => {
+			cy.visit('/equipo/deductions', { failOnStatusCode: false })
+			cy.url().should('include', '/unauthorized')
 		})
 	})
 })

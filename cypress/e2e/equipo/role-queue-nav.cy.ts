@@ -3,6 +3,7 @@ import {
 	authorizationsAgent,
 	dualQueueAgent,
 	hrAgent,
+	paymentsAgent,
 	preAuthAgent,
 	requestsAgent,
 } from './role-queue-nav.fixtures'
@@ -109,9 +110,9 @@ describe('Role-based queue navigation', () => {
 			navScope().should('be.visible')
 		})
 
-		it('sees RH nav link pointing to authorized + hrPending filter', () => {
+		it('sees Solicitudes RH nav link pointing to authorized + hrPending filter', () => {
 			navScope().within(() => {
-				cy.contains('a', 'RH')
+				cy.contains('a', 'Solicitudes RH')
 					.should('be.visible')
 					.and(
 						'have.attr',
@@ -121,8 +122,45 @@ describe('Role-based queue navigation', () => {
 			})
 		})
 
+		it('sees Deducciones nav link pointing to /equipo/deductions', () => {
+			navScope().within(() => {
+				cy.contains('a', 'Deducciones')
+					.should('be.visible')
+					.and('have.attr', 'href', '/equipo/deductions')
+			})
+		})
+
 		it('does not see Solicitudes, Pre-autorizaciones, or Autorizaciones nav links', () => {
 			navScope().within(() => {
+				cy.get('a')
+					.contains(/^Solicitudes$/)
+					.should('not.exist')
+				cy.contains('Pre-autorizaciones').should('not.exist')
+				cy.contains('Autorizaciones').should('not.exist')
+			})
+		})
+	})
+
+	describe('Payments agent', () => {
+		beforeEach(() => {
+			cy.login(paymentsAgent.email)
+			cy.setCookie('selected_company_id', String(seed.companyId))
+			cy.visit('/equipo')
+			navScope().should('be.visible')
+		})
+
+		it('sees Pagos nav link pointing to /equipo/payments', () => {
+			navScope().within(() => {
+				cy.contains('a', 'Pagos')
+					.should('be.visible')
+					.and('have.attr', 'href', '/equipo/payments')
+			})
+		})
+
+		it('does not see Solicitudes RH, Deducciones, or other application nav links', () => {
+			navScope().within(() => {
+				cy.contains('Solicitudes RH').should('not.exist')
+				cy.contains('Deducciones').should('not.exist')
 				cy.contains('Solicitudes').should('not.exist')
 				cy.contains('Pre-autorizaciones').should('not.exist')
 				cy.contains('Autorizaciones').should('not.exist')
