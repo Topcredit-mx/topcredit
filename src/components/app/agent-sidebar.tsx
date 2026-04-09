@@ -106,6 +106,20 @@ export function AgentSidebar({
 								url: '/equipo/applications?status=authorized&hrPending=true',
 								icon: UserCheck,
 							},
+							{
+								title: t('nav-hr-deductions'),
+								url: '/equipo/deductions',
+								icon: CreditCard,
+							},
+						]
+					: []),
+				...(roles.includes('payments')
+					? [
+							{
+								title: t('nav-payments'),
+								url: '/equipo/payments',
+								icon: Banknote,
+							},
 						]
 					: []),
 				...(roles.includes('dispersions')

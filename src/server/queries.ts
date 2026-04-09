@@ -1105,3 +1105,100 @@ export async function getCreditPaymentsByCreditId(
 		)
 		.orderBy(asc(creditPayments.dueDate))
 }
+
+// ---- Installments queue (shared by /equipo/deductions and /equipo/payments) ----
+
+export type InstallmentForQueue = {
+	id: number
+	creditId: number
+	dueDate: string
+	amount: string
+	hrConfirmedAt: string | null
+	paymentsConfirmedAt: string | null
+	employeeName: string
+	payrollNumber: string | null
+	companyName: string
+	companyId: number
+}
+
+export async function getInstallmentsForQueue(params: {
+	scope: CompanyScope
+	queue: 'deductions' | 'payments'
+}): Promise<InstallmentForQueue[]> {
+	const { scope, queue } = params
+	const { ability } = await getAbility()
+
+	let companyCondition: SQL
+	if (scope.type === 'single') {
+		requireAbility(ability, 'read', subject('Company', { id: scope.companyId }))
+		companyCondition = sql`a.company_id = ${scope.companyId}`
+	} else if (scope.type === 'multi') {
+		if (scope.companyIds.length === 0) return []
+		const firstId = scope.companyIds[0]
+		if (firstId === undefined) return []
+		requireAbility(ability, 'read', subject('Company', { id: firstId }))
+		companyCondition = sql`a.company_id = ANY(${scope.companyIds})`
+	} else {
+		requireAbility(ability, 'read', 'Admin')
+		companyCondition = sql`1=1`
+	}
+
+	// deductions: earliest installment where HR has not yet confirmed
+	// payments: earliest installment where HR confirmed but payments has not
+	const statusCondition: SQL =
+		queue === 'deductions'
+			? sql`cp.hr_confirmed_at IS NULL`
+			: sql`cp.hr_confirmed_at IS NOT NULL AND cp.payments_confirmed_at IS NULL`
+
+	// DISTINCT ON (credit_id) returns one row per credit — the earliest due date
+	// that still needs action. The ORDER BY must begin with the DISTINCT ON column.
+	const rows = await db.execute(sql`
+		SELECT DISTINCT ON (cp.credit_id)
+			cp.id,
+			cp.credit_id,
+			cp.due_date,
+			cp.amount,
+			cp.hr_confirmed_at,
+			cp.payments_confirmed_at,
+			u.name AS employee_name,
+			a.payroll_number,
+			co.name AS company_name,
+			a.company_id
+		FROM credit_payments cp
+		INNER JOIN credits cr ON cp.credit_id = cr.id
+		INNER JOIN applications a ON cr.application_id = a.id
+		INNER JOIN users u ON a.applicant_id = u.id
+		INNER JOIN companies co ON a.company_id = co.id
+		WHERE ${companyCondition} AND ${statusCondition}
+		ORDER BY cp.credit_id, cp.due_date ASC
+	`)
+
+	return rows.rows.map((row) => {
+		const r = row
+		return {
+			id: Number(r.id),
+			creditId: Number(r.credit_id),
+			dueDate:
+				r.due_date instanceof Date
+					? r.due_date.toISOString()
+					: String(r.due_date),
+			amount: String(r.amount),
+			hrConfirmedAt:
+				r.hr_confirmed_at instanceof Date
+					? r.hr_confirmed_at.toISOString()
+					: r.hr_confirmed_at != null
+						? String(r.hr_confirmed_at)
+						: null,
+			paymentsConfirmedAt:
+				r.payments_confirmed_at instanceof Date
+					? r.payments_confirmed_at.toISOString()
+					: r.payments_confirmed_at != null
+						? String(r.payments_confirmed_at)
+						: null,
+			employeeName: String(r.employee_name),
+			payrollNumber: r.payroll_number != null ? String(r.payroll_number) : null,
+			companyName: String(r.company_name),
+			companyId: Number(r.company_id),
+		}
+	})
+}

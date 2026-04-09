@@ -104,8 +104,32 @@ describe('Applicant views active credits', () => {
 			.within(() => {
 				cy.contains('th', /fecha de pago/i).should('be.visible')
 				cy.contains('th', /estado/i).should('be.visible')
+			})
+	})
+
+	it('shows confirmed payment as Confirmado to the applicant', () => {
+		cy.visit(`/cuenta/credits/${seedResult.creditId}`)
+		cy.contains('h2', /calendario de pagos/i)
+			.scrollIntoView()
+			.closest('[data-slot="card"]')
+			.within(() => {
 				cy.get('table tbody tr')
-					.first()
+					.eq(seedResult.confirmedPaymentRowIndex)
+					.scrollIntoView()
+					.within(() => {
+						cy.contains(/confirmado/i).should('be.visible')
+					})
+			})
+	})
+
+	it('shows pending payment as Pendiente to the applicant', () => {
+		cy.visit(`/cuenta/credits/${seedResult.creditId}`)
+		cy.contains('h2', /calendario de pagos/i)
+			.scrollIntoView()
+			.closest('[data-slot="card"]')
+			.within(() => {
+				cy.get('table tbody tr')
+					.eq(seedResult.pendingPaymentRowIndex)
 					.scrollIntoView()
 					.within(() => {
 						cy.contains(/pendiente/i).should('be.visible')
