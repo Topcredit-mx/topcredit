@@ -500,6 +500,8 @@
 		"deductions-status-confirmed": "Confirmado",
 		"deductions-status-awaiting-hr": "En espera de RH",
 		"deductions-empty": "No hay deducciones pendientes",
+		"deductions-empty-no-company-title": "Selecciona una empresa",
+		"deductions-empty-no-company-description": "Usa el selector de empresa en la barra lateral para ver las deducciones de una empresa.",
 		"payments-title": "Pagos",
 		"payments-subtitle": "Confirma la recepción de pagos de cada cuota",
 		"payments-col-employee": "Empleado",

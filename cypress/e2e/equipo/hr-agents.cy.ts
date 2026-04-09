@@ -182,4 +182,21 @@ describe('HR deductions queue', () => {
 			cy.url().should('include', '/unauthorized')
 		})
 	})
+
+	describe('HR agent without company selected', () => {
+		beforeEach(() => {
+			cy.login(hrAgentDeductions.email)
+		})
+
+		it('shows select a company empty state', () => {
+			cy.visit('/equipo/deductions')
+			cy.contains('h2', /selecciona una empresa/i).should('be.visible')
+		})
+
+		it('does not show the deductions table', () => {
+			cy.visit('/equipo/deductions')
+			cy.contains('h2', /selecciona una empresa/i).should('be.visible')
+			cy.get('table').should('not.exist')
+		})
+	})
 })
