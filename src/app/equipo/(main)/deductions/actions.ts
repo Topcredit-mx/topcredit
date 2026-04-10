@@ -3,7 +3,11 @@
 import { isValidFirstDiscountDate } from '~/lib/first-discount-date'
 import { formatDeductionsCsv } from '~/lib/format-deductions-csv'
 import { getAbility, subject } from '~/server/auth/ability'
-import { confirmHrDeductions } from '~/server/mutations'
+import {
+	confirmHrDeductions,
+	type ValidateDeductionsCsvResult,
+	validateDeductionsCsv,
+} from '~/server/mutations'
 import { getCompanyById, getInstallmentsForQueue } from '~/server/queries'
 import {
 	getEffectiveCompanyScope,
@@ -16,6 +20,53 @@ export type ConfirmHrDeductionsState = {
 } | null
 
 export async function confirmHrDeductionsAction(
+	paymentIds: number[],
+): Promise<ConfirmHrDeductionsState> {
+	const result = await confirmHrDeductions(paymentIds)
+	if (result.error != null) {
+		return { error: result.error }
+	}
+	return { confirmed: true }
+}
+
+export type ValidateDeductionsCsvActionResult =
+	| ({ ok: true } & ValidateDeductionsCsvResult)
+	| { ok: false; error: string }
+
+export async function validateDeductionsCsvAction(
+	formData: FormData,
+): Promise<ValidateDeductionsCsvActionResult> {
+	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
+
+	const firstCompanyId = assignedCompanyIds[0]
+	const canImport =
+		isAdmin ||
+		(firstCompanyId !== undefined &&
+			ability.can(
+				'confirmHrDeduction',
+				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
+			))
+
+	if (!canImport) {
+		return { ok: false, error: 'unauthorized' }
+	}
+
+	const selectedCompanyId = await getEffectiveSelectedCompanyId()
+	if (selectedCompanyId === null) {
+		return { ok: false, error: 'no-company-selected' }
+	}
+
+	const file = formData.get('file')
+	if (!(file instanceof File)) {
+		return { ok: false, error: 'no-file' }
+	}
+
+	const csvContent = await file.text()
+	const result = await validateDeductionsCsv(csvContent, selectedCompanyId)
+	return { ok: true, ...result }
+}
+
+export async function confirmDeductionsFromCsvAction(
 	paymentIds: number[],
 ): Promise<ConfirmHrDeductionsState> {
 	const result = await confirmHrDeductions(paymentIds)
