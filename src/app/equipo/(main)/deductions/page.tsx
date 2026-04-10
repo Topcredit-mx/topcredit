@@ -93,6 +93,10 @@ export default async function DeductionsPage() {
 				<DeductionsTable
 					installments={installments}
 					nextDeductionDate={nextDeductionDateStr}
+					employeeSalaryFrequency={
+						company?.employeeSalaryFrequency ?? 'monthly'
+					}
+					companyName={company?.name ?? ''}
 				/>
 			)}
 		</div>

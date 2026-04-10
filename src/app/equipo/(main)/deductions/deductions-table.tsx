@@ -1,7 +1,6 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
-import { FormattedDate } from '~/components/formatted-date'
+import { useState } from 'react'
 import {
 	DataTable,
 	DataTableContent,
@@ -10,32 +9,38 @@ import {
 import type { InstallmentForQueue } from '~/server/queries'
 import { BulkConfirmDeductionsBar } from './bulk-confirm-deductions-bar'
 import { useDeductionsColumns } from './columns'
+import { ExportDeductionsDialog } from './export-deductions-dialog'
 
 export function DeductionsTable({
 	installments,
 	nextDeductionDate,
+	employeeSalaryFrequency,
+	companyName,
 }: {
 	installments: InstallmentForQueue[]
 	nextDeductionDate?: string
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	companyName: string
 }) {
-	const t = useTranslations('equipo')
 	const columns = useDeductionsColumns()
+	const [exportOpen, setExportOpen] = useState(false)
 
 	return (
 		<div className="space-y-4">
-			{nextDeductionDate && (
-				<p className="text-muted-foreground text-sm">
-					{t('deductions-next-date')}:{' '}
-					<span className="font-medium text-foreground">
-						<FormattedDate value={nextDeductionDate} />
-					</span>
-				</p>
-			)}
 			<DataTable columns={columns} data={installments} schema="deductions">
-				<BulkConfirmDeductionsBar />
+				<BulkConfirmDeductionsBar
+					onExportClick={() => setExportOpen(true)}
+					nextDeductionDate={nextDeductionDate}
+				/>
 				<DataTableContent />
 				<DataTablePagination />
 			</DataTable>
+			<ExportDeductionsDialog
+				open={exportOpen}
+				onClose={() => setExportOpen(false)}
+				employeeSalaryFrequency={employeeSalaryFrequency}
+				companyName={companyName}
+			/>
 		</div>
 	)
 }

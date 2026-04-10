@@ -311,4 +311,45 @@ describe('HR deductions queue', () => {
 			cy.get('table').should('not.exist')
 		})
 	})
+
+	describe('HR agent exports deductions to CSV', () => {
+		beforeEach(() => {
+			cy.login(hrAgentDeductions.email)
+			cy.setCookie('selected_company_id', String(seed.companyId))
+		})
+
+		it('shows export CSV button on deductions page with company selected', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('table').should('be.visible')
+			cy.contains('button', /exportar csv/i).should('be.visible')
+		})
+
+		it('opens export dialog when export button is clicked', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('table').should('be.visible')
+			cy.contains('button', /exportar csv/i)
+				.should('be.visible')
+				.click()
+			cy.get('[role="dialog"]').should('be.visible')
+			cy.get('[role="dialog"]').within(() => {
+				cy.get('select').should('be.visible')
+				cy.contains('button', /exportar/i).should('be.visible')
+			})
+		})
+
+		it('closes export dialog when cancel is clicked', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('table').should('be.visible')
+			cy.contains('button', /exportar csv/i)
+				.should('be.visible')
+				.click()
+			cy.get('[role="dialog"]').should('be.visible')
+			cy.get('[role="dialog"]').within(() => {
+				cy.contains('button', /cancelar/i)
+					.should('be.visible')
+					.click()
+			})
+			cy.get('[role="dialog"]').should('not.exist')
+		})
+	})
 })

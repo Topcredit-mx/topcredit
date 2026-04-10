@@ -34,4 +34,4 @@ Defaults for how agents write and test code in this repository.
 - **Prefer E2E tests** (e.g. Cypress) for critical user flows; unit tests where they add value.
 - If in plan mode, the todo's should clearly follow a "Red-Green-Refactor" cycle: write a failing test, write minimal code to pass, and refactor
 - Between each todo, (Red, Green, Refactor) you should run unit or e2e tests only for the affected tests.
-- The full tests suite should only be tested at the end.
+- Do **not** run the full E2E or unit test suite at the end of a task. Only run the tests related to the changes you made.
