@@ -1,7 +1,9 @@
 'use client'
 
+import { Download } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
+import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { useDataTable } from '~/components/ui/data-table'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
@@ -13,7 +15,15 @@ type ActionResult =
 	| { confirmed: true; count: number }
 	| null
 
-export function BulkConfirmDeductionsBar() {
+interface BulkConfirmDeductionsBarProps {
+	onExportClick: () => void
+	nextDeductionDate?: string
+}
+
+export function BulkConfirmDeductionsBar({
+	onExportClick,
+	nextDeductionDate,
+}: BulkConfirmDeductionsBarProps) {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
 	const [isPending, startTransition] = useTransition()
@@ -22,8 +32,6 @@ export function BulkConfirmDeductionsBar() {
 	const { table } = useDataTable<InstallmentForQueue>()
 	const selectedRows = table.getFilteredSelectedRowModel().rows
 	const count = selectedRows.length
-
-	if (count === 0 && result === null) return null
 
 	function handleConfirm() {
 		const paymentIds = selectedRows.map((row) => row.original.id)
@@ -39,18 +47,36 @@ export function BulkConfirmDeductionsBar() {
 		})
 	}
 
-	const buttonLabel =
+	const confirmLabel =
 		count === 1
 			? t('deductions-bulk-confirm-one')
 			: t('deductions-bulk-confirm-many', { count })
 
 	return (
-		<div className="flex items-center gap-3 py-2">
-			{count > 0 && (
-				<Button size="sm" disabled={isPending} onClick={handleConfirm}>
-					{buttonLabel}
-				</Button>
-			)}
+		<div className="space-y-1 py-2">
+			<div className="flex items-center justify-between">
+				{nextDeductionDate ? (
+					<p className="text-muted-foreground text-sm">
+						{t('deductions-next-date')}:{' '}
+						<span className="font-medium text-foreground">
+							<FormattedDate value={nextDeductionDate} />
+						</span>
+					</p>
+				) : (
+					<span />
+				)}
+				<div className="flex items-center gap-2">
+					{count > 0 && (
+						<Button size="sm" disabled={isPending} onClick={handleConfirm}>
+							{confirmLabel}
+						</Button>
+					)}
+					<Button variant="outline" size="sm" onClick={onExportClick}>
+						<Download className="mr-2 size-4" />
+						{t('deductions-export-csv')}
+					</Button>
+				</div>
+			</div>
 			{result !== null && 'confirmed' in result && (
 				<p className="text-green-700 text-sm">
 					{result.count === 1
