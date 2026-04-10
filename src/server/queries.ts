@@ -1124,8 +1124,9 @@ export type InstallmentForQueue = {
 export async function getInstallmentsForQueue(params: {
 	scope: CompanyScope
 	queue: 'deductions' | 'payments'
+	upcomingDeductionDate?: string
 }): Promise<InstallmentForQueue[]> {
-	const { scope, queue } = params
+	const { scope, queue, upcomingDeductionDate } = params
 	const { ability } = await getAbility()
 
 	let companyCondition: SQL
@@ -1150,6 +1151,22 @@ export async function getInstallmentsForQueue(params: {
 			? sql`cp.hr_confirmed_at IS NULL`
 			: sql`cp.hr_confirmed_at IS NOT NULL AND cp.payments_confirmed_at IS NULL`
 
+	// When an upcoming deduction date is provided (deductions queue with company
+	// selected), filter to installments that fall within the current pay period
+	// and exclude any credit that has an overdue unconfirmed installment.
+	const dateCondition: SQL =
+		queue === 'deductions' && upcomingDeductionDate !== undefined
+			? sql`
+				AND cp.due_date >= CURRENT_DATE
+				AND cp.due_date <= ${upcomingDeductionDate}
+				AND NOT EXISTS (
+					SELECT 1 FROM credit_payments cp2
+					WHERE cp2.credit_id = cp.credit_id
+					  AND cp2.hr_confirmed_at IS NULL
+					  AND cp2.due_date < CURRENT_DATE
+				)`
+			: sql``
+
 	// DISTINCT ON (credit_id) returns one row per credit — the earliest due date
 	// that still needs action. The ORDER BY must begin with the DISTINCT ON column.
 	const rows = await db.execute(sql`
@@ -1169,7 +1186,7 @@ export async function getInstallmentsForQueue(params: {
 		INNER JOIN applications a ON cr.application_id = a.id
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
-		WHERE ${companyCondition} AND ${statusCondition}
+		WHERE ${companyCondition} AND ${statusCondition} ${dateCondition}
 		ORDER BY cp.credit_id, cp.due_date ASC
 	`)
 

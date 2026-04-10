@@ -28,12 +28,19 @@ export const applicantDeductions2 = {
 	roles: ['applicant'] as const,
 }
 
+export const applicantDeductionsOverdue = {
+	name: 'Applicant Deductions Overdue',
+	email: 'applicant.overdue@deductionsqueue.com',
+	roles: ['applicant'] as const,
+}
+
 export const allDeductionUsers = [
 	hrAgentDeductions,
 	paymentsAgentDeductions,
 	nonHrAgentDeductions,
 	applicantDeductions,
 	applicantDeductions2,
+	applicantDeductionsOverdue,
 ]
 
 export const deductionsCompany = {

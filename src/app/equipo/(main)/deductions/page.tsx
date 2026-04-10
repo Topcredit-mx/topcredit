@@ -2,9 +2,10 @@ import { Building2 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
+import { suggestFirstDiscountDate } from '~/lib/first-discount-date'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
-import { getInstallmentsForQueue } from '~/server/queries'
+import { getCompanyById, getInstallmentsForQueue } from '~/server/queries'
 import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
@@ -31,7 +32,7 @@ export default async function DeductionsPage() {
 
 	const selectedCompanyId = await getEffectiveSelectedCompanyId()
 
-	if (!isAdmin && selectedCompanyId === null) {
+	if (selectedCompanyId === null) {
 		return (
 			<div className="container mx-auto py-6">
 				<div className="mb-6">
@@ -57,11 +58,23 @@ export default async function DeductionsPage() {
 		)
 	}
 
-	const scope = await getEffectiveCompanyScope()
+	const [scope, company] = await Promise.all([
+		getEffectiveCompanyScope(),
+		getCompanyById(selectedCompanyId),
+	])
+
+	const nextDeductionDate = company
+		? suggestFirstDiscountDate(company.employeeSalaryFrequency, new Date())
+		: undefined
+
+	const nextDeductionDateStr = nextDeductionDate
+		? nextDeductionDate.toISOString().slice(0, 10)
+		: undefined
 
 	const installments = await getInstallmentsForQueue({
 		scope,
 		queue: 'deductions',
+		upcomingDeductionDate: nextDeductionDateStr,
 	})
 
 	return (
@@ -77,7 +90,10 @@ export default async function DeductionsPage() {
 					<p className="text-muted-foreground">{t('deductions-empty')}</p>
 				</Card>
 			) : (
-				<DeductionsTable installments={installments} />
+				<DeductionsTable
+					installments={installments}
+					nextDeductionDate={nextDeductionDateStr}
+				/>
 			)}
 		</div>
 	)

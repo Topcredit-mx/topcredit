@@ -145,29 +145,41 @@ describe('HR deductions queue', () => {
 			cy.get('table').should('be.visible')
 		})
 
-		it('shows employee, amount, due date, HR status, and receipt status columns', () => {
+		it('shows employee, amount, HR status, and receipt status columns but not a per-row due date column', () => {
 			cy.visit('/equipo/deductions')
 			cy.get('table').should('be.visible')
 			cy.get('table thead').within(() => {
 				cy.contains('th', /empleado/i).should('be.visible')
 				cy.contains('th', /monto/i).should('be.visible')
-				cy.contains('th', /fecha/i).should('be.visible')
 				cy.contains('th', /deducción rh/i).should('be.visible')
 				cy.contains('th', /recepción/i).should('exist')
+				cy.contains('th', /fecha de pago/i).should('not.exist')
 			})
 		})
 
-		it('shows exactly one row per credit (one per applicant)', () => {
+		it('shows a queue-level next deduction date derived from company salary frequency', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('main').should('be.visible')
+			cy.contains(/próxima fecha de deducción/i).should('be.visible')
+		})
+
+		it('shows exactly one row per upcoming credit (one per applicant)', () => {
 			cy.visit('/equipo/deductions')
 			cy.get('table').should('be.visible')
 			cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 		})
 
-		it('shows both applicant names in the table', () => {
+		it('shows upcoming applicant names in the table', () => {
 			cy.visit('/equipo/deductions')
 			cy.get('table').should('be.visible')
 			cy.contains(seed.applicant1Name).should('be.visible')
 			cy.contains(seed.applicant2Name).should('be.visible')
+		})
+
+		it('does not show the overdue credit in the queue', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('table').should('be.visible')
+			cy.contains(seed.overdueApplicantName).should('not.exist')
 		})
 	})
 

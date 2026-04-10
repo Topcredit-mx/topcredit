@@ -66,6 +66,9 @@ import {
 } from '~/cypress/e2e/equipo/company-switcher.fixtures'
 import {
 	allDeductionUsers,
+	applicantDeductions,
+	applicantDeductions2,
+	applicantDeductionsOverdue,
 	deductionsCompany,
 } from '~/cypress/e2e/equipo/deductions-queue.fixtures'
 import {
@@ -86,6 +89,7 @@ import {
 	applicantUser as loginApplicantUser,
 	noRoleUser as loginNoRoleUser,
 } from '~/cypress/e2e/other/login.fixtures'
+import { suggestFirstDiscountDate } from '~/lib/first-discount-date'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import type { Role } from '~/server/auth/session'
 import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
@@ -2632,6 +2636,8 @@ export type SeedDeductionsQueueResult = {
 	expectedRowCount: number
 	applicant1Name: string
 	applicant2Name: string
+	overdueApplicantName: string
+	nextDeductionDateISO: string
 }
 
 export const seedDeductionsQueue =
@@ -2719,16 +2725,23 @@ export const seedDeductionsQueue =
 			}),
 		)
 
-		const applicant1 = findUser('applicant@deductionsqueue.com')
-		const applicant2 = findUser('applicant2@deductionsqueue.com')
-		// End of next month in UTC — correct for monthly salary frequency
-		const firstDiscountDate = new Date(
-			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 0),
+		const applicant1 = findUser(applicantDeductions.email)
+		const applicant2 = findUser(applicantDeductions2.email)
+		const applicantOverdue = findUser(applicantDeductionsOverdue.email)
+
+		// Compute next deduction date from the company's salary frequency — same
+		// logic as suggestFirstDiscountDate used on the page.
+		const nextDeductionDate = suggestFirstDiscountDate(
+			deductionsCompany.employeeSalaryFrequency,
+			now,
 		)
+		const nextDeductionDateISO = nextDeductionDate.toISOString()
+
 		const creditAmount1 = '40000.00'
 		const creditAmount2 = '30000.00'
+		const creditAmountOverdue = '20000.00'
 
-		// Credit 1: belongs to applicant1 — has pending-HR installments (should appear)
+		// Credit 1: upcoming installment on nextDeductionDate (should appear)
 		const [app1] = await db
 			.insert(applications)
 			.values({
@@ -2739,7 +2752,7 @@ export const seedDeductionsQueue =
 				salaryAtApplication: '30000',
 				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
 				status: 'disbursed' as const,
-				firstDiscountDate,
+				firstDiscountDate: nextDeductionDate,
 				payrollNumber: 'DEDUCT001',
 			})
 			.returning()
@@ -2759,7 +2772,7 @@ export const seedDeductionsQueue =
 
 		if (!credit1) throw new Error('Seed Deductions: credit 1 not created')
 
-		// Credit 2: belongs to applicant2 — also has pending-HR installments (should appear)
+		// Credit 2: upcoming installment on nextDeductionDate (should appear)
 		const [app2] = await db
 			.insert(applications)
 			.values({
@@ -2770,7 +2783,7 @@ export const seedDeductionsQueue =
 				salaryAtApplication: '25000',
 				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
 				status: 'disbursed' as const,
-				firstDiscountDate,
+				firstDiscountDate: nextDeductionDate,
 				payrollNumber: 'DEDUCT002',
 			})
 			.returning()
@@ -2790,32 +2803,64 @@ export const seedDeductionsQueue =
 
 		if (!credit2) throw new Error('Seed Deductions: credit 2 not created')
 
-		// 3 installments for credit1 with proper month-end due dates:
-		// first two pending HR (appear in deductions queue), third HR-confirmed (does not)
+		// Credit 3: overdue credit — first installment is in the past and unconfirmed.
+		// Should NOT appear in the deductions queue.
+		const pastDate = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 28),
+		)
+		const [app3] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantOverdue.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: creditAmountOverdue,
+				salaryAtApplication: '20000',
+				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate: pastDate,
+				payrollNumber: 'DEDUCT003',
+			})
+			.returning()
+
+		if (!app3) throw new Error('Seed Deductions: application 3 not created')
+
+		const [credit3] = await db
+			.insert(credits)
+			.values({
+				applicationId: app3.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: creditAmountOverdue,
+				disbursedByUserId: applicantOverdue.id,
+			})
+			.returning()
+
+		if (!credit3) throw new Error('Seed Deductions: credit 3 not created')
+
+		// 2 installments for credit1 on the upcoming period
 		const schedule1 = generatePaymentSchedule({
 			loanPrincipal: Number(creditAmount1),
 			rate: Number(deductionsCompany.rate),
-			totalPayments: 3,
+			totalPayments: 2,
 			frequency: deductionsCompany.employeeSalaryFrequency,
-			firstDiscountDate,
+			firstDiscountDate: nextDeductionDate,
 		})
 		await db.insert(creditPayments).values(
-			schedule1.map((entry, index) => ({
+			schedule1.map((entry) => ({
 				creditId: credit1.id,
 				dueDate: entry.dueDate,
 				amount: entry.amount,
-				hrConfirmedAt:
-					index === 2 ? new Date(now.getTime() - 5 * 24 * 60 * 60_000) : null,
 			})),
 		)
 
-		// 2 installments for credit2: both pending HR
+		// 2 installments for credit2 on the upcoming period
 		const schedule2 = generatePaymentSchedule({
 			loanPrincipal: Number(creditAmount2),
 			rate: Number(deductionsCompany.rate),
 			totalPayments: 2,
 			frequency: deductionsCompany.employeeSalaryFrequency,
-			firstDiscountDate,
+			firstDiscountDate: nextDeductionDate,
 		})
 		await db.insert(creditPayments).values(
 			schedule2.map((entry) => ({
@@ -2825,12 +2870,23 @@ export const seedDeductionsQueue =
 			})),
 		)
 
+		// 1 overdue installment for credit3 (past due, unconfirmed — should be excluded)
+		await db.insert(creditPayments).values([
+			{
+				creditId: credit3.id,
+				dueDate: pastDate,
+				amount: '20500.00',
+			},
+		])
+
 		return {
 			companyId: company.id,
-			// 2 credits with pending-HR installments → 2 rows in the queue
+			// Only credit1 and credit2 have upcoming installments → 2 rows
 			expectedRowCount: 2,
 			applicant1Name: applicant1.name,
 			applicant2Name: applicant2.name,
+			overdueApplicantName: applicantOverdue.name,
+			nextDeductionDateISO,
 		}
 	}
 
