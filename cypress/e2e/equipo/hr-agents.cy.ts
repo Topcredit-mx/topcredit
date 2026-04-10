@@ -12,6 +12,100 @@ import {
 	hrAgentForReview,
 } from './hr-agents.fixtures'
 
+describe('HR deductions queue bulk confirm', () => {
+	let seed: SeedDeductionsQueueResult
+
+	beforeEach(() => {
+		cy.task('cleanupDeductionsQueue')
+		cy.task<SeedDeductionsQueueResult>('seedDeductionsQueue').then((result) => {
+			seed = result
+			cy.login(hrAgentDeductions.email)
+			cy.setCookie('selected_company_id', String(result.companyId))
+		})
+	})
+
+	afterEach(() => {
+		cy.task('cleanupDeductionsQueue')
+	})
+
+	it('shows a checkbox column in the deductions table', () => {
+		cy.visit('/equipo/deductions')
+		cy.get('table').should('be.visible')
+		cy.get('table thead').within(() => {
+			cy.get('[role="checkbox"]').should('exist')
+		})
+		cy.get('table tbody tr')
+			.first()
+			.scrollIntoView()
+			.within(() => {
+				cy.get('[role="checkbox"]').should('exist')
+			})
+	})
+
+	it('shows confirm button only when at least one row is selected', () => {
+		cy.visit('/equipo/deductions')
+		cy.get('table').should('be.visible')
+		cy.contains('button', /confirmar/i).should('not.exist')
+		cy.get('table tbody tr')
+			.first()
+			.scrollIntoView()
+			.within(() => {
+				cy.get('[role="checkbox"]').should('exist').click()
+			})
+		cy.contains('button', /confirmar/i).should('be.visible')
+	})
+
+	it('confirms a single selected deduction and removes it from the table', () => {
+		cy.visit('/equipo/deductions')
+		cy.get('table').should('be.visible')
+		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
+		cy.get('table tbody tr')
+			.first()
+			.scrollIntoView()
+			.within(() => {
+				cy.get('[role="checkbox"]').should('exist').click()
+			})
+		cy.contains('button', /confirmar/i)
+			.should('be.visible')
+			.click()
+		cy.get('table tbody tr').should('have.length', seed.expectedRowCount - 1)
+	})
+
+	it('confirms all deductions using the header select-all checkbox', () => {
+		cy.visit('/equipo/deductions')
+		cy.get('table').should('be.visible')
+		cy.get('table thead').within(() => {
+			cy.get('[role="checkbox"]').should('exist').click()
+		})
+		cy.contains('button', /confirmar/i)
+			.should('be.visible')
+			.click()
+		cy.contains(/no hay deducciones pendientes/i).should('be.visible')
+	})
+
+	it('shows success feedback after confirming deductions', () => {
+		cy.visit('/equipo/deductions')
+		cy.get('table').should('be.visible')
+		cy.get('table tbody tr')
+			.first()
+			.scrollIntoView()
+			.within(() => {
+				cy.get('[role="checkbox"]').should('exist').click()
+			})
+		cy.contains('button', /confirmar/i)
+			.should('be.visible')
+			.click()
+		cy.contains(/confirmad/i).should('be.visible')
+	})
+
+	it('does not show the confirm button for a non-HR agent', () => {
+		cy.login(nonHrAgentDeductions.email)
+		cy.setCookie('selected_company_id', String(seed.companyId))
+		cy.visit('/equipo/deductions', { failOnStatusCode: false })
+		cy.url().should('include', '/unauthorized')
+	})
+})
+
 describe('HR agent flow', () => {
 	let seed: SeedHrReviewResult
 
@@ -180,6 +274,12 @@ describe('HR deductions queue', () => {
 			cy.visit('/equipo/deductions')
 			cy.get('table').should('be.visible')
 			cy.contains(seed.overdueApplicantName).should('not.exist')
+		})
+
+		it('does not show an already HR-confirmed deduction in the queue', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('table').should('be.visible')
+			cy.contains(seed.confirmedApplicantName).should('not.exist')
 		})
 	})
 

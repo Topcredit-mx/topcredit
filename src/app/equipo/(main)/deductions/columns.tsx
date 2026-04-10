@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import { useTranslations } from 'next-intl'
+import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
 import { formatCurrencyMxn } from '~/lib/utils'
 import type { InstallmentForQueue } from '~/server/queries'
@@ -67,6 +68,28 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 	const t = useTranslations('equipo')
 
 	return [
+		{
+			id: 'select',
+			header: ({ table }) => (
+				<Checkbox
+					checked={
+						table.getIsAllPageRowsSelected() ||
+						(table.getIsSomePageRowsSelected() && 'indeterminate')
+					}
+					onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+					aria-label={t('deductions-select-all')}
+				/>
+			),
+			cell: ({ row }) => (
+				<Checkbox
+					checked={row.getIsSelected()}
+					onCheckedChange={(value) => row.toggleSelected(!!value)}
+					aria-label={t('deductions-select-row')}
+				/>
+			),
+			enableSorting: false,
+			enableHiding: false,
+		},
 		{
 			accessorKey: 'employeeName',
 			header: ({ column }) => (
