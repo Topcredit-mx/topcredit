@@ -8,6 +8,7 @@ import {
 	DataTablePagination,
 } from '~/components/ui/data-table'
 import type { InstallmentForQueue } from '~/server/queries'
+import { BulkConfirmDeductionsBar } from './bulk-confirm-deductions-bar'
 import { useDeductionsColumns } from './columns'
 
 export function DeductionsTable({
@@ -31,6 +32,7 @@ export function DeductionsTable({
 				</p>
 			)}
 			<DataTable columns={columns} data={installments} schema="deductions">
+				<BulkConfirmDeductionsBar />
 				<DataTableContent />
 				<DataTablePagination />
 			</DataTable>

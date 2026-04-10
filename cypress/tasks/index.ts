@@ -68,8 +68,10 @@ import {
 	allDeductionUsers,
 	applicantDeductions,
 	applicantDeductions2,
+	applicantDeductionsConfirmed,
 	applicantDeductionsOverdue,
 	deductionsCompany,
+	hrAgentDeductions,
 } from '~/cypress/e2e/equipo/deductions-queue.fixtures'
 import {
 	allDisbUsers,
@@ -2637,6 +2639,7 @@ export type SeedDeductionsQueueResult = {
 	applicant1Name: string
 	applicant2Name: string
 	overdueApplicantName: string
+	confirmedApplicantName: string
 	nextDeductionDateISO: string
 }
 
@@ -2728,6 +2731,7 @@ export const seedDeductionsQueue =
 		const applicant1 = findUser(applicantDeductions.email)
 		const applicant2 = findUser(applicantDeductions2.email)
 		const applicantOverdue = findUser(applicantDeductionsOverdue.email)
+		const applicantConfirmed = findUser(applicantDeductionsConfirmed.email)
 
 		// Compute next deduction date from the company's salary frequency — same
 		// logic as suggestFirstDiscountDate used on the page.
@@ -2879,13 +2883,59 @@ export const seedDeductionsQueue =
 			},
 		])
 
+		// Credit 4: upcoming installment already HR-confirmed — should NOT appear in
+		// the deductions queue because hr_confirmed_at IS NOT NULL.
+		const hrAgent = findUser(hrAgentDeductions.email)
+		const creditAmountConfirmed = '15000.00'
+		const [app4] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantConfirmed.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: creditAmountConfirmed,
+				salaryAtApplication: '15000',
+				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate: nextDeductionDate,
+				payrollNumber: 'DEDUCT004',
+			})
+			.returning()
+
+		if (!app4) throw new Error('Seed Deductions: application 4 not created')
+
+		const [credit4] = await db
+			.insert(credits)
+			.values({
+				applicationId: app4.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: creditAmountConfirmed,
+				disbursedByUserId: applicantConfirmed.id,
+			})
+			.returning()
+
+		if (!credit4) throw new Error('Seed Deductions: credit 4 not created')
+
+		await db.insert(creditPayments).values([
+			{
+				creditId: credit4.id,
+				dueDate: nextDeductionDate,
+				amount: '15375.00',
+				hrConfirmedAt: now,
+				hrConfirmedByUserId: hrAgent.id,
+			},
+		])
+
 		return {
 			companyId: company.id,
 			// Only credit1 and credit2 have upcoming installments → 2 rows
+			// credit4 is excluded because hr_confirmed_at IS NOT NULL
 			expectedRowCount: 2,
 			applicant1Name: applicant1.name,
 			applicant2Name: applicant2.name,
 			overdueApplicantName: applicantOverdue.name,
+			confirmedApplicantName: applicantConfirmed.name,
 			nextDeductionDateISO,
 		}
 	}
