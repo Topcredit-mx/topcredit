@@ -1,6 +1,6 @@
 'use client'
 
-import { Download } from 'lucide-react'
+import { Download, Upload } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 import { FormattedDate } from '~/components/formatted-date'
@@ -17,11 +17,13 @@ type ActionResult =
 
 interface BulkConfirmDeductionsBarProps {
 	onExportClick: () => void
+	onImportClick: () => void
 	nextDeductionDate?: string
 }
 
 export function BulkConfirmDeductionsBar({
 	onExportClick,
+	onImportClick,
 	nextDeductionDate,
 }: BulkConfirmDeductionsBarProps) {
 	const t = useTranslations('equipo')
@@ -71,6 +73,10 @@ export function BulkConfirmDeductionsBar({
 							{confirmLabel}
 						</Button>
 					)}
+					<Button variant="outline" size="sm" onClick={onImportClick}>
+						<Upload className="mr-2 size-4" />
+						{t('deductions-import-csv')}
+					</Button>
 					<Button variant="outline" size="sm" onClick={onExportClick}>
 						<Download className="mr-2 size-4" />
 						{t('deductions-export-csv')}

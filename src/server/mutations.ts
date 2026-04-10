@@ -1232,6 +1232,191 @@ export async function confirmHrDeductions(
 	return {}
 }
 
+export type ValidateDeductionsCsvErrorRow = {
+	line: number
+	payrollNumber: string | null
+	amount: string | null
+	dueDate: string | null
+	message: string
+}
+
+export type ValidateDeductionsCsvResult = {
+	matchedPaymentIds: number[]
+	matchedRows: Array<{ payrollNumber: string; amount: string; dueDate: string }>
+	errors: ValidateDeductionsCsvErrorRow[]
+	warnings: ValidateDeductionsCsvErrorRow[]
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const POSITIVE_NUMBER_RE = /^\d+(\.\d+)?$/
+
+export async function validateDeductionsCsv(
+	csvContent: string,
+	companyId: number,
+): Promise<ValidateDeductionsCsvResult> {
+	const errorRows: ValidateDeductionsCsvErrorRow[] = []
+	type ParsedRow = {
+		payrollNumber: string
+		amount: string
+		dueDate: string
+		line: number
+	}
+	const validRows: ParsedRow[] = []
+
+	const lines = csvContent
+		.split('\n')
+		.map((l) => l.trim())
+		.filter((l) => l.length > 0)
+
+	for (let i = 1; i < lines.length; i++) {
+		const lineNumber = i + 1
+		const line = lines[i]
+		if (!line) continue
+
+		const parts = line.split(',')
+		if (parts.length < 3) {
+			errorRows.push({
+				line: lineNumber,
+				payrollNumber: null,
+				amount: null,
+				dueDate: null,
+				message: 'Row must have 3 columns: payroll_number, amount, date',
+			})
+			continue
+		}
+
+		const payrollNumber = (parts[0] ?? '').trim()
+		const amount = (parts[1] ?? '').trim()
+		const dueDate = (parts[2] ?? '').trim()
+
+		if (!payrollNumber) {
+			errorRows.push({
+				line: lineNumber,
+				payrollNumber: null,
+				amount,
+				dueDate,
+				message: 'payroll_number is required',
+			})
+			continue
+		}
+
+		if (!POSITIVE_NUMBER_RE.test(amount)) {
+			errorRows.push({
+				line: lineNumber,
+				payrollNumber,
+				amount,
+				dueDate,
+				message: `Invalid amount: "${amount}"`,
+			})
+			continue
+		}
+
+		if (!ISO_DATE_RE.test(dueDate)) {
+			errorRows.push({
+				line: lineNumber,
+				payrollNumber,
+				amount,
+				dueDate,
+				message: `Invalid date format: "${dueDate}" (expected YYYY-MM-DD)`,
+			})
+			continue
+		}
+
+		validRows.push({ payrollNumber, amount, dueDate, line: lineNumber })
+	}
+
+	if (validRows.length === 0) {
+		return {
+			matchedPaymentIds: [],
+			matchedRows: [],
+			errors: errorRows,
+			warnings: [],
+		}
+	}
+
+	const { ability } = await getAbility()
+
+	const candidateRows = await db
+		.select({
+			paymentId: creditPayments.id,
+			companyId: applications.companyId,
+			payrollNumber: applications.payrollNumber,
+			amount: creditPayments.amount,
+			dueDate: creditPayments.dueDate,
+			hrConfirmedAt: creditPayments.hrConfirmedAt,
+		})
+		.from(creditPayments)
+		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.where(eq(applications.companyId, companyId))
+
+	function makeKey(pn: string, amt: string, dt: string): string {
+		return `${pn}|${amt}|${dt}`
+	}
+
+	const candidateByKey = new Map<
+		string,
+		{ paymentId: number; companyId: number; hrConfirmedAt: Date | null }
+	>()
+	for (const row of candidateRows) {
+		if (!row.payrollNumber) continue
+		const key = makeKey(
+			row.payrollNumber,
+			row.amount,
+			row.dueDate.toISOString().slice(0, 10),
+		)
+		candidateByKey.set(key, {
+			paymentId: row.paymentId,
+			companyId: row.companyId,
+			hrConfirmedAt: row.hrConfirmedAt,
+		})
+	}
+
+	const matchedPaymentIds: number[] = []
+	const matchedRows: ValidateDeductionsCsvResult['matchedRows'] = []
+	const warningRows: ValidateDeductionsCsvErrorRow[] = []
+
+	for (const csvRow of validRows) {
+		const key = makeKey(csvRow.payrollNumber, csvRow.amount, csvRow.dueDate)
+		const candidate = candidateByKey.get(key)
+
+		if (
+			candidate == null ||
+			!ability.can('confirmHrDeduction', toCreditPaymentSubject(candidate))
+		) {
+			errorRows.push({
+				line: csvRow.line,
+				payrollNumber: csvRow.payrollNumber,
+				amount: csvRow.amount,
+				dueDate: csvRow.dueDate,
+				message: 'no-match',
+			})
+		} else if (candidate.hrConfirmedAt != null) {
+			warningRows.push({
+				line: csvRow.line,
+				payrollNumber: csvRow.payrollNumber,
+				amount: csvRow.amount,
+				dueDate: csvRow.dueDate,
+				message: 'already-confirmed',
+			})
+		} else {
+			matchedPaymentIds.push(candidate.paymentId)
+			matchedRows.push({
+				payrollNumber: csvRow.payrollNumber,
+				amount: csvRow.amount,
+				dueDate: csvRow.dueDate,
+			})
+		}
+	}
+
+	return {
+		matchedPaymentIds,
+		matchedRows,
+		errors: errorRows,
+		warnings: warningRows,
+	}
+}
+
 export type ConfirmHrDeductionsFromCsvResult = {
 	confirmed: number
 	alreadyConfirmed: number

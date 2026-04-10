@@ -2641,6 +2641,11 @@ export type SeedDeductionsQueueResult = {
 	overdueApplicantName: string
 	confirmedApplicantName: string
 	nextDeductionDateISO: string
+	firstInstallmentForCsv: {
+		payrollNumber: string
+		amount: string
+		dueDateISO: string
+	}
 }
 
 export const seedDeductionsQueue =
@@ -2927,6 +2932,9 @@ export const seedDeductionsQueue =
 			},
 		])
 
+		const firstPayment = schedule1[0]
+		if (!firstPayment) throw new Error('Seed Deductions: schedule1 empty')
+
 		return {
 			companyId: company.id,
 			// Only credit1 and credit2 have upcoming installments → 2 rows
@@ -2937,6 +2945,11 @@ export const seedDeductionsQueue =
 			overdueApplicantName: applicantOverdue.name,
 			confirmedApplicantName: applicantConfirmed.name,
 			nextDeductionDateISO,
+			firstInstallmentForCsv: {
+				payrollNumber: 'DEDUCT001',
+				amount: firstPayment.amount,
+				dueDateISO: firstPayment.dueDate.toISOString().slice(0, 10),
+			},
 		}
 	}
 
