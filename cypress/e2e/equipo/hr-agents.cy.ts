@@ -569,18 +569,40 @@ describe('HR deductions queue', () => {
 			cy.contains(seed.applicant2Name).should('be.visible')
 		})
 
-		it('does not show the overdue credit in the queue', () => {
-			cy.visit('/equipo/deductions')
-			cy.get('table').should('be.visible')
-			cy.contains(seed.overdueApplicantName).should('not.exist')
-		})
-
 		it('does not show an already HR-confirmed deduction in the queue', () => {
 			cy.visit('/equipo/deductions')
 			cy.get('table').should('be.visible')
 			cy.get('table').within(() => {
 				cy.contains(seed.confirmedApplicantName).should('not.exist')
 			})
+		})
+	})
+
+	describe('HR agent views queue with an overdue credit', () => {
+		let overdueSeed: SeedDeductionsQueueResult
+
+		before(() => {
+			cy.task('cleanupDeductionsQueue')
+			cy.task<SeedDeductionsQueueResult>('seedDeductionsQueue', {
+				withOverdue: true,
+			}).then((result) => {
+				overdueSeed = result
+			})
+		})
+
+		after(() => {
+			cy.task('cleanupDeductionsQueue')
+		})
+
+		beforeEach(() => {
+			cy.login(hrAgentDeductions.email)
+			cy.setCookie('selected_company_id', String(overdueSeed.companyId))
+		})
+
+		it('does not show the overdue credit in the queue', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('table').should('be.visible')
+			cy.contains(overdueSeed.overdueApplicantName).should('not.exist')
 		})
 	})
 

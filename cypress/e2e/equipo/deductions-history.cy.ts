@@ -74,7 +74,7 @@ describe('HR deduction confirmation history', () => {
 
 		it('shows a link to the full history page', () => {
 			cy.visit('/equipo/deductions')
-			cy.get('a[href="/equipo/deductions/history"]')
+			cy.get('main a[href="/equipo/deductions/history"]')
 				.scrollIntoView()
 				.should('be.visible')
 		})

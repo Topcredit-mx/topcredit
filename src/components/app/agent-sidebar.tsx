@@ -41,12 +41,14 @@ interface AgentSidebarProps {
 	}
 	companies: CompanyForSwitcher[]
 	selectedCompanyId: number | null
+	overdueDeductionsCount?: number
 }
 
 export function AgentSidebar({
 	user,
 	companies,
 	selectedCompanyId,
+	overdueDeductionsCount = 0,
 }: AgentSidebarProps) {
 	const t = useTranslations('equipo')
 	const isAdmin = user.roles?.includes('admin')
@@ -119,6 +121,7 @@ export function AgentSidebar({
 										title: t('nav-deductions-next-cutoff'),
 										url: '/equipo/deductions',
 										icon: CalendarClock,
+										exact: true,
 									},
 									{
 										title: t('nav-deductions-history'),
@@ -129,6 +132,10 @@ export function AgentSidebar({
 										title: t('nav-deductions-overdue'),
 										url: '/equipo/deductions/overdue',
 										icon: TriangleAlert,
+										badge:
+											overdueDeductionsCount > 0
+												? overdueDeductionsCount
+												: undefined,
 									},
 								],
 							},

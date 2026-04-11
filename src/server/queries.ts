@@ -1220,6 +1220,24 @@ export async function getInstallmentsForQueue(params: {
 	})
 }
 
+// ---- Overdue deductions count ----
+
+export async function getOverdueDeductionsCount(
+	companyId: number,
+): Promise<number> {
+	const result = await db.execute(sql`
+		SELECT COUNT(DISTINCT cp.credit_id)::int AS count
+		FROM credit_payments cp
+		INNER JOIN credits cr ON cp.credit_id = cr.id
+		INNER JOIN applications a ON cr.application_id = a.id
+		WHERE a.company_id = ${companyId}
+		  AND cp.hr_confirmed_at IS NULL
+		  AND cp.due_date < CURRENT_DATE
+	`)
+	const row = result.rows[0]
+	return row ? Number(row.count) : 0
+}
+
 // ---- Deduction confirmation history ----
 
 export type DeductionConfirmationHistoryItem = {
