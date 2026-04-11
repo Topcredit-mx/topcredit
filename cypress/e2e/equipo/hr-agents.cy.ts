@@ -590,10 +590,6 @@ describe('HR deductions queue', () => {
 			})
 		})
 
-		after(() => {
-			cy.task('cleanupDeductionsQueue')
-		})
-
 		beforeEach(() => {
 			cy.login(hrAgentDeductions.email)
 			cy.setCookie('selected_company_id', String(overdueSeed.companyId))
