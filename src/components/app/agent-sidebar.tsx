@@ -110,6 +110,20 @@ export function AgentSidebar({
 								title: t('nav-hr-deductions'),
 								url: '/equipo/deductions',
 								icon: CreditCard,
+								items: [
+									{
+										title: t('nav-deductions-next-cutoff'),
+										url: '/equipo/deductions',
+									},
+									{
+										title: t('nav-deductions-history'),
+										url: '/equipo/deductions/history',
+									},
+									{
+										title: t('nav-deductions-overdue'),
+										url: '/equipo/deductions/overdue',
+									},
+								],
 							},
 						]
 					: []),
