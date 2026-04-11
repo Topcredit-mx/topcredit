@@ -578,7 +578,9 @@ describe('HR deductions queue', () => {
 		it('does not show an already HR-confirmed deduction in the queue', () => {
 			cy.visit('/equipo/deductions')
 			cy.get('table').should('be.visible')
-			cy.contains(seed.confirmedApplicantName).should('not.exist')
+			cy.get('table').within(() => {
+				cy.contains(seed.confirmedApplicantName).should('not.exist')
+			})
 		})
 	})
 

@@ -69,6 +69,7 @@ import {
 	applicantDeductions,
 	applicantDeductions2,
 	applicantDeductionsConfirmed,
+	applicantDeductionsConfirmedLate,
 	applicantDeductionsOverdue,
 	deductionsCompany,
 	hrAgentDeductions,
@@ -2640,6 +2641,9 @@ export type SeedDeductionsQueueResult = {
 	applicant2Name: string
 	overdueApplicantName: string
 	confirmedApplicantName: string
+	confirmedApplicationId: number
+	confirmedByName: string
+	lateConfirmedApplicantName: string
 	nextDeductionDateISO: string
 	firstInstallmentForCsv: {
 		payrollNumber: string
@@ -2737,6 +2741,9 @@ export const seedDeductionsQueue =
 		const applicant2 = findUser(applicantDeductions2.email)
 		const applicantOverdue = findUser(applicantDeductionsOverdue.email)
 		const applicantConfirmed = findUser(applicantDeductionsConfirmed.email)
+		const applicantConfirmedLate = findUser(
+			applicantDeductionsConfirmedLate.email,
+		)
 
 		// Compute next deduction date from the company's salary frequency — same
 		// logic as suggestFirstDiscountDate used on the page.
@@ -2922,12 +2929,58 @@ export const seedDeductionsQueue =
 
 		if (!credit4) throw new Error('Seed Deductions: credit 4 not created')
 
+		// credit4 confirmed recently (more recent than credit5) → appears first in history
+		const credit4ConfirmedAt = new Date(now.getTime() - 2 * 60_000)
 		await db.insert(creditPayments).values([
 			{
 				creditId: credit4.id,
 				dueDate: nextDeductionDate,
 				amount: '15375.00',
-				hrConfirmedAt: now,
+				hrConfirmedAt: credit4ConfirmedAt,
+				hrConfirmedByUserId: hrAgent.id,
+			},
+		])
+
+		// Credit 5: past-due installment confirmed after its due date → "late" confirmation
+		const creditAmountLate = '12000.00'
+		const [app5] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantConfirmedLate.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: creditAmountLate,
+				salaryAtApplication: '12000',
+				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate: pastDate,
+				payrollNumber: 'DEDUCT005',
+			})
+			.returning()
+
+		if (!app5) throw new Error('Seed Deductions: application 5 not created')
+
+		const [credit5] = await db
+			.insert(credits)
+			.values({
+				applicationId: app5.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: creditAmountLate,
+				disbursedByUserId: applicantConfirmedLate.id,
+			})
+			.returning()
+
+		if (!credit5) throw new Error('Seed Deductions: credit 5 not created')
+
+		// confirmed at an older timestamp than credit4 → should appear second in history
+		const credit5ConfirmedAt = new Date(now.getTime() - 10 * 60_000)
+		await db.insert(creditPayments).values([
+			{
+				creditId: credit5.id,
+				dueDate: pastDate,
+				amount: '12300.00',
+				hrConfirmedAt: credit5ConfirmedAt,
 				hrConfirmedByUserId: hrAgent.id,
 			},
 		])
@@ -2944,6 +2997,9 @@ export const seedDeductionsQueue =
 			applicant2Name: applicant2.name,
 			overdueApplicantName: applicantOverdue.name,
 			confirmedApplicantName: applicantConfirmed.name,
+			confirmedApplicationId: app4.id,
+			confirmedByName: hrAgent.name,
+			lateConfirmedApplicantName: applicantConfirmedLate.name,
 			nextDeductionDateISO,
 			firstInstallmentForCsv: {
 				payrollNumber: 'DEDUCT001',

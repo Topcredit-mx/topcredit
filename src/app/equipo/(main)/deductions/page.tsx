@@ -5,11 +5,16 @@ import { Card } from '~/components/ui/card'
 import { suggestFirstDiscountDate } from '~/lib/first-discount-date'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
-import { getCompanyById, getInstallmentsForQueue } from '~/server/queries'
+import {
+	getCompanyById,
+	getDeductionConfirmationHistory,
+	getInstallmentsForQueue,
+} from '~/server/queries'
 import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
+import { DeductionHistoryLog } from './deduction-history-log'
 import { DeductionsTable } from './deductions-table'
 
 export default async function DeductionsPage() {
@@ -71,11 +76,14 @@ export default async function DeductionsPage() {
 		? nextDeductionDate.toISOString().slice(0, 10)
 		: undefined
 
-	const installments = await getInstallmentsForQueue({
-		scope,
-		queue: 'deductions',
-		upcomingDeductionDate: nextDeductionDateStr,
-	})
+	const [installmentsFiltered, historyItems] = await Promise.all([
+		getInstallmentsForQueue({
+			scope,
+			queue: 'deductions',
+			upcomingDeductionDate: nextDeductionDateStr,
+		}),
+		getDeductionConfirmationHistory(scope, 10),
+	])
 
 	return (
 		<div className="container mx-auto py-6">
@@ -85,13 +93,13 @@ export default async function DeductionsPage() {
 					{t('deductions-subtitle')}
 				</p>
 			</div>
-			{installments.length === 0 ? (
+			{installmentsFiltered.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">{t('deductions-empty')}</p>
 				</Card>
 			) : (
 				<DeductionsTable
-					installments={installments}
+					installments={installmentsFiltered}
 					nextDeductionDate={nextDeductionDateStr}
 					employeeSalaryFrequency={
 						company?.employeeSalaryFrequency ?? 'monthly'
@@ -99,6 +107,19 @@ export default async function DeductionsPage() {
 					companyName={company?.name ?? ''}
 				/>
 			)}
+			<div className="mt-10">
+				<DeductionHistoryLog
+					items={historyItems}
+					title={t('deductions-history-title')}
+					description={t('deductions-history-description')}
+					emptyMessage={t('deductions-history-empty')}
+					confirmedByLabel={t('deductions-history-confirmed-by')}
+					onTimeLabel={t('deductions-history-on-time')}
+					lateLabel={t('deductions-history-late')}
+					viewAllHref="/equipo/deductions/history"
+					viewAllLabel={t('deductions-history-view-all')}
+				/>
+			</div>
 		</div>
 	)
 }

@@ -1219,3 +1219,89 @@ export async function getInstallmentsForQueue(params: {
 		}
 	})
 }
+
+// ---- Deduction confirmation history ----
+
+export type DeductionConfirmationHistoryItem = {
+	id: number
+	amount: string
+	dueDate: string
+	hrConfirmedAt: string
+	confirmedOnTime: boolean
+	applicationId: number
+	employeeName: string
+	confirmedByUser: { id: number; name: string | null; email: string } | null
+}
+
+export async function getDeductionConfirmationHistory(
+	scope: CompanyScope,
+	limit?: number,
+): Promise<DeductionConfirmationHistoryItem[]> {
+	const { ability } = await getAbility()
+
+	let companyCondition: SQL
+	if (scope.type === 'single') {
+		requireAbility(ability, 'read', subject('Company', { id: scope.companyId }))
+		companyCondition = sql`a.company_id = ${scope.companyId}`
+	} else if (scope.type === 'multi') {
+		if (scope.companyIds.length === 0) return []
+		const firstId = scope.companyIds[0]
+		if (firstId === undefined) return []
+		requireAbility(ability, 'read', subject('Company', { id: firstId }))
+		companyCondition = sql`a.company_id = ANY(${scope.companyIds})`
+	} else {
+		requireAbility(ability, 'read', 'Admin')
+		companyCondition = sql`1=1`
+	}
+
+	const limitClause: SQL = limit !== undefined ? sql`LIMIT ${limit}` : sql``
+
+	const rows = await db.execute(sql`
+		SELECT
+			cp.id,
+			cp.amount,
+			cp.due_date,
+			cp.hr_confirmed_at,
+			cp.hr_confirmed_at <= cp.due_date AS confirmed_on_time,
+			a.id AS application_id,
+			u_employee.name AS employee_name,
+			u_confirmer.id AS confirmer_id,
+			u_confirmer.name AS confirmer_name,
+			u_confirmer.email AS confirmer_email
+		FROM credit_payments cp
+		INNER JOIN credits cr ON cp.credit_id = cr.id
+		INNER JOIN applications a ON cr.application_id = a.id
+		INNER JOIN users u_employee ON a.applicant_id = u_employee.id
+		LEFT JOIN users u_confirmer ON cp.confirmed_by_user_id = u_confirmer.id
+		WHERE cp.hr_confirmed_at IS NOT NULL AND ${companyCondition}
+		ORDER BY cp.hr_confirmed_at DESC, cp.id DESC
+		${limitClause}
+	`)
+
+	return rows.rows.map((row) => {
+		const r = row
+		const hrConfirmedAt =
+			r.hr_confirmed_at instanceof Date
+				? r.hr_confirmed_at.toISOString()
+				: String(r.hr_confirmed_at)
+		const dueDate =
+			r.due_date instanceof Date ? r.due_date.toISOString() : String(r.due_date)
+		return {
+			id: Number(r.id),
+			amount: String(r.amount),
+			dueDate,
+			hrConfirmedAt,
+			confirmedOnTime: Boolean(r.confirmed_on_time),
+			applicationId: Number(r.application_id),
+			employeeName: String(r.employee_name),
+			confirmedByUser:
+				r.confirmer_id != null
+					? {
+							id: Number(r.confirmer_id),
+							name: r.confirmer_name != null ? String(r.confirmer_name) : null,
+							email: String(r.confirmer_email),
+						}
+					: null,
+		}
+	})
+}
