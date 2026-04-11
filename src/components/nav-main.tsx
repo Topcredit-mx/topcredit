@@ -22,6 +22,7 @@ import {
 export interface NavSubItem {
 	title: string
 	url: string
+	icon?: LucideIcon
 }
 
 export interface NavItem {
@@ -107,14 +108,24 @@ export function NavMain({
 														aria-disabled
 														className="pointer-events-none opacity-50"
 													>
-														<span>{subItem.title}</span>
+														<span>
+															{subItem.icon && (
+																<subItem.icon className="size-4" />
+															)}
+															{subItem.title}
+														</span>
 													</SidebarMenuSubButton>
 												) : (
 													<SidebarMenuSubButton
 														asChild
 														isActive={isPathActive(pathname, subItem.url)}
 													>
-														<Link href={subItem.url}>{subItem.title}</Link>
+														<Link href={subItem.url}>
+															{subItem.icon && (
+																<subItem.icon className="size-4" />
+															)}
+															{subItem.title}
+														</Link>
 													</SidebarMenuSubButton>
 												)}
 											</SidebarMenuSubItem>
