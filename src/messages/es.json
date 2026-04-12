@@ -11,7 +11,11 @@
 		"equipo-companies": "Empresas",
 		"equipo-companies-new": "Crear Empresa",
 		"equipo-companies-edit": "Editar Empresa",
-		"equipo-users": "Usuarios"
+		"equipo-users": "Usuarios",
+		"equipo-deductions": "Deducciones",
+		"equipo-deductions-history": "Historial",
+		"equipo-deductions-overdue": "Retrasos",
+		"equipo-payments": "Pagos"
 	},
 	"common": {
 		"save": "Guardar",

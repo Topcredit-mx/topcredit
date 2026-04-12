@@ -35,12 +35,6 @@ export default async function PaymentsPage() {
 
 	return (
 		<div className="container mx-auto py-6">
-			<div className="mb-6">
-				<h1 className="font-semibold text-2xl">{t('payments-title')}</h1>
-				<p className="text-muted-foreground text-sm">
-					{t('payments-subtitle')}
-				</p>
-			</div>
 			{installments.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">{t('payments-empty')}</p>

@@ -1,5 +1,4 @@
-import { ArrowLeft, Building2 } from 'lucide-react'
-import Link from 'next/link'
+import { Building2 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
@@ -32,14 +31,6 @@ export default async function OverdueDeductionsPage() {
 	if (selectedCompanyId === null) {
 		return (
 			<div className="container mx-auto py-6">
-				<div className="mb-6">
-					<h1 className="font-semibold text-2xl">
-						{t('overdue-deductions-title')}
-					</h1>
-					<p className="text-muted-foreground text-sm">
-						{t('overdue-deductions-subtitle')}
-					</p>
-				</div>
 				<div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-muted/30 p-12 text-center">
 					<div className="flex size-16 items-center justify-center rounded-full bg-muted">
 						<Building2 className="size-8 text-muted-foreground" />
@@ -61,21 +52,6 @@ export default async function OverdueDeductionsPage() {
 
 	return (
 		<div className="container mx-auto py-6">
-			<div className="mb-6">
-				<Link
-					href="/equipo/deductions"
-					className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-sm hover:text-foreground"
-				>
-					<ArrowLeft className="size-4" />
-					{t('overdue-deductions-back')}
-				</Link>
-				<h1 className="font-semibold text-2xl">
-					{t('overdue-deductions-title')}
-				</h1>
-				<p className="text-muted-foreground text-sm">
-					{t('overdue-deductions-subtitle')}
-				</p>
-			</div>
 			{overdueDeductions.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">
