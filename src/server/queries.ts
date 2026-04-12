@@ -1238,6 +1238,62 @@ export async function getOverdueDeductionsCount(
 	return row ? Number(row.count) : 0
 }
 
+// ---- Overdue deductions ----
+
+export type OverdueDeduction = {
+	id: number
+	creditId: number
+	dueDate: string
+	amount: string
+	employeeName: string
+	payrollNumber: string | null
+	companyName: string
+	companyId: number
+}
+
+export async function getOverdueDeductions(
+	companyId: number,
+): Promise<OverdueDeduction[]> {
+	const { ability } = await getAbility()
+	requireAbility(ability, 'read', subject('Company', { id: companyId }))
+
+	const rows = await db.execute(sql`
+		SELECT DISTINCT ON (cp.credit_id)
+			cp.id,
+			cp.credit_id,
+			cp.due_date,
+			cp.amount,
+			u.name AS employee_name,
+			a.payroll_number,
+			co.name AS company_name,
+			a.company_id
+		FROM credit_payments cp
+		INNER JOIN credits cr ON cp.credit_id = cr.id
+		INNER JOIN applications a ON cr.application_id = a.id
+		INNER JOIN users u ON a.applicant_id = u.id
+		INNER JOIN companies co ON a.company_id = co.id
+		WHERE a.company_id = ${companyId}
+		  AND cp.hr_confirmed_at IS NULL
+		  AND cp.due_date < CURRENT_DATE
+		ORDER BY cp.credit_id, cp.due_date ASC
+	`)
+
+	return rows.rows.map((row) => ({
+		id: Number(row.id),
+		creditId: Number(row.credit_id),
+		dueDate:
+			row.due_date instanceof Date
+				? row.due_date.toISOString()
+				: String(row.due_date),
+		amount: String(row.amount),
+		employeeName: String(row.employee_name),
+		payrollNumber:
+			row.payroll_number != null ? String(row.payroll_number) : null,
+		companyName: String(row.company_name),
+		companyId: Number(row.company_id),
+	}))
+}
+
 // ---- Deduction confirmation history ----
 
 export type DeductionConfirmationHistoryItem = {
