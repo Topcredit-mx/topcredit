@@ -69,6 +69,7 @@ import {
 	applicantDeductions,
 	applicantDeductions2,
 	applicantDeductionsConfirmed,
+	applicantDeductionsConfirmedLate,
 	applicantDeductionsOverdue,
 	deductionsCompany,
 	hrAgentDeductions,
@@ -2640,6 +2641,9 @@ export type SeedDeductionsQueueResult = {
 	applicant2Name: string
 	overdueApplicantName: string
 	confirmedApplicantName: string
+	confirmedApplicationId: number
+	confirmedByName: string
+	lateConfirmedApplicantName: string
 	nextDeductionDateISO: string
 	firstInstallmentForCsv: {
 		payrollNumber: string
@@ -2648,175 +2652,214 @@ export type SeedDeductionsQueueResult = {
 	}
 }
 
-export const seedDeductionsQueue =
-	async (): Promise<SeedDeductionsQueueResult> => {
-		const db = getDb(process.env.DATABASE_URL || '')
-		const now = new Date()
+export const seedDeductionsQueue = async (
+	options: { withOverdue?: boolean } | null,
+): Promise<SeedDeductionsQueueResult> => {
+	const withOverdue = options?.withOverdue ?? false
+	const db = getDb(process.env.DATABASE_URL || '')
+	const now = new Date()
 
-		await Promise.all(
-			allDeductionUsers.map((u) =>
-				db.delete(users).where(eq(users.email, u.email)),
-			),
-		)
-		await db
-			.delete(companies)
-			.where(eq(companies.domain, deductionsCompany.domain))
+	await Promise.all(
+		allDeductionUsers.map((u) =>
+			db.delete(users).where(eq(users.email, u.email)),
+		),
+	)
+	await db
+		.delete(companies)
+		.where(eq(companies.domain, deductionsCompany.domain))
 
-		const [[company], createdUsers] = await Promise.all([
-			db
-				.insert(companies)
-				.values({
-					name: deductionsCompany.name,
-					domain: deductionsCompany.domain,
-					rate: deductionsCompany.rate,
-					employeeSalaryFrequency: deductionsCompany.employeeSalaryFrequency,
-					active: deductionsCompany.active,
-				})
-				.returning(),
-			db
-				.insert(users)
-				.values(
-					allDeductionUsers.map((u) => ({
-						email: u.email,
-						name: u.name,
-						emailVerified: now,
-					})),
-				)
-				.returning(),
-		])
-
-		if (!company) throw new Error('Seed Deductions: company not created')
-
-		const findUser = (email: string) => {
-			const u = createdUsers.find((r) => r.email === email)
-			if (!u) throw new Error(`Seed Deductions: user ${email} not found`)
-			return u
-		}
-
-		const [term] = await db
-			.insert(terms)
-			.values({ durationType: 'monthly', duration: 4 })
-			.returning()
-
-		if (!term) throw new Error('Seed Deductions: term not created')
-
-		const [offering] = await db
-			.insert(termOfferings)
-			.values({ termId: term.id, companyId: company.id })
-			.returning()
-
-		if (!offering) throw new Error('Seed Deductions: offering not created')
-
-		await Promise.all(
-			createdUsers.flatMap((agent) => {
-				const fixture = allDeductionUsers.find((u) => u.email === agent.email)
-				if (!fixture)
-					throw new Error(
-						`Seed Deductions: fixture not found for ${agent.email}`,
-					)
-				const roleInserts = fixture.roles.map((role) => ({
-					userId: agent.id,
-					role,
-				}))
-				const hasAgent = new Set<string>(fixture.roles).has('agent')
-				return [
-					db.insert(userRoles).values(roleInserts),
-					...(hasAgent
-						? [
-								db.insert(userCompanies).values({
-									userId: agent.id,
-									companyId: company.id,
-								}),
-							]
-						: []),
-				]
-			}),
-		)
-
-		const applicant1 = findUser(applicantDeductions.email)
-		const applicant2 = findUser(applicantDeductions2.email)
-		const applicantOverdue = findUser(applicantDeductionsOverdue.email)
-		const applicantConfirmed = findUser(applicantDeductionsConfirmed.email)
-
-		// Compute next deduction date from the company's salary frequency — same
-		// logic as suggestFirstDiscountDate used on the page.
-		const nextDeductionDate = suggestFirstDiscountDate(
-			deductionsCompany.employeeSalaryFrequency,
-			now,
-		)
-		const nextDeductionDateISO = nextDeductionDate.toISOString()
-
-		const creditAmount1 = '40000.00'
-		const creditAmount2 = '30000.00'
-		const creditAmountOverdue = '20000.00'
-
-		// Credit 1: upcoming installment on nextDeductionDate (should appear)
-		const [app1] = await db
-			.insert(applications)
+	const [[company], createdUsers] = await Promise.all([
+		db
+			.insert(companies)
 			.values({
-				applicantId: applicant1.id,
-				companyId: company.id,
-				termOfferingId: offering.id,
-				creditAmount: creditAmount1,
-				salaryAtApplication: '30000',
-				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
-				status: 'disbursed' as const,
-				firstDiscountDate: nextDeductionDate,
-				payrollNumber: 'DEDUCT001',
+				name: deductionsCompany.name,
+				domain: deductionsCompany.domain,
+				rate: deductionsCompany.rate,
+				employeeSalaryFrequency: deductionsCompany.employeeSalaryFrequency,
+				active: deductionsCompany.active,
 			})
-			.returning()
+			.returning(),
+		db
+			.insert(users)
+			.values(
+				allDeductionUsers.map((u) => ({
+					email: u.email,
+					name: u.name,
+					emailVerified: now,
+				})),
+			)
+			.returning(),
+	])
 
-		if (!app1) throw new Error('Seed Deductions: application 1 not created')
+	if (!company) throw new Error('Seed Deductions: company not created')
 
-		const [credit1] = await db
-			.insert(credits)
-			.values({
-				applicationId: app1.id,
-				status: 'dispersed',
-				disbursementDate: now,
-				transferAmount: creditAmount1,
-				disbursedByUserId: applicant1.id,
-			})
-			.returning()
+	const findUser = (email: string) => {
+		const u = createdUsers.find((r) => r.email === email)
+		if (!u) throw new Error(`Seed Deductions: user ${email} not found`)
+		return u
+	}
 
-		if (!credit1) throw new Error('Seed Deductions: credit 1 not created')
+	const [term] = await db
+		.insert(terms)
+		.values({ durationType: 'monthly', duration: 4 })
+		.returning()
 
-		// Credit 2: upcoming installment on nextDeductionDate (should appear)
-		const [app2] = await db
-			.insert(applications)
-			.values({
-				applicantId: applicant2.id,
-				companyId: company.id,
-				termOfferingId: offering.id,
-				creditAmount: creditAmount2,
-				salaryAtApplication: '25000',
-				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
-				status: 'disbursed' as const,
-				firstDiscountDate: nextDeductionDate,
-				payrollNumber: 'DEDUCT002',
-			})
-			.returning()
+	if (!term) throw new Error('Seed Deductions: term not created')
 
-		if (!app2) throw new Error('Seed Deductions: application 2 not created')
+	const [offering] = await db
+		.insert(termOfferings)
+		.values({ termId: term.id, companyId: company.id })
+		.returning()
 
-		const [credit2] = await db
-			.insert(credits)
-			.values({
-				applicationId: app2.id,
-				status: 'dispersed',
-				disbursementDate: now,
-				transferAmount: creditAmount2,
-				disbursedByUserId: applicant2.id,
-			})
-			.returning()
+	if (!offering) throw new Error('Seed Deductions: offering not created')
 
-		if (!credit2) throw new Error('Seed Deductions: credit 2 not created')
+	await Promise.all(
+		createdUsers.flatMap((agent) => {
+			const fixture = allDeductionUsers.find((u) => u.email === agent.email)
+			if (!fixture)
+				throw new Error(`Seed Deductions: fixture not found for ${agent.email}`)
+			const roleInserts = fixture.roles.map((role) => ({
+				userId: agent.id,
+				role,
+			}))
+			const hasAgent = new Set<string>(fixture.roles).has('agent')
+			return [
+				db.insert(userRoles).values(roleInserts),
+				...(hasAgent
+					? [
+							db.insert(userCompanies).values({
+								userId: agent.id,
+								companyId: company.id,
+							}),
+						]
+					: []),
+			]
+		}),
+	)
 
-		// Credit 3: overdue credit — first installment is in the past and unconfirmed.
-		// Should NOT appear in the deductions queue.
-		const pastDate = new Date(
-			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 28),
-		)
+	const applicant1 = findUser(applicantDeductions.email)
+	const applicant2 = findUser(applicantDeductions2.email)
+	const applicantOverdue = findUser(applicantDeductionsOverdue.email)
+	const applicantConfirmed = findUser(applicantDeductionsConfirmed.email)
+	const applicantConfirmedLate = findUser(
+		applicantDeductionsConfirmedLate.email,
+	)
+
+	// Compute next deduction date from the company's salary frequency — same
+	// logic as suggestFirstDiscountDate used on the page.
+	const nextDeductionDate = suggestFirstDiscountDate(
+		deductionsCompany.employeeSalaryFrequency,
+		now,
+	)
+	const nextDeductionDateISO = nextDeductionDate.toISOString()
+
+	const creditAmount1 = '40000.00'
+	const creditAmount2 = '30000.00'
+	const creditAmountOverdue = '20000.00'
+
+	// Credit 1: upcoming installment on nextDeductionDate (should appear)
+	const [app1] = await db
+		.insert(applications)
+		.values({
+			applicantId: applicant1.id,
+			companyId: company.id,
+			termOfferingId: offering.id,
+			creditAmount: creditAmount1,
+			salaryAtApplication: '30000',
+			salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+			status: 'disbursed' as const,
+			firstDiscountDate: nextDeductionDate,
+			payrollNumber: 'DEDUCT001',
+		})
+		.returning()
+
+	if (!app1) throw new Error('Seed Deductions: application 1 not created')
+
+	const [credit1] = await db
+		.insert(credits)
+		.values({
+			applicationId: app1.id,
+			status: 'dispersed',
+			disbursementDate: now,
+			transferAmount: creditAmount1,
+			disbursedByUserId: applicant1.id,
+		})
+		.returning()
+
+	if (!credit1) throw new Error('Seed Deductions: credit 1 not created')
+
+	// Credit 2: upcoming installment on nextDeductionDate (should appear)
+	const [app2] = await db
+		.insert(applications)
+		.values({
+			applicantId: applicant2.id,
+			companyId: company.id,
+			termOfferingId: offering.id,
+			creditAmount: creditAmount2,
+			salaryAtApplication: '25000',
+			salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+			status: 'disbursed' as const,
+			firstDiscountDate: nextDeductionDate,
+			payrollNumber: 'DEDUCT002',
+		})
+		.returning()
+
+	if (!app2) throw new Error('Seed Deductions: application 2 not created')
+
+	const [credit2] = await db
+		.insert(credits)
+		.values({
+			applicationId: app2.id,
+			status: 'dispersed',
+			disbursementDate: now,
+			transferAmount: creditAmount2,
+			disbursedByUserId: applicant2.id,
+		})
+		.returning()
+
+	if (!credit2) throw new Error('Seed Deductions: credit 2 not created')
+
+	const pastDate = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 28),
+	)
+
+	// Credit 3: overdue credit — first installment is in the past and unconfirmed.
+	// Only seeded when withOverdue is true so the overdue badge doesn't appear in unrelated tests.
+	// 2 installments for credit1 on the upcoming period
+	const schedule1 = generatePaymentSchedule({
+		loanPrincipal: Number(creditAmount1),
+		rate: Number(deductionsCompany.rate),
+		totalPayments: 2,
+		frequency: deductionsCompany.employeeSalaryFrequency,
+		firstDiscountDate: nextDeductionDate,
+	})
+	await db.insert(creditPayments).values(
+		schedule1.map((entry) => ({
+			creditId: credit1.id,
+			dueDate: entry.dueDate,
+			amount: entry.amount,
+		})),
+	)
+
+	// 2 installments for credit2 on the upcoming period
+	const schedule2 = generatePaymentSchedule({
+		loanPrincipal: Number(creditAmount2),
+		rate: Number(deductionsCompany.rate),
+		totalPayments: 2,
+		frequency: deductionsCompany.employeeSalaryFrequency,
+		firstDiscountDate: nextDeductionDate,
+	})
+	await db.insert(creditPayments).values(
+		schedule2.map((entry) => ({
+			creditId: credit2.id,
+			dueDate: entry.dueDate,
+			amount: entry.amount,
+		})),
+	)
+
+	// Credit 3: overdue credit — first installment is in the past and unconfirmed.
+	// Only seeded when withOverdue is true so the overdue badge doesn't appear in unrelated tests.
+	if (withOverdue) {
 		const [app3] = await db
 			.insert(applications)
 			.values({
@@ -2847,39 +2890,7 @@ export const seedDeductionsQueue =
 
 		if (!credit3) throw new Error('Seed Deductions: credit 3 not created')
 
-		// 2 installments for credit1 on the upcoming period
-		const schedule1 = generatePaymentSchedule({
-			loanPrincipal: Number(creditAmount1),
-			rate: Number(deductionsCompany.rate),
-			totalPayments: 2,
-			frequency: deductionsCompany.employeeSalaryFrequency,
-			firstDiscountDate: nextDeductionDate,
-		})
-		await db.insert(creditPayments).values(
-			schedule1.map((entry) => ({
-				creditId: credit1.id,
-				dueDate: entry.dueDate,
-				amount: entry.amount,
-			})),
-		)
-
-		// 2 installments for credit2 on the upcoming period
-		const schedule2 = generatePaymentSchedule({
-			loanPrincipal: Number(creditAmount2),
-			rate: Number(deductionsCompany.rate),
-			totalPayments: 2,
-			frequency: deductionsCompany.employeeSalaryFrequency,
-			firstDiscountDate: nextDeductionDate,
-		})
-		await db.insert(creditPayments).values(
-			schedule2.map((entry) => ({
-				creditId: credit2.id,
-				dueDate: entry.dueDate,
-				amount: entry.amount,
-			})),
-		)
-
-		// 1 overdue installment for credit3 (past due, unconfirmed — should be excluded)
+		// 1 overdue installment for credit3 (past due, unconfirmed)
 		await db.insert(creditPayments).values([
 			{
 				creditId: credit3.id,
@@ -2887,71 +2898,121 @@ export const seedDeductionsQueue =
 				amount: '20500.00',
 			},
 		])
-
-		// Credit 4: upcoming installment already HR-confirmed — should NOT appear in
-		// the deductions queue because hr_confirmed_at IS NOT NULL.
-		const hrAgent = findUser(hrAgentDeductions.email)
-		const creditAmountConfirmed = '15000.00'
-		const [app4] = await db
-			.insert(applications)
-			.values({
-				applicantId: applicantConfirmed.id,
-				companyId: company.id,
-				termOfferingId: offering.id,
-				creditAmount: creditAmountConfirmed,
-				salaryAtApplication: '15000',
-				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
-				status: 'disbursed' as const,
-				firstDiscountDate: nextDeductionDate,
-				payrollNumber: 'DEDUCT004',
-			})
-			.returning()
-
-		if (!app4) throw new Error('Seed Deductions: application 4 not created')
-
-		const [credit4] = await db
-			.insert(credits)
-			.values({
-				applicationId: app4.id,
-				status: 'dispersed',
-				disbursementDate: now,
-				transferAmount: creditAmountConfirmed,
-				disbursedByUserId: applicantConfirmed.id,
-			})
-			.returning()
-
-		if (!credit4) throw new Error('Seed Deductions: credit 4 not created')
-
-		await db.insert(creditPayments).values([
-			{
-				creditId: credit4.id,
-				dueDate: nextDeductionDate,
-				amount: '15375.00',
-				hrConfirmedAt: now,
-				hrConfirmedByUserId: hrAgent.id,
-			},
-		])
-
-		const firstPayment = schedule1[0]
-		if (!firstPayment) throw new Error('Seed Deductions: schedule1 empty')
-
-		return {
-			companyId: company.id,
-			// Only credit1 and credit2 have upcoming installments → 2 rows
-			// credit4 is excluded because hr_confirmed_at IS NOT NULL
-			expectedRowCount: 2,
-			applicant1Name: applicant1.name,
-			applicant2Name: applicant2.name,
-			overdueApplicantName: applicantOverdue.name,
-			confirmedApplicantName: applicantConfirmed.name,
-			nextDeductionDateISO,
-			firstInstallmentForCsv: {
-				payrollNumber: 'DEDUCT001',
-				amount: firstPayment.amount,
-				dueDateISO: firstPayment.dueDate.toISOString().slice(0, 10),
-			},
-		}
 	}
+
+	// Credit 4: upcoming installment already HR-confirmed — should NOT appear in
+	// the deductions queue because hr_confirmed_at IS NOT NULL.
+	const hrAgent = findUser(hrAgentDeductions.email)
+	const creditAmountConfirmed = '15000.00'
+	const [app4] = await db
+		.insert(applications)
+		.values({
+			applicantId: applicantConfirmed.id,
+			companyId: company.id,
+			termOfferingId: offering.id,
+			creditAmount: creditAmountConfirmed,
+			salaryAtApplication: '15000',
+			salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+			status: 'disbursed' as const,
+			firstDiscountDate: nextDeductionDate,
+			payrollNumber: 'DEDUCT004',
+		})
+		.returning()
+
+	if (!app4) throw new Error('Seed Deductions: application 4 not created')
+
+	const [credit4] = await db
+		.insert(credits)
+		.values({
+			applicationId: app4.id,
+			status: 'dispersed',
+			disbursementDate: now,
+			transferAmount: creditAmountConfirmed,
+			disbursedByUserId: applicantConfirmed.id,
+		})
+		.returning()
+
+	if (!credit4) throw new Error('Seed Deductions: credit 4 not created')
+
+	// credit4 confirmed recently (more recent than credit5) → appears first in history
+	const credit4ConfirmedAt = new Date(now.getTime() - 2 * 60_000)
+	await db.insert(creditPayments).values([
+		{
+			creditId: credit4.id,
+			dueDate: nextDeductionDate,
+			amount: '15375.00',
+			hrConfirmedAt: credit4ConfirmedAt,
+			hrConfirmedByUserId: hrAgent.id,
+		},
+	])
+
+	// Credit 5: past-due installment confirmed after its due date → "late" confirmation
+	const creditAmountLate = '12000.00'
+	const [app5] = await db
+		.insert(applications)
+		.values({
+			applicantId: applicantConfirmedLate.id,
+			companyId: company.id,
+			termOfferingId: offering.id,
+			creditAmount: creditAmountLate,
+			salaryAtApplication: '12000',
+			salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+			status: 'disbursed' as const,
+			firstDiscountDate: pastDate,
+			payrollNumber: 'DEDUCT005',
+		})
+		.returning()
+
+	if (!app5) throw new Error('Seed Deductions: application 5 not created')
+
+	const [credit5] = await db
+		.insert(credits)
+		.values({
+			applicationId: app5.id,
+			status: 'dispersed',
+			disbursementDate: now,
+			transferAmount: creditAmountLate,
+			disbursedByUserId: applicantConfirmedLate.id,
+		})
+		.returning()
+
+	if (!credit5) throw new Error('Seed Deductions: credit 5 not created')
+
+	// confirmed at an older timestamp than credit4 → should appear second in history
+	const credit5ConfirmedAt = new Date(now.getTime() - 10 * 60_000)
+	await db.insert(creditPayments).values([
+		{
+			creditId: credit5.id,
+			dueDate: pastDate,
+			amount: '12300.00',
+			hrConfirmedAt: credit5ConfirmedAt,
+			hrConfirmedByUserId: hrAgent.id,
+		},
+	])
+
+	const firstPayment = schedule1[0]
+	if (!firstPayment) throw new Error('Seed Deductions: schedule1 empty')
+
+	return {
+		companyId: company.id,
+		// Only credit1 and credit2 have upcoming installments → 2 rows
+		// credit4 is excluded because hr_confirmed_at IS NOT NULL
+		expectedRowCount: 2,
+		applicant1Name: applicant1.name,
+		applicant2Name: applicant2.name,
+		overdueApplicantName: applicantOverdue.name,
+		confirmedApplicantName: applicantConfirmed.name,
+		confirmedApplicationId: app4.id,
+		confirmedByName: hrAgent.name,
+		lateConfirmedApplicantName: applicantConfirmedLate.name,
+		nextDeductionDateISO,
+		firstInstallmentForCsv: {
+			payrollNumber: 'DEDUCT001',
+			amount: firstPayment.amount,
+			dueDateISO: firstPayment.dueDate.toISOString().slice(0, 10),
+		},
+	}
+}
 
 export const cleanupDeductionsQueue = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')

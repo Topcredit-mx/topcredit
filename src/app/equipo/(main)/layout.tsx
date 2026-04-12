@@ -6,6 +6,7 @@ import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
+import { getOverdueDeductionsCount } from '~/server/queries'
 import {
 	getCompaniesForSwitcher,
 	getEffectiveSelectedCompanyId,
@@ -23,10 +24,16 @@ export default async function AppMainLayout({
 	})
 	const emailVerified = dbUser?.emailVerified != null
 	const isAdmin = user.roles?.includes('admin') ?? false
+	const hasHrAccess = isAdmin || (user.roles?.includes('hr') ?? false)
 	const [companies, selectedCompanyId] = await Promise.all([
 		getCompaniesForSwitcher(user.id, isAdmin),
 		getEffectiveSelectedCompanyId(),
 	])
+
+	const overdueDeductionsCount =
+		hasHrAccess && selectedCompanyId !== null
+			? await getOverdueDeductionsCount(selectedCompanyId)
+			: 0
 
 	const showNoAssignmentsEmpty = !isAdmin && companies.length === 0
 
@@ -36,6 +43,7 @@ export default async function AppMainLayout({
 				user={{ ...user, emailVerified }}
 				companies={companies}
 				selectedCompanyId={selectedCompanyId}
+				overdueDeductionsCount={overdueDeductionsCount}
 			/>
 			<main className="flex flex-1 flex-col">
 				<header className="border-b">

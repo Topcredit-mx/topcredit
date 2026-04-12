@@ -3,13 +3,17 @@
 import {
 	Banknote,
 	Building2,
+	CalendarClock,
 	CheckSquare,
 	CreditCard,
 	FileText,
+	History,
 	Home,
 	ShieldCheck,
+	TriangleAlert,
 	UserCheck,
 	Users,
+	Wallet,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -37,12 +41,14 @@ interface AgentSidebarProps {
 	}
 	companies: CompanyForSwitcher[]
 	selectedCompanyId: number | null
+	overdueDeductionsCount?: number
 }
 
 export function AgentSidebar({
 	user,
 	companies,
 	selectedCompanyId,
+	overdueDeductionsCount = 0,
 }: AgentSidebarProps) {
 	const t = useTranslations('equipo')
 	const isAdmin = user.roles?.includes('admin')
@@ -109,7 +115,29 @@ export function AgentSidebar({
 							{
 								title: t('nav-hr-deductions'),
 								url: '/equipo/deductions',
-								icon: CreditCard,
+								icon: Wallet,
+								items: [
+									{
+										title: t('nav-deductions-next-cutoff'),
+										url: '/equipo/deductions',
+										icon: CalendarClock,
+										exact: true,
+									},
+									{
+										title: t('nav-deductions-history'),
+										url: '/equipo/deductions/history',
+										icon: History,
+									},
+									{
+										title: t('nav-deductions-overdue'),
+										url: '/equipo/deductions/overdue',
+										icon: TriangleAlert,
+										badge:
+											overdueDeductionsCount > 0
+												? overdueDeductionsCount
+												: undefined,
+									},
+								],
 							},
 						]
 					: []),

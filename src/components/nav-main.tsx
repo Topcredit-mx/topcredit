@@ -22,6 +22,9 @@ import {
 export interface NavSubItem {
 	title: string
 	url: string
+	icon?: LucideIcon
+	badge?: number
+	exact?: boolean
 }
 
 export interface NavItem {
@@ -45,7 +48,7 @@ function stripQueryString(path: string) {
 	return idx === -1 ? path : path.slice(0, idx)
 }
 
-function isPathActive(pathname: string, itemUrl: string) {
+function isPathActive(pathname: string, itemUrl: string, exact = false) {
 	const currentPath = normalizePath(pathname)
 	const targetPath = normalizePath(stripQueryString(itemUrl))
 
@@ -53,7 +56,7 @@ function isPathActive(pathname: string, itemUrl: string) {
 		return true
 	}
 
-	if (targetPath === '/equipo') {
+	if (exact || targetPath === '/equipo') {
 		return false
 	}
 
@@ -103,18 +106,41 @@ export function NavMain({
 												{disabled ? (
 													<SidebarMenuSubButton
 														asChild
-														isActive={isPathActive(pathname, subItem.url)}
+														isActive={isPathActive(
+															pathname,
+															subItem.url,
+															subItem.exact,
+														)}
 														aria-disabled
 														className="pointer-events-none opacity-50"
 													>
-														<span>{subItem.title}</span>
+														<span>
+															{subItem.icon && (
+																<subItem.icon className="size-4" />
+															)}
+															{subItem.title}
+														</span>
 													</SidebarMenuSubButton>
 												) : (
 													<SidebarMenuSubButton
 														asChild
-														isActive={isPathActive(pathname, subItem.url)}
+														isActive={isPathActive(
+															pathname,
+															subItem.url,
+															subItem.exact,
+														)}
 													>
-														<Link href={subItem.url}>{subItem.title}</Link>
+														<Link href={subItem.url}>
+															{subItem.icon && (
+																<subItem.icon className="size-4" />
+															)}
+															{subItem.title}
+															{subItem.badge !== undefined && (
+																<span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 font-medium text-white text-xs tabular-nums">
+																	{subItem.badge}
+																</span>
+															)}
+														</Link>
 													</SidebarMenuSubButton>
 												)}
 											</SidebarMenuSubItem>

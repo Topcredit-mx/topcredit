@@ -122,9 +122,10 @@ describe('Role-based queue navigation', () => {
 			})
 		})
 
-		it('sees Deducciones nav link pointing to /equipo/deductions', () => {
+		it('sees Deducciones nav group with a link to /equipo/deductions', () => {
 			navScope().within(() => {
-				cy.contains('a', 'Deducciones')
+				cy.contains('button', 'Deducciones').should('be.visible').click()
+				cy.contains('a', 'Próximo Corte')
 					.should('be.visible')
 					.and('have.attr', 'href', '/equipo/deductions')
 			})
