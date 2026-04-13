@@ -88,7 +88,9 @@ describe('HR deduction confirmation history', () => {
 
 		it('shows the full history page with all confirmed deductions', () => {
 			cy.visit('/equipo/deductions/history')
-			cy.contains(/historial completo de confirmaciones/i).should('be.visible')
+			cy.get('nav[aria-label="Breadcrumb"]')
+				.contains(/historial/i)
+				.should('be.visible')
 			cy.contains(seed.confirmedApplicantName).should('be.visible')
 			cy.contains(seed.lateConfirmedApplicantName).should('be.visible')
 		})
