@@ -40,12 +40,6 @@ export default async function DeductionsPage() {
 	if (selectedCompanyId === null) {
 		return (
 			<div className="container mx-auto py-6">
-				<div className="mb-6">
-					<h1 className="font-semibold text-2xl">{t('deductions-title')}</h1>
-					<p className="text-muted-foreground text-sm">
-						{t('deductions-subtitle')}
-					</p>
-				</div>
 				<div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-muted/30 p-12 text-center">
 					<div className="flex size-16 items-center justify-center rounded-full bg-muted">
 						<Building2 className="size-8 text-muted-foreground" />
@@ -87,12 +81,6 @@ export default async function DeductionsPage() {
 
 	return (
 		<div className="container mx-auto py-6">
-			<div className="mb-6">
-				<h1 className="font-semibold text-2xl">{t('deductions-title')}</h1>
-				<p className="text-muted-foreground text-sm">
-					{t('deductions-subtitle')}
-				</p>
-			</div>
 			{installmentsFiltered.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">{t('deductions-empty')}</p>

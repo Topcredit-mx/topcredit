@@ -1,5 +1,3 @@
-import { ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
@@ -32,18 +30,6 @@ export default async function DeductionHistoryPage() {
 
 	return (
 		<div className="container mx-auto py-6">
-			<div className="mb-6">
-				<Link
-					href="/equipo/deductions"
-					className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-sm hover:text-foreground"
-				>
-					<ArrowLeft className="size-4" />
-					{t('deductions-history-back')}
-				</Link>
-				<h1 className="font-semibold text-2xl">
-					{t('deductions-history-full-title')}
-				</h1>
-			</div>
 			{historyItems.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">

@@ -11,7 +11,11 @@
 		"equipo-companies": "Empresas",
 		"equipo-companies-new": "Crear Empresa",
 		"equipo-companies-edit": "Editar Empresa",
-		"equipo-users": "Usuarios"
+		"equipo-users": "Usuarios",
+		"equipo-deductions": "Deducciones",
+		"equipo-deductions-history": "Historial",
+		"equipo-deductions-overdue": "Retrasos",
+		"equipo-payments": "Pagos"
 	},
 	"common": {
 		"save": "Guardar",
@@ -553,6 +557,15 @@
 		"deductions-history-full-title": "Historial completo de confirmaciones",
 		"deductions-history-col-confirmed-at": "Confirmado el",
 		"deductions-history-col-timing": "Puntualidad",
+		"overdue-deductions-title": "Deducciones atrasadas",
+		"overdue-deductions-subtitle": "Deducciones no registradas con fecha de pago vencida",
+		"overdue-deductions-empty": "No hay deducciones atrasadas",
+		"overdue-deductions-col-employee": "Empleado",
+		"overdue-deductions-col-amount": "Monto adeudado",
+		"overdue-deductions-col-overdue-since": "Atrasado desde",
+		"overdue-deductions-back": "Volver a deducciones",
+		"overdue-deductions-empty-no-company-title": "Selecciona una empresa",
+		"overdue-deductions-empty-no-company-description": "Usa el selector de empresa en la barra lateral para ver las deducciones atrasadas de una empresa.",
 		"payments-title": "Pagos",
 		"payments-subtitle": "Confirma la recepción de pagos de cada cuota",
 		"payments-col-employee": "Empleado",
