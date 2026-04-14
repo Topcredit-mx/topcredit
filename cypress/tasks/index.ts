@@ -70,6 +70,7 @@ import {
 	applicantDeductions2,
 	applicantDeductionsConfirmed,
 	applicantDeductionsConfirmedLate,
+	applicantDeductionsMultiOverdue,
 	applicantDeductionsOverdue,
 	deductionsCompany,
 	hrAgentDeductions,
@@ -2650,12 +2651,14 @@ export type SeedDeductionsQueueResult = {
 		amount: string
 		dueDateISO: string
 	}
+	multiOverdueApplicantName?: string
 }
 
 export const seedDeductionsQueue = async (
-	options: { withOverdue?: boolean } | null,
+	options: { withOverdue?: boolean; withMultipleOverdue?: boolean } | null,
 ): Promise<SeedDeductionsQueueResult> => {
 	const withOverdue = options?.withOverdue ?? false
+	const withMultipleOverdue = options?.withMultipleOverdue ?? false
 	const db = getDb(process.env.DATABASE_URL || '')
 	const now = new Date()
 
@@ -2740,6 +2743,7 @@ export const seedDeductionsQueue = async (
 	const applicant1 = findUser(applicantDeductions.email)
 	const applicant2 = findUser(applicantDeductions2.email)
 	const applicantOverdue = findUser(applicantDeductionsOverdue.email)
+	const applicantMultiOverdue = findUser(applicantDeductionsMultiOverdue.email)
 	const applicantConfirmed = findUser(applicantDeductionsConfirmed.email)
 	const applicantConfirmedLate = findUser(
 		applicantDeductionsConfirmedLate.email,
@@ -2900,6 +2904,57 @@ export const seedDeductionsQueue = async (
 		])
 	}
 
+	// Credit 6: credit with 2 overdue installments — used to test the multi-select dialog.
+	if (withMultipleOverdue) {
+		const pastDate2 = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, 28),
+		)
+		const creditAmountMultiOverdue = '18000.00'
+		const [app6] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantMultiOverdue.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: creditAmountMultiOverdue,
+				salaryAtApplication: '18000',
+				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate: pastDate2,
+				payrollNumber: 'DEDUCT006',
+			})
+			.returning()
+
+		if (!app6) throw new Error('Seed Deductions: application 6 not created')
+
+		const [credit6] = await db
+			.insert(credits)
+			.values({
+				applicationId: app6.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: creditAmountMultiOverdue,
+				disbursedByUserId: applicantMultiOverdue.id,
+			})
+			.returning()
+
+		if (!credit6) throw new Error('Seed Deductions: credit 6 not created')
+
+		// 2 overdue installments for credit6 (both past due, both unconfirmed)
+		await db.insert(creditPayments).values([
+			{
+				creditId: credit6.id,
+				dueDate: pastDate2,
+				amount: '9300.00',
+			},
+			{
+				creditId: credit6.id,
+				dueDate: pastDate,
+				amount: '9300.00',
+			},
+		])
+	}
+
 	// Credit 4: upcoming installment already HR-confirmed — should NOT appear in
 	// the deductions queue because hr_confirmed_at IS NOT NULL.
 	const hrAgent = findUser(hrAgentDeductions.email)
@@ -3011,6 +3066,7 @@ export const seedDeductionsQueue = async (
 			amount: firstPayment.amount,
 			dueDateISO: firstPayment.dueDate.toISOString().slice(0, 10),
 		},
+		multiOverdueApplicantName: applicantMultiOverdue.name,
 	}
 }
 

@@ -61,6 +61,21 @@ describe('HR overdue deductions list', () => {
 			cy.get('main').should('be.visible')
 			cy.get('a[href="/equipo/deductions"]').should('be.visible')
 		})
+
+		it('confirms a single overdue deduction and removes it from the list', () => {
+			cy.visit('/equipo/deductions/overdue')
+			cy.get('table').should('be.visible')
+			cy.contains(seed.overdueApplicantName).should('be.visible')
+			cy.findTableRow(seed.overdueApplicantName)
+				.scrollIntoView()
+				.within(() => {
+					cy.contains('button', /registrar/i)
+						.should('be.visible')
+						.click()
+				})
+			cy.get('table').should('be.visible')
+			cy.contains(seed.overdueApplicantName).should('not.exist')
+		})
 	})
 
 	describe('HR agent without company selected', () => {
@@ -90,5 +105,81 @@ describe('HR overdue deductions list', () => {
 			cy.visit('/equipo/deductions/overdue', { failOnStatusCode: false })
 			cy.url().should('include', '/unauthorized')
 		})
+	})
+})
+
+describe('HR overdue deductions — multiple overdue installments per credit', () => {
+	let seed: SeedDeductionsQueueResult
+
+	beforeEach(() => {
+		cy.task('cleanupDeductionsQueue')
+		cy.task<SeedDeductionsQueueResult>('seedDeductionsQueue', {
+			withOverdue: true,
+			withMultipleOverdue: true,
+		}).then((result) => {
+			seed = result
+		})
+		cy.login(hrAgentDeductions.email)
+		cy.then(() => {
+			cy.setCookie('selected_company_id', String(seed.companyId))
+		})
+	})
+
+	after(() => {
+		cy.task('cleanupDeductionsQueue')
+	})
+
+	it('shows a confirm dialog when a credit has more than one overdue deduction', () => {
+		cy.visit('/equipo/deductions/overdue')
+		cy.get('table').should('be.visible')
+		cy.findTableRow(seed.multiOverdueApplicantName ?? '').within(() => {
+			cy.contains('button', /registrar/i)
+				.should('be.visible')
+				.click()
+		})
+		cy.get('[role="dialog"]').should('be.visible')
+		cy.get('[role="dialog"]').within(() => {
+			cy.contains(seed.multiOverdueApplicantName ?? '').should('be.visible')
+			cy.get('[role="checkbox"]').should('have.length', 2)
+		})
+	})
+
+	it('confirms all overdue deductions from the dialog and removes the credit from the list', () => {
+		cy.visit('/equipo/deductions/overdue')
+		cy.get('table').should('be.visible')
+		cy.findTableRow(seed.multiOverdueApplicantName ?? '').within(() => {
+			cy.contains('button', /registrar/i)
+				.should('be.visible')
+				.click()
+		})
+		cy.get('[role="dialog"]').should('be.visible')
+		cy.get('[role="dialog"]').within(() => {
+			cy.contains('button', /registrar seleccionadas/i)
+				.should('be.visible')
+				.click()
+		})
+		cy.get('[role="dialog"]').should('not.exist')
+		cy.get('table').should('be.visible')
+		cy.contains(seed.multiOverdueApplicantName ?? '').should('not.exist')
+	})
+
+	it('keeps the credit in the list when only one of multiple overdue deductions is confirmed', () => {
+		cy.visit('/equipo/deductions/overdue')
+		cy.get('table').should('be.visible')
+		cy.findTableRow(seed.multiOverdueApplicantName ?? '').within(() => {
+			cy.contains('button', /registrar/i)
+				.should('be.visible')
+				.click()
+		})
+		cy.get('[role="dialog"]').should('be.visible')
+		cy.get('[role="dialog"]').within(() => {
+			cy.get('[role="checkbox"]').eq(1).click()
+			cy.contains('button', /registrar seleccionadas/i)
+				.should('be.visible')
+				.click()
+		})
+		cy.get('[role="dialog"]').should('not.exist')
+		cy.get('table').should('be.visible')
+		cy.contains(seed.multiOverdueApplicantName ?? '').should('be.visible')
 	})
 })

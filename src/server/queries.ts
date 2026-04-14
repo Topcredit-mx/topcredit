@@ -1249,6 +1249,7 @@ export type OverdueDeduction = {
 	payrollNumber: string | null
 	companyName: string
 	companyId: number
+	overdueCount: number
 }
 
 export async function getOverdueDeductions(
@@ -1266,7 +1267,8 @@ export async function getOverdueDeductions(
 			u.name AS employee_name,
 			a.payroll_number,
 			co.name AS company_name,
-			a.company_id
+			a.company_id,
+			COUNT(*) OVER (PARTITION BY cp.credit_id) AS overdue_count
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
@@ -1291,6 +1293,45 @@ export async function getOverdueDeductions(
 			row.payroll_number != null ? String(row.payroll_number) : null,
 		companyName: String(row.company_name),
 		companyId: Number(row.company_id),
+		overdueCount: Number(row.overdue_count),
+	}))
+}
+
+export type OverdueDeductionInstallment = {
+	id: number
+	dueDate: string
+	amount: string
+}
+
+export async function getOverdueDeductionsForCredit(
+	creditId: number,
+	companyId: number,
+): Promise<OverdueDeductionInstallment[]> {
+	const { ability } = await getAbility()
+	requireAbility(ability, 'read', subject('Company', { id: companyId }))
+
+	const rows = await db.execute(sql`
+		SELECT
+			cp.id,
+			cp.due_date,
+			cp.amount
+		FROM credit_payments cp
+		INNER JOIN credits cr ON cp.credit_id = cr.id
+		INNER JOIN applications a ON cr.application_id = a.id
+		WHERE cp.credit_id = ${creditId}
+		  AND a.company_id = ${companyId}
+		  AND cp.hr_confirmed_at IS NULL
+		  AND cp.due_date < CURRENT_DATE
+		ORDER BY cp.due_date ASC
+	`)
+
+	return rows.rows.map((row) => ({
+		id: Number(row.id),
+		dueDate:
+			row.due_date instanceof Date
+				? row.due_date.toISOString()
+				: String(row.due_date),
+		amount: String(row.amount),
 	}))
 }
 
