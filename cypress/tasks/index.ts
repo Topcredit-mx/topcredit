@@ -72,6 +72,7 @@ import {
 	applicantDeductionsConfirmedLate,
 	applicantDeductionsMultiOverdue,
 	applicantDeductionsOverdue,
+	applicantDeductionsOverdueRecent,
 	deductionsCompany,
 	hrAgentDeductions,
 } from '~/cypress/e2e/equipo/deductions-queue.fixtures'
@@ -2641,6 +2642,7 @@ export type SeedDeductionsQueueResult = {
 	applicant1Name: string
 	applicant2Name: string
 	overdueApplicantName: string
+	overdueRecentApplicantName: string
 	confirmedApplicantName: string
 	confirmedApplicationId: number
 	confirmedByName: string
@@ -2743,6 +2745,9 @@ export const seedDeductionsQueue = async (
 	const applicant1 = findUser(applicantDeductions.email)
 	const applicant2 = findUser(applicantDeductions2.email)
 	const applicantOverdue = findUser(applicantDeductionsOverdue.email)
+	const applicantOverdueRecent = findUser(
+		applicantDeductionsOverdueRecent.email,
+	)
 	const applicantMultiOverdue = findUser(applicantDeductionsMultiOverdue.email)
 	const applicantConfirmed = findUser(applicantDeductionsConfirmed.email)
 	const applicantConfirmedLate = findUser(
@@ -2902,6 +2907,51 @@ export const seedDeductionsQueue = async (
 				amount: '20500.00',
 			},
 		])
+
+		// Credit 7: recently overdue credit — due 3 days ago (< 7 days).
+		// Appears in the current overdue snapshot but NOT in the 7-day-ago snapshot,
+		// so the overview cards show a measurable week-over-week change.
+		const recentPastDate = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 3),
+		)
+		const creditAmountOverdueRecent = '8500.00'
+		const [app7] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantOverdueRecent.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: creditAmountOverdueRecent,
+				salaryAtApplication: '18000',
+				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate: recentPastDate,
+				payrollNumber: 'DEDUCT007',
+			})
+			.returning()
+
+		if (!app7) throw new Error('Seed Deductions: application 7 not created')
+
+		const [credit7] = await db
+			.insert(credits)
+			.values({
+				applicationId: app7.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: creditAmountOverdueRecent,
+				disbursedByUserId: applicantOverdueRecent.id,
+			})
+			.returning()
+
+		if (!credit7) throw new Error('Seed Deductions: credit 7 not created')
+
+		await db.insert(creditPayments).values([
+			{
+				creditId: credit7.id,
+				dueDate: recentPastDate,
+				amount: '8713.00',
+			},
+		])
 	}
 
 	// Credit 6: credit with 2 overdue installments — used to test the multi-select dialog.
@@ -3056,6 +3106,7 @@ export const seedDeductionsQueue = async (
 		applicant1Name: applicant1.name,
 		applicant2Name: applicant2.name,
 		overdueApplicantName: applicantOverdue.name,
+		overdueRecentApplicantName: applicantOverdueRecent.name,
 		confirmedApplicantName: applicantConfirmed.name,
 		confirmedApplicationId: app4.id,
 		confirmedByName: hrAgent.name,

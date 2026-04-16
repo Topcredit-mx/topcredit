@@ -3,8 +3,11 @@ import {
 	asc,
 	desc,
 	eq,
+	gte,
 	ilike,
 	inArray,
+	isNull,
+	lt,
 	or,
 	type SQL,
 	sql,
@@ -1218,6 +1221,155 @@ export async function getInstallmentsForQueue(params: {
 			companyId: Number(r.company_id),
 		}
 	})
+}
+
+// ---- Overdue deductions overview ----
+
+function overdueCutoffDate(periodDays: number): Date {
+	const cutoff = new Date()
+	cutoff.setUTCDate(cutoff.getUTCDate() - periodDays)
+	cutoff.setUTCHours(0, 0, 0, 0)
+	return cutoff
+}
+
+export async function getTotalOverdueAmount(
+	companyId: number,
+	periodDays = 7,
+): Promise<{ totalAmount: string; changePercent: number | null }> {
+	const { ability } = await getAbility()
+	requireAbility(ability, 'read', subject('Company', { id: companyId }))
+
+	const cutoff = overdueCutoffDate(periodDays)
+
+	const [currentRow, previousRow] = await Promise.all([
+		db
+			.select({
+				total: sql<string>`COALESCE(SUM(${creditPayments.amount}), '0')`,
+			})
+			.from(creditPayments)
+			.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+			.innerJoin(applications, eq(credits.applicationId, applications.id))
+			.where(
+				and(
+					eq(applications.companyId, companyId),
+					isNull(creditPayments.hrConfirmedAt),
+					sql`${creditPayments.dueDate} < CURRENT_DATE`,
+				),
+			),
+		db
+			.select({
+				total: sql<string>`COALESCE(SUM(${creditPayments.amount}), '0')`,
+			})
+			.from(creditPayments)
+			.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+			.innerJoin(applications, eq(credits.applicationId, applications.id))
+			.where(
+				and(
+					eq(applications.companyId, companyId),
+					lt(creditPayments.dueDate, cutoff),
+					or(
+						isNull(creditPayments.hrConfirmedAt),
+						gte(creditPayments.hrConfirmedAt, cutoff),
+					),
+				),
+			),
+	])
+
+	const totalAmount = currentRow[0]?.total ?? '0'
+	const prevAmount = Number(previousRow[0]?.total ?? '0')
+	const currAmount = Number(totalAmount)
+	const changePercent =
+		prevAmount === 0 ? null : ((currAmount - prevAmount) / prevAmount) * 100
+
+	return { totalAmount, changePercent }
+}
+
+export async function getTotalOverdueCredits(
+	companyId: number,
+	periodDays = 7,
+): Promise<{ totalCredits: number; changePercent: number | null }> {
+	const { ability } = await getAbility()
+	requireAbility(ability, 'read', subject('Company', { id: companyId }))
+
+	const cutoff = overdueCutoffDate(periodDays)
+
+	const [currentRow, previousRow] = await Promise.all([
+		db
+			.select({
+				count: sql<number>`COUNT(DISTINCT ${creditPayments.creditId})`,
+			})
+			.from(creditPayments)
+			.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+			.innerJoin(applications, eq(credits.applicationId, applications.id))
+			.where(
+				and(
+					eq(applications.companyId, companyId),
+					isNull(creditPayments.hrConfirmedAt),
+					sql`${creditPayments.dueDate} < CURRENT_DATE`,
+				),
+			),
+		db
+			.select({
+				count: sql<number>`COUNT(DISTINCT ${creditPayments.creditId})`,
+			})
+			.from(creditPayments)
+			.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+			.innerJoin(applications, eq(credits.applicationId, applications.id))
+			.where(
+				and(
+					eq(applications.companyId, companyId),
+					lt(creditPayments.dueDate, cutoff),
+					or(
+						isNull(creditPayments.hrConfirmedAt),
+						gte(creditPayments.hrConfirmedAt, cutoff),
+					),
+				),
+			),
+	])
+
+	const totalCredits = Number(currentRow[0]?.count ?? 0)
+	const prevCredits = Number(previousRow[0]?.count ?? 0)
+	const changePercent =
+		prevCredits === 0
+			? null
+			: ((totalCredits - prevCredits) / prevCredits) * 100
+
+	return { totalCredits, changePercent }
+}
+
+export async function getOldestOverdueAge(
+	companyId: number,
+): Promise<{ oldestOverdueDays: number | null }> {
+	const { ability } = await getAbility()
+	requireAbility(ability, 'read', subject('Company', { id: companyId }))
+
+	const [row] = await db
+		.select({
+			minDate: sql<string | null>`MIN(${creditPayments.dueDate})`,
+		})
+		.from(creditPayments)
+		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.where(
+			and(
+				eq(applications.companyId, companyId),
+				isNull(creditPayments.hrConfirmedAt),
+				sql`${creditPayments.dueDate} < CURRENT_DATE`,
+			),
+		)
+
+	if (!row || row.minDate === null) {
+		return { oldestOverdueDays: null }
+	}
+
+	const today = new Date()
+	today.setUTCHours(0, 0, 0, 0)
+	const minDate = new Date(row.minDate)
+	const oldestOverdueDays = Math.floor(
+		(today.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24),
+	)
+
+	return { oldestOverdueDays }
 }
 
 // ---- Overdue deductions count ----

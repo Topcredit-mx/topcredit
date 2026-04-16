@@ -4,8 +4,14 @@ import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
-import { getOverdueDeductions } from '~/server/queries'
+import {
+	getOldestOverdueAge,
+	getOverdueDeductions,
+	getTotalOverdueAmount,
+	getTotalOverdueCredits,
+} from '~/server/queries'
 import { getEffectiveSelectedCompanyId } from '~/server/scopes'
+import { OverdueDeductionsOverview } from './overdue-deductions-overview'
 import { OverdueDeductionsTable } from './overdue-deductions-table'
 
 export default async function OverdueDeductionsPage() {
@@ -48,10 +54,23 @@ export default async function OverdueDeductionsPage() {
 		)
 	}
 
-	const overdueDeductions = await getOverdueDeductions(selectedCompanyId)
+	const [overdueDeductions, totalAmount, totalCredits, oldestAge] =
+		await Promise.all([
+			getOverdueDeductions(selectedCompanyId),
+			getTotalOverdueAmount(selectedCompanyId),
+			getTotalOverdueCredits(selectedCompanyId),
+			getOldestOverdueAge(selectedCompanyId),
+		])
 
 	return (
 		<div className="container mx-auto py-6">
+			<OverdueDeductionsOverview
+				totalAmount={totalAmount.totalAmount}
+				amountChangePercent={totalAmount.changePercent}
+				totalCredits={totalCredits.totalCredits}
+				creditsChangePercent={totalCredits.changePercent}
+				oldestOverdueDays={oldestAge.oldestOverdueDays}
+			/>
 			{overdueDeductions.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">

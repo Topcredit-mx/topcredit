@@ -41,7 +41,7 @@ describe('HR overdue deductions list', () => {
 		it('shows only overdue credits — not upcoming-only applicants', () => {
 			cy.visit('/equipo/deductions/overdue')
 			cy.get('table').should('be.visible')
-			cy.get('table tbody tr').should('have.length', 1)
+			cy.get('table tbody tr').should('have.length', 2)
 			cy.get('table').within(() => {
 				cy.contains(seed.applicant2Name).should('not.exist')
 			})
@@ -60,6 +60,49 @@ describe('HR overdue deductions list', () => {
 			cy.visit('/equipo/deductions/overdue')
 			cy.get('main').should('be.visible')
 			cy.get('a[href="/equipo/deductions"]').should('be.visible')
+		})
+
+		it('shows the overview cards section above the table', () => {
+			cy.visit('/equipo/deductions/overdue')
+			cy.get('[data-testid="overdue-overview"]').should('be.visible')
+			cy.get('table').should('be.visible')
+			cy.get('[data-testid="overdue-overview"]').then(($overview) => {
+				cy.get('table').then(($table) => {
+					const overviewTop = $overview[0]?.getBoundingClientRect().top ?? 0
+					const tableTop = $table[0]?.getBoundingClientRect().top ?? 0
+					expect(overviewTop).to.be.lessThan(tableTop)
+				})
+			})
+		})
+
+		it('shows the total overdue amount card with a weekly change badge', () => {
+			cy.visit('/equipo/deductions/overdue')
+			cy.get('[data-testid="overdue-overview"]').within(() => {
+				cy.contains(/monto total atrasado/i).should('be.visible')
+				cy.contains(/vs semana anterior/i).should('be.visible')
+				cy.get('[data-testid="change-badge"]').first().should('be.visible')
+			})
+		})
+
+		it('shows the total overdue credits card with a weekly change badge', () => {
+			cy.visit('/equipo/deductions/overdue')
+			cy.get('[data-testid="overdue-overview"]').within(() => {
+				cy.contains(/créditos atrasados/i).should('be.visible')
+				cy.contains(/vs semana anterior/i).should('be.visible')
+			})
+		})
+
+		it('shows the total overdue credits count as 2', () => {
+			cy.visit('/equipo/deductions/overdue')
+			cy.get('[data-testid="overdue-credits-value"]').should('have.text', '2')
+		})
+
+		it('shows the oldest overdue age card', () => {
+			cy.visit('/equipo/deductions/overdue')
+			cy.get('[data-testid="overdue-overview"]').within(() => {
+				cy.contains(/mayor atraso/i).should('be.visible')
+				cy.contains(/día/i).should('be.visible')
+			})
 		})
 
 		it('confirms a single overdue deduction and removes it from the list', () => {
@@ -92,6 +135,12 @@ describe('HR overdue deductions list', () => {
 			cy.visit('/equipo/deductions/overdue')
 			cy.contains('h2', /selecciona una empresa/i).should('be.visible')
 			cy.get('table').should('not.exist')
+		})
+
+		it('does not show the overview cards', () => {
+			cy.visit('/equipo/deductions/overdue')
+			cy.contains('h2', /selecciona una empresa/i).should('be.visible')
+			cy.get('[data-testid="overdue-overview"]').should('not.exist')
 		})
 	})
 
