@@ -78,6 +78,7 @@ export function AgentSidebar({
 			]
 		: [
 				{ title: t('nav-home'), url: '/equipo', icon: Home },
+				{ title: t('nav-credits'), url: '/equipo/credits', icon: CreditCard },
 				...(roles.includes('requests')
 					? [
 							{

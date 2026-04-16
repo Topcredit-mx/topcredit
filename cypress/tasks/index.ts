@@ -2638,6 +2638,8 @@ export const cleanupCuentaCredits = async () => {
 
 export type SeedDeductionsQueueResult = {
 	companyId: number
+	credit1Id: number
+	credit2Id: number
 	expectedRowCount: number
 	applicant1Name: string
 	applicant2Name: string
@@ -3100,6 +3102,8 @@ export const seedDeductionsQueue = async (
 
 	return {
 		companyId: company.id,
+		credit1Id: credit1.id,
+		credit2Id: credit2.id,
 		// Only credit1 and credit2 have upcoming installments → 2 rows
 		// credit4 is excluded because hr_confirmed_at IS NOT NULL
 		expectedRowCount: 2,

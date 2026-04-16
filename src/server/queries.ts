@@ -1109,6 +1109,109 @@ export async function getCreditPaymentsByCreditId(
 		.orderBy(asc(creditPayments.dueDate))
 }
 
+// ---- Equipo credit detail ----
+
+export type CreditDetailForEquipo = {
+	id: number
+	status: CreditStatus
+	transferAmount: string
+	disbursementDate: Date
+	companyName: string
+	companyId: number
+	rate: string
+	durationType: 'monthly' | 'bi-monthly'
+	duration: number
+	employeeName: string
+}
+
+export type CreditForList = {
+	id: number
+	status: CreditStatus
+	transferAmount: string
+	disbursementDate: Date
+	employeeName: string
+	payrollNumber: string | null
+}
+
+export async function getCreditsForEquipo(
+	companyId: number,
+): Promise<CreditForList[]> {
+	return db
+		.select({
+			id: credits.id,
+			status: credits.status,
+			transferAmount: credits.transferAmount,
+			disbursementDate: credits.disbursementDate,
+			employeeName: users.name,
+			payrollNumber: applications.payrollNumber,
+		})
+		.from(credits)
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.innerJoin(users, eq(applications.applicantId, users.id))
+		.where(eq(applications.companyId, companyId))
+		.orderBy(desc(credits.disbursementDate))
+}
+
+export async function getCreditDetailForEquipo(
+	creditId: number,
+	companyId: number,
+): Promise<CreditDetailForEquipo | null> {
+	const [row] = await db
+		.select({
+			id: credits.id,
+			status: credits.status,
+			transferAmount: credits.transferAmount,
+			disbursementDate: credits.disbursementDate,
+			companyName: companies.name,
+			companyId: companies.id,
+			rate: companies.rate,
+			durationType: terms.durationType,
+			duration: terms.duration,
+			employeeName: users.name,
+		})
+		.from(credits)
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.innerJoin(companies, eq(applications.companyId, companies.id))
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.innerJoin(users, eq(applications.applicantId, users.id))
+		.where(and(eq(credits.id, creditId), eq(applications.companyId, companyId)))
+
+	return row ?? null
+}
+
+export type CreditPaymentRowForEquipo = {
+	id: number
+	dueDate: Date
+	amount: string
+	hrConfirmedAt: Date | null
+	paymentsConfirmedAt: Date | null
+}
+
+export async function getCreditPaymentsForEquipo(
+	creditId: number,
+	companyId: number,
+): Promise<CreditPaymentRowForEquipo[]> {
+	return db
+		.select({
+			id: creditPayments.id,
+			dueDate: creditPayments.dueDate,
+			amount: creditPayments.amount,
+			hrConfirmedAt: creditPayments.hrConfirmedAt,
+			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+		})
+		.from(creditPayments)
+		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.where(
+			and(
+				eq(creditPayments.creditId, creditId),
+				eq(applications.companyId, companyId),
+			),
+		)
+		.orderBy(asc(creditPayments.dueDate))
+}
+
 // ---- Installments queue (shared by /equipo/deductions and /equipo/payments) ----
 
 export type InstallmentForQueue = {
