@@ -52,6 +52,12 @@ export const applicantDeductionsMultiOverdue = {
 	roles: ['applicant'] as const,
 }
 
+export const applicantDeductionsOverdueRecent = {
+	name: 'Applicant Deductions Recent',
+	email: 'applicant.overdue.recent@deductionsqueue.com',
+	roles: ['applicant'] as const,
+}
+
 export const allDeductionUsers = [
 	hrAgentDeductions,
 	paymentsAgentDeductions,
@@ -62,6 +68,7 @@ export const allDeductionUsers = [
 	applicantDeductionsConfirmed,
 	applicantDeductionsConfirmedLate,
 	applicantDeductionsMultiOverdue,
+	applicantDeductionsOverdueRecent,
 ]
 
 export const deductionsCompany = {
