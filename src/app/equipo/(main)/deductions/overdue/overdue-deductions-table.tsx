@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
+import { toast } from 'sonner'
 import {
 	DataTable,
 	DataTableContent,
@@ -23,13 +24,8 @@ export function OverdueDeductionsTable({
 	const [, startTransition] = useTransition()
 	const [dialogDeduction, setDialogDeduction] =
 		useState<OverdueDeduction | null>(null)
-	const [successMessage, setSuccessMessage] = useState<string | null>(null)
-	const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
 	const handleConfirm = (deduction: OverdueDeduction) => {
-		setSuccessMessage(null)
-		setErrorMessage(null)
-
 		if (deduction.overdueCount > 1) {
 			setDialogDeduction(deduction)
 			return
@@ -38,9 +34,9 @@ export function OverdueDeductionsTable({
 		startTransition(async () => {
 			const result = await confirmOverdueDeductionsAction([deduction.id])
 			if (result?.error != null) {
-				setErrorMessage(result.error)
+				toast.error(resolveError(result.error))
 			} else {
-				setSuccessMessage(t('overdue-deductions-confirm-success'))
+				toast.success(t('overdue-deductions-confirm-success'))
 			}
 		})
 	}
@@ -52,7 +48,7 @@ export function OverdueDeductionsTable({
 	const columns = useOverdueDeductionsColumns(handleConfirm)
 
 	return (
-		<div className="space-y-2">
+		<div>
 			<DataTable
 				columns={columns}
 				data={deductions}
@@ -61,12 +57,6 @@ export function OverdueDeductionsTable({
 				<DataTableContent />
 				<DataTablePagination />
 			</DataTable>
-			{successMessage !== null && (
-				<p className="text-green-700 text-sm">{successMessage}</p>
-			)}
-			{errorMessage !== null && (
-				<p className="text-destructive text-sm">{resolveError(errorMessage)}</p>
-			)}
 			<ConfirmOverdueDialog
 				deduction={dialogDeduction}
 				onClose={handleDialogClose}

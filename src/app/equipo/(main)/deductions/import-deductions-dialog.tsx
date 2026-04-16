@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useRef, useState, useTransition } from 'react'
+import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import {
 	Dialog,
@@ -41,25 +42,22 @@ export function ImportDeductionsDialog({
 	const resolveError = useResolveValidationError()
 	const [isPending, startTransition] = useTransition()
 	const [state, setState] = useState<DialogState>({ stage: 'upload' })
-	const [actionError, setActionError] = useState<string | null>(null)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
 	function handleClose() {
 		setState({ stage: 'upload' })
-		setActionError(null)
 		onClose()
 	}
 
 	function handleValidate() {
 		const file = fileInputRef.current?.files?.[0]
 		if (!file) return
-		setActionError(null)
 		startTransition(async () => {
 			const formData = new FormData()
 			formData.set('file', file)
 			const result = await validateDeductionsCsvAction(formData)
 			if (!result.ok) {
-				setActionError(result.error)
+				toast.error(resolveError(result.error))
 				return
 			}
 			setState({
@@ -73,11 +71,10 @@ export function ImportDeductionsDialog({
 	}
 
 	function handleConfirm(paymentIds: number[]) {
-		setActionError(null)
 		startTransition(async () => {
 			const res = await confirmDeductionsFromCsvAction(paymentIds)
 			if (res?.error != null) {
-				setActionError(res.error)
+				toast.error(resolveError(res.error))
 				return
 			}
 			handleClose()
@@ -95,7 +92,6 @@ export function ImportDeductionsDialog({
 					<UploadStage
 						fileInputRef={fileInputRef}
 						isPending={isPending}
-						actionError={actionError ? resolveError(actionError) : null}
 						onValidate={handleValidate}
 						onClose={handleClose}
 						t={t}
@@ -106,7 +102,6 @@ export function ImportDeductionsDialog({
 					<PreviewStage
 						state={state}
 						isPending={isPending}
-						actionError={actionError ? resolveError(actionError) : null}
 						onConfirm={handleConfirm}
 						onClose={handleClose}
 						t={t}
@@ -122,14 +117,12 @@ type TFunction = ReturnType<typeof useTranslations<'equipo'>>
 function UploadStage({
 	fileInputRef,
 	isPending,
-	actionError,
 	onValidate,
 	onClose,
 	t,
 }: {
 	fileInputRef: React.RefObject<HTMLInputElement | null>
 	isPending: boolean
-	actionError: string | null
 	onValidate: () => void
 	onClose: () => void
 	t: TFunction
@@ -152,9 +145,6 @@ function UploadStage({
 						className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
 					/>
 				</div>
-				{actionError && (
-					<p className="text-destructive text-sm">{actionError}</p>
-				)}
 			</div>
 			<DialogFooter>
 				<Button
@@ -178,14 +168,12 @@ function UploadStage({
 function PreviewStage({
 	state,
 	isPending,
-	actionError,
 	onConfirm,
 	onClose,
 	t,
 }: {
 	state: PreviewState
 	isPending: boolean
-	actionError: string | null
 	onConfirm: (ids: number[]) => void
 	onClose: () => void
 	t: TFunction
@@ -293,10 +281,6 @@ function PreviewStage({
 							</table>
 						</div>
 					</div>
-				)}
-
-				{actionError && (
-					<p className="text-destructive text-sm">{actionError}</p>
 				)}
 			</div>
 			<DialogFooter>
