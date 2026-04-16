@@ -3,11 +3,14 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { useTranslations } from 'next-intl'
 import { FormattedDate } from '~/components/formatted-date'
+import { Button } from '~/components/ui/button'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
 import { formatCurrencyMxn } from '~/lib/utils'
 import type { OverdueDeduction } from '~/server/queries'
 
-export function useOverdueDeductionsColumns(): ColumnDef<OverdueDeduction>[] {
+export function useOverdueDeductionsColumns(
+	onConfirm: (deduction: OverdueDeduction) => void,
+): ColumnDef<OverdueDeduction>[] {
 	const t = useTranslations('equipo')
 
 	return [
@@ -59,6 +62,18 @@ export function useOverdueDeductionsColumns(): ColumnDef<OverdueDeduction>[] {
 				<div className="text-muted-foreground text-sm">
 					<FormattedDate value={row.getValue('dueDate')} format="date" />
 				</div>
+			),
+		},
+		{
+			id: 'actions',
+			cell: ({ row }) => (
+				<Button
+					size="sm"
+					variant="outline"
+					onClick={() => onConfirm(row.original)}
+				>
+					{t('overdue-deductions-confirm')}
+				</Button>
 			),
 		},
 	]
