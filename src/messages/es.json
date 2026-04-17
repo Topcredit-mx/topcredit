@@ -613,6 +613,7 @@
 		"credit-detail-status-dispersed": "Dispersado",
 		"credit-detail-status-settled": "Liquidado",
 		"credit-detail-hr-status-pending": "Pendiente",
+		"credit-detail-hr-status-overdue": "Atrasado",
 		"credit-detail-hr-status-confirmed": "Confirmado",
 		"payments-title": "Pagos",
 		"payments-subtitle": "Confirma la recepción de pagos de cada cuota",

@@ -21,12 +21,27 @@ function isWithinUpcomingPeriod(
 	return dueDate.toISOString().slice(0, 10) <= upcomingDeductionDate
 }
 
-function HrStatusBadge({ hrConfirmedAt }: { hrConfirmedAt: Date | null }) {
+function HrStatusBadge({
+	hrConfirmedAt,
+	dueDate,
+}: {
+	hrConfirmedAt: Date | null
+	dueDate: Date
+}) {
 	const t = useTranslations('equipo')
 	if (hrConfirmedAt !== null) {
 		return (
 			<span className="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800 text-xs">
 				{t('credit-detail-hr-status-confirmed')}
+			</span>
+		)
+	}
+	const isOverdue =
+		dueDate.toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10)
+	if (isOverdue) {
+		return (
+			<span className="rounded-full bg-red-100 px-2 py-0.5 font-medium text-red-700 text-xs">
+				{t('credit-detail-hr-status-overdue')}
 			</span>
 		)
 	}
@@ -143,7 +158,10 @@ export function CreditPaymentsTable({
 								{formatCurrencyMxn(payment.amount)}
 							</td>
 							<td className="px-5 py-3.5 text-sm">
-								<HrStatusBadge hrConfirmedAt={payment.hrConfirmedAt} />
+								<HrStatusBadge
+									hrConfirmedAt={payment.hrConfirmedAt}
+									dueDate={payment.dueDate}
+								/>
 							</td>
 							<td className="px-5 py-3.5 text-sm">
 								<PaymentsStatusBadge

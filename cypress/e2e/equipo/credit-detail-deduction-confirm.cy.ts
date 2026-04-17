@@ -47,7 +47,7 @@ describe('HR credit detail — deduction confirmation', () => {
 			cy.get('table tbody tr')
 				.first()
 				.within(() => {
-					cy.contains(/pendiente/i).should('be.visible')
+					cy.contains(/pendiente|atrasado/i).should('be.visible')
 				})
 		})
 
@@ -208,10 +208,11 @@ describe('Credit detail — confirm button visibility by payment state', () => {
 				cy.contains(/confirmado/i).should('be.visible')
 			})
 
-		// Row 2: overdue/delayed (past due, unconfirmed) — confirm button visible
+		// Row 2: overdue/delayed (past due, unconfirmed) — shows "Atrasado" badge and confirm button
 		cy.get('table tbody tr')
 			.eq(1)
 			.within(() => {
+				cy.contains(/atrasado/i).should('be.visible')
 				cy.contains('button', /confirmar/i).should('be.visible')
 			})
 
