@@ -7,7 +7,7 @@ import {
 	User,
 } from 'lucide-react'
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
@@ -40,8 +40,6 @@ export default async function EquipoCreditDetailPage({
 				'confirmHrDeduction',
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
-
-	if (!canConfirm) redirect('/unauthorized')
 
 	const { id } = await params
 	const creditId = Number(id)
@@ -185,7 +183,7 @@ export default async function EquipoCreditDetailPage({
 				</CardHeader>
 				<CardContent className="px-0">
 					{payments.length > 0 ? (
-						<CreditPaymentsTable payments={payments} />
+						<CreditPaymentsTable payments={payments} canConfirm={canConfirm} />
 					) : (
 						<p className="px-4 text-muted-foreground text-sm">
 							{t('credit-detail-not-found')}

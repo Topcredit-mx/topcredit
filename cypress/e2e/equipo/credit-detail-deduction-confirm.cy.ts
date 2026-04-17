@@ -90,7 +90,7 @@ describe('HR credit detail — deduction confirmation', () => {
 		})
 	})
 
-	describe('non-HR agent cannot access credit detail deduction page', () => {
+	describe('non-HR agent can view credit detail but cannot confirm', () => {
 		beforeEach(() => {
 			cy.login(nonHrAgentDeductions.email)
 			cy.then(() => {
@@ -98,11 +98,10 @@ describe('HR credit detail — deduction confirmation', () => {
 			})
 		})
 
-		it('redirects to unauthorized', () => {
-			cy.visit(`/equipo/credits/${seed.credit1Id}`, {
-				failOnStatusCode: false,
-			})
-			cy.url().should('include', '/unauthorized')
+		it('can view the credit detail page without a confirm button', () => {
+			cy.visit(`/equipo/credits/${seed.credit1Id}`)
+			cy.get('table').should('be.visible')
+			cy.contains('button', /confirmar/i).should('not.exist')
 		})
 	})
 })

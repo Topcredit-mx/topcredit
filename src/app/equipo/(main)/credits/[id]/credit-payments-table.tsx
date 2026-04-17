@@ -29,8 +29,10 @@ function HrStatusBadge({ hrConfirmedAt }: { hrConfirmedAt: Date | null }) {
 
 export function CreditPaymentsTable({
 	payments: initialPayments,
+	canConfirm,
 }: {
 	payments: CreditPaymentRowForEquipo[]
+	canConfirm: boolean
 }) {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
@@ -89,7 +91,7 @@ export function CreditPaymentsTable({
 							<HrStatusBadge hrConfirmedAt={payment.hrConfirmedAt} />
 						</td>
 						<td className="px-5 py-3.5">
-							{canHrConfirm(payment) && (
+							{canConfirm && canHrConfirm(payment) && (
 								<Button
 									size="sm"
 									variant="outline"
