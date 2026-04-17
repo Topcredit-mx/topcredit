@@ -509,7 +509,7 @@ describe('Admin Users', () => {
 			cy.wait('@saveCompanies')
 
 			cy.get('[role="dialog"]').should('be.visible')
-			cy.get('[role="alert"]').should('be.visible')
+			cy.get('[data-sonner-toast][data-type="error"]').should('exist')
 
 			cy.findTableRow(agentOnlyUser.name).within(() => {
 				cy.contains(companies.acme.name).should('exist')

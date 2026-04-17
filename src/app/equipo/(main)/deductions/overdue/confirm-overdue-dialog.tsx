@@ -2,7 +2,7 @@
 
 import { Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
@@ -45,6 +45,17 @@ export function ConfirmOverdueDialog({
 	>([])
 	const [selectedIds, setSelectedIds] = useState<number[]>([])
 
+	// onClose and resolveError change identity on every parent render. Storing
+	// them in refs lets the effect read the latest values without re-running on
+	// every render, which would otherwise restart the fetch transition in a
+	// loop and leave the confirm button permanently disabled.
+	const onCloseRef = useRef(onClose)
+	const resolveErrorRef = useRef(resolveError)
+	useEffect(() => {
+		onCloseRef.current = onClose
+		resolveErrorRef.current = resolveError
+	})
+
 	useEffect(() => {
 		if (deduction === null) {
 			setInstallments([])
@@ -57,14 +68,14 @@ export function ConfirmOverdueDialog({
 				deduction.creditId,
 			)
 			if ('error' in result) {
-				toast.error(resolveError(result.error))
-				onClose()
+				toast.error(resolveErrorRef.current(result.error))
+				onCloseRef.current()
 				return
 			}
 			setInstallments(result)
 			setSelectedIds(result.map((i) => i.id))
 		})
-	}, [deduction, onClose, resolveError])
+	}, [deduction])
 
 	const handleToggle = (id: number) => {
 		setSelectedIds((prev) =>
