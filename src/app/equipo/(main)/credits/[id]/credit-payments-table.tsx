@@ -11,13 +11,14 @@ import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { CreditPaymentRowForEquipo } from '~/server/queries'
 import { confirmHrDeductionFromCreditAction } from './actions'
 
+// A payment is confirmable when its due date falls on or before the upcoming
+// deduction period — this covers both overdue (past-due, unconfirmed) and the
+// current period's installment. Future installments beyond the period are excluded.
 function isWithinUpcomingPeriod(
 	dueDate: Date,
 	upcomingDeductionDate: string,
 ): boolean {
-	const dueDateStr = dueDate.toISOString().slice(0, 10)
-	const todayStr = new Date().toISOString().slice(0, 10)
-	return dueDateStr >= todayStr && dueDateStr <= upcomingDeductionDate
+	return dueDate.toISOString().slice(0, 10) <= upcomingDeductionDate
 }
 
 function HrStatusBadge({ hrConfirmedAt }: { hrConfirmedAt: Date | null }) {

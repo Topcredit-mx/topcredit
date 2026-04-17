@@ -1,4 +1,8 @@
-import type { SeedDeductionsQueueResult } from '~/cypress/tasks'
+import type {
+	SeedCreditDetailPaymentStatesResult,
+	SeedDeductionsQueueResult,
+} from '~/cypress/tasks'
+import { creditDetailStatesHrAgent } from './credit-detail-states.fixtures'
 import {
 	hrAgentDeductions,
 	nonHrAgentDeductions,
@@ -165,5 +169,71 @@ describe('Equipo credits list', () => {
 			cy.contains('h1', /créditos/i).should('be.visible')
 			cy.get('table').should('be.visible')
 		})
+	})
+})
+
+describe('Credit detail — confirm button visibility by payment state', () => {
+	let seed: SeedCreditDetailPaymentStatesResult
+
+	before(() => {
+		cy.task('cleanupCreditDetailPaymentStates')
+		cy.task<SeedCreditDetailPaymentStatesResult>(
+			'seedCreditDetailPaymentStates',
+		).then((result) => {
+			seed = result
+		})
+	})
+
+	after(() => {
+		cy.task('cleanupCreditDetailPaymentStates')
+	})
+
+	beforeEach(() => {
+		cy.login(creditDetailStatesHrAgent.email)
+		cy.then(() => {
+			cy.setCookie('selected_company_id', String(seed.companyId))
+		})
+	})
+
+	it('shows 5 payment rows with buttons only for delayed and upcoming-period installments', () => {
+		cy.visit(`/equipo/credits/${seed.creditId}`)
+		cy.get('table').should('be.visible')
+		cy.get('table tbody tr').should('have.length', 5)
+
+		// Row 1: already HR-confirmed — no confirm button, shows "Confirmado" badge
+		cy.get('table tbody tr')
+			.eq(0)
+			.within(() => {
+				cy.contains('button', /confirmar/i).should('not.exist')
+				cy.contains(/confirmado/i).should('be.visible')
+			})
+
+		// Row 2: overdue/delayed (past due, unconfirmed) — confirm button visible
+		cy.get('table tbody tr')
+			.eq(1)
+			.within(() => {
+				cy.contains('button', /confirmar/i).should('be.visible')
+			})
+
+		// Row 3: first pending within the upcoming deduction period — confirm button visible
+		cy.get('table tbody tr')
+			.eq(2)
+			.within(() => {
+				cy.contains('button', /confirmar/i).should('be.visible')
+			})
+
+		// Row 4: beyond the upcoming period — no confirm button
+		cy.get('table tbody tr')
+			.eq(3)
+			.within(() => {
+				cy.contains('button', /confirmar/i).should('not.exist')
+			})
+
+		// Row 5: further future — no confirm button
+		cy.get('table tbody tr')
+			.eq(4)
+			.within(() => {
+				cy.contains('button', /confirmar/i).should('not.exist')
+			})
 	})
 })
