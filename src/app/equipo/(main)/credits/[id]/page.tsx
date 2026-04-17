@@ -13,10 +13,12 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Decimal } from '~/lib/decimal'
+import { suggestFirstDiscountDate } from '~/lib/first-discount-date'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
+	getCompanyById,
 	getCreditDetailForEquipo,
 	getCreditPaymentsForEquipo,
 } from '~/server/queries'
@@ -68,10 +70,17 @@ export default async function EquipoCreditDetailPage({
 		)
 	}
 
-	const [credit, payments] = await Promise.all([
+	const [credit, payments, company] = await Promise.all([
 		getCreditDetailForEquipo(creditId, selectedCompanyId),
 		getCreditPaymentsForEquipo(creditId, selectedCompanyId),
+		getCompanyById(selectedCompanyId),
 	])
+
+	const upcomingDeductionDate = company
+		? suggestFirstDiscountDate(company.employeeSalaryFrequency, new Date())
+				.toISOString()
+				.slice(0, 10)
+		: undefined
 
 	if (!credit) {
 		notFound()
@@ -183,7 +192,11 @@ export default async function EquipoCreditDetailPage({
 				</CardHeader>
 				<CardContent className="px-0">
 					{payments.length > 0 ? (
-						<CreditPaymentsTable payments={payments} canConfirm={canConfirm} />
+						<CreditPaymentsTable
+							payments={payments}
+							canConfirm={canConfirm}
+							upcomingDeductionDate={upcomingDeductionDate}
+						/>
 					) : (
 						<p className="px-4 text-muted-foreground text-sm">
 							{t('credit-detail-not-found')}

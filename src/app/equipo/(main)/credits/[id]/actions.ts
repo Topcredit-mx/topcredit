@@ -7,7 +7,7 @@ export type ConfirmDeductionFromCreditState = {
 	confirmed?: true
 } | null
 
-export async function confirmDeductionFromCreditAction(
+export async function confirmHrDeductionFromCreditAction(
 	paymentId: number,
 ): Promise<ConfirmDeductionFromCreditState> {
 	const result = await confirmHrDeduction(paymentId)
