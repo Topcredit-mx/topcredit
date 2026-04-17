@@ -13,7 +13,6 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Decimal } from '~/lib/decimal'
-import { suggestFirstDiscountDate } from '~/lib/first-discount-date'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
@@ -75,12 +74,6 @@ export default async function EquipoCreditDetailPage({
 		getCreditPaymentsForEquipo(creditId, selectedCompanyId),
 		getCompanyById(selectedCompanyId),
 	])
-
-	const upcomingDeductionDate = company
-		? suggestFirstDiscountDate(company.employeeSalaryFrequency, new Date())
-				.toISOString()
-				.slice(0, 10)
-		: undefined
 
 	if (!credit) {
 		notFound()
@@ -195,7 +188,7 @@ export default async function EquipoCreditDetailPage({
 						<CreditPaymentsTable
 							payments={payments}
 							canConfirm={canConfirm}
-							upcomingDeductionDate={upcomingDeductionDate}
+							employeeSalaryFrequency={company?.employeeSalaryFrequency}
 						/>
 					) : (
 						<p className="px-4 text-muted-foreground text-sm">

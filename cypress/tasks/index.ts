@@ -100,7 +100,7 @@ import {
 	applicantUser as loginApplicantUser,
 	noRoleUser as loginNoRoleUser,
 } from '~/cypress/e2e/other/login.fixtures'
-import { suggestFirstDiscountDate } from '~/lib/first-discount-date'
+import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import type { Role } from '~/server/auth/session'
 import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
@@ -2763,8 +2763,8 @@ export const seedDeductionsQueue = async (
 	)
 
 	// Compute next deduction date from the company's salary frequency — same
-	// logic as suggestFirstDiscountDate used on the page.
-	const nextDeductionDate = suggestFirstDiscountDate(
+	// logic as getUpcomingDeductionDate used on the page.
+	const nextDeductionDate = getUpcomingDeductionDate(
 		deductionsCompany.employeeSalaryFrequency,
 		now,
 	)
@@ -3395,7 +3395,6 @@ export const cleanupPaymentsQueue = async () => {
 export type SeedCreditDetailPaymentStatesResult = {
 	companyId: number
 	creditId: number
-	nextDeductionDateISO: string
 }
 
 export const seedCreditDetailPaymentStates =
@@ -3486,22 +3485,19 @@ export const seedCreditDetailPaymentStates =
 			}),
 		)
 
-		const nextDeductionDate = suggestFirstDiscountDate(
-			creditDetailStatesCompany.employeeSalaryFrequency,
-			now,
-		)
-		const y = now.getUTCFullYear()
-		const m = now.getUTCMonth()
-		// last day of a given UTC month
-		const lastDay = (year: number, month: number) =>
-			new Date(Date.UTC(year, month + 1, 0))
-
-		// 5 payment due dates: 2 past, 1 upcoming period, 2 future
-		const confirmedPastDate = lastDay(y, m - 2)
-		const overdueDate = lastDay(y, m - 1)
-		const upcomingDate = nextDeductionDate
-		const future1Date = lastDay(y, m + 1)
-		const future2Date = lastDay(y, m + 2)
+		// Static dates anchored to the frozen clock date used in E2E tests
+		// (cy.clock(new Date('2023-01-05'))). This makes badge states and button
+		// visibility deterministic regardless of when the test suite runs.
+		//   confirmed past : Nov 30 2022  (2 months before frozen date)
+		//   overdue        : Dec 31 2022  (1 month before frozen date, unconfirmed)
+		//   upcoming period: Jan 31 2023  (last day of frozen month → getUpcomingDeductionDate result)
+		//   future 1       : Feb 28 2023
+		//   future 2       : Mar 31 2023
+		const confirmedPastDate = new Date(Date.UTC(2022, 10, 30))
+		const overdueDate = new Date(Date.UTC(2022, 11, 31))
+		const upcomingDate = new Date(Date.UTC(2023, 0, 31))
+		const future1Date = new Date(Date.UTC(2023, 1, 28))
+		const future2Date = new Date(Date.UTC(2023, 2, 31))
 
 		const [app] = await db
 			.insert(applications)
@@ -3581,7 +3577,6 @@ export const seedCreditDetailPaymentStates =
 		return {
 			companyId: company.id,
 			creditId: credit.id,
-			nextDeductionDateISO: nextDeductionDate.toISOString().slice(0, 10),
 		}
 	}
 

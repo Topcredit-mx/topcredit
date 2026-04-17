@@ -28,8 +28,22 @@ const DATETIME_FULL_OPTIONS: Intl.DateTimeFormatOptions = {
 	second: '2-digit',
 }
 
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
+
 function toDate(value: Date | string): Date {
-	return typeof value === 'string' ? new Date(value) : value
+	if (typeof value === 'string') {
+		// Date-only strings (YYYY-MM-DD) represent a calendar date with no time
+		// component. Parsing them with `new Date()` treats them as UTC midnight,
+		// which then shifts to the previous day in negative-offset timezones when
+		// formatted with toLocaleDateString. Constructing with local parts avoids
+		// the shift.
+		if (DATE_ONLY_RE.test(value)) {
+			const parts = value.split('-').map(Number)
+			return new Date(parts[0] ?? 0, (parts[1] ?? 1) - 1, parts[2] ?? 1)
+		}
+		return new Date(value)
+	}
+	return value
 }
 
 function formatDate(

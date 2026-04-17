@@ -189,6 +189,10 @@ describe('Credit detail — confirm button visibility by payment state', () => {
 	})
 
 	beforeEach(() => {
+		// Freeze browser time to match the static fixture dates seeded in
+		// seedCreditDetailPaymentStates, making badge states and button
+		// visibility deterministic regardless of when the test suite runs.
+		cy.clock(new Date('2023-01-05').getTime())
 		cy.login(creditDetailStatesHrAgent.email)
 		cy.then(() => {
 			cy.setCookie('selected_company_id', String(seed.companyId))

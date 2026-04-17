@@ -12,7 +12,7 @@ function isSameOrAfter(date: Date, reference: Date): boolean {
 	return date >= reference
 }
 
-export function suggestFirstDiscountDate(
+export function getUpcomingDeductionDate(
 	frequency: SalaryFrequency,
 	today: Date,
 ): Date {

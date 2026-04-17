@@ -1,10 +1,11 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
+import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { canHrConfirm } from '~/lib/payment-confirmation'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
@@ -24,9 +25,13 @@ function isWithinUpcomingPeriod(
 function HrStatusBadge({
 	hrConfirmedAt,
 	dueDate,
+	today,
 }: {
 	hrConfirmedAt: Date | null
 	dueDate: Date
+	// Passed from the parent's useEffect so it is always undefined during SSR,
+	// preventing a hydration mismatch when cy.clock() freezes time in E2E tests.
+	today: string | undefined
 }) {
 	const t = useTranslations('equipo')
 	if (hrConfirmedAt !== null) {
@@ -37,7 +42,7 @@ function HrStatusBadge({
 		)
 	}
 	const isOverdue =
-		dueDate.toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10)
+		today !== undefined && dueDate.toISOString().slice(0, 10) < today
 	if (isOverdue) {
 		return (
 			<span className="rounded-full bg-red-100 px-2 py-0.5 font-medium text-red-700 text-xs">
@@ -84,16 +89,36 @@ function PaymentsStatusBadge({
 export function CreditPaymentsTable({
 	payments: initialPayments,
 	canConfirm,
-	upcomingDeductionDate,
+	employeeSalaryFrequency,
 }: {
 	payments: CreditPaymentRowForEquipo[]
 	canConfirm: boolean
-	upcomingDeductionDate?: string
+	employeeSalaryFrequency?: 'bi-monthly' | 'monthly'
 }) {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
 	const [, startTransition] = useTransition()
 	const [payments, setPayments] = useState(initialPayments)
+
+	// Both values start as undefined so the SSR output matches the initial
+	// client render, avoiding hydration mismatches. useEffect fires only in
+	// the browser, where cy.clock() can freeze new Date() for E2E tests.
+	const [today, setToday] = useState<string | undefined>(undefined)
+	const [upcomingDeductionDate, setUpcomingDeductionDate] = useState<
+		string | undefined
+	>(undefined)
+
+	useEffect(() => {
+		const now = new Date()
+		setToday(now.toISOString().slice(0, 10))
+		if (employeeSalaryFrequency !== undefined) {
+			setUpcomingDeductionDate(
+				getUpcomingDeductionDate(employeeSalaryFrequency, now)
+					.toISOString()
+					.slice(0, 10),
+			)
+		}
+	}, [employeeSalaryFrequency])
 
 	const handleHrConfirm = (paymentId: number) => {
 		startTransition(async () => {
@@ -150,7 +175,7 @@ export function CreditPaymentsTable({
 							</td>
 							<td className="px-5 py-3.5 text-slate-800 text-sm">
 								<FormattedDate
-									value={payment.dueDate.toISOString()}
+									value={payment.dueDate.toISOString().slice(0, 10)}
 									format="date"
 								/>
 							</td>
@@ -161,6 +186,7 @@ export function CreditPaymentsTable({
 								<HrStatusBadge
 									hrConfirmedAt={payment.hrConfirmedAt}
 									dueDate={payment.dueDate}
+									today={today}
 								/>
 							</td>
 							<td className="px-5 py-3.5 text-sm">
