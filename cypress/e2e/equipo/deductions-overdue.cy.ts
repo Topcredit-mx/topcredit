@@ -203,6 +203,7 @@ describe('HR overdue deductions — multiple overdue installments per credit', (
 		})
 		cy.get('[role="dialog"]').should('be.visible')
 		cy.get('[role="dialog"]').within(() => {
+			cy.get('[role="checkbox"]').should('have.length', 2)
 			cy.contains('button', /registrar seleccionadas/i)
 				.should('be.visible')
 				.click()
@@ -222,6 +223,7 @@ describe('HR overdue deductions — multiple overdue installments per credit', (
 		})
 		cy.get('[role="dialog"]').should('be.visible')
 		cy.get('[role="dialog"]').within(() => {
+			cy.get('[role="checkbox"]').should('have.length', 2)
 			cy.get('[role="checkbox"]').eq(1).click()
 			cy.contains('button', /registrar seleccionadas/i)
 				.should('be.visible')

@@ -5,6 +5,7 @@ import { Building2, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
+import { toast } from 'sonner'
 import { FormattedDate } from '~/components/formatted-date'
 import {
 	AlertDialog,
@@ -136,20 +137,17 @@ function CompanyAssignmentCell({
 	const tCommon = useTranslations('common')
 	const [isPending, startTransition] = useTransition()
 	const [showDialog, setShowDialog] = useState(false)
-	const [error, setError] = useState<string | null>(null)
 	const [selectedCompanyIds, setSelectedCompanyIds] = useState<number[]>(
 		user.companies.map((c) => c.id),
 	)
 
 	const handleOpenDialog = () => {
-		setError(null)
 		setSelectedCompanyIds(user.companies.map((c) => c.id))
 		setShowDialog(true)
 	}
 
 	const handleDialogOpenChange = (open: boolean) => {
 		setShowDialog(open)
-		if (!open) setError(null)
 	}
 
 	const handleToggleCompany = (companyId: number) => {
@@ -161,7 +159,6 @@ function CompanyAssignmentCell({
 	}
 
 	const handleSave = () => {
-		setError(null)
 		startTransition(async () => {
 			try {
 				await updateUserCompanies(user.id, selectedCompanyIds)
@@ -170,7 +167,7 @@ function CompanyAssignmentCell({
 			} catch (e) {
 				const message =
 					e instanceof Error ? e.message : 'No se pudieron guardar los cambios.'
-				setError(message)
+				toast.error(message)
 			}
 		})
 	}
@@ -210,15 +207,6 @@ function CompanyAssignmentCell({
 							{t('users-assign-dialog-description', { name: user.name })}
 						</DialogDescription>
 					</DialogHeader>
-
-					{error && (
-						<p
-							role="alert"
-							className="rounded-md bg-destructive/10 px-3 py-2 text-destructive text-sm"
-						>
-							{error}
-						</p>
-					)}
 
 					<div className="max-h-[300px] space-y-3 overflow-y-auto py-4">
 						{allCompanies.length === 0 ? (

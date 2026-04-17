@@ -1,6 +1,7 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
@@ -24,9 +25,15 @@ export function useOverdueDeductionsColumns(
 			),
 			cell: ({ row }) => {
 				const payrollNumber = row.original.payrollNumber
+				const creditId = row.original.creditId
 				return (
 					<div>
-						<div className="font-medium">{row.getValue('employeeName')}</div>
+						<Link
+							href={`/equipo/credits/${creditId}`}
+							className="font-medium hover:underline"
+						>
+							{row.getValue('employeeName')}
+						</Link>
 						{payrollNumber && (
 							<div className="text-muted-foreground text-xs">
 								{payrollNumber}

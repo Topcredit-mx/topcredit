@@ -25,8 +25,8 @@ import {
 } from '~/lib/authorization-package-readiness'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import {
+	getUpcomingDeductionDate,
 	getValidFirstDiscountDates,
-	suggestFirstDiscountDate,
 } from '~/lib/first-discount-date'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, subject } from '~/server/auth/ability'
@@ -385,7 +385,7 @@ export default async function AppApplicationDetailPage({
 								6,
 							).map((d) => d.toISOString().split('T')[0] ?? '')}
 							suggestedDate={
-								suggestFirstDiscountDate(application.salaryFrequency, todayUTC)
+								getUpcomingDeductionDate(application.salaryFrequency, todayUTC)
 									.toISOString()
 									.split('T')[0] ?? ''
 							}

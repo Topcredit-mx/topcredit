@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
+import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import {
 	Dialog,
@@ -28,7 +29,6 @@ export function ExportDeductionsDialog({
 }: ExportDeductionsDialogProps) {
 	const t = useTranslations('equipo')
 	const [isPending, startTransition] = useTransition()
-	const [error, setError] = useState<string | null>(null)
 
 	const validDates = getValidFirstDiscountDates(
 		employeeSalaryFrequency,
@@ -40,17 +40,15 @@ export function ExportDeductionsDialog({
 	const [selectedDate, setSelectedDate] = useState<string>(firstDate ?? '')
 
 	function handleClose() {
-		setError(null)
 		onClose()
 	}
 
 	function handleExport() {
 		if (!selectedDate) return
-		setError(null)
 		startTransition(async () => {
 			const result = await exportDeductionsCsvAction(selectedDate)
 			if ('error' in result) {
-				setError(t('deductions-export-error'))
+				toast.error(t('deductions-export-error'))
 				return
 			}
 			const blob = new Blob([result.csv], { type: 'text/csv' })
@@ -93,7 +91,6 @@ export function ExportDeductionsDialog({
 							))}
 						</select>
 					</div>
-					{error && <p className="text-destructive text-sm">{error}</p>}
 				</div>
 				<DialogFooter>
 					<Button

@@ -2,7 +2,8 @@
 
 import { Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
+import { toast } from 'sonner'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -43,13 +44,22 @@ export function ConfirmOverdueDialog({
 		OverdueDeductionInstallment[]
 	>([])
 	const [selectedIds, setSelectedIds] = useState<number[]>([])
-	const [error, setError] = useState<string | null>(null)
+
+	// onClose and resolveError change identity on every parent render. Storing
+	// them in refs lets the effect read the latest values without re-running on
+	// every render, which would otherwise restart the fetch transition in a
+	// loop and leave the confirm button permanently disabled.
+	const onCloseRef = useRef(onClose)
+	const resolveErrorRef = useRef(resolveError)
+	useEffect(() => {
+		onCloseRef.current = onClose
+		resolveErrorRef.current = resolveError
+	})
 
 	useEffect(() => {
 		if (deduction === null) {
 			setInstallments([])
 			setSelectedIds([])
-			setError(null)
 			return
 		}
 
@@ -58,7 +68,8 @@ export function ConfirmOverdueDialog({
 				deduction.creditId,
 			)
 			if ('error' in result) {
-				setError(result.error)
+				toast.error(resolveErrorRef.current(result.error))
+				onCloseRef.current()
 				return
 			}
 			setInstallments(result)
@@ -74,11 +85,10 @@ export function ConfirmOverdueDialog({
 
 	const handleConfirm = () => {
 		if (selectedIds.length === 0) return
-		setError(null)
 		startTransition(async () => {
 			const result = await confirmOverdueDeductionsAction(selectedIds)
 			if (result?.error != null) {
-				setError(result.error)
+				toast.error(resolveError(result.error))
 				return
 			}
 			onClose()
@@ -108,15 +118,6 @@ export function ConfirmOverdueDialog({
 						</DialogDescription>
 					)}
 				</DialogHeader>
-
-				{error !== null && (
-					<p
-						role="alert"
-						className="rounded-md bg-destructive/10 px-3 py-2 text-destructive text-sm"
-					>
-						{resolveError(error)}
-					</p>
-				)}
 
 				<div className="max-h-[300px] space-y-3 overflow-y-auto py-2">
 					{installments.map((installment) => (

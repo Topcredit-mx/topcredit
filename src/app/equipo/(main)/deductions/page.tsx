@@ -2,7 +2,7 @@ import { Building2 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
-import { suggestFirstDiscountDate } from '~/lib/first-discount-date'
+import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
@@ -63,7 +63,7 @@ export default async function DeductionsPage() {
 	])
 
 	const nextDeductionDate = company
-		? suggestFirstDiscountDate(company.employeeSalaryFrequency, new Date())
+		? getUpcomingDeductionDate(company.employeeSalaryFrequency, new Date())
 		: undefined
 
 	const nextDeductionDateStr = nextDeductionDate

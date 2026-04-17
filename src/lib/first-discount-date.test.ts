@@ -1,56 +1,56 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import {
+	getUpcomingDeductionDate,
 	getValidFirstDiscountDates,
 	isValidFirstDiscountDate,
-	suggestFirstDiscountDate,
 } from '~/lib/first-discount-date'
 
 function utc(year: number, month: number, day: number): Date {
 	return new Date(Date.UTC(year, month, day))
 }
 
-describe('suggestFirstDiscountDate', () => {
+describe('getUpcomingDeductionDate', () => {
 	describe('bi-monthly', () => {
 		test('early in month suggests the 15th of current month', () => {
 			const today = utc(2026, 2, 3) // March 3
-			const result = suggestFirstDiscountDate('bi-monthly', today)
+			const result = getUpcomingDeductionDate('bi-monthly', today)
 			assert.deepEqual(result, utc(2026, 2, 15))
 		})
 
 		test('on the 15th suggests the 15th (same day)', () => {
 			const today = utc(2026, 2, 15) // March 15
-			const result = suggestFirstDiscountDate('bi-monthly', today)
+			const result = getUpcomingDeductionDate('bi-monthly', today)
 			assert.deepEqual(result, utc(2026, 2, 15))
 		})
 
 		test('after the 15th suggests end of current month', () => {
 			const today = utc(2026, 2, 16) // March 16
-			const result = suggestFirstDiscountDate('bi-monthly', today)
+			const result = getUpcomingDeductionDate('bi-monthly', today)
 			assert.deepEqual(result, utc(2026, 2, 31)) // March 31
 		})
 
 		test('on last day of month suggests that day', () => {
 			const today = utc(2026, 2, 31) // March 31
-			const result = suggestFirstDiscountDate('bi-monthly', today)
+			const result = getUpcomingDeductionDate('bi-monthly', today)
 			assert.deepEqual(result, utc(2026, 2, 31))
 		})
 
 		test('after last day marker suggests 15th of next month', () => {
 			const today = utc(2026, 3, 1) // April 1
-			const result = suggestFirstDiscountDate('bi-monthly', today)
+			const result = getUpcomingDeductionDate('bi-monthly', today)
 			assert.deepEqual(result, utc(2026, 3, 15)) // April 15
 		})
 
 		test('handles February (non-leap)', () => {
 			const today = utc(2026, 1, 16) // Feb 16, 2026 (non-leap)
-			const result = suggestFirstDiscountDate('bi-monthly', today)
+			const result = getUpcomingDeductionDate('bi-monthly', today)
 			assert.deepEqual(result, utc(2026, 1, 28)) // Feb 28
 		})
 
 		test('handles February (leap year)', () => {
 			const today = utc(2028, 1, 16) // Feb 16, 2028 (leap)
-			const result = suggestFirstDiscountDate('bi-monthly', today)
+			const result = getUpcomingDeductionDate('bi-monthly', today)
 			assert.deepEqual(result, utc(2028, 1, 29)) // Feb 29
 		})
 	})
@@ -58,25 +58,25 @@ describe('suggestFirstDiscountDate', () => {
 	describe('monthly', () => {
 		test('suggests end of current month when early in month', () => {
 			const today = utc(2026, 2, 5) // March 5
-			const result = suggestFirstDiscountDate('monthly', today)
+			const result = getUpcomingDeductionDate('monthly', today)
 			assert.deepEqual(result, utc(2026, 2, 31)) // March 31
 		})
 
 		test('on last day of month suggests that day', () => {
 			const today = utc(2026, 2, 31) // March 31
-			const result = suggestFirstDiscountDate('monthly', today)
+			const result = getUpcomingDeductionDate('monthly', today)
 			assert.deepEqual(result, utc(2026, 2, 31))
 		})
 
 		test('handles February', () => {
 			const today = utc(2026, 1, 1) // Feb 1
-			const result = suggestFirstDiscountDate('monthly', today)
+			const result = getUpcomingDeductionDate('monthly', today)
 			assert.deepEqual(result, utc(2026, 1, 28)) // Feb 28
 		})
 
 		test('handles December to stay in December', () => {
 			const today = utc(2026, 11, 10) // Dec 10
-			const result = suggestFirstDiscountDate('monthly', today)
+			const result = getUpcomingDeductionDate('monthly', today)
 			assert.deepEqual(result, utc(2026, 11, 31)) // Dec 31
 		})
 	})

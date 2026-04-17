@@ -65,6 +65,12 @@ import {
 	switcherCompanyList,
 } from '~/cypress/e2e/equipo/company-switcher.fixtures'
 import {
+	allCreditDetailStatesUsers,
+	creditDetailStatesApplicant,
+	creditDetailStatesCompany,
+	creditDetailStatesHrAgent,
+} from '~/cypress/e2e/equipo/credit-detail-states.fixtures'
+import {
 	allDeductionUsers,
 	applicantDeductions,
 	applicantDeductions2,
@@ -94,7 +100,7 @@ import {
 	applicantUser as loginApplicantUser,
 	noRoleUser as loginNoRoleUser,
 } from '~/cypress/e2e/other/login.fixtures'
-import { suggestFirstDiscountDate } from '~/lib/first-discount-date'
+import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import type { Role } from '~/server/auth/session'
 import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
@@ -2638,6 +2644,8 @@ export const cleanupCuentaCredits = async () => {
 
 export type SeedDeductionsQueueResult = {
 	companyId: number
+	credit1Id: number
+	credit2Id: number
 	expectedRowCount: number
 	applicant1Name: string
 	applicant2Name: string
@@ -2755,8 +2763,8 @@ export const seedDeductionsQueue = async (
 	)
 
 	// Compute next deduction date from the company's salary frequency — same
-	// logic as suggestFirstDiscountDate used on the page.
-	const nextDeductionDate = suggestFirstDiscountDate(
+	// logic as getUpcomingDeductionDate used on the page.
+	const nextDeductionDate = getUpcomingDeductionDate(
 		deductionsCompany.employeeSalaryFrequency,
 		now,
 	)
@@ -3100,6 +3108,8 @@ export const seedDeductionsQueue = async (
 
 	return {
 		companyId: company.id,
+		credit1Id: credit1.id,
+		credit2Id: credit2.id,
 		// Only credit1 and credit2 have upcoming installments → 2 rows
 		// credit4 is excluded because hr_confirmed_at IS NOT NULL
 		expectedRowCount: 2,
@@ -3365,6 +3375,221 @@ export const cleanupPaymentsQueue = async () => {
 	await db
 		.delete(companies)
 		.where(eq(companies.domain, paymentsQueueCompany.domain))
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
+	return null
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Credit detail — mixed payment states (button visibility test)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type SeedCreditDetailPaymentStatesResult = {
+	companyId: number
+	creditId: number
+}
+
+export const seedCreditDetailPaymentStates =
+	async (): Promise<SeedCreditDetailPaymentStatesResult> => {
+		const db = getDb(process.env.DATABASE_URL || '')
+		const now = new Date()
+
+		await Promise.all(
+			allCreditDetailStatesUsers.map((u) =>
+				db.delete(users).where(eq(users.email, u.email)),
+			),
+		)
+		await db
+			.delete(companies)
+			.where(eq(companies.domain, creditDetailStatesCompany.domain))
+
+		const [[company], createdUsers] = await Promise.all([
+			db
+				.insert(companies)
+				.values({
+					name: creditDetailStatesCompany.name,
+					domain: creditDetailStatesCompany.domain,
+					rate: creditDetailStatesCompany.rate,
+					employeeSalaryFrequency:
+						creditDetailStatesCompany.employeeSalaryFrequency,
+					active: creditDetailStatesCompany.active,
+				})
+				.returning(),
+			db
+				.insert(users)
+				.values(
+					allCreditDetailStatesUsers.map((u) => ({
+						email: u.email,
+						name: u.name,
+						emailVerified: now,
+					})),
+				)
+				.returning(),
+		])
+
+		if (!company)
+			throw new Error('Seed CreditDetailStates: company not created')
+
+		const findUser = (email: string) => {
+			const u = createdUsers.find((r) => r.email === email)
+			if (!u)
+				throw new Error(`Seed CreditDetailStates: user ${email} not found`)
+			return u
+		}
+
+		const hrAgent = findUser(creditDetailStatesHrAgent.email)
+		const applicant = findUser(creditDetailStatesApplicant.email)
+
+		const [term] = await db
+			.insert(terms)
+			.values({ durationType: 'monthly', duration: 5 })
+			.returning()
+		if (!term) throw new Error('Seed CreditDetailStates: term not created')
+
+		const [offering] = await db
+			.insert(termOfferings)
+			.values({ termId: term.id, companyId: company.id })
+			.returning()
+		if (!offering)
+			throw new Error('Seed CreditDetailStates: offering not created')
+
+		await Promise.all(
+			createdUsers.flatMap((u) => {
+				const fixture = allCreditDetailStatesUsers.find(
+					(f) => f.email === u.email,
+				)
+				if (!fixture)
+					throw new Error(
+						`Seed CreditDetailStates: fixture not found for ${u.email}`,
+					)
+				return [
+					db
+						.insert(userRoles)
+						.values(fixture.roles.map((role) => ({ userId: u.id, role }))),
+					...(new Set<string>(fixture.roles).has('agent')
+						? [
+								db
+									.insert(userCompanies)
+									.values({ userId: u.id, companyId: company.id }),
+							]
+						: []),
+				]
+			}),
+		)
+
+		// Static dates anchored to the frozen clock date used in E2E tests
+		// (cy.clock(new Date('2023-01-05'))). This makes badge states and button
+		// visibility deterministic regardless of when the test suite runs.
+		//   confirmed past : Nov 30 2022  (2 months before frozen date)
+		//   overdue        : Dec 31 2022  (1 month before frozen date, unconfirmed)
+		//   upcoming period: Jan 31 2023  (last day of frozen month → getUpcomingDeductionDate result)
+		//   future 1       : Feb 28 2023
+		//   future 2       : Mar 31 2023
+		const confirmedPastDate = new Date(Date.UTC(2022, 10, 30))
+		const overdueDate = new Date(Date.UTC(2022, 11, 31))
+		const upcomingDate = new Date(Date.UTC(2023, 0, 31))
+		const future1Date = new Date(Date.UTC(2023, 1, 28))
+		const future2Date = new Date(Date.UTC(2023, 2, 31))
+
+		const [app] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicant.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: '50000.00',
+				salaryAtApplication: '40000',
+				salaryFrequency: creditDetailStatesCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate: upcomingDate,
+			})
+			.returning()
+		if (!app)
+			throw new Error('Seed CreditDetailStates: application not created')
+
+		await db.insert(applicationStatusHistory).values(
+			createOrderedSeedStatusHistory({
+				finalStatus: 'disbursed',
+				defaultActorUserId: applicant.id,
+			}).map((entry, index) => ({
+				applicationId: app.id,
+				status: entry.status,
+				setByUserId: entry.setByUserId,
+				createdAt: new Date(now.getTime() - (6 - index) * 60_000),
+			})),
+		)
+
+		const [credit] = await db
+			.insert(credits)
+			.values({
+				applicationId: app.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: '50000.00',
+				disbursedByUserId: applicant.id,
+			})
+			.returning()
+		if (!credit) throw new Error('Seed CreditDetailStates: credit not created')
+
+		// Payment 1: confirmed (past due, hrConfirmedAt set) → no button
+		// Payment 2: overdue/delayed (past due, unconfirmed) → button
+		// Payment 3: upcoming period (dueDate = nextDeductionDate, unconfirmed) → button
+		// Payment 4: future beyond period → no button
+		// Payment 5: further future → no button
+		await db.insert(creditPayments).values([
+			{
+				creditId: credit.id,
+				dueDate: confirmedPastDate,
+				amount: '10250.00',
+				hrConfirmedAt: new Date(confirmedPastDate.getTime() + 24 * 60 * 60_000),
+				hrConfirmedByUserId: hrAgent.id,
+			},
+			{
+				creditId: credit.id,
+				dueDate: overdueDate,
+				amount: '10250.00',
+			},
+			{
+				creditId: credit.id,
+				dueDate: upcomingDate,
+				amount: '10250.00',
+			},
+			{
+				creditId: credit.id,
+				dueDate: future1Date,
+				amount: '10250.00',
+			},
+			{
+				creditId: credit.id,
+				dueDate: future2Date,
+				amount: '10250.00',
+			},
+		])
+
+		return {
+			companyId: company.id,
+			creditId: credit.id,
+		}
+	}
+
+export const cleanupCreditDetailPaymentStates = async () => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	await Promise.all(
+		allCreditDetailStatesUsers.map((u) =>
+			db.delete(users).where(eq(users.email, u.email)),
+		),
+	)
+	await db
+		.delete(companies)
+		.where(eq(companies.domain, creditDetailStatesCompany.domain))
 	await db
 		.delete(terms)
 		.where(
