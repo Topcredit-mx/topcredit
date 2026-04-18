@@ -626,7 +626,9 @@
 		"payments-status-pending": "Pendiente",
 		"payments-status-confirmed": "Confirmado",
 		"payments-status-awaiting-hr": "En espera de RH",
-		"payments-empty": "No hay pagos pendientes"
+		"payments-empty": "No hay pagos pendientes",
+		"payments-empty-no-company-title": "Selecciona una empresa",
+		"payments-empty-no-company-description": "Usa el selector de empresa en la barra lateral para ver los pagos de una empresa."
 	},
 	"cuenta": {
 		"title": "Mi Cuenta",
