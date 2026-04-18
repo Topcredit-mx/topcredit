@@ -89,6 +89,8 @@ import {
 import { allHrUsers, hrCompany } from '~/cypress/e2e/equipo/hr-agents.fixtures'
 import {
 	allPaymentsQueueUsers,
+	hrAgentPaymentsQueue,
+	paymentsAgentQueue,
 	paymentsQueueCompany,
 } from '~/cypress/e2e/equipo/payments-agents.fixtures'
 import {
@@ -3320,8 +3322,10 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 
 	if (!credit2) throw new Error('Seed Payments Queue: credit 2 not created')
 
-	// credit1: first installment HR-confirmed + receipt-pending (shows in payments queue),
-	// second installment still pending HR (does not show in payments queue)
+	const paymentsQueueAgent = findUser(paymentsAgentQueue.email)
+	const hrQueueAgent = findUser(hrAgentPaymentsQueue.email)
+
+	// credit1: first installment fully confirmed; second still pending HR (visible on payments queue, not receipt-actionable)
 	const schedule1 = generatePaymentSchedule({
 		loanPrincipal: Number(creditAmount1),
 		rate: Number(paymentsQueueCompany.rate),
@@ -3330,13 +3334,25 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 		firstDiscountDate,
 	})
 	await db.insert(creditPayments).values(
-		schedule1.map((entry, index) => ({
-			creditId: credit1.id,
-			dueDate: entry.dueDate,
-			amount: entry.amount,
-			hrConfirmedAt:
-				index === 0 ? new Date(now.getTime() - 10 * 24 * 60 * 60_000) : null,
-		})),
+		schedule1.map((entry, index) => {
+			if (index === 0) {
+				return {
+					creditId: credit1.id,
+					dueDate: entry.dueDate,
+					amount: entry.amount,
+					hrConfirmedAt: new Date(now.getTime() - 10 * 24 * 60 * 60_000),
+					hrConfirmedByUserId: hrQueueAgent.id,
+					paymentsConfirmedAt: new Date(now.getTime() - 9 * 24 * 60 * 60_000),
+					paymentsConfirmedByUserId: paymentsQueueAgent.id,
+				}
+			}
+			return {
+				creditId: credit1.id,
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+				hrConfirmedAt: null,
+			}
+		}),
 	)
 
 	// credit2: both installments HR-confirmed + receipt-pending (shows in payments queue)

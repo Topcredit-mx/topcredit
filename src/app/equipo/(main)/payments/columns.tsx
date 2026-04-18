@@ -1,11 +1,19 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useTransition } from 'react'
+import { toast } from 'sonner'
 import { FormattedDate } from '~/components/formatted-date'
+import { Button } from '~/components/ui/button'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
+import { canConfirmReceipt } from '~/lib/payment-confirmation'
 import { formatCurrencyMxn } from '~/lib/utils'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { InstallmentForQueue } from '~/server/queries'
+import { confirmPaymentReceiptAction } from './actions'
 
 function HrStatusCell({
 	hrConfirmedAt,
@@ -64,6 +72,51 @@ function ReceiptStatusCell({
 	)
 }
 
+function parseIsoDate(value: string | null): Date | null {
+	if (value === null) return null
+	const d = new Date(value)
+	return Number.isNaN(d.getTime()) ? null : d
+}
+
+function canConfirmReceiptQueueRow(row: InstallmentForQueue): boolean {
+	return canConfirmReceipt({
+		hrConfirmedAt: parseIsoDate(row.hrConfirmedAt),
+		paymentsConfirmedAt: parseIsoDate(row.paymentsConfirmedAt),
+	})
+}
+
+function PaymentsActionsCell({ row }: { row: InstallmentForQueue }) {
+	const t = useTranslations('equipo')
+	const resolveError = useResolveValidationError()
+	const router = useRouter()
+	const [isPending, startTransition] = useTransition()
+
+	if (!canConfirmReceiptQueueRow(row)) {
+		return <span className="text-muted-foreground text-sm">—</span>
+	}
+
+	return (
+		<Button
+			size="sm"
+			variant="outline"
+			disabled={isPending}
+			onClick={() => {
+				startTransition(async () => {
+					const res = await confirmPaymentReceiptAction(row.id)
+					if (res?.error != null) {
+						toast.error(resolveError(res.error))
+					} else {
+						toast.success(t('payments-confirm-receipt-success'))
+						router.refresh()
+					}
+				})
+			}}
+		>
+			{t('payments-confirm-receipt')}
+		</Button>
+	)
+}
+
 export function usePaymentsColumns(): ColumnDef<InstallmentForQueue>[] {
 	const t = useTranslations('equipo')
 
@@ -78,14 +131,20 @@ export function usePaymentsColumns(): ColumnDef<InstallmentForQueue>[] {
 			),
 			cell: ({ row }) => {
 				const payrollNumber = row.original.payrollNumber
+				const creditId = row.original.creditId
 				return (
 					<div>
-						<div className="font-medium">{row.getValue('employeeName')}</div>
-						{payrollNumber && (
+						<Link
+							href={`/equipo/credits/${creditId}`}
+							className="font-medium hover:underline"
+						>
+							{row.getValue('employeeName')}
+						</Link>
+						{payrollNumber ? (
 							<div className="text-muted-foreground text-xs">
 								{payrollNumber}
 							</div>
-						)}
+						) : null}
 					</div>
 				)
 			},
@@ -133,6 +192,20 @@ export function usePaymentsColumns(): ColumnDef<InstallmentForQueue>[] {
 			),
 		},
 		{
+			accessorKey: 'nextDeductionDate',
+			header: ({ column }) => (
+				<DataTableColumnHeader
+					column={column}
+					title={t('payments-col-next-deduction')}
+				/>
+			),
+			cell: ({ row }) => (
+				<div className="text-muted-foreground text-sm">
+					<FormattedDate value={row.getValue('nextDeductionDate')} />
+				</div>
+			),
+		},
+		{
 			accessorKey: 'hrConfirmedAt',
 			header: ({ column }) => (
 				<DataTableColumnHeader
@@ -165,6 +238,17 @@ export function usePaymentsColumns(): ColumnDef<InstallmentForQueue>[] {
 					awaitingHrLabel={t('payments-status-awaiting-hr')}
 				/>
 			),
+		},
+		{
+			id: 'actions',
+			header: ({ column }) => (
+				<DataTableColumnHeader
+					column={column}
+					title={t('payments-col-actions')}
+				/>
+			),
+			cell: ({ row }) => <PaymentsActionsCell row={row.original} />,
+			enableSorting: false,
 		},
 	]
 }
