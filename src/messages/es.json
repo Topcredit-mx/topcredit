@@ -348,6 +348,9 @@
 		"nav-dispersions": "Dispersiones",
 		"nav-credits": "Créditos",
 		"nav-payments": "Pagos",
+		"nav-payments-next-cutoff": "Próximo Corte",
+		"nav-payments-history": "Historial",
+		"nav-payments-overdue": "Retrasos",
 		"nav-admin": "Administración",
 		"nav-admin-users": "Usuarios",
 		"nav-admin-companies": "Empresas",
@@ -632,7 +635,9 @@
 		"payments-status-awaiting-hr": "En espera de RH",
 		"payments-empty": "No hay pagos pendientes",
 		"payments-empty-no-company-title": "Selecciona una empresa",
-		"payments-empty-no-company-description": "Usa el selector de empresa en la barra lateral para ver los pagos de una empresa."
+		"payments-empty-no-company-description": "Usa el selector de empresa en la barra lateral para ver los pagos de una empresa.",
+		"payments-history-placeholder": "Historial de pagos — próximamente.",
+		"payments-overdue-placeholder": "Retrasos de pagos — próximamente."
 	},
 	"cuenta": {
 		"title": "Mi Cuenta",

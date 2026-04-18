@@ -74,7 +74,29 @@ export function AgentSidebar({
 						{ title: t('nav-credits'), url: '/equipo/credits' },
 					],
 				},
-				{ title: t('nav-payments'), url: '/equipo/payments', icon: CreditCard },
+				{
+					title: t('nav-payments'),
+					url: '/equipo/payments',
+					icon: CreditCard,
+					items: [
+						{
+							title: t('nav-payments-next-cutoff'),
+							url: '/equipo/payments',
+							icon: CalendarClock,
+							exact: true,
+						},
+						{
+							title: t('nav-payments-history'),
+							url: '/equipo/payments/history',
+							icon: History,
+						},
+						{
+							title: t('nav-payments-overdue'),
+							url: '/equipo/payments/overdue',
+							icon: TriangleAlert,
+						},
+					],
+				},
 			]
 		: [
 				{ title: t('nav-home'), url: '/equipo', icon: Home },
@@ -148,6 +170,24 @@ export function AgentSidebar({
 								title: t('nav-payments'),
 								url: '/equipo/payments',
 								icon: Banknote,
+								items: [
+									{
+										title: t('nav-payments-next-cutoff'),
+										url: '/equipo/payments',
+										icon: CalendarClock,
+										exact: true,
+									},
+									{
+										title: t('nav-payments-history'),
+										url: '/equipo/payments/history',
+										icon: History,
+									},
+									{
+										title: t('nav-payments-overdue'),
+										url: '/equipo/payments/overdue',
+										icon: TriangleAlert,
+									},
+								],
 							},
 						]
 					: []),
