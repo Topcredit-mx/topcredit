@@ -1,5 +1,6 @@
 import type { SeedPaymentsQueueResult } from '~/cypress/tasks'
 import {
+	adminPaymentsQueue,
 	nonPaymentsAgentQueue,
 	paymentsAgentQueue,
 } from './payments-agents.fixtures'
@@ -53,6 +54,34 @@ describe('Payments receipt queue', () => {
 			cy.get('table').should('be.visible')
 			cy.contains(seed.applicant1Name).should('be.visible')
 			cy.contains(seed.applicant2Name).should('be.visible')
+		})
+	})
+
+	describe('Payments agent with no company selected', () => {
+		beforeEach(() => {
+			cy.login(paymentsAgentQueue.email)
+			cy.clearCookie('selected_company_id')
+		})
+
+		it('shows select-a-company empty state instead of table', () => {
+			cy.visit('/equipo/payments')
+			cy.get('main').should('be.visible')
+			cy.contains(/selecciona una empresa/i).should('be.visible')
+			cy.get('table').should('not.exist')
+		})
+	})
+
+	describe('Admin with no company selected', () => {
+		beforeEach(() => {
+			cy.login(adminPaymentsQueue.email)
+			cy.clearCookie('selected_company_id')
+		})
+
+		it('shows select-a-company empty state instead of table', () => {
+			cy.visit('/equipo/payments')
+			cy.get('main').should('be.visible')
+			cy.contains(/selecciona una empresa/i).should('be.visible')
+			cy.get('table').should('not.exist')
 		})
 	})
 

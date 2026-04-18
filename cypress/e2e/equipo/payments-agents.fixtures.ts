@@ -16,6 +16,12 @@ export const nonPaymentsAgentQueue = {
 	roles: ['agent', 'authorizations'] as const,
 }
 
+export const adminPaymentsQueue = {
+	name: 'Admin Payments Queue',
+	email: 'admin.payments@paymentsqueue.com',
+	roles: ['agent', 'admin'] as const,
+}
+
 export const applicantPaymentsQueue = {
 	name: 'Applicant Payments Queue',
 	email: 'applicant@paymentsqueue.com',
@@ -32,6 +38,7 @@ export const allPaymentsQueueUsers = [
 	paymentsAgentQueue,
 	hrAgentPaymentsQueue,
 	nonPaymentsAgentQueue,
+	adminPaymentsQueue,
 	applicantPaymentsQueue,
 	applicantPaymentsQueue2,
 ]
