@@ -31,22 +31,51 @@ describe('Payments receipt queue', () => {
 			cy.get('table').should('be.visible')
 		})
 
-		it('shows employee, amount, due date, HR status, and receipt status columns', () => {
+		it('shows employee, amount, due date, next deduction, HR status, and receipt status columns', () => {
 			cy.visit('/equipo/payments')
 			cy.get('table').should('be.visible')
-			cy.get('table thead').within(() => {
-				cy.contains('th', /empleado/i).should('be.visible')
-				cy.contains('th', /monto/i).should('be.visible')
-				cy.contains('th', /fecha/i).should('be.visible')
-				cy.contains('th', /deducción rh/i).should('be.visible')
-				cy.contains('th', /recepción/i).should('exist')
-			})
+			for (const label of [
+				/empleado/i,
+				/monto/i,
+				/fecha de pago/i,
+				/próxima deducción/i,
+				/deducción rh/i,
+				/recepción/i,
+			]) {
+				cy.get('table thead').contains('th', label).scrollIntoView()
+				cy.get('table thead').contains('th', label).should('be.visible')
+			}
 		})
 
 		it('shows exactly one row per credit (one per applicant)', () => {
 			cy.visit('/equipo/payments')
 			cy.get('table').should('be.visible')
 			cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
+		})
+
+		it('shows next company deduction date above the table', () => {
+			cy.visit('/equipo/payments')
+			cy.contains(/próxima fecha de deducción/i).should('be.visible')
+		})
+
+		it('shows awaiting HR receipt state when the front installment is still pending HR', () => {
+			cy.visit('/equipo/payments')
+			cy.contains('tr', seed.applicant1Name).should(
+				'contain.text',
+				'En espera de RH',
+			)
+		})
+
+		it('shows confirm receipt only for rows where HR already confirmed the installment', () => {
+			cy.visit('/equipo/payments')
+			cy.contains('tr', seed.applicant1Name).within(() => {
+				cy.contains('button', /confirmar recepci/i).should('not.exist')
+			})
+			cy.contains('tr', seed.applicant2Name).scrollIntoView()
+			cy.contains('tr', seed.applicant2Name).within(() => {
+				cy.contains('button', /confirmar recepci/i).scrollIntoView()
+				cy.contains('button', /confirmar recepci/i).should('be.visible')
+			})
 		})
 
 		it('shows both applicant names in the table', () => {

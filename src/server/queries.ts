@@ -12,6 +12,7 @@ import {
 	type SQL,
 	sql,
 } from 'drizzle-orm'
+import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -38,6 +39,14 @@ import type { CompanyBasic, CompanyScope } from '~/server/scopes'
 import { isBlobStorageKey } from '~/server/storage'
 
 export type { CompanyBasic, CompanyScope } from '~/server/scopes'
+
+function employeeSalaryFrequencyFromRow(
+	value: unknown,
+): 'monthly' | 'bi-monthly' {
+	if (value === 'monthly') return 'monthly'
+	if (value === 'bi-monthly') return 'bi-monthly'
+	return 'monthly'
+}
 
 // ---- User ----
 
@@ -1225,6 +1234,8 @@ export type InstallmentForQueue = {
 	payrollNumber: string | null
 	companyName: string
 	companyId: number
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	nextDeductionDate: string
 }
 
 export async function getInstallmentsForQueue(params: {
@@ -1251,11 +1262,11 @@ export async function getInstallmentsForQueue(params: {
 	}
 
 	// deductions: earliest installment where HR has not yet confirmed
-	// payments: earliest installment where HR confirmed but payments has not
+	// payments: earliest installment still awaiting Payments receipt (HR may or may not have confirmed yet)
 	const statusCondition: SQL =
 		queue === 'deductions'
 			? sql`cp.hr_confirmed_at IS NULL`
-			: sql`cp.hr_confirmed_at IS NOT NULL AND cp.payments_confirmed_at IS NULL`
+			: sql`cp.payments_confirmed_at IS NULL`
 
 	// When an upcoming deduction date is provided (deductions queue with company
 	// selected), filter to installments that fall within the current pay period
@@ -1286,7 +1297,8 @@ export async function getInstallmentsForQueue(params: {
 			u.name AS employee_name,
 			a.payroll_number,
 			co.name AS company_name,
-			a.company_id
+			a.company_id,
+			co.employee_salary_frequency AS company_salary_frequency
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
@@ -1296,8 +1308,18 @@ export async function getInstallmentsForQueue(params: {
 		ORDER BY cp.credit_id, cp.due_date ASC
 	`)
 
+	const today = new Date()
 	return rows.rows.map((row) => {
 		const r = row
+		const employeeSalaryFrequency = employeeSalaryFrequencyFromRow(
+			r.company_salary_frequency,
+		)
+		const nextDeductionDate = getUpcomingDeductionDate(
+			employeeSalaryFrequency,
+			today,
+		)
+			.toISOString()
+			.slice(0, 10)
 		return {
 			id: Number(r.id),
 			creditId: Number(r.credit_id),
@@ -1322,6 +1344,8 @@ export async function getInstallmentsForQueue(params: {
 			payrollNumber: r.payroll_number != null ? String(r.payroll_number) : null,
 			companyName: String(r.company_name),
 			companyId: Number(r.company_id),
+			employeeSalaryFrequency,
+			nextDeductionDate,
 		}
 	})
 }

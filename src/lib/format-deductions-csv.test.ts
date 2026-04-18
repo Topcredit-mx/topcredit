@@ -17,6 +17,8 @@ function makeInstallment(
 		payrollNumber: 'NOM001',
 		companyName: 'Acme Corp',
 		companyId: 5,
+		employeeSalaryFrequency: 'monthly',
+		nextDeductionDate: '2026-04-30',
 		...overrides,
 	}
 }

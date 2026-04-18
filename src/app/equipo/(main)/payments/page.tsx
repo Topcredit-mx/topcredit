@@ -2,9 +2,10 @@ import { Building2 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
+import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
-import { getInstallmentsForQueue } from '~/server/queries'
+import { getCompanyById, getInstallmentsForQueue } from '~/server/queries'
 import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
@@ -52,7 +53,17 @@ export default async function PaymentsPage() {
 		)
 	}
 
-	const scope = await getEffectiveCompanyScope()
+	const [scope, company] = await Promise.all([
+		getEffectiveCompanyScope(),
+		getCompanyById(selectedCompanyId),
+	])
+
+	const nextDeductionDate = company
+		? getUpcomingDeductionDate(company.employeeSalaryFrequency, new Date())
+		: undefined
+	const nextDeductionDateStr = nextDeductionDate
+		? nextDeductionDate.toISOString().slice(0, 10)
+		: undefined
 
 	const installments = await getInstallmentsForQueue({
 		scope,
@@ -66,7 +77,10 @@ export default async function PaymentsPage() {
 					<p className="text-muted-foreground">{t('payments-empty')}</p>
 				</Card>
 			) : (
-				<PaymentsTable installments={installments} />
+				<PaymentsTable
+					installments={installments}
+					nextDeductionDate={nextDeductionDateStr}
+				/>
 			)}
 		</div>
 	)
