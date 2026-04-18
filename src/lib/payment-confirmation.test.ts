@@ -3,6 +3,7 @@ import { describe, test } from 'node:test'
 import {
 	allPaymentsFullyConfirmed,
 	canConfirmReceipt,
+	canConfirmReceiptQueueInstallment,
 	canHrConfirm,
 	isFullyConfirmed,
 	parseCsvPaymentConfirmations,
@@ -38,6 +39,38 @@ describe('canConfirmReceipt', () => {
 	test('returns false when both timestamps are set', () => {
 		assert.equal(
 			canConfirmReceipt({ hrConfirmedAt: NOW, paymentsConfirmedAt: NOW }),
+			false,
+		)
+	})
+})
+
+describe('canConfirmReceiptQueueInstallment', () => {
+	test('returns false when hrConfirmedAt is null (ISO strings)', () => {
+		assert.equal(
+			canConfirmReceiptQueueInstallment({
+				hrConfirmedAt: null,
+				paymentsConfirmedAt: null,
+			}),
+			false,
+		)
+	})
+
+	test('returns true when hr is set and payments receipt is null', () => {
+		assert.equal(
+			canConfirmReceiptQueueInstallment({
+				hrConfirmedAt: '2026-01-15T12:00:00.000Z',
+				paymentsConfirmedAt: null,
+			}),
+			true,
+		)
+	})
+
+	test('returns false when both are set', () => {
+		assert.equal(
+			canConfirmReceiptQueueInstallment({
+				hrConfirmedAt: '2026-01-15T12:00:00.000Z',
+				paymentsConfirmedAt: '2026-01-20T12:00:00.000Z',
+			}),
 			false,
 		)
 	})

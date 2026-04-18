@@ -83,6 +83,7 @@ export default async function PaymentsPage() {
 					employeeSalaryFrequency={
 						company?.employeeSalaryFrequency ?? 'monthly'
 					}
+					companyName={company?.name ?? ''}
 				/>
 			)}
 		</div>
