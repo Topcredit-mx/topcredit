@@ -1,6 +1,6 @@
 'use client'
 
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, Row } from '@tanstack/react-table'
 import { type BaseData, DataTableProvider } from './data-table-provider'
 
 interface DataTableProps<TData extends BaseData, TValue> {
@@ -11,6 +11,7 @@ interface DataTableProps<TData extends BaseData, TValue> {
 	createLink?: string
 	createButtonText?: string
 	filterPlaceholder?: string
+	enableRowSelection?: boolean | ((row: Row<TData>) => boolean)
 	children?: React.ReactNode
 }
 
@@ -22,6 +23,7 @@ function DataTable<TData extends BaseData, TValue>({
 	filterPlaceholder,
 	schema,
 	label,
+	enableRowSelection,
 	children,
 }: DataTableProps<TData, TValue>) {
 	return (
@@ -33,6 +35,7 @@ function DataTable<TData extends BaseData, TValue>({
 			filterPlaceholder={filterPlaceholder}
 			schema={schema}
 			label={label}
+			{...(enableRowSelection !== undefined ? { enableRowSelection } : {})}
 		>
 			{children}
 		</DataTableProvider>

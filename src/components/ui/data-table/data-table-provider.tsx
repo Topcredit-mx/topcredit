@@ -7,16 +7,22 @@ import {
 	getFilteredRowModel,
 	getPaginationRowModel,
 	getSortedRowModel,
+	type Row,
 	type SortingState,
 	type Table,
 	useReactTable,
 	type VisibilityState,
 } from '@tanstack/react-table'
-import { createContext, useState } from 'react'
+import {
+	createContext,
+	type Dispatch,
+	type SetStateAction,
+	useState,
+} from 'react'
 
 export interface IDataTableContext<TData> {
-	rowSelection: Record<string, unknown>
-	setRowSelection: (rows: Record<string, unknown>) => void
+	rowSelection: Record<string, boolean>
+	setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>
 	table: Table<TData>
 	columnsLength: number
 	createButtonHref?: string
@@ -39,6 +45,8 @@ interface DataTableProps<TData, TValue> {
 	createLink?: string
 	createButtonText?: string
 	filterPlaceholder?: string
+	/** When set, forwarded to TanStack (e.g. payments queue disables non-eligible rows). Omit when not needed. */
+	enableRowSelection?: boolean | ((row: Row<TData>) => boolean)
 	children?: React.ReactNode
 }
 
@@ -54,12 +62,13 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 	filterPlaceholder,
 	schema,
 	label,
+	enableRowSelection,
 	children,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = useState<SortingState>([])
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-	const [rowSelection, setRowSelection] = useState({})
+	const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
 
 	const createButtonHref = createLink
 		? createLink
@@ -71,6 +80,8 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 		data,
 		columns,
 		getRowId: (row) => row.id.toString(),
+		enableRowSelection:
+			enableRowSelection !== undefined ? enableRowSelection : true,
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
 		onSortingChange: setSorting,

@@ -3372,10 +3372,56 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 		})),
 	)
 
+	// Credit 3: second dispersed credit for applicant2 — receipt-pending (bulk E2E with credit2)
+	const [app3] = await db
+		.insert(applications)
+		.values({
+			applicantId: applicant2.id,
+			companyId: company.id,
+			termOfferingId: offering.id,
+			creditAmount: creditAmount2,
+			salaryAtApplication: '25000',
+			salaryFrequency: paymentsQueueCompany.employeeSalaryFrequency,
+			status: 'disbursed' as const,
+			firstDiscountDate,
+			payrollNumber: 'PAYMENTS003',
+		})
+		.returning()
+
+	if (!app3) throw new Error('Seed Payments Queue: application 3 not created')
+
+	const [credit3] = await db
+		.insert(credits)
+		.values({
+			applicationId: app3.id,
+			status: 'dispersed',
+			disbursementDate: now,
+			transferAmount: creditAmount2,
+			disbursedByUserId: applicant2.id,
+		})
+		.returning()
+
+	if (!credit3) throw new Error('Seed Payments Queue: credit 3 not created')
+
+	const schedule3 = generatePaymentSchedule({
+		loanPrincipal: Number(creditAmount2),
+		rate: Number(paymentsQueueCompany.rate),
+		totalPayments: 2,
+		frequency: paymentsQueueCompany.employeeSalaryFrequency,
+		firstDiscountDate,
+	})
+	await db.insert(creditPayments).values(
+		schedule3.map((entry) => ({
+			creditId: credit3.id,
+			dueDate: entry.dueDate,
+			amount: entry.amount,
+			hrConfirmedAt: new Date(now.getTime() - 4 * 24 * 60 * 60_000),
+		})),
+	)
+
 	return {
 		companyId: company.id,
-		// 2 credits with receipt-pending installments → 2 rows in the queue
-		expectedRowCount: 2,
+		expectedRowCount: 3,
 		applicant1Name: applicant1.name,
 		applicant2Name: applicant2.name,
 	}

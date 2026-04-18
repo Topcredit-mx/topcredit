@@ -34,6 +34,7 @@ export function DeductionsTable({
 					onExportClick={() => setExportOpen(true)}
 					onImportClick={() => setImportOpen(true)}
 					nextDeductionDate={nextDeductionDate}
+					employeeSalaryFrequency={employeeSalaryFrequency}
 				/>
 				<DataTableContent />
 				<DataTablePagination />

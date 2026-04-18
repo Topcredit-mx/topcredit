@@ -1274,13 +1274,13 @@ export async function getInstallmentsForQueue(params: {
 	const dateCondition: SQL =
 		queue === 'deductions' && upcomingDeductionDate !== undefined
 			? sql`
-				AND cp.due_date >= CURRENT_DATE
-				AND cp.due_date <= ${upcomingDeductionDate}
+				AND (cp.due_date)::date >= CURRENT_DATE
+				AND (cp.due_date)::date <= (${upcomingDeductionDate})::date
 				AND NOT EXISTS (
 					SELECT 1 FROM credit_payments cp2
 					WHERE cp2.credit_id = cp.credit_id
 					  AND cp2.hr_confirmed_at IS NULL
-					  AND cp2.due_date < CURRENT_DATE
+					  AND (cp2.due_date)::date < CURRENT_DATE
 				)`
 			: sql``
 

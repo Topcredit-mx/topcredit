@@ -4,7 +4,7 @@ import { Download, Upload } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useTransition } from 'react'
 import { toast } from 'sonner'
-import { FormattedDate } from '~/components/formatted-date'
+import { PayrollQueueHeaderLine } from '~/components/equipo/payroll-queue-header-line'
 import { Button } from '~/components/ui/button'
 import { useDataTable } from '~/components/ui/data-table'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
@@ -15,12 +15,14 @@ interface BulkConfirmDeductionsBarProps {
 	onExportClick: () => void
 	onImportClick: () => void
 	nextDeductionDate?: string
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 }
 
 export function BulkConfirmDeductionsBar({
 	onExportClick,
 	onImportClick,
 	nextDeductionDate,
+	employeeSalaryFrequency,
 }: BulkConfirmDeductionsBarProps) {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
@@ -56,28 +58,39 @@ export function BulkConfirmDeductionsBar({
 
 	return (
 		<div className="py-2">
-			<div className="flex items-center justify-between">
-				{nextDeductionDate ? (
-					<p className="text-muted-foreground text-sm">
-						{t('deductions-next-date')}:{' '}
-						<span className="font-medium text-foreground">
-							<FormattedDate value={nextDeductionDate} />
-						</span>
-					</p>
-				) : (
-					<span />
-				)}
-				<div className="flex items-center gap-2">
+			<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+				<div className="min-w-0 flex-1">
+					<PayrollQueueHeaderLine
+						nextDeductionDate={nextDeductionDate}
+						employeeSalaryFrequency={employeeSalaryFrequency}
+					/>
+				</div>
+				<div className="relative z-10 flex shrink-0 flex-wrap items-center justify-end gap-2">
 					{count > 0 && (
-						<Button size="sm" disabled={isPending} onClick={handleConfirm}>
+						<Button
+							type="button"
+							size="sm"
+							disabled={isPending}
+							onClick={handleConfirm}
+						>
 							{confirmLabel}
 						</Button>
 					)}
-					<Button variant="outline" size="sm" onClick={onImportClick}>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={onImportClick}
+					>
 						<Upload className="mr-2 size-4" />
 						{t('deductions-import-csv')}
 					</Button>
-					<Button variant="outline" size="sm" onClick={onExportClick}>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={onExportClick}
+					>
 						<Download className="mr-2 size-4" />
 						{t('deductions-export-csv')}
 					</Button>

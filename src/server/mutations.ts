@@ -1579,9 +1579,10 @@ export async function confirmPaymentReceipts(
 	const { ability } = await getAbility()
 	const user = await getRequiredUser()
 
-	const rows = await fetchPaymentsWithContext(parsed.data.paymentIds)
+	const uniquePaymentIds = [...new Set(parsed.data.paymentIds)]
+	const rows = await fetchPaymentsWithContext(uniquePaymentIds)
 
-	if (rows.length === 0) {
+	if (rows.length !== uniquePaymentIds.length) {
 		return { error: ValidationCode.PAYMENT_NOT_FOUND }
 	}
 
@@ -1593,13 +1594,14 @@ export async function confirmPaymentReceipts(
 		}
 	}
 
-	const toConfirm = rows.filter((r) => canConfirmReceipt(r))
-	if (toConfirm.length === 0) {
-		const hasNotHrConfirmed = rows.some((r) => r.hrConfirmedAt === null)
-		return {
-			error: hasNotHrConfirmed
-				? ValidationCode.PAYMENT_NOT_HR_CONFIRMED
-				: ValidationCode.PAYMENT_ALREADY_RECEIVED,
+	for (const payment of rows) {
+		if (!canConfirmReceipt(payment)) {
+			return {
+				error:
+					payment.hrConfirmedAt === null
+						? ValidationCode.PAYMENT_NOT_HR_CONFIRMED
+						: ValidationCode.PAYMENT_ALREADY_RECEIVED,
+			}
 		}
 	}
 
@@ -1613,11 +1615,11 @@ export async function confirmPaymentReceipts(
 		.where(
 			inArray(
 				creditPayments.id,
-				toConfirm.map((r) => r.paymentId),
+				rows.map((r) => r.paymentId),
 			),
 		)
 
-	const uniqueCreditIds = [...new Set(toConfirm.map((r) => r.creditId))]
+	const uniqueCreditIds = [...new Set(rows.map((r) => r.creditId))]
 	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
 
 	revalidatePath('/equipo/payments')
