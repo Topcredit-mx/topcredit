@@ -47,15 +47,19 @@ describe('Payments receipt queue', () => {
 			}
 		})
 
-		it('shows exactly one row per credit (one per applicant)', () => {
+		it('shows exactly one queue row per credit with pending receipt', () => {
 			cy.visit('/equipo/payments')
 			cy.get('table').should('be.visible')
 			cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 		})
 
-		it('shows next company deduction date above the table', () => {
+		it('shows next deduction date and company salary frequency above the table', () => {
 			cy.visit('/equipo/payments')
-			cy.contains(/próxima fecha de deducción/i).should('be.visible')
+			cy.get('main').within(() => {
+				cy.contains(/próxima fecha de deducción/i).should('be.visible')
+				cy.contains(/periodicidad de nómina/i).should('be.visible')
+				cy.contains(/mensual/i).should('be.visible')
+			})
 		})
 
 		it('shows awaiting HR receipt state when the front installment is still pending HR', () => {
@@ -83,6 +87,38 @@ describe('Payments receipt queue', () => {
 			cy.get('table').should('be.visible')
 			cy.contains(seed.applicant1Name).should('be.visible')
 			cy.contains(seed.applicant2Name).should('be.visible')
+		})
+
+		it('disables the row checkbox while receipt is awaiting HR confirmation', () => {
+			cy.visit('/equipo/payments')
+			cy.get('table').should('be.visible')
+			cy.contains('tr', seed.applicant1Name)
+				.scrollIntoView()
+				.within(() => {
+					cy.get('button[role="checkbox"]').should('be.disabled')
+				})
+		})
+
+		it('bulk-confirms receipt for multiple eligible rows in one action', () => {
+			cy.visit('/equipo/payments')
+			cy.get('table').should('be.visible')
+			cy.contains('tr', 'PAYMENTS002')
+				.scrollIntoView()
+				.within(() => {
+					cy.get('button[role="checkbox"]').should('not.be.disabled').click()
+				})
+			cy.contains('tr', 'PAYMENTS003')
+				.scrollIntoView()
+				.within(() => {
+					cy.get('button[role="checkbox"]').should('not.be.disabled').click()
+				})
+			cy.contains('button', /confirmar recepción de 2 pagos/i)
+				.should('be.visible')
+				.click()
+			cy.contains(/recepción de 2 pagos confirmada/i).should('be.visible')
+			// One row per credit remains; the next receipt-pending installment per credit re-enters the queue.
+			cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
+			cy.contains('tr', seed.applicant1Name).should('be.visible')
 		})
 	})
 

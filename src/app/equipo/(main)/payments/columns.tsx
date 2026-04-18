@@ -8,6 +8,7 @@ import { useTransition } from 'react'
 import { toast } from 'sonner'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
+import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
 import { canConfirmReceipt } from '~/lib/payment-confirmation'
 import { formatCurrencyMxn } from '~/lib/utils'
@@ -78,7 +79,7 @@ function parseIsoDate(value: string | null): Date | null {
 	return Number.isNaN(d.getTime()) ? null : d
 }
 
-function canConfirmReceiptQueueRow(row: InstallmentForQueue): boolean {
+export function canConfirmReceiptQueueRow(row: InstallmentForQueue): boolean {
 	return canConfirmReceipt({
 		hrConfirmedAt: parseIsoDate(row.hrConfirmedAt),
 		paymentsConfirmedAt: parseIsoDate(row.paymentsConfirmedAt),
@@ -121,6 +122,40 @@ export function usePaymentsColumns(): ColumnDef<InstallmentForQueue>[] {
 	const t = useTranslations('equipo')
 
 	return [
+		{
+			id: 'select',
+			header: ({ table }) => {
+				const selectableRows = table
+					.getRowModel()
+					.rows.filter((r) => r.getCanSelect())
+				const allSelected =
+					selectableRows.length > 0 &&
+					selectableRows.every((r) => r.getIsSelected())
+				const someSelected = selectableRows.some((r) => r.getIsSelected())
+				return (
+					<Checkbox
+						checked={allSelected || (someSelected && 'indeterminate')}
+						onCheckedChange={(value) => {
+							const select = !!value
+							for (const row of selectableRows) {
+								row.toggleSelected(select)
+							}
+						}}
+						aria-label={t('payments-select-all')}
+					/>
+				)
+			},
+			cell: ({ row }) => (
+				<Checkbox
+					checked={row.getIsSelected()}
+					onCheckedChange={(value) => row.toggleSelected(!!value)}
+					disabled={!row.getCanSelect()}
+					aria-label={t('payments-select-row')}
+				/>
+			),
+			enableSorting: false,
+			enableHiding: false,
+		},
 		{
 			accessorKey: 'employeeName',
 			header: ({ column }) => (

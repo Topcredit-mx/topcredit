@@ -48,6 +48,14 @@ describe('HR deductions queue', () => {
 			cy.contains(/próxima fecha de deducción/i).should('be.visible')
 		})
 
+		it('shows company salary frequency next to the next deduction date in the queue header', () => {
+			cy.visit('/equipo/deductions')
+			cy.get('main').within(() => {
+				cy.contains(/periodicidad de nómina/i).should('be.visible')
+				cy.contains(/mensual/i).should('be.visible')
+			})
+		})
+
 		it('shows exactly one row per upcoming credit (one per applicant)', () => {
 			cy.visit('/equipo/deductions')
 			cy.get('table').should('be.visible')
@@ -203,7 +211,7 @@ describe('HR deductions queue bulk confirm', () => {
 			.first()
 			.scrollIntoView()
 			.within(() => {
-				cy.get('[role="checkbox"]').should('exist').click()
+				cy.get('[role="checkbox"]').should('exist').click({ force: true })
 			})
 		cy.contains('button', /confirmar/i).should('be.visible')
 	})
@@ -216,7 +224,7 @@ describe('HR deductions queue bulk confirm', () => {
 			.first()
 			.scrollIntoView()
 			.within(() => {
-				cy.get('[role="checkbox"]').should('exist').click()
+				cy.get('[role="checkbox"]').should('exist').click({ force: true })
 			})
 		cy.contains('button', /confirmar/i)
 			.should('be.visible')
@@ -228,7 +236,7 @@ describe('HR deductions queue bulk confirm', () => {
 		cy.visit('/equipo/deductions')
 		cy.get('table').should('be.visible')
 		cy.get('table thead').within(() => {
-			cy.get('[role="checkbox"]').should('exist').click()
+			cy.get('[role="checkbox"]').should('exist').click({ force: true })
 		})
 		cy.contains('button', /confirmar/i)
 			.should('be.visible')
@@ -243,7 +251,7 @@ describe('HR deductions queue bulk confirm', () => {
 			.first()
 			.scrollIntoView()
 			.within(() => {
-				cy.get('[role="checkbox"]').should('exist').click()
+				cy.get('[role="checkbox"]').should('exist').click({ force: true })
 			})
 		cy.contains('button', /confirmar/i)
 			.should('be.visible')

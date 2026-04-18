@@ -80,6 +80,9 @@ export default async function PaymentsPage() {
 				<PaymentsTable
 					installments={installments}
 					nextDeductionDate={nextDeductionDateStr}
+					employeeSalaryFrequency={
+						company?.employeeSalaryFrequency ?? 'monthly'
+					}
 				/>
 			)}
 		</div>
