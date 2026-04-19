@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
 	DataTable,
 	DataTableContent,
@@ -9,6 +10,7 @@ import { canConfirmReceiptQueueInstallment } from '~/lib/payment-confirmation'
 import type { InstallmentForQueue } from '~/server/queries'
 import { BulkConfirmPaymentsBar } from './bulk-confirm-payments-bar'
 import { usePaymentsColumns } from './columns'
+import { ImportPaymentReceiptsDialog } from './import-payment-receipts-dialog'
 import { PaymentsQueueSummary } from './payments-queue-summary'
 
 export function PaymentsTable({
@@ -23,6 +25,7 @@ export function PaymentsTable({
 	companyName: string
 }) {
 	const columns = usePaymentsColumns()
+	const [importOpen, setImportOpen] = useState(false)
 
 	return (
 		<div className="space-y-4">
@@ -34,20 +37,27 @@ export function PaymentsTable({
 					canConfirmReceiptQueueInstallment(row.original)
 				}
 			>
-				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-					<div className="min-w-0 flex-1">
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+					<div className="flex min-w-0 flex-1 items-center">
 						<PaymentsQueueSummary
 							nextDeductionDate={nextDeductionDate}
 							employeeSalaryFrequency={employeeSalaryFrequency}
 						/>
 					</div>
 					<div className="relative z-10 shrink-0">
-						<BulkConfirmPaymentsBar companyName={companyName} />
+						<BulkConfirmPaymentsBar
+							companyName={companyName}
+							onImportClick={() => setImportOpen(true)}
+						/>
 					</div>
 				</div>
 				<DataTableContent />
 				<DataTablePagination />
 			</DataTable>
+			<ImportPaymentReceiptsDialog
+				open={importOpen}
+				onClose={() => setImportOpen(false)}
+			/>
 		</div>
 	)
 }

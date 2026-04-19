@@ -3165,6 +3165,21 @@ export type SeedPaymentsQueueResult = {
 	expectedRowCount: number
 	applicant1Name: string
 	applicant2Name: string
+	firstInstallmentForCsv: {
+		payrollNumber: string
+		amount: string
+		dueDateISO: string
+	}
+	alreadyReceivedInstallmentForCsv: {
+		payrollNumber: string
+		amount: string
+		dueDateISO: string
+	}
+	notHrConfirmedInstallmentForCsv: {
+		payrollNumber: string
+		amount: string
+		dueDateISO: string
+	}
 }
 
 export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
@@ -3419,11 +3434,33 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 		})),
 	)
 
+	const s1First = schedule1[0]
+	const s1Second = schedule1[1]
+	const s2First = schedule2[0]
+	if (!s1First || !s1Second || !s2First) {
+		throw new Error('Seed Payments Queue: schedule entry missing')
+	}
+
 	return {
 		companyId: company.id,
 		expectedRowCount: 3,
 		applicant1Name: applicant1.name,
 		applicant2Name: applicant2.name,
+		firstInstallmentForCsv: {
+			payrollNumber: 'PAYMENTS002',
+			amount: s2First.amount,
+			dueDateISO: s2First.dueDate.toISOString().slice(0, 10),
+		},
+		alreadyReceivedInstallmentForCsv: {
+			payrollNumber: 'PAYMENTS001',
+			amount: s1First.amount,
+			dueDateISO: s1First.dueDate.toISOString().slice(0, 10),
+		},
+		notHrConfirmedInstallmentForCsv: {
+			payrollNumber: 'PAYMENTS001',
+			amount: s1Second.amount,
+			dueDateISO: s1Second.dueDate.toISOString().slice(0, 10),
+		},
 	}
 }
 

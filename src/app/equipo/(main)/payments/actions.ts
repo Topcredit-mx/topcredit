@@ -6,6 +6,8 @@ import { getAbility, subject } from '~/server/auth/ability'
 import {
 	confirmPaymentReceipt,
 	confirmPaymentReceipts,
+	type ValidatePaymentReceiptsCsvResult,
+	validatePaymentReceiptsCsv,
 } from '~/server/mutations'
 import { getInstallmentsForQueue } from '~/server/queries'
 import {
@@ -29,6 +31,53 @@ export async function confirmPaymentReceiptAction(
 }
 
 export async function confirmPaymentReceiptsAction(
+	paymentIds: number[],
+): Promise<ConfirmPaymentReceiptState> {
+	const result = await confirmPaymentReceipts(paymentIds)
+	if (result.error != null) {
+		return { error: result.error }
+	}
+	return { ok: true }
+}
+
+export type ValidatePaymentReceiptsCsvActionResult =
+	| ({ ok: true } & ValidatePaymentReceiptsCsvResult & { fileName: string })
+	| { ok: false; error: string }
+
+export async function validatePaymentReceiptsCsvAction(
+	formData: FormData,
+): Promise<ValidatePaymentReceiptsCsvActionResult> {
+	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
+
+	const firstCompanyId = assignedCompanyIds[0]
+	const canImport =
+		isAdmin ||
+		(firstCompanyId !== undefined &&
+			ability.can(
+				'confirmPaymentReceipt',
+				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
+			))
+
+	if (!canImport) {
+		return { ok: false, error: 'unauthorized' }
+	}
+
+	const selectedCompanyId = await getEffectiveSelectedCompanyId()
+	if (selectedCompanyId === null) {
+		return { ok: false, error: 'no-company-selected' }
+	}
+
+	const file = formData.get('file')
+	if (!(file instanceof File)) {
+		return { ok: false, error: 'no-file' }
+	}
+
+	const csvContent = await file.text()
+	const result = await validatePaymentReceiptsCsv(csvContent, selectedCompanyId)
+	return { ok: true, ...result, fileName: file.name }
+}
+
+export async function confirmPaymentReceiptsFromCsvAction(
 	paymentIds: number[],
 ): Promise<ConfirmPaymentReceiptState> {
 	const result = await confirmPaymentReceipts(paymentIds)
