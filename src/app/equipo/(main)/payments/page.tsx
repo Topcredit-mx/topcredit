@@ -35,7 +35,7 @@ export default async function PaymentsPage() {
 
 	if (selectedCompanyId === null) {
 		return (
-			<div className="container mx-auto py-6">
+			<div className="container mx-auto min-w-0 py-6">
 				<div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-muted/30 p-12 text-center">
 					<div className="flex size-16 items-center justify-center rounded-full bg-muted">
 						<Building2 className="size-8 text-muted-foreground" />
@@ -71,7 +71,7 @@ export default async function PaymentsPage() {
 	})
 
 	return (
-		<div className="container mx-auto py-6">
+		<div className="container mx-auto min-w-0 py-6">
 			{installments.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">{t('payments-empty')}</p>

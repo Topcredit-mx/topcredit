@@ -79,7 +79,7 @@ export function BulkConfirmPaymentsBar({
 			: t('payments-bulk-confirm-many', { count })
 
 	return (
-		<div className="flex flex-wrap items-center justify-end gap-2 py-2">
+		<div className="flex min-w-0 flex-wrap items-center justify-end gap-2 py-2">
 			{count > 0 ? (
 				<Button
 					type="button"

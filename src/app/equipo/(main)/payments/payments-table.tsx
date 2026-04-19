@@ -28,7 +28,7 @@ export function PaymentsTable({
 	const [importOpen, setImportOpen] = useState(false)
 
 	return (
-		<div className="space-y-4">
+		<div className="min-w-0 space-y-4">
 			<DataTable
 				columns={columns}
 				data={installments}
@@ -37,7 +37,7 @@ export function PaymentsTable({
 					canConfirmReceiptQueueInstallment(row.original)
 				}
 			>
-				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 					<div className="flex min-w-0 flex-1 items-center">
 						<PaymentsQueueSummary
 							nextDeductionDate={nextDeductionDate}
