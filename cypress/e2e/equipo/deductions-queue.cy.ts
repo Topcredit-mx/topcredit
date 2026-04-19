@@ -45,13 +45,13 @@ describe('HR deductions queue', () => {
 		it('shows a queue-level next deduction date derived from company salary frequency', () => {
 			cy.visit('/equipo/deductions')
 			cy.get('main').should('be.visible')
-			cy.contains(/próxima fecha de deducción/i).should('be.visible')
+			cy.contains(/próxima deducción/i).should('be.visible')
 		})
 
 		it('shows company salary frequency next to the next deduction date in the queue header', () => {
 			cy.visit('/equipo/deductions')
 			cy.get('main').within(() => {
-				cy.contains(/periodicidad de nómina/i).should('be.visible')
+				cy.contains(/nómina:/i).should('be.visible')
 				cy.contains(/mensual/i).should('be.visible')
 			})
 		})

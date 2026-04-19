@@ -57,9 +57,9 @@ export function BulkConfirmDeductionsBar({
 			: t('deductions-bulk-confirm-many', { count })
 
 	return (
-		<div className="py-2">
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-				<div className="min-w-0 flex-1">
+		<div className="min-w-0 py-2">
+			<div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex min-w-0 flex-1 items-center">
 					<PayrollQueueHeaderLine
 						nextDeductionDate={nextDeductionDate}
 						employeeSalaryFrequency={employeeSalaryFrequency}

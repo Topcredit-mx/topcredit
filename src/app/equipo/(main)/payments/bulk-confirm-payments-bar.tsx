@@ -1,6 +1,6 @@
 'use client'
 
-import { Download } from 'lucide-react'
+import { Download, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useTransition } from 'react'
@@ -16,8 +16,10 @@ import {
 
 export function BulkConfirmPaymentsBar({
 	companyName,
+	onImportClick,
 }: {
 	companyName: string
+	onImportClick: () => void
 }) {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
@@ -77,7 +79,7 @@ export function BulkConfirmPaymentsBar({
 			: t('payments-bulk-confirm-many', { count })
 
 	return (
-		<div className="flex flex-wrap items-center justify-end gap-2 py-2">
+		<div className="flex min-w-0 flex-wrap items-center justify-end gap-2 py-2">
 			{count > 0 ? (
 				<Button
 					type="button"
@@ -88,6 +90,16 @@ export function BulkConfirmPaymentsBar({
 					{confirmLabel}
 				</Button>
 			) : null}
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				disabled={isConfirmPending || isExportPending}
+				onClick={onImportClick}
+			>
+				<Upload className="mr-2 size-4" />
+				{t('payments-import-csv')}
+			</Button>
 			<Button
 				type="button"
 				variant="outline"

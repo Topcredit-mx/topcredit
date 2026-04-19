@@ -1,30 +1,30 @@
-import type { SeedDeductionsQueueResult } from '~/cypress/tasks'
-import { hrAgentDeductions } from './deductions-queue.fixtures'
+import type { SeedPaymentsQueueResult } from '~/cypress/tasks'
+import { paymentsAgentQueue } from './payments-agents.fixtures'
 
-describe('HR deductions CSV import', () => {
-	let seed: SeedDeductionsQueueResult
+describe('Payments queue CSV import', () => {
+	let seed: SeedPaymentsQueueResult
 
 	beforeEach(() => {
-		cy.task('cleanupDeductionsQueue')
-		cy.task<SeedDeductionsQueueResult>('seedDeductionsQueue').then((result) => {
+		cy.task('cleanupPaymentsQueue')
+		cy.task<SeedPaymentsQueueResult>('seedPaymentsQueue').then((result) => {
 			seed = result
-			cy.login(hrAgentDeductions.email)
+			cy.login(paymentsAgentQueue.email)
 			cy.setCookie('selected_company_id', String(result.companyId))
 		})
 	})
 
 	afterEach(() => {
-		cy.task('cleanupDeductionsQueue')
+		cy.task('cleanupPaymentsQueue')
 	})
 
 	it('shows import CSV button when company is selected and table is visible', () => {
-		cy.visit('/equipo/deductions')
+		cy.visit('/equipo/payments')
 		cy.get('table').should('be.visible')
 		cy.contains('button', /importar csv/i).should('be.visible')
 	})
 
 	it('opens import dialog when import button is clicked', () => {
-		cy.visit('/equipo/deductions')
+		cy.visit('/equipo/payments')
 		cy.get('table').should('be.visible')
 		cy.contains('button', /importar csv/i)
 			.should('be.visible')
@@ -36,7 +36,7 @@ describe('HR deductions CSV import', () => {
 	})
 
 	it('closes import dialog when cancel is clicked', () => {
-		cy.visit('/equipo/deductions')
+		cy.visit('/equipo/payments')
 		cy.get('table').should('be.visible')
 		cy.contains('button', /importar csv/i)
 			.should('be.visible')
@@ -46,8 +46,8 @@ describe('HR deductions CSV import', () => {
 		cy.get('[role="dialog"]').should('not.exist')
 	})
 
-	it('uploads valid CSV, shows preview with matched rows, confirms, rows disappear from table', () => {
-		cy.visit('/equipo/deductions')
+	it('uploads valid CSV, shows preview, confirms, shows success toast (one row per credit unchanged)', () => {
+		cy.visit('/equipo/payments')
 		cy.get('table').should('be.visible')
 		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 
@@ -63,29 +63,28 @@ describe('HR deductions CSV import', () => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'deducciones.csv',
+					fileName: 'recepciones.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
 			)
 		})
-		cy.get('#deductions-import-csv-desc', { timeout: 15000 }).should(
-			'be.visible',
-		)
+		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
 
 		cy.get('[role="dialog"]').within(() => {
-			cy.contains(/listas? para confirmar/i).should('be.visible')
+			cy.contains(/lista(s)? para confirmar/i).should('be.visible')
 			cy.contains('button', /^confirmar$/i)
 				.should('be.visible')
 				.click()
 		})
 
+		cy.contains(/recepción de 1 pago confirmada/i).should('be.visible')
 		cy.get('[role="dialog"]').should('not.exist')
-		cy.get('table tbody tr').should('have.length', seed.expectedRowCount - 1)
+		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 	})
 
-	it('shows error table with column detail when CSV has invalid format rows', () => {
-		cy.visit('/equipo/deductions')
+	it('shows error table when CSV has invalid format rows', () => {
+		cy.visit('/equipo/payments')
 		cy.get('table').should('be.visible')
 
 		cy.contains('button', /importar csv/i)
@@ -95,22 +94,20 @@ describe('HR deductions CSV import', () => {
 
 		const csvContent = [
 			'payroll_number,amount,date',
-			'DEDUCT001,not-a-number,2026-01-31',
+			'PAYMENTS002,not-a-number,2026-01-31',
 		].join('\n')
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'deducciones-error.csv',
+					fileName: 'recepciones-error.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
 			)
 		})
-		cy.get('#deductions-import-csv-desc', { timeout: 15000 }).should(
-			'be.visible',
-		)
+		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.contains(/filas con errores/i).should('be.visible')
@@ -119,14 +116,14 @@ describe('HR deductions CSV import', () => {
 			cy.get('table tbody tr')
 				.first()
 				.within(() => {
-					cy.contains('DEDUCT001').should('exist')
+					cy.contains('PAYMENTS002').should('exist')
 					cy.contains('not-a-number').should('exist')
 				})
 		})
 	})
 
-	it('shows no-match errors for rows not belonging to the selected company', () => {
-		cy.visit('/equipo/deductions')
+	it('shows no-match errors for rows not in the selected company data', () => {
+		cy.visit('/equipo/payments')
 		cy.get('table').should('be.visible')
 
 		cy.contains('button', /importar csv/i)
@@ -143,19 +140,16 @@ describe('HR deductions CSV import', () => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'deducciones-nomatch.csv',
+					fileName: 'recepciones-nomatch.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
 			)
 		})
-		cy.get('#deductions-import-csv-desc', { timeout: 15000 }).should(
-			'be.visible',
-		)
+		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.contains(/filas con errores/i).should('be.visible')
-			cy.get('table').should('be.visible')
 			cy.get('table tbody tr')
 				.first()
 				.within(() => {
@@ -165,8 +159,8 @@ describe('HR deductions CSV import', () => {
 		})
 	})
 
-	it('shows warning in preview when CSV row is already confirmed', () => {
-		cy.visit('/equipo/deductions')
+	it('shows warning when CSV row is already receipt-confirmed', () => {
+		cy.visit('/equipo/payments')
 		cy.get('table').should('be.visible')
 
 		cy.contains('button', /importar csv/i)
@@ -174,34 +168,68 @@ describe('HR deductions CSV import', () => {
 			.click()
 		cy.get('[role="dialog"]').should('be.visible')
 
-		const dueDateISO = seed.nextDeductionDateISO.slice(0, 10)
+		const { payrollNumber, amount, dueDateISO } =
+			seed.alreadyReceivedInstallmentForCsv
 		const csvContent = [
 			'payroll_number,amount,date',
-			`DEDUCT004,15375.00,${dueDateISO}`,
+			`${payrollNumber},${amount},${dueDateISO}`,
 		].join('\n')
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'deducciones-dup.csv',
+					fileName: 'recepciones-dup.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
 			)
 		})
-		cy.get('#deductions-import-csv-desc', { timeout: 15000 }).should(
-			'be.visible',
-		)
+		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
 
 		cy.get('[role="dialog"]').within(() => {
-			cy.contains(/ya confirmada/i).should('be.visible')
-			cy.contains('DEDUCT004').should('exist')
+			cy.contains(/filas omitidas/i).should('be.visible')
+			cy.contains(/recepción ya confirmada/i).should('be.visible')
+			cy.contains(payrollNumber).should('exist')
 		})
 	})
 
-	it('mixed CSV: confirms the unconfirmed row and warns about the already-confirmed one', () => {
-		cy.visit('/equipo/deductions')
+	it('shows not-hr-confirmed warning for matching row awaiting HR', () => {
+		cy.visit('/equipo/payments')
+		cy.get('table').should('be.visible')
+
+		cy.contains('button', /importar csv/i)
+			.should('be.visible')
+			.click()
+		cy.get('[role="dialog"]').should('be.visible')
+
+		const { payrollNumber, amount, dueDateISO } =
+			seed.notHrConfirmedInstallmentForCsv
+		const csvContent = [
+			'payroll_number,amount,date',
+			`${payrollNumber},${amount},${dueDateISO}`,
+		].join('\n')
+
+		cy.get('[role="dialog"]').within(() => {
+			cy.get('input[type="file"]').selectFile(
+				{
+					contents: Cypress.Buffer.from(csvContent),
+					fileName: 'recepciones-sin-rh.csv',
+					mimeType: 'text/csv',
+				},
+				{ force: true },
+			)
+		})
+		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
+
+		cy.get('[role="dialog"]').within(() => {
+			cy.contains(/filas omitidas/i).should('be.visible')
+			cy.contains(/rh aún no confirmada/i).should('be.visible')
+		})
+	})
+
+	it('mixed CSV: confirms the pending row and warns about already-received', () => {
+		cy.visit('/equipo/payments')
 		cy.get('table').should('be.visible')
 		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 
@@ -210,43 +238,42 @@ describe('HR deductions CSV import', () => {
 			.click()
 		cy.get('[role="dialog"]').should('be.visible')
 
-		const { payrollNumber, amount, dueDateISO } = seed.firstInstallmentForCsv
-		const dueDateISO2 = seed.nextDeductionDateISO.slice(0, 10)
+		const pending = seed.firstInstallmentForCsv
+		const received = seed.alreadyReceivedInstallmentForCsv
 		const csvContent = [
 			'payroll_number,amount,date',
-			`${payrollNumber},${amount},${dueDateISO}`,
-			`DEDUCT004,15375.00,${dueDateISO2}`,
+			`${pending.payrollNumber},${pending.amount},${pending.dueDateISO}`,
+			`${received.payrollNumber},${received.amount},${received.dueDateISO}`,
 		].join('\n')
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'deducciones-mixed.csv',
+					fileName: 'recepciones-mixed.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
 			)
 		})
-		cy.get('#deductions-import-csv-desc', { timeout: 15000 }).should(
-			'be.visible',
-		)
+		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
 
 		cy.get('[role="dialog"]').within(() => {
-			cy.contains(/listas? para confirmar/i).should('be.visible')
-			cy.contains(/filas ya confirmadas/i).should('be.visible')
-			cy.contains('DEDUCT004').should('exist')
+			cy.contains(/lista(s)? para confirmar/i).should('be.visible')
+			cy.contains(/filas omitidas/i).should('be.visible')
+			cy.contains(received.payrollNumber).should('exist')
 			cy.contains('button', /^confirmar$/i)
 				.should('be.visible')
 				.click()
 		})
 
+		cy.contains(/recepción de 1 pago confirmada/i).should('be.visible')
 		cy.get('[role="dialog"]').should('not.exist')
-		cy.get('table tbody tr').should('have.length', seed.expectedRowCount - 1)
+		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 	})
 
-	it('mixed CSV: 1 valid, 1 already-confirmed, 1 error — confirms only the valid row', () => {
-		cy.visit('/equipo/deductions')
+	it('mixed CSV: 1 valid, 1 already-received, 1 parse error — confirms only the valid row', () => {
+		cy.visit('/equipo/payments')
 		cy.get('table').should('be.visible')
 		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 
@@ -255,12 +282,12 @@ describe('HR deductions CSV import', () => {
 			.click()
 		cy.get('[role="dialog"]').should('be.visible')
 
-		const { payrollNumber, amount, dueDateISO } = seed.firstInstallmentForCsv
-		const dueDateISO2 = seed.nextDeductionDateISO.slice(0, 10)
+		const pending = seed.firstInstallmentForCsv
+		const received = seed.alreadyReceivedInstallmentForCsv
 		const csvContent = [
 			'payroll_number,amount,date',
-			`${payrollNumber},${amount},${dueDateISO}`,
-			`DEDUCT004,15375.00,${dueDateISO2}`,
+			`${pending.payrollNumber},${pending.amount},${pending.dueDateISO}`,
+			`${received.payrollNumber},${received.amount},${received.dueDateISO}`,
 			'UNKNOWN999,not-a-number,2026-01-31',
 		].join('\n')
 
@@ -268,20 +295,18 @@ describe('HR deductions CSV import', () => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'deducciones-all-three.csv',
+					fileName: 'recepciones-all-three.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
 			)
 		})
-		cy.get('#deductions-import-csv-desc', { timeout: 15000 }).should(
-			'be.visible',
-		)
+		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
 
 		cy.get('[role="dialog"]').within(() => {
-			cy.contains(/listas? para confirmar/i).should('be.visible')
-			cy.contains(/filas ya confirmadas/i).should('be.visible')
-			cy.contains('DEDUCT004').should('exist')
+			cy.contains(/lista(s)? para confirmar/i).should('be.visible')
+			cy.contains(/filas omitidas/i).should('be.visible')
+			cy.contains(received.payrollNumber).should('exist')
 			cy.contains(/filas con errores/i).should('be.visible')
 			cy.contains('UNKNOWN999').should('exist')
 			cy.contains('button', /^confirmar$/i)
@@ -289,7 +314,8 @@ describe('HR deductions CSV import', () => {
 				.click()
 		})
 
+		cy.contains(/recepción de 1 pago confirmada/i).should('be.visible')
 		cy.get('[role="dialog"]').should('not.exist')
-		cy.get('table tbody tr').should('have.length', seed.expectedRowCount - 1)
+		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 	})
 })

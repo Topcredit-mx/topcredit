@@ -20,13 +20,13 @@ import { useDataTable } from './use-data-table'
 export function DataTablePagination<TData>() {
 	const { table } = useDataTable<TData>()
 	return (
-		<div className="flex items-center justify-between px-2 py-4">
-			<div className="flex-1 text-muted-foreground text-sm">
+		<div className="flex min-w-0 flex-col gap-3 px-2 py-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-y-2">
+			<div className="min-w-0 text-muted-foreground text-sm sm:flex-1">
 				{table.getFilteredSelectedRowModel().rows.length} of{' '}
 				{table.getFilteredRowModel().rows.length} row(s) selected.
 			</div>
-			<div className="flex items-center space-x-6 lg:space-x-8">
-				<div className="flex items-center space-x-2">
+			<div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 sm:justify-end">
+				<div className="flex items-center gap-2">
 					<p className="text-muted-foreground text-sm">Rows per page</p>
 					<Select
 						value={`${table.getState().pagination.pageSize}`}
@@ -46,11 +46,11 @@ export function DataTablePagination<TData>() {
 						</SelectContent>
 					</Select>
 				</div>
-				<div className="flex w-[100px] items-center justify-center text-muted-foreground text-sm">
+				<div className="flex min-w-[6.5rem] items-center justify-center text-muted-foreground text-sm">
 					Page {table.getState().pagination.pageIndex + 1} of{' '}
 					{table.getPageCount()}
 				</div>
-				<div className="flex items-center space-x-2">
+				<div className="flex items-center gap-2">
 					<Button
 						variant="outline"
 						size="icon"

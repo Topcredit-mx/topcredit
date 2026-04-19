@@ -45,14 +45,14 @@ export default async function AppMainLayout({
 				selectedCompanyId={selectedCompanyId}
 				overdueDeductionsCount={overdueDeductionsCount}
 			/>
-			<main className="flex flex-1 flex-col">
+			<main className="flex min-w-0 flex-1 flex-col">
 				<header className="border-b">
 					<div className="flex h-14 min-h-14 items-center gap-4 px-6">
 						<SidebarTrigger />
 						<BreadcrumbNav scope="equipo" />
 					</div>
 				</header>
-				<div className="flex-1 overflow-y-auto bg-gray-50 px-8 pt-0 pb-8">
+				<div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-gray-50 px-8 pt-0 pb-8">
 					{showNoAssignmentsEmpty ? <AgentNoAssignmentsEmpty /> : children}
 				</div>
 			</main>

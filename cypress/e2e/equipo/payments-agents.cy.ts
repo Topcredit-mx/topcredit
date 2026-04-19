@@ -56,8 +56,8 @@ describe('Payments receipt queue', () => {
 		it('shows next deduction date and company salary frequency above the table', () => {
 			cy.visit('/equipo/payments')
 			cy.get('main').within(() => {
-				cy.contains(/próxima fecha de deducción/i).should('be.visible')
-				cy.contains(/periodicidad de nómina/i).should('be.visible')
+				cy.contains(/próxima deducción/i).should('be.visible')
+				cy.contains(/nómina:/i).should('be.visible')
 				cy.contains(/mensual/i).should('be.visible')
 			})
 		})

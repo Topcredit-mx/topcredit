@@ -30,7 +30,7 @@ export async function confirmHrDeductionsAction(
 }
 
 export type ValidateDeductionsCsvActionResult =
-	| ({ ok: true } & ValidateDeductionsCsvResult)
+	| ({ ok: true } & ValidateDeductionsCsvResult & { fileName: string })
 	| { ok: false; error: string }
 
 export async function validateDeductionsCsvAction(
@@ -63,7 +63,7 @@ export async function validateDeductionsCsvAction(
 
 	const csvContent = await file.text()
 	const result = await validateDeductionsCsv(csvContent, selectedCompanyId)
-	return { ok: true, ...result }
+	return { ok: true, ...result, fileName: file.name }
 }
 
 export async function confirmDeductionsFromCsvAction(

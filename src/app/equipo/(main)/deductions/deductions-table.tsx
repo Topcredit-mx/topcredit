@@ -28,7 +28,7 @@ export function DeductionsTable({
 	const [importOpen, setImportOpen] = useState(false)
 
 	return (
-		<div className="space-y-4">
+		<div className="min-w-0 space-y-4">
 			<DataTable columns={columns} data={installments} schema="deductions">
 				<BulkConfirmDeductionsBar
 					onExportClick={() => setExportOpen(true)}

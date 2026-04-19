@@ -17,10 +17,10 @@ export function PayrollQueueHeaderLine({
 			: t('queue-header-salary-frequency-bi-monthly')
 
 	return (
-		<div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-muted-foreground text-sm">
+		<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground text-sm">
 			{nextDeductionDate ? (
 				<p>
-					{t('deductions-next-date')}:{' '}
+					{t('queue-header-next-deduction-label')}:{' '}
 					<span className="font-medium text-foreground">
 						<FormattedDate value={nextDeductionDate} />
 					</span>
