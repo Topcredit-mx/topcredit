@@ -10,7 +10,7 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
-import { canConfirmReceipt } from '~/lib/payment-confirmation'
+import { canConfirmReceiptQueueInstallment } from '~/lib/payment-confirmation'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { InstallmentForQueue } from '~/server/queries'
@@ -73,26 +73,13 @@ function ReceiptStatusCell({
 	)
 }
 
-function parseIsoDate(value: string | null): Date | null {
-	if (value === null) return null
-	const d = new Date(value)
-	return Number.isNaN(d.getTime()) ? null : d
-}
-
-export function canConfirmReceiptQueueRow(row: InstallmentForQueue): boolean {
-	return canConfirmReceipt({
-		hrConfirmedAt: parseIsoDate(row.hrConfirmedAt),
-		paymentsConfirmedAt: parseIsoDate(row.paymentsConfirmedAt),
-	})
-}
-
 function PaymentsActionsCell({ row }: { row: InstallmentForQueue }) {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
 
-	if (!canConfirmReceiptQueueRow(row)) {
+	if (!canConfirmReceiptQueueInstallment(row)) {
 		return <span className="text-muted-foreground text-sm">—</span>
 	}
 

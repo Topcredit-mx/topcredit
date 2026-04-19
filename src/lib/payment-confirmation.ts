@@ -13,6 +13,27 @@ export function canConfirmReceipt(p: PaymentTimestamps): boolean {
 	return p.hrConfirmedAt !== null && p.paymentsConfirmedAt === null
 }
 
+export type QueueInstallmentReceiptTimestamps = {
+	hrConfirmedAt: string | null
+	paymentsConfirmedAt: string | null
+}
+
+function parseIsoDateString(value: string | null): Date | null {
+	if (value === null) return null
+	const d = new Date(value)
+	return Number.isNaN(d.getTime()) ? null : d
+}
+
+/** Queue row (ISO string timestamps) eligible for Payments “confirm receipt”, same as the table checkbox. */
+export function canConfirmReceiptQueueInstallment(
+	row: QueueInstallmentReceiptTimestamps,
+): boolean {
+	return canConfirmReceipt({
+		hrConfirmedAt: parseIsoDateString(row.hrConfirmedAt),
+		paymentsConfirmedAt: parseIsoDateString(row.paymentsConfirmedAt),
+	})
+}
+
 export function isFullyConfirmed(p: PaymentTimestamps): boolean {
 	return p.hrConfirmedAt !== null && p.paymentsConfirmedAt !== null
 }

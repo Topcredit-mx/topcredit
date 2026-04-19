@@ -89,6 +89,15 @@ describe('Payments receipt queue', () => {
 			cy.contains(seed.applicant2Name).should('be.visible')
 		})
 
+		it('shows export CSV button and downloads pending receipt rows', () => {
+			cy.visit('/equipo/payments')
+			cy.get('table').should('be.visible')
+			cy.contains('button', /exportar csv/i)
+				.should('be.visible')
+				.click()
+			cy.contains(/archivo csv descargado/i).should('be.visible')
+		})
+
 		it('disables the row checkbox while receipt is awaiting HR confirmation', () => {
 			cy.visit('/equipo/payments')
 			cy.get('table').should('be.visible')

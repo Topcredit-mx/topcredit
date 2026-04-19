@@ -5,19 +5,22 @@ import {
 	DataTableContent,
 	DataTablePagination,
 } from '~/components/ui/data-table'
+import { canConfirmReceiptQueueInstallment } from '~/lib/payment-confirmation'
 import type { InstallmentForQueue } from '~/server/queries'
 import { BulkConfirmPaymentsBar } from './bulk-confirm-payments-bar'
-import { canConfirmReceiptQueueRow, usePaymentsColumns } from './columns'
+import { usePaymentsColumns } from './columns'
 import { PaymentsQueueSummary } from './payments-queue-summary'
 
 export function PaymentsTable({
 	installments,
 	nextDeductionDate,
 	employeeSalaryFrequency,
+	companyName,
 }: {
 	installments: InstallmentForQueue[]
 	nextDeductionDate?: string
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	companyName: string
 }) {
 	const columns = usePaymentsColumns()
 
@@ -27,7 +30,9 @@ export function PaymentsTable({
 				columns={columns}
 				data={installments}
 				schema="payments"
-				enableRowSelection={(row) => canConfirmReceiptQueueRow(row.original)}
+				enableRowSelection={(row) =>
+					canConfirmReceiptQueueInstallment(row.original)
+				}
 			>
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0 flex-1">
@@ -37,7 +42,7 @@ export function PaymentsTable({
 						/>
 					</div>
 					<div className="relative z-10 shrink-0">
-						<BulkConfirmPaymentsBar />
+						<BulkConfirmPaymentsBar companyName={companyName} />
 					</div>
 				</div>
 				<DataTableContent />
