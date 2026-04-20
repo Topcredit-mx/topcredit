@@ -95,6 +95,12 @@ import {
 } from '~/cypress/e2e/equipo/disbursement-agents.fixtures'
 import { allHrUsers, hrCompany } from '~/cypress/e2e/equipo/hr-agents.fixtures'
 import {
+	allPaymentsOverdueReceiptUsers,
+	applicantOverdueReceipt,
+	hrOverdueReceiptAgent,
+	paymentsOverdueReceiptCompany,
+} from '~/cypress/e2e/equipo/payments-overdue-receipt.fixtures'
+import {
 	allPaymentsQueueUsers,
 	hrAgentPaymentsQueue,
 	paymentsAgentQueue,
@@ -3508,6 +3514,189 @@ export const cleanupPaymentsQueue = async () => {
 	await db
 		.delete(companies)
 		.where(eq(companies.domain, paymentsQueueCompany.domain))
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
+	return null
+}
+
+export type SeedPaymentsOverdueReceiptResult = {
+	companyId: number
+	applicantName: string
+	payrollNumber: string
+	overdueInstallmentCount: number
+}
+
+export const seedPaymentsOverdueReceipt =
+	async (): Promise<SeedPaymentsOverdueReceiptResult> => {
+		const db = getDb(process.env.DATABASE_URL || '')
+		const now = new Date()
+
+		await Promise.all(
+			allPaymentsOverdueReceiptUsers.map((u) =>
+				db.delete(users).where(eq(users.email, u.email)),
+			),
+		)
+		await db
+			.delete(companies)
+			.where(eq(companies.domain, paymentsOverdueReceiptCompany.domain))
+
+		const [[company], createdUsers] = await Promise.all([
+			db
+				.insert(companies)
+				.values({
+					name: paymentsOverdueReceiptCompany.name,
+					domain: paymentsOverdueReceiptCompany.domain,
+					rate: paymentsOverdueReceiptCompany.rate,
+					employeeSalaryFrequency:
+						paymentsOverdueReceiptCompany.employeeSalaryFrequency,
+					active: paymentsOverdueReceiptCompany.active,
+				})
+				.returning(),
+			db
+				.insert(users)
+				.values(
+					allPaymentsOverdueReceiptUsers.map((u) => ({
+						email: u.email,
+						name: u.name,
+						emailVerified: now,
+					})),
+				)
+				.returning(),
+		])
+
+		if (!company)
+			throw new Error('Seed Payments Overdue Receipt: company not created')
+
+		const findUser = (email: string) => {
+			const u = createdUsers.find((r) => r.email === email)
+			if (!u)
+				throw new Error(`Seed Payments Overdue Receipt: user ${email} not found`)
+			return u
+		}
+
+		const [term] = await db
+			.insert(terms)
+			.values({ durationType: 'monthly', duration: 4 })
+			.returning()
+
+		if (!term) throw new Error('Seed Payments Overdue Receipt: term not created')
+
+		const [offering] = await db
+			.insert(termOfferings)
+			.values({ termId: term.id, companyId: company.id })
+			.returning()
+
+		if (!offering)
+			throw new Error('Seed Payments Overdue Receipt: offering not created')
+
+		await Promise.all(
+			createdUsers.flatMap((agent) => {
+				const fixture = allPaymentsOverdueReceiptUsers.find(
+					(u) => u.email === agent.email,
+				)
+				if (!fixture)
+					throw new Error(
+						`Seed Payments Overdue Receipt: fixture not found for ${agent.email}`,
+					)
+				const roleInserts = fixture.roles.map((role) => ({
+					userId: agent.id,
+					role,
+				}))
+				const hasAgent = new Set<string>(fixture.roles).has('agent')
+				return [
+					db.insert(userRoles).values(roleInserts),
+					...(hasAgent
+						? [
+								db.insert(userCompanies).values({
+									userId: agent.id,
+									companyId: company.id,
+								}),
+							]
+						: []),
+				]
+			}),
+		)
+
+		const applicant = findUser(applicantOverdueReceipt.email)
+		const hrAgent = findUser(hrOverdueReceiptAgent.email)
+		const firstDiscountDate = new Date(Date.UTC(2019, 0, 31))
+		const creditAmount = '20000.00'
+
+		const [app] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicant.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount,
+				salaryAtApplication: '25000',
+				salaryFrequency: paymentsOverdueReceiptCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate,
+				payrollNumber: 'OVERDUE-RCPT-01',
+			})
+			.returning()
+
+		if (!app) throw new Error('Seed Payments Overdue Receipt: application not created')
+
+		const [credit] = await db
+			.insert(credits)
+			.values({
+				applicationId: app.id,
+				status: 'dispersed',
+				disbursementDate: new Date(Date.UTC(2019, 0, 1)),
+				transferAmount: creditAmount,
+				disbursedByUserId: applicant.id,
+			})
+			.returning()
+
+		if (!credit) throw new Error('Seed Payments Overdue Receipt: credit not created')
+
+		const schedule = generatePaymentSchedule({
+			loanPrincipal: Number(creditAmount),
+			rate: Number(paymentsOverdueReceiptCompany.rate),
+			totalPayments: 2,
+			frequency: paymentsOverdueReceiptCompany.employeeSalaryFrequency,
+			firstDiscountDate,
+		})
+
+		const hrAt = new Date(Date.UTC(2019, 1, 5))
+		await db.insert(creditPayments).values(
+			schedule.map((entry) => ({
+				creditId: credit.id,
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+				hrConfirmedAt: hrAt,
+				hrConfirmedByUserId: hrAgent.id,
+			})),
+		)
+
+		return {
+			companyId: company.id,
+			applicantName: applicant.name ?? '',
+			payrollNumber: 'OVERDUE-RCPT-01',
+			overdueInstallmentCount: schedule.length,
+		}
+	}
+
+export const cleanupPaymentsOverdueReceipt = async () => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	await Promise.all(
+		allPaymentsOverdueReceiptUsers.map((u) =>
+			db.delete(users).where(eq(users.email, u.email)),
+		),
+	)
+	await db
+		.delete(companies)
+		.where(eq(companies.domain, paymentsOverdueReceiptCompany.domain))
 	await db
 		.delete(terms)
 		.where(

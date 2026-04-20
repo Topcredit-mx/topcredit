@@ -25,6 +25,7 @@ import {
 	canConfirmReceipt,
 	canConfirmReceiptForCreditDetailRow,
 	canHrConfirm,
+	isCalendarOverduePaymentReceiptFromDb,
 	parseCsvPaymentConfirmations,
 } from '~/lib/payment-confirmation'
 import {
@@ -1764,7 +1765,18 @@ export async function confirmPaymentReceipt(
 	}
 
 	const today = new Date()
-	if (!canConfirmPaymentReceiptWithinPeriod(payment, today)) {
+	const calendarOverdue = isCalendarOverduePaymentReceiptFromDb(
+		{
+			hrConfirmedAt: payment.hrConfirmedAt,
+			paymentsConfirmedAt: payment.paymentsConfirmedAt,
+			dueDate: payment.dueDate,
+		},
+		today,
+	)
+	if (
+		!calendarOverdue &&
+		!canConfirmPaymentReceiptWithinPeriod(payment, today)
+	) {
 		return { error: ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE }
 	}
 
@@ -1780,6 +1792,7 @@ export async function confirmPaymentReceipt(
 	await settleCreditsIfFullyConfirmed([payment.creditId], now)
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/payments/overdue')
 	revalidatePath('/equipo/credits')
 	revalidatePath(`/equipo/credits/${payment.creditId}`)
 	revalidatePath('/cuenta/credits')
@@ -1826,7 +1839,18 @@ export async function confirmPaymentReceipts(
 
 	const today = new Date()
 	for (const payment of rows) {
-		if (!canConfirmPaymentReceiptWithinPeriod(payment, today)) {
+		const calendarOverdue = isCalendarOverduePaymentReceiptFromDb(
+			{
+				hrConfirmedAt: payment.hrConfirmedAt,
+				paymentsConfirmedAt: payment.paymentsConfirmedAt,
+				dueDate: payment.dueDate,
+			},
+			today,
+		)
+		if (
+			!calendarOverdue &&
+			!canConfirmPaymentReceiptWithinPeriod(payment, today)
+		) {
 			return {
 				error: `${ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE}:${payment.paymentId}`,
 			}
@@ -1851,6 +1875,7 @@ export async function confirmPaymentReceipts(
 	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/payments/overdue')
 	revalidatePath('/equipo/credits')
 	for (const creditId of uniqueCreditIds) {
 		revalidatePath(`/equipo/credits/${creditId}`)
@@ -1940,6 +1965,15 @@ export async function confirmPaymentReceiptsFromCsv(
 	const todayCsv = new Date()
 	const toConfirm = authorized.filter((r) => {
 		if (!canConfirmReceipt(r)) return false
+		const calendarOverdue = isCalendarOverduePaymentReceiptFromDb(
+			{
+				hrConfirmedAt: r.hrConfirmedAt,
+				paymentsConfirmedAt: r.paymentsConfirmedAt,
+				dueDate: r.dueDate,
+			},
+			todayCsv,
+		)
+		if (calendarOverdue) return true
 		return canConfirmPaymentReceiptWithinPeriod(
 			{
 				hrConfirmedAt: r.hrConfirmedAt,
@@ -1986,6 +2020,7 @@ export async function confirmPaymentReceiptsFromCsv(
 	)
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/payments/overdue')
 	revalidatePath('/cuenta/credits')
 
 	return {

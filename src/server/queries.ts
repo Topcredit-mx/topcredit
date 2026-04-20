@@ -1290,6 +1290,15 @@ export async function getInstallmentsForQueue(params: {
 				)`
 			: sql``
 
+	const paymentsExcludeCalendarOverdueReceipt: SQL =
+		queue === 'payments'
+			? sql`AND NOT (
+				cp.hr_confirmed_at IS NOT NULL
+				AND cp.payments_confirmed_at IS NULL
+				AND (cp.due_date)::date < CURRENT_DATE
+			)`
+			: sql``
+
 	// DISTINCT ON (credit_id) returns one row per credit — the earliest due date
 	// that still needs action. The ORDER BY must begin with the DISTINCT ON column.
 	const rows = await db.execute(sql`
@@ -1310,8 +1319,96 @@ export async function getInstallmentsForQueue(params: {
 		INNER JOIN applications a ON cr.application_id = a.id
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
-		WHERE ${companyCondition} AND ${statusCondition} ${dateCondition}
+		WHERE ${companyCondition} AND ${statusCondition} ${dateCondition} ${paymentsExcludeCalendarOverdueReceipt}
 		ORDER BY cp.credit_id, cp.due_date ASC
+	`)
+
+	const today = new Date()
+	return rows.rows.map((row) => {
+		const r = row
+		const employeeSalaryFrequency = employeeSalaryFrequencyFromDb(
+			r.company_salary_frequency,
+		)
+		const nextDeductionDate = getUpcomingDeductionDate(
+			employeeSalaryFrequency,
+			today,
+		)
+			.toISOString()
+			.slice(0, 10)
+		return {
+			id: Number(r.id),
+			creditId: Number(r.credit_id),
+			dueDate:
+				r.due_date instanceof Date
+					? r.due_date.toISOString()
+					: String(r.due_date),
+			amount: String(r.amount),
+			hrConfirmedAt:
+				r.hr_confirmed_at instanceof Date
+					? r.hr_confirmed_at.toISOString()
+					: r.hr_confirmed_at != null
+						? String(r.hr_confirmed_at)
+						: null,
+			paymentsConfirmedAt:
+				r.payments_confirmed_at instanceof Date
+					? r.payments_confirmed_at.toISOString()
+					: r.payments_confirmed_at != null
+						? String(r.payments_confirmed_at)
+						: null,
+			employeeName: String(r.employee_name),
+			payrollNumber: r.payroll_number != null ? String(r.payroll_number) : null,
+			companyName: String(r.company_name),
+			companyId: Number(r.company_id),
+			employeeSalaryFrequency,
+			nextDeductionDate,
+		}
+	})
+}
+
+export async function getOverduePaymentReceiptInstallments(params: {
+	scope: CompanyScope
+}): Promise<InstallmentForQueue[]> {
+	const { scope } = params
+	const { ability } = await getAbility()
+
+	let companyCondition: SQL
+	if (scope.type === 'single') {
+		requireAbility(ability, 'read', subject('Company', { id: scope.companyId }))
+		companyCondition = sql`a.company_id = ${scope.companyId}`
+	} else if (scope.type === 'multi') {
+		if (scope.companyIds.length === 0) return []
+		const firstId = scope.companyIds[0]
+		if (firstId === undefined) return []
+		requireAbility(ability, 'read', subject('Company', { id: firstId }))
+		companyCondition = sql`a.company_id = ANY(${scope.companyIds})`
+	} else {
+		requireAbility(ability, 'read', 'Admin')
+		companyCondition = sql`1=1`
+	}
+
+	const rows = await db.execute(sql`
+		SELECT
+			cp.id,
+			cp.credit_id,
+			cp.due_date,
+			cp.amount,
+			cp.hr_confirmed_at,
+			cp.payments_confirmed_at,
+			u.name AS employee_name,
+			a.payroll_number,
+			co.name AS company_name,
+			a.company_id,
+			co.employee_salary_frequency AS company_salary_frequency
+		FROM credit_payments cp
+		INNER JOIN credits cr ON cp.credit_id = cr.id
+		INNER JOIN applications a ON cr.application_id = a.id
+		INNER JOIN users u ON a.applicant_id = u.id
+		INNER JOIN companies co ON a.company_id = co.id
+		WHERE ${companyCondition}
+		  AND cp.hr_confirmed_at IS NOT NULL
+		  AND cp.payments_confirmed_at IS NULL
+		  AND (cp.due_date)::date < CURRENT_DATE
+		ORDER BY cp.due_date ASC, cp.id ASC
 	`)
 
 	const today = new Date()
@@ -1518,6 +1615,23 @@ export async function getOverdueDeductionsCount(
 		WHERE a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
 		  AND cp.due_date < CURRENT_DATE
+	`)
+	const row = result.rows[0]
+	return row ? Number(row.count) : 0
+}
+
+export async function getOverduePaymentReceiptsCount(
+	companyId: number,
+): Promise<number> {
+	const result = await db.execute(sql`
+		SELECT COUNT(*)::int AS count
+		FROM credit_payments cp
+		INNER JOIN credits cr ON cp.credit_id = cr.id
+		INNER JOIN applications a ON cr.application_id = a.id
+		WHERE a.company_id = ${companyId}
+		  AND cp.hr_confirmed_at IS NOT NULL
+		  AND cp.payments_confirmed_at IS NULL
+		  AND (cp.due_date)::date < CURRENT_DATE
 	`)
 	const row = result.rows[0]
 	return row ? Number(row.count) : 0

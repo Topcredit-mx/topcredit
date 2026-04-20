@@ -60,6 +60,47 @@ export function canConfirmReceiptQueueInstallment(
 	})
 }
 
+function utcDateOnlyString(d: Date): string {
+	return d.toISOString().slice(0, 10)
+}
+
+function parseDueDateDay(value: string): string | null {
+	if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+	const parsed = new Date(value)
+	if (Number.isNaN(parsed.getTime())) return null
+	return utcDateOnlyString(parsed)
+}
+
+export function isDueDateBeforeToday(
+	dueDateIsoOrDay: string,
+	today: Date,
+): boolean {
+	const dueDay = parseDueDateDay(dueDateIsoOrDay)
+	if (dueDay === null) return false
+	return dueDay < utcDateOnlyString(today)
+}
+
+export function isCalendarOverduePaymentReceiptFromDb(
+	p: PaymentTimestamps & { dueDate: Date },
+	today: Date,
+): boolean {
+	if (!canConfirmReceipt(p)) return false
+	return isDueDateBeforeToday(p.dueDate.toISOString(), today)
+}
+
+export type CalendarOverduePaymentReceiptRow =
+	QueueInstallmentReceiptTimestamps & {
+		dueDate: string
+	}
+
+export function isCalendarOverduePaymentReceiptInstallment(
+	row: CalendarOverduePaymentReceiptRow,
+	today: Date,
+): boolean {
+	if (!canConfirmReceiptQueueInstallment(row)) return false
+	return isDueDateBeforeToday(row.dueDate, today)
+}
+
 export function isFullyConfirmed(p: PaymentTimestamps): boolean {
 	return p.hrConfirmedAt !== null && p.paymentsConfirmedAt !== null
 }

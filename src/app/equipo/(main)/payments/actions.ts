@@ -1,7 +1,10 @@
 'use server'
 
 import { formatPendingPaymentReceiptsCsv } from '~/lib/format-pending-payment-receipts-csv'
-import { canConfirmReceiptQueueInstallment } from '~/lib/payment-confirmation'
+import {
+	canConfirmReceiptQueueInstallment,
+	isCalendarOverduePaymentReceiptInstallment,
+} from '~/lib/payment-confirmation'
 import { getAbility, subject } from '~/server/auth/ability'
 import {
 	confirmPaymentReceipt,
@@ -115,8 +118,18 @@ export async function exportPendingPaymentReceiptsCsvAction(): Promise<
 		scope,
 		queue: 'payments',
 	})
-	const pendingReceipt = installments.filter((row) =>
-		canConfirmReceiptQueueInstallment(row),
+	const today = new Date()
+	const pendingReceipt = installments.filter(
+		(row) =>
+			canConfirmReceiptQueueInstallment(row) &&
+			!isCalendarOverduePaymentReceiptInstallment(
+				{
+					dueDate: row.dueDate,
+					hrConfirmedAt: row.hrConfirmedAt,
+					paymentsConfirmedAt: row.paymentsConfirmedAt,
+				},
+				today,
+			),
 	)
 
 	return { csv: formatPendingPaymentReceiptsCsv(pendingReceipt) }

@@ -42,6 +42,7 @@ interface AgentSidebarProps {
 	companies: CompanyForSwitcher[]
 	selectedCompanyId: number | null
 	overdueDeductionsCount?: number
+	overduePaymentReceiptsCount?: number
 }
 
 export function AgentSidebar({
@@ -49,6 +50,7 @@ export function AgentSidebar({
 	companies,
 	selectedCompanyId,
 	overdueDeductionsCount = 0,
+	overduePaymentReceiptsCount = 0,
 }: AgentSidebarProps) {
 	const t = useTranslations('equipo')
 	const isAdmin = user.roles?.includes('admin')
@@ -94,6 +96,10 @@ export function AgentSidebar({
 							title: t('nav-payments-overdue'),
 							url: '/equipo/payments/overdue',
 							icon: TriangleAlert,
+							badge:
+								overduePaymentReceiptsCount > 0
+									? overduePaymentReceiptsCount
+									: undefined,
 						},
 					],
 				},
@@ -186,6 +192,10 @@ export function AgentSidebar({
 										title: t('nav-payments-overdue'),
 										url: '/equipo/payments/overdue',
 										icon: TriangleAlert,
+										badge:
+											overduePaymentReceiptsCount > 0
+												? overduePaymentReceiptsCount
+												: undefined,
 									},
 								],
 							},

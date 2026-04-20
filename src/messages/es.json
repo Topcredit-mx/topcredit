@@ -18,7 +18,8 @@
 		"equipo-deductions-history": "Historial",
 		"equipo-deductions-overdue": "Retrasos",
 		"equipo-payments": "Pagos",
-		"equipo-payments-history": "Historial"
+		"equipo-payments-history": "Historial",
+		"equipo-payments-overdue": "Retrasos"
 	},
 	"common": {
 		"save": "Guardar",
@@ -702,7 +703,14 @@
 		"payments-receipt-history-back": "Volver a pagos",
 		"payments-receipt-history-col-confirmed-at": "Confirmado el",
 		"payments-receipt-history-col-timing": "Puntualidad",
-		"payments-overdue-placeholder": "Retrasos de pagos — próximamente."
+		"payments-overdue-title": "Recepciones atrasadas",
+		"payments-overdue-subtitle": "Cuotas con fecha de pago vencida y deducción RH confirmada, pendientes de confirmar recepción",
+		"payments-overdue-empty": "No hay recepciones atrasadas",
+		"payments-overdue-empty-no-company-title": "Selecciona una empresa",
+		"payments-overdue-empty-no-company-description": "Usa el selector de empresa en la barra lateral para ver las recepciones atrasadas de una empresa.",
+		"payments-overdue-col-amount-due": "Monto adeudado",
+		"payments-overdue-col-overdue-since": "Atrasado desde",
+		"payments-overdue-back": "Volver a pagos"
 	},
 	"cuenta": {
 		"title": "Mi Cuenta",
