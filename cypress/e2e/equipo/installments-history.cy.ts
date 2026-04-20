@@ -121,13 +121,6 @@ describe('Installments confirmation history', () => {
 			cy.contains(seed.applicant1Name).should('be.visible')
 			cy.contains(seed.applicant2Name).should('be.visible')
 		})
-
-		it('shows a back link to the installments page', () => {
-			cy.visit('/equipo/installments/history')
-			cy.get('main a[href="/equipo/installments"]')
-				.scrollIntoView()
-				.should('be.visible')
-		})
 	})
 
 	describe('Non-payments agent cannot access installments history', () => {

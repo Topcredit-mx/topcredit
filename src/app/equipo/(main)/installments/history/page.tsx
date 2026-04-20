@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { getAbility, subject } from '~/server/auth/ability'
@@ -30,14 +29,6 @@ export default async function InstallmentsHistoryPage() {
 
 	return (
 		<div className="container mx-auto py-6">
-			<div className="mb-6">
-				<Link
-					href="/equipo/installments"
-					className="text-muted-foreground text-sm hover:underline"
-				>
-					{t('installments-history-back')}
-				</Link>
-			</div>
 			{historyItems.length === 0 ? (
 				<p className="text-center text-muted-foreground text-sm">
 					{t('installments-history-full-empty')}
