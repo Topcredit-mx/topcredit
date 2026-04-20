@@ -3174,6 +3174,10 @@ export const cleanupDeductionsQueue = async () => {
 // Payments queue (Payments role confirms receipt)
 // ──────────────────────────────────────────────────────────────────────────────
 
+function endOfCurrentMonthUTC(now: Date): Date {
+	return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
+}
+
 export type SeedPaymentsQueueResult = {
 	companyId: number
 	expectedRowCount: number
@@ -3287,10 +3291,7 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 
 	const applicant1 = findUser('applicant@paymentsqueue.com')
 	const applicant2 = findUser('applicant2@paymentsqueue.com')
-	// End of next month in UTC — correct for monthly salary frequency
-	const firstDiscountDate = new Date(
-		Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 0),
-	)
+	const firstDiscountDate = endOfCurrentMonthUTC(now)
 	const creditAmount1 = '40000.00'
 	const creditAmount2 = '30000.00'
 
@@ -3624,9 +3625,7 @@ export const seedPaymentsQueueTwentyPendingReceipts =
 		const paymentsAgent = findUser(paymentsBulkPaymentsAgent.email)
 		const hrAgent = findUser(paymentsBulkHrAgent.email)
 
-		const firstDiscountDate = new Date(
-			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 0),
-		)
+		const firstDiscountDate = endOfCurrentMonthUTC(now)
 		const creditAmount = '12000.00'
 
 		for (let i = 0; i < paymentsBulkApplicants.length; i++) {
