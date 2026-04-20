@@ -8,7 +8,7 @@ import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
 import {
 	getOverdueDeductionsCount,
-	getOverduePaymentReceiptsCount,
+	getOverduePaymentsCount,
 } from '~/server/queries'
 import {
 	getCompaniesForSwitcher,
@@ -42,7 +42,7 @@ export default async function AppMainLayout({
 
 	const overduePaymentReceiptsCount =
 		hasPaymentsAccess && selectedCompanyId !== null
-			? await getOverduePaymentReceiptsCount(selectedCompanyId)
+			? await getOverduePaymentsCount(selectedCompanyId)
 			: 0
 
 	const showNoAssignmentsEmpty = !isAdmin && companies.length === 0

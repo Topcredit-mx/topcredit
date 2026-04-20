@@ -1290,12 +1290,14 @@ export async function getInstallmentsForQueue(params: {
 				)`
 			: sql``
 
-	const paymentsExcludeCalendarOverdueReceipt: SQL =
+	const paymentsExcludeOverdue: SQL =
 		queue === 'payments'
 			? sql`AND NOT (
-				cp.hr_confirmed_at IS NOT NULL
-				AND cp.payments_confirmed_at IS NULL
-				AND (cp.due_date)::date < CURRENT_DATE
+				(cp.due_date)::date < CURRENT_DATE
+				AND (
+					cp.hr_confirmed_at IS NULL
+					OR cp.payments_confirmed_at IS NULL
+				)
 			)`
 			: sql``
 
@@ -1319,7 +1321,7 @@ export async function getInstallmentsForQueue(params: {
 		INNER JOIN applications a ON cr.application_id = a.id
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
-		WHERE ${companyCondition} AND ${statusCondition} ${dateCondition} ${paymentsExcludeCalendarOverdueReceipt}
+		WHERE ${companyCondition} AND ${statusCondition} ${dateCondition} ${paymentsExcludeOverdue}
 		ORDER BY cp.credit_id, cp.due_date ASC
 	`)
 
@@ -1365,9 +1367,13 @@ export async function getInstallmentsForQueue(params: {
 	})
 }
 
-export async function getOverduePaymentReceiptInstallments(params: {
+export type OverduePaymentsInstallment = InstallmentForQueue & {
+	blockingParty: 'hr' | 'payments'
+}
+
+export async function getOverduePaymentsInstallments(params: {
 	scope: CompanyScope
-}): Promise<InstallmentForQueue[]> {
+}): Promise<OverduePaymentsInstallment[]> {
 	const { scope } = params
 	const { ability } = await getAbility()
 
@@ -1398,16 +1404,19 @@ export async function getOverduePaymentReceiptInstallments(params: {
 			a.payroll_number,
 			co.name AS company_name,
 			a.company_id,
-			co.employee_salary_frequency AS company_salary_frequency
+			co.employee_salary_frequency AS company_salary_frequency,
+			CASE WHEN cp.hr_confirmed_at IS NULL THEN 'hr' ELSE 'payments' END AS blocking_party
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE ${companyCondition}
-		  AND cp.hr_confirmed_at IS NOT NULL
-		  AND cp.payments_confirmed_at IS NULL
 		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND (
+				cp.hr_confirmed_at IS NULL
+				OR cp.payments_confirmed_at IS NULL
+			)
 		ORDER BY cp.due_date ASC, cp.id ASC
 	`)
 
@@ -1423,6 +1432,9 @@ export async function getOverduePaymentReceiptInstallments(params: {
 		)
 			.toISOString()
 			.slice(0, 10)
+		const blockingRaw = String(r.blocking_party)
+		const blockingParty: 'hr' | 'payments' =
+			blockingRaw === 'hr' ? 'hr' : 'payments'
 		return {
 			id: Number(r.id),
 			creditId: Number(r.credit_id),
@@ -1449,6 +1461,7 @@ export async function getOverduePaymentReceiptInstallments(params: {
 			companyId: Number(r.company_id),
 			employeeSalaryFrequency,
 			nextDeductionDate,
+			blockingParty,
 		}
 	})
 }
@@ -1620,7 +1633,7 @@ export async function getOverdueDeductionsCount(
 	return row ? Number(row.count) : 0
 }
 
-export async function getOverduePaymentReceiptsCount(
+export async function getOverduePaymentsCount(
 	companyId: number,
 ): Promise<number> {
 	const result = await db.execute(sql`
@@ -1629,9 +1642,11 @@ export async function getOverduePaymentReceiptsCount(
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE a.company_id = ${companyId}
-		  AND cp.hr_confirmed_at IS NOT NULL
-		  AND cp.payments_confirmed_at IS NULL
 		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND (
+				cp.hr_confirmed_at IS NULL
+				OR cp.payments_confirmed_at IS NULL
+			)
 	`)
 	const row = result.rows[0]
 	return row ? Number(row.count) : 0

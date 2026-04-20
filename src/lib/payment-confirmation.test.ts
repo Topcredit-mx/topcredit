@@ -7,8 +7,8 @@ import {
 	canConfirmReceiptQueueInstallment,
 	canHrConfirm,
 	isFullyConfirmed,
-	isCalendarOverduePaymentReceiptFromDb,
-	isCalendarOverduePaymentReceiptInstallment,
+	isPaymentsOverdueFromDb,
+	isPaymentsOverdueQueueInstallment,
 	parseCsvPaymentConfirmations,
 } from './payment-confirmation'
 
@@ -143,12 +143,12 @@ describe('canConfirmReceiptQueueInstallment', () => {
 	})
 })
 
-describe('isCalendarOverduePaymentReceiptInstallment', () => {
+describe('isPaymentsOverdueQueueInstallment', () => {
 	const today = new Date('2026-01-20T12:00:00.000Z')
 
-	test('returns false when HR has not confirmed', () => {
+	test('returns true when due date is before today and HR has not confirmed', () => {
 		assert.equal(
-			isCalendarOverduePaymentReceiptInstallment(
+			isPaymentsOverdueQueueInstallment(
 				{
 					dueDate: '2025-12-31T12:00:00.000Z',
 					hrConfirmedAt: null,
@@ -156,13 +156,13 @@ describe('isCalendarOverduePaymentReceiptInstallment', () => {
 				},
 				today,
 			),
-			false,
+			true,
 		)
 	})
 
 	test('returns false when due date is not before today', () => {
 		assert.equal(
-			isCalendarOverduePaymentReceiptInstallment(
+			isPaymentsOverdueQueueInstallment(
 				{
 					dueDate: '2026-01-31T12:00:00.000Z',
 					hrConfirmedAt: '2026-01-10T12:00:00.000Z',
@@ -176,7 +176,7 @@ describe('isCalendarOverduePaymentReceiptInstallment', () => {
 
 	test('returns true when HR confirmed, receipt pending, and due date is before today', () => {
 		assert.equal(
-			isCalendarOverduePaymentReceiptInstallment(
+			isPaymentsOverdueQueueInstallment(
 				{
 					dueDate: '2025-12-31T12:00:00.000Z',
 					hrConfirmedAt: '2026-01-01T12:00:00.000Z',
@@ -187,14 +187,28 @@ describe('isCalendarOverduePaymentReceiptInstallment', () => {
 			true,
 		)
 	})
+
+	test('returns false when both HR and payments are confirmed', () => {
+		assert.equal(
+			isPaymentsOverdueQueueInstallment(
+				{
+					dueDate: '2025-12-31T12:00:00.000Z',
+					hrConfirmedAt: '2026-01-01T12:00:00.000Z',
+					paymentsConfirmedAt: '2026-01-02T12:00:00.000Z',
+				},
+				today,
+			),
+			false,
+		)
+	})
 })
 
-describe('isCalendarOverduePaymentReceiptFromDb', () => {
+describe('isPaymentsOverdueFromDb', () => {
 	const today = new Date('2026-01-20T12:00:00.000Z')
 
-	test('returns true when timestamps and due date match calendar overdue', () => {
+	test('returns true when HR confirmed, receipt pending, and due is before today', () => {
 		assert.equal(
-			isCalendarOverduePaymentReceiptFromDb(
+			isPaymentsOverdueFromDb(
 				{
 					hrConfirmedAt: new Date('2026-01-01T12:00:00.000Z'),
 					paymentsConfirmedAt: null,
@@ -206,13 +220,41 @@ describe('isCalendarOverduePaymentReceiptFromDb', () => {
 		)
 	})
 
+	test('returns true when HR pending and due is before today', () => {
+		assert.equal(
+			isPaymentsOverdueFromDb(
+				{
+					hrConfirmedAt: null,
+					paymentsConfirmedAt: null,
+					dueDate: new Date('2025-12-31T12:00:00.000Z'),
+				},
+				today,
+			),
+			true,
+		)
+	})
+
 	test('returns false when due date is today or later', () => {
 		assert.equal(
-			isCalendarOverduePaymentReceiptFromDb(
+			isPaymentsOverdueFromDb(
 				{
 					hrConfirmedAt: new Date('2026-01-01T12:00:00.000Z'),
 					paymentsConfirmedAt: null,
 					dueDate: new Date('2026-01-20T12:00:00.000Z'),
+				},
+				today,
+			),
+			false,
+		)
+	})
+
+	test('returns false when both confirmations are set', () => {
+		assert.equal(
+			isPaymentsOverdueFromDb(
+				{
+					hrConfirmedAt: new Date('2026-01-01T12:00:00.000Z'),
+					paymentsConfirmedAt: new Date('2026-01-02T12:00:00.000Z'),
+					dueDate: new Date('2025-12-31T12:00:00.000Z'),
 				},
 				today,
 			),

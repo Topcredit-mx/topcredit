@@ -12,14 +12,22 @@ import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
-import type { InstallmentForQueue } from '~/server/queries'
+import type { OverduePaymentsInstallment } from '~/server/queries'
 import { confirmPaymentReceiptAction } from '../actions'
 
-function OverdueReceiptActionsCell({ row }: { row: InstallmentForQueue }) {
+function OverdueReceiptActionsCell({
+	row,
+}: {
+	row: OverduePaymentsInstallment
+}) {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
+
+	if (row.blockingParty !== 'payments') {
+		return <span className="text-muted-foreground text-sm">—</span>
+	}
 
 	return (
 		<Button
@@ -43,7 +51,7 @@ function OverdueReceiptActionsCell({ row }: { row: InstallmentForQueue }) {
 	)
 }
 
-export function useOverduePaymentReceiptsColumns(): ColumnDef<InstallmentForQueue>[] {
+export function useOverduePaymentsColumns(): ColumnDef<OverduePaymentsInstallment>[] {
 	const t = useTranslations('equipo')
 
 	return [
@@ -122,6 +130,23 @@ export function useOverduePaymentReceiptsColumns(): ColumnDef<InstallmentForQueu
 					{row.getValue('companyName')}
 				</div>
 			),
+		},
+		{
+			id: 'blockingParty',
+			header: ({ column }) => (
+				<DataTableColumnHeader
+					column={column}
+					title={t('payments-overdue-col-blocking')}
+				/>
+			),
+			cell: ({ row }) => (
+				<div className="text-muted-foreground text-sm">
+					{row.original.blockingParty === 'hr'
+						? t('payments-overdue-blocking-hr')
+						: t('payments-overdue-blocking-payments')}
+				</div>
+			),
+			enableSorting: false,
 		},
 		{
 			accessorKey: 'amount',

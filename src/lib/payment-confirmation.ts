@@ -80,25 +80,33 @@ export function isDueDateBeforeToday(
 	return dueDay < utcDateOnlyString(today)
 }
 
-export function isCalendarOverduePaymentReceiptFromDb(
+function queueRowFullyConfirmed(
+	row: QueueInstallmentReceiptTimestamps,
+): boolean {
+	return (
+		parseIsoDateString(row.hrConfirmedAt) !== null &&
+		parseIsoDateString(row.paymentsConfirmedAt) !== null
+	)
+}
+
+export type PaymentsOverdueQueueRow = QueueInstallmentReceiptTimestamps & {
+	dueDate: string
+}
+
+export function isPaymentsOverdueQueueInstallment(
+	row: PaymentsOverdueQueueRow,
+	today: Date,
+): boolean {
+	if (queueRowFullyConfirmed(row)) return false
+	return isDueDateBeforeToday(row.dueDate, today)
+}
+
+export function isPaymentsOverdueFromDb(
 	p: PaymentTimestamps & { dueDate: Date },
 	today: Date,
 ): boolean {
-	if (!canConfirmReceipt(p)) return false
+	if (p.hrConfirmedAt !== null && p.paymentsConfirmedAt !== null) return false
 	return isDueDateBeforeToday(p.dueDate.toISOString(), today)
-}
-
-export type CalendarOverduePaymentReceiptRow =
-	QueueInstallmentReceiptTimestamps & {
-		dueDate: string
-	}
-
-export function isCalendarOverduePaymentReceiptInstallment(
-	row: CalendarOverduePaymentReceiptRow,
-	today: Date,
-): boolean {
-	if (!canConfirmReceiptQueueInstallment(row)) return false
-	return isDueDateBeforeToday(row.dueDate, today)
 }
 
 export function isFullyConfirmed(p: PaymentTimestamps): boolean {

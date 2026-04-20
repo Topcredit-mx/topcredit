@@ -703,14 +703,17 @@
 		"payments-receipt-history-back": "Volver a pagos",
 		"payments-receipt-history-col-confirmed-at": "Confirmado el",
 		"payments-receipt-history-col-timing": "Puntualidad",
-		"payments-overdue-title": "Recepciones atrasadas",
-		"payments-overdue-subtitle": "Cuotas con fecha de pago vencida y deducción RH confirmada, pendientes de confirmar recepción",
-		"payments-overdue-empty": "No hay recepciones atrasadas",
+		"payments-overdue-title": "Pagos atrasados",
+		"payments-overdue-subtitle": "Cuotas con fecha de pago vencida y confirmación incompleta (RH y/o recepción de Pagos)",
+		"payments-overdue-empty": "No hay pagos atrasados",
 		"payments-overdue-empty-no-company-title": "Selecciona una empresa",
-		"payments-overdue-empty-no-company-description": "Usa el selector de empresa en la barra lateral para ver las recepciones atrasadas de una empresa.",
+		"payments-overdue-empty-no-company-description": "Usa el selector de empresa en la barra lateral para ver los pagos atrasados de una empresa.",
 		"payments-overdue-col-amount-due": "Monto adeudado",
 		"payments-overdue-col-overdue-since": "Atrasado desde",
-		"payments-overdue-back": "Volver a pagos"
+		"payments-overdue-back": "Volver a pagos",
+		"payments-overdue-col-blocking": "Pendiente por",
+		"payments-overdue-blocking-hr": "RH",
+		"payments-overdue-blocking-payments": "Pagos"
 	},
 	"cuenta": {
 		"title": "Mi Cuenta",

@@ -5,7 +5,7 @@ import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
-import { getOverduePaymentReceiptInstallments } from '~/server/queries'
+import { getOverduePaymentsInstallments } from '~/server/queries'
 import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
@@ -54,7 +54,7 @@ export default async function PaymentsOverdueReceiptsPage() {
 	}
 
 	const scope = await getEffectiveCompanyScope()
-	const installments = await getOverduePaymentReceiptInstallments({ scope })
+	const installments = await getOverduePaymentsInstallments({ scope })
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">

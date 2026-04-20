@@ -3,7 +3,7 @@
 import { formatPendingPaymentReceiptsCsv } from '~/lib/format-pending-payment-receipts-csv'
 import {
 	canConfirmReceiptQueueInstallment,
-	isCalendarOverduePaymentReceiptInstallment,
+	isPaymentsOverdueQueueInstallment,
 } from '~/lib/payment-confirmation'
 import { getAbility, subject } from '~/server/auth/ability'
 import {
@@ -122,7 +122,7 @@ export async function exportPendingPaymentReceiptsCsvAction(): Promise<
 	const pendingReceipt = installments.filter(
 		(row) =>
 			canConfirmReceiptQueueInstallment(row) &&
-			!isCalendarOverduePaymentReceiptInstallment(
+			!isPaymentsOverdueQueueInstallment(
 				{
 					dueDate: row.dueDate,
 					hrConfirmedAt: row.hrConfirmedAt,

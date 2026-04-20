@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import { useDataTable } from '~/components/ui/data-table'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
-import type { InstallmentForQueue } from '~/server/queries'
+import type { OverduePaymentsInstallment } from '~/server/queries'
 import { confirmPaymentReceiptsAction } from '../actions'
 
 export function OverduePaymentReceiptsBulkBar() {
@@ -16,7 +16,7 @@ export function OverduePaymentReceiptsBulkBar() {
 	const router = useRouter()
 	const [isConfirmPending, startConfirmTransition] = useTransition()
 
-	const { table } = useDataTable<InstallmentForQueue>()
+	const { table } = useDataTable<OverduePaymentsInstallment>()
 	const selectedRows = table.getFilteredSelectedRowModel().rows
 	const count = selectedRows.length
 

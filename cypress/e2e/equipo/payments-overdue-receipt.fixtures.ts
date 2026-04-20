@@ -22,11 +22,18 @@ export const applicantOverdueReceipt = {
 	roles: ['applicant'] as const,
 }
 
+export const applicantOverdueReceiptHrPending = {
+	name: 'Applicant Overdue HR Pending',
+	email: 'applicant.overdue.hr@paymentsoverduereceipt.com',
+	roles: ['applicant'] as const,
+}
+
 export const allPaymentsOverdueReceiptUsers = [
 	paymentsOverdueReceiptAgent,
 	hrOverdueReceiptAgent,
 	nonPaymentsOverdueReceiptAgent,
 	applicantOverdueReceipt,
+	applicantOverdueReceiptHrPending,
 ]
 
 export const paymentsOverdueReceiptCompany = {

@@ -95,12 +95,6 @@ import {
 } from '~/cypress/e2e/equipo/disbursement-agents.fixtures'
 import { allHrUsers, hrCompany } from '~/cypress/e2e/equipo/hr-agents.fixtures'
 import {
-	allPaymentsOverdueReceiptUsers,
-	applicantOverdueReceipt,
-	hrOverdueReceiptAgent,
-	paymentsOverdueReceiptCompany,
-} from '~/cypress/e2e/equipo/payments-overdue-receipt.fixtures'
-import {
 	allPaymentsQueueUsers,
 	hrAgentPaymentsQueue,
 	paymentsAgentQueue,
@@ -113,6 +107,13 @@ import {
 	paymentsBulkPaymentsAgent,
 	paymentsBulkQueueCompany,
 } from '~/cypress/e2e/equipo/payments-bulk-queue.fixtures'
+import {
+	allPaymentsOverdueReceiptUsers,
+	applicantOverdueReceipt,
+	applicantOverdueReceiptHrPending,
+	hrOverdueReceiptAgent,
+	paymentsOverdueReceiptCompany,
+} from '~/cypress/e2e/equipo/payments-overdue-receipt.fixtures'
 import {
 	allNavAgents,
 	navCompany,
@@ -3529,9 +3530,12 @@ export const cleanupPaymentsQueue = async () => {
 
 export type SeedPaymentsOverdueReceiptResult = {
 	companyId: number
-	applicantName: string
-	payrollNumber: string
-	overdueInstallmentCount: number
+	applicantPaymentsBlockedName: string
+	applicantHrBlockedName: string
+	payrollPaymentsBlocked: string
+	payrollHrBlocked: string
+	totalOverdueRowCount: number
+	paymentsBulkConfirmableCount: number
 }
 
 export const seedPaymentsOverdueReceipt =
@@ -3578,7 +3582,9 @@ export const seedPaymentsOverdueReceipt =
 		const findUser = (email: string) => {
 			const u = createdUsers.find((r) => r.email === email)
 			if (!u)
-				throw new Error(`Seed Payments Overdue Receipt: user ${email} not found`)
+				throw new Error(
+					`Seed Payments Overdue Receipt: user ${email} not found`,
+				)
 			return u
 		}
 
@@ -3587,7 +3593,8 @@ export const seedPaymentsOverdueReceipt =
 			.values({ durationType: 'monthly', duration: 4 })
 			.returning()
 
-		if (!term) throw new Error('Seed Payments Overdue Receipt: term not created')
+		if (!term)
+			throw new Error('Seed Payments Overdue Receipt: term not created')
 
 		const [offering] = await db
 			.insert(termOfferings)
@@ -3625,15 +3632,16 @@ export const seedPaymentsOverdueReceipt =
 			}),
 		)
 
-		const applicant = findUser(applicantOverdueReceipt.email)
+		const applicantPayments = findUser(applicantOverdueReceipt.email)
+		const applicantHrPending = findUser(applicantOverdueReceiptHrPending.email)
 		const hrAgent = findUser(hrOverdueReceiptAgent.email)
 		const firstDiscountDate = new Date(Date.UTC(2019, 0, 31))
 		const creditAmount = '20000.00'
 
-		const [app] = await db
+		const [appPayments] = await db
 			.insert(applications)
 			.values({
-				applicantId: applicant.id,
+				applicantId: applicantPayments.id,
 				companyId: company.id,
 				termOfferingId: offering.id,
 				creditAmount,
@@ -3641,26 +3649,32 @@ export const seedPaymentsOverdueReceipt =
 				salaryFrequency: paymentsOverdueReceiptCompany.employeeSalaryFrequency,
 				status: 'disbursed' as const,
 				firstDiscountDate,
-				payrollNumber: 'OVERDUE-RCPT-01',
+				payrollNumber: 'OVERDUE-PAY-01',
 			})
 			.returning()
 
-		if (!app) throw new Error('Seed Payments Overdue Receipt: application not created')
+		if (!appPayments)
+			throw new Error(
+				'Seed Payments Overdue Receipt: application (payments) not created',
+			)
 
-		const [credit] = await db
+		const [creditPaymentsBlocked] = await db
 			.insert(credits)
 			.values({
-				applicationId: app.id,
+				applicationId: appPayments.id,
 				status: 'dispersed',
 				disbursementDate: new Date(Date.UTC(2019, 0, 1)),
 				transferAmount: creditAmount,
-				disbursedByUserId: applicant.id,
+				disbursedByUserId: applicantPayments.id,
 			})
 			.returning()
 
-		if (!credit) throw new Error('Seed Payments Overdue Receipt: credit not created')
+		if (!creditPaymentsBlocked)
+			throw new Error(
+				'Seed Payments Overdue Receipt: credit (payments) not created',
+			)
 
-		const schedule = generatePaymentSchedule({
+		const schedulePayments = generatePaymentSchedule({
 			loanPrincipal: Number(creditAmount),
 			rate: Number(paymentsOverdueReceiptCompany.rate),
 			totalPayments: 2,
@@ -3670,8 +3684,8 @@ export const seedPaymentsOverdueReceipt =
 
 		const hrAt = new Date(Date.UTC(2019, 1, 5))
 		await db.insert(creditPayments).values(
-			schedule.map((entry) => ({
-				creditId: credit.id,
+			schedulePayments.map((entry) => ({
+				creditId: creditPaymentsBlocked.id,
 				dueDate: entry.dueDate,
 				amount: entry.amount,
 				hrConfirmedAt: hrAt,
@@ -3679,11 +3693,66 @@ export const seedPaymentsOverdueReceipt =
 			})),
 		)
 
+		const [appHr] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantHrPending.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount,
+				salaryAtApplication: '24000',
+				salaryFrequency: paymentsOverdueReceiptCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate,
+				payrollNumber: 'OVERDUE-HR-01',
+			})
+			.returning()
+
+		if (!appHr)
+			throw new Error(
+				'Seed Payments Overdue Receipt: application (hr pending) not created',
+			)
+
+		const [creditHrBlocked] = await db
+			.insert(credits)
+			.values({
+				applicationId: appHr.id,
+				status: 'dispersed',
+				disbursementDate: new Date(Date.UTC(2019, 0, 1)),
+				transferAmount: creditAmount,
+				disbursedByUserId: applicantHrPending.id,
+			})
+			.returning()
+
+		if (!creditHrBlocked)
+			throw new Error(
+				'Seed Payments Overdue Receipt: credit (hr pending) not created',
+			)
+
+		const scheduleHr = generatePaymentSchedule({
+			loanPrincipal: Number(creditAmount),
+			rate: Number(paymentsOverdueReceiptCompany.rate),
+			totalPayments: 2,
+			frequency: paymentsOverdueReceiptCompany.employeeSalaryFrequency,
+			firstDiscountDate,
+		})
+
+		await db.insert(creditPayments).values(
+			scheduleHr.map((entry) => ({
+				creditId: creditHrBlocked.id,
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+			})),
+		)
+
 		return {
 			companyId: company.id,
-			applicantName: applicant.name ?? '',
-			payrollNumber: 'OVERDUE-RCPT-01',
-			overdueInstallmentCount: schedule.length,
+			applicantPaymentsBlockedName: applicantPayments.name ?? '',
+			applicantHrBlockedName: applicantHrPending.name ?? '',
+			payrollPaymentsBlocked: 'OVERDUE-PAY-01',
+			payrollHrBlocked: 'OVERDUE-HR-01',
+			totalOverdueRowCount: schedulePayments.length + scheduleHr.length,
+			paymentsBulkConfirmableCount: schedulePayments.length,
 		}
 	}
 
