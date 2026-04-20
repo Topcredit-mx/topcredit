@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, notExists } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, notExists, sql } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import {
 	adminUser as companiesAdminUser,
@@ -3174,8 +3174,12 @@ export type SeedPaymentsQueueResult = {
 	applicant2Name: string
 	/** Application id for the on-time receipt confirmation (credit1 / applicant1). */
 	onTimeReceiptApplicationId: number
+	/** `credit_payments.id` for the on-time receipt confirmation row. */
+	onTimeReceiptPaymentId: number
 	/** Application id for the late receipt confirmation (synthetic row / applicant2). */
 	lateReceiptApplicationId: number
+	/** `credit_payments.id` for the late receipt confirmation row. */
+	lateReceiptPaymentId: number
 	paymentsReceiptConfirmedByName: string
 	firstInstallmentForCsv: {
 		payrollNumber: string
@@ -3464,13 +3468,46 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 		throw new Error('Seed Payments Queue: schedule entry missing')
 	}
 
+	const onTimePaymentRows = await db
+		.select({ id: creditPayments.id })
+		.from(creditPayments)
+		.where(
+			and(
+				eq(creditPayments.creditId, credit1.id),
+				sql`${creditPayments.paymentsConfirmedAt} IS NOT NULL`,
+			),
+		)
+		.orderBy(asc(creditPayments.dueDate))
+		.limit(1)
+	const onTimePayment = onTimePaymentRows[0]
+	if (!onTimePayment) {
+		throw new Error('Seed Payments Queue: on-time payment row not found')
+	}
+
+	const latePaymentRows = await db
+		.select({ id: creditPayments.id })
+		.from(creditPayments)
+		.where(
+			and(
+				eq(creditPayments.creditId, credit2.id),
+				eq(creditPayments.amount, '100.00'),
+			),
+		)
+		.limit(1)
+	const latePayment = latePaymentRows[0]
+	if (!latePayment) {
+		throw new Error('Seed Payments Queue: late receipt payment row not found')
+	}
+
 	return {
 		companyId: company.id,
 		expectedRowCount: 3,
 		applicant1Name: applicant1.name,
 		applicant2Name: applicant2.name,
 		onTimeReceiptApplicationId: app1.id,
+		onTimeReceiptPaymentId: onTimePayment.id,
 		lateReceiptApplicationId: app2.id,
+		lateReceiptPaymentId: latePayment.id,
 		paymentsReceiptConfirmedByName: paymentsQueueAgent.name ?? '',
 		firstInstallmentForCsv: {
 			payrollNumber: 'PAYMENTS002',

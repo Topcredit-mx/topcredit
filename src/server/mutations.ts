@@ -23,6 +23,7 @@ import {
 	allPaymentsFullyConfirmed,
 	canConfirmReceipt,
 	canHrConfirm,
+	canReversePaymentsReceiptConfirmation,
 	parseCsvPaymentConfirmations,
 } from '~/lib/payment-confirmation'
 import {
@@ -78,6 +79,7 @@ import { getApplicationDocuments } from '~/server/queries'
 import {
 	applyApplicationDocumentDecisionsSchema,
 	confirmHrDeductionsBulkSchema,
+	confirmPaymentReceiptSchema,
 	confirmPaymentReceiptsBulkSchema,
 	preAuthorizeApplicationSchema,
 	updateApplicationStatusSchema,
@@ -1117,13 +1119,12 @@ async function fetchPaymentsWithContext(
 		.where(inArray(creditPayments.id, paymentIds))
 }
 
-async function settleCreditsIfFullyConfirmed(
+async function syncCreditLifecycleAfterPaymentsChange(
 	creditIds: number[],
 	now: Date,
-): Promise<number[]> {
-	const settled: number[] = []
+): Promise<void> {
 	for (const creditId of creditIds) {
-		const remaining = await db
+		const rows = await db
 			.select({
 				hrConfirmedAt: creditPayments.hrConfirmedAt,
 				paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
@@ -1131,15 +1132,19 @@ async function settleCreditsIfFullyConfirmed(
 			.from(creditPayments)
 			.where(eq(creditPayments.creditId, creditId))
 
-		if (allPaymentsFullyConfirmed(remaining)) {
+		if (allPaymentsFullyConfirmed(rows)) {
 			await db
 				.update(credits)
 				.set({ status: 'settled', updatedAt: now })
 				.where(eq(credits.id, creditId))
-			settled.push(creditId)
+		} else {
+			await db
+				.update(credits)
+				.set({ status: 'dispersed', updatedAt: now })
+				.where(eq(credits.id, creditId))
 		}
+		revalidatePath(`/equipo/credits/${creditId}`)
 	}
-	return settled
 }
 
 function toCreditPaymentSubject(
@@ -1733,7 +1738,7 @@ export async function confirmPaymentReceipt(
 		})
 		.where(eq(creditPayments.id, paymentId))
 
-	await settleCreditsIfFullyConfirmed([payment.creditId], now)
+	await syncCreditLifecycleAfterPaymentsChange([payment.creditId], now)
 
 	revalidatePath('/equipo/payments')
 	revalidatePath('/cuenta/credits')
@@ -1793,7 +1798,7 @@ export async function confirmPaymentReceipts(
 		)
 
 	const uniqueCreditIds = [...new Set(rows.map((r) => r.creditId))]
-	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
+	await syncCreditLifecycleAfterPaymentsChange(uniqueCreditIds, now)
 
 	revalidatePath('/equipo/payments')
 	revalidatePath('/cuenta/credits')
@@ -1905,10 +1910,19 @@ export async function confirmPaymentReceiptsFromCsv(
 	}
 
 	const uniqueCreditIds = [...new Set(toConfirm.map((r) => r.creditId))]
-	const settledCreditIds = await settleCreditsIfFullyConfirmed(
-		uniqueCreditIds,
-		now,
-	)
+	await syncCreditLifecycleAfterPaymentsChange(uniqueCreditIds, now)
+
+	const settledCount = (
+		await db
+			.select({ id: credits.id })
+			.from(credits)
+			.where(
+				and(
+					inArray(credits.id, uniqueCreditIds),
+					eq(credits.status, 'settled'),
+				),
+			)
+	).length
 
 	revalidatePath('/equipo/payments')
 	revalidatePath('/cuenta/credits')
@@ -1918,6 +1932,53 @@ export async function confirmPaymentReceiptsFromCsv(
 		alreadyReceived,
 		notHrConfirmed,
 		unmatched,
-		settledCredits: settledCreditIds.length,
+		settledCredits: settledCount,
 	}
+}
+
+export async function reversePaymentReceiptConfirmation(
+	paymentId: number,
+): Promise<{ error?: string }> {
+	const parsed = confirmPaymentReceiptSchema.safeParse({ paymentId })
+	if (!parsed.success) {
+		const first = parsed.error.issues[0]
+		return { error: first?.message ?? ValidationCode.PAYMENT_NOT_FOUND }
+	}
+
+	const { ability } = await getAbility()
+	await getRequiredUser()
+
+	const rows = await fetchPaymentsWithContext([parsed.data.paymentId])
+	const payment = rows[0]
+
+	if (!payment) {
+		return { error: ValidationCode.PAYMENT_NOT_FOUND }
+	}
+
+	if (!ability.can('confirmPaymentReceipt', toCreditPaymentSubject(payment))) {
+		return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
+	}
+
+	if (!canReversePaymentsReceiptConfirmation(payment)) {
+		return payment.hrConfirmedAt === null
+			? { error: ValidationCode.PAYMENT_NOT_HR_CONFIRMED }
+			: { error: ValidationCode.PAYMENT_RECEIPT_NOT_CONFIRMED }
+	}
+
+	const now = new Date()
+	await db
+		.update(creditPayments)
+		.set({
+			paymentsConfirmedAt: null,
+			paymentsConfirmedByUserId: null,
+		})
+		.where(eq(creditPayments.id, parsed.data.paymentId))
+
+	await syncCreditLifecycleAfterPaymentsChange([payment.creditId], now)
+
+	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/payments/history')
+	revalidatePath(`/equipo/payments/history/${parsed.data.paymentId}`)
+	revalidatePath('/cuenta/credits')
+	return {}
 }

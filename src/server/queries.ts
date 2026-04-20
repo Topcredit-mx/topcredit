@@ -1785,3 +1785,109 @@ export async function getPaymentReceiptConfirmationHistory(
 		}
 	})
 }
+
+export type PaymentReceiptConfirmationDetail =
+	PaymentReceiptConfirmationHistoryItem & {
+		hrConfirmedAt: string | null
+		creditId: number
+		creditStatus: CreditStatus
+		payrollNumber: string | null
+	}
+
+export async function getPaymentReceiptConfirmationDetail(
+	scope: CompanyScope,
+	paymentId: number,
+): Promise<PaymentReceiptConfirmationDetail | null> {
+	const { ability } = await getAbility()
+
+	let companyCondition: SQL
+	if (scope.type === 'single') {
+		requireAbility(ability, 'read', subject('Company', { id: scope.companyId }))
+		companyCondition = sql`a.company_id = ${scope.companyId}`
+	} else if (scope.type === 'multi') {
+		if (scope.companyIds.length === 0) return null
+		const firstId = scope.companyIds[0]
+		if (firstId === undefined) return null
+		requireAbility(ability, 'read', subject('Company', { id: firstId }))
+		companyCondition = sql`a.company_id = ANY(${scope.companyIds})`
+	} else {
+		requireAbility(ability, 'read', 'Admin')
+		companyCondition = sql`1=1`
+	}
+
+	const rows = await db.execute(sql`
+		SELECT
+			cp.id,
+			cp.amount,
+			cp.due_date,
+			cp.hr_confirmed_at,
+			cp.payments_confirmed_at,
+			cp.payments_confirmed_at <= cp.due_date AS confirmed_on_time,
+			a.id AS application_id,
+			a.payroll_number AS payroll_number,
+			cr.id AS credit_id,
+			cr.status AS credit_status,
+			u_employee.name AS employee_name,
+			u_confirmer.id AS confirmer_id,
+			u_confirmer.name AS confirmer_name,
+			u_confirmer.email AS confirmer_email
+		FROM credit_payments cp
+		INNER JOIN credits cr ON cp.credit_id = cr.id
+		INNER JOIN applications a ON cr.application_id = a.id
+		INNER JOIN users u_employee ON a.applicant_id = u_employee.id
+		LEFT JOIN users u_confirmer ON cp.payments_confirmed_by_user_id = u_confirmer.id
+		WHERE cp.id = ${paymentId}
+			AND cp.payments_confirmed_at IS NOT NULL
+			AND ${companyCondition}
+		LIMIT 1
+	`)
+
+	const row = rows.rows[0]
+	if (row === undefined) return null
+
+	const r = row
+	const paymentsConfirmedAt =
+		r.payments_confirmed_at instanceof Date
+			? r.payments_confirmed_at.toISOString()
+			: String(r.payments_confirmed_at)
+	const dueDate =
+		r.due_date instanceof Date ? r.due_date.toISOString() : String(r.due_date)
+	const hrConfirmedAtRaw = r.hr_confirmed_at
+	const hrConfirmedAt =
+		hrConfirmedAtRaw == null
+			? null
+			: hrConfirmedAtRaw instanceof Date
+				? hrConfirmedAtRaw.toISOString()
+				: String(hrConfirmedAtRaw)
+
+	const creditStatusRaw = r.credit_status
+	const creditStatus: CreditStatus =
+		creditStatusRaw === 'settled' || creditStatusRaw === 'dispersed'
+			? creditStatusRaw
+			: 'dispersed'
+
+	const payrollRaw = r.payroll_number
+	const payrollNumber = payrollRaw == null ? null : String(payrollRaw)
+
+	return {
+		id: Number(r.id),
+		amount: String(r.amount),
+		dueDate,
+		paymentsConfirmedAt,
+		confirmedOnTime: Boolean(r.confirmed_on_time),
+		applicationId: Number(r.application_id),
+		employeeName: String(r.employee_name),
+		confirmedByUser:
+			r.confirmer_id != null
+				? {
+						id: Number(r.confirmer_id),
+						name: r.confirmer_name != null ? String(r.confirmer_name) : null,
+						email: String(r.confirmer_email),
+					}
+				: null,
+		hrConfirmedAt,
+		creditId: Number(r.credit_id),
+		creditStatus,
+		payrollNumber,
+	}
+}

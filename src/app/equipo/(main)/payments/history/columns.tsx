@@ -22,7 +22,7 @@ export function usePaymentReceiptHistoryColumns(): ColumnDef<PaymentReceiptConfi
 			),
 			cell: ({ row }) => (
 				<Link
-					href={`/equipo/applications/${row.original.applicationId}`}
+					href={`/equipo/payments/history/${row.original.id}`}
 					className="font-medium hover:underline"
 				>
 					{row.getValue('employeeName')}

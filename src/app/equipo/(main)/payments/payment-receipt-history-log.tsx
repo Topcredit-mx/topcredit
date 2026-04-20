@@ -70,7 +70,7 @@ export function PaymentReceiptHistoryLog({
 										<div className="flex flex-wrap items-center justify-between gap-3">
 											<div className="flex flex-wrap items-center gap-2">
 												<Link
-													href={`/equipo/applications/${item.applicationId}`}
+													href={`/equipo/payments/history/${item.id}`}
 													className="font-medium text-sm hover:underline"
 												>
 													{item.employeeName}

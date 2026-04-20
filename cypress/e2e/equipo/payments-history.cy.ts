@@ -7,15 +7,11 @@ import {
 describe('Payments receipt confirmation history', () => {
 	let seed: SeedPaymentsQueueResult
 
-	before(() => {
+	beforeEach(() => {
 		cy.task('cleanupPaymentsQueue')
 		cy.task<SeedPaymentsQueueResult>('seedPaymentsQueue').then((result) => {
 			seed = result
 		})
-	})
-
-	after(() => {
-		cy.task('cleanupPaymentsQueue')
 	})
 
 	describe('Payments agent views receipt history on the payments page', () => {
@@ -83,15 +79,15 @@ describe('Payments receipt confirmation history', () => {
 			)
 		})
 
-		it('shows a link to the application detail for each history row', () => {
+		it('shows a link to the receipt confirmation detail for each history row', () => {
 			cy.visit('/equipo/payments')
 			cy.get('[aria-labelledby="payments-receipt-history-heading"]').within(
 				() => {
 					cy.get(
-						`a[href="/equipo/applications/${seed.onTimeReceiptApplicationId}"]`,
+						`a[href="/equipo/payments/history/${seed.onTimeReceiptPaymentId}"]`,
 					).should('be.visible')
 					cy.get(
-						`a[href="/equipo/applications/${seed.lateReceiptApplicationId}"]`,
+						`a[href="/equipo/payments/history/${seed.lateReceiptPaymentId}"]`,
 					).should('be.visible')
 				},
 			)
@@ -126,6 +122,32 @@ describe('Payments receipt confirmation history', () => {
 				.scrollIntoView()
 				.should('be.visible')
 		})
+
+		it('opens receipt confirmation detail from the employee name in the table', () => {
+			cy.visit('/equipo/payments/history')
+			cy.get('table').should('be.visible')
+			cy.get(
+				`a[href="/equipo/payments/history/${seed.onTimeReceiptPaymentId}"]`,
+			)
+				.scrollIntoView()
+				.should('be.visible')
+			cy.visit(`/equipo/payments/history/${seed.onTimeReceiptPaymentId}`)
+			cy.contains('h1', /comprobante de recepci/i).should('be.visible')
+			cy.contains(seed.applicant1Name).should('be.visible')
+			cy.contains('button', /revertir recepci/i).should('be.visible')
+		})
+
+		it('reverts a confirmed receipt from the detail page and removes it from the history list', () => {
+			cy.visit(`/equipo/payments/history/${seed.onTimeReceiptPaymentId}`)
+			cy.contains('h1', /comprobante de recepci/i).should('be.visible')
+			cy.contains('button', /revertir recepci/i)
+				.should('be.visible')
+				.click()
+			cy.contains(/recepci.n revertida/i).should('be.visible')
+			cy.url().should('include', '/equipo/payments/history')
+			cy.get('table').should('be.visible')
+			cy.contains('tr', seed.applicant1Name).should('not.exist')
+		})
 	})
 
 	describe('Non-payments agent cannot access payments receipt history', () => {
@@ -136,6 +158,13 @@ describe('Payments receipt confirmation history', () => {
 
 		it('redirects to unauthorized when accessing the full history page', () => {
 			cy.visit('/equipo/payments/history', { failOnStatusCode: false })
+			cy.url().should('include', '/unauthorized')
+		})
+
+		it('redirects to unauthorized when opening a receipt confirmation detail URL', () => {
+			cy.visit(`/equipo/payments/history/${seed.onTimeReceiptPaymentId}`, {
+				failOnStatusCode: false,
+			})
 			cy.url().should('include', '/unauthorized')
 		})
 	})

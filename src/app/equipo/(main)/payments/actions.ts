@@ -6,6 +6,7 @@ import { getAbility, subject } from '~/server/auth/ability'
 import {
 	confirmPaymentReceipt,
 	confirmPaymentReceipts,
+	reversePaymentReceiptConfirmation,
 	type ValidatePaymentReceiptsCsvResult,
 	validatePaymentReceiptsCsv,
 } from '~/server/mutations'
@@ -24,6 +25,16 @@ export async function confirmPaymentReceiptAction(
 	paymentId: number,
 ): Promise<ConfirmPaymentReceiptState> {
 	const result = await confirmPaymentReceipt(paymentId)
+	if (result.error != null) {
+		return { error: result.error }
+	}
+	return { ok: true }
+}
+
+export async function reversePaymentReceiptConfirmationAction(
+	paymentId: number,
+): Promise<ConfirmPaymentReceiptState> {
+	const result = await reversePaymentReceiptConfirmation(paymentId)
 	if (result.error != null) {
 		return { error: result.error }
 	}
