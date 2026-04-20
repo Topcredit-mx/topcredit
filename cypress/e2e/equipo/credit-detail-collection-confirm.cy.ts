@@ -29,11 +29,12 @@ describe('Credit detail — confirm collection from schedule', () => {
 			})
 		})
 
-		it('shows confirm receipt on delayed and current-period rows but not on future installments', () => {
+		it('shows 5 payment rows with buttons only for delayed and upcoming-period installments', () => {
 			cy.visit(`/equipo/credits/${seed.creditId}`)
 			cy.contains('h1', /detalle del crédito/i).should('be.visible')
 			cy.get('table').should('be.visible')
 			cy.get('table tbody tr').should('have.length', 5)
+			cy.get('table tbody tr button').should('have.length', 2)
 
 			cy.get('table tbody tr')
 				.eq(0)
