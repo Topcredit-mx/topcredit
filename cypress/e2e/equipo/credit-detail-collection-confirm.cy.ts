@@ -45,12 +45,14 @@ describe('Credit detail — confirm collection from schedule', () => {
 			cy.get('table tbody tr')
 				.eq(1)
 				.within(() => {
+					cy.contains(/atrasado/i).should('be.visible')
 					cy.contains('button', /confirmar recepción/i).should('be.visible')
 				})
 
 			cy.get('table tbody tr')
 				.eq(2)
 				.within(() => {
+					cy.contains(/pendiente/i).should('be.visible')
 					cy.contains('button', /confirmar recepción/i).should('be.visible')
 				})
 

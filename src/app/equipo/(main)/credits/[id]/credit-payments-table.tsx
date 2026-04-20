@@ -61,9 +61,13 @@ function HrStatusBadge({
 function PaymentsStatusBadge({
 	hrConfirmedAt,
 	paymentsConfirmedAt,
+	dueDate,
+	today,
 }: {
 	hrConfirmedAt: Date | null
 	paymentsConfirmedAt: Date | null
+	dueDate: Date
+	today: string | undefined
 }) {
 	const t = useTranslations('equipo')
 	if (paymentsConfirmedAt !== null) {
@@ -74,6 +78,15 @@ function PaymentsStatusBadge({
 		)
 	}
 	if (hrConfirmedAt !== null) {
+		const dueYmd = dueDate.toISOString().slice(0, 10)
+		const isReceiptDelayed = today !== undefined && dueYmd < today
+		if (isReceiptDelayed) {
+			return (
+				<span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-900 text-xs">
+					{t('credit-detail-payments-status-delayed')}
+				</span>
+			)
+		}
 		return (
 			<span className="rounded-full bg-blue-100 px-2 py-0.5 font-medium text-blue-800 text-xs">
 				{t('credit-detail-payments-status-pending')}
@@ -231,6 +244,8 @@ export function CreditPaymentsTable({
 									<PaymentsStatusBadge
 										hrConfirmedAt={payment.hrConfirmedAt}
 										paymentsConfirmedAt={payment.paymentsConfirmedAt}
+										dueDate={payment.dueDate}
+										today={today}
 									/>
 								</td>
 								<td className="px-5 py-3.5">
