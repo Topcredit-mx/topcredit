@@ -12,6 +12,7 @@ import {
 	type SQL,
 	sql,
 } from 'drizzle-orm'
+import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
@@ -39,14 +40,6 @@ import type { CompanyBasic, CompanyScope } from '~/server/scopes'
 import { isBlobStorageKey } from '~/server/storage'
 
 export type { CompanyBasic, CompanyScope } from '~/server/scopes'
-
-function employeeSalaryFrequencyFromRow(
-	value: unknown,
-): 'monthly' | 'bi-monthly' {
-	if (value === 'monthly') return 'monthly'
-	if (value === 'bi-monthly') return 'bi-monthly'
-	return 'monthly'
-}
 
 // ---- User ----
 
@@ -1195,23 +1188,26 @@ export type CreditPaymentRowForEquipo = {
 	amount: string
 	hrConfirmedAt: Date | null
 	paymentsConfirmedAt: Date | null
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 }
 
 export async function getCreditPaymentsForEquipo(
 	creditId: number,
 	companyId: number,
 ): Promise<CreditPaymentRowForEquipo[]> {
-	return db
+	const rows = await db
 		.select({
 			id: creditPayments.id,
 			dueDate: creditPayments.dueDate,
 			amount: creditPayments.amount,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
 			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+			companySalaryFrequency: companies.employeeSalaryFrequency,
 		})
 		.from(creditPayments)
 		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
 		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.innerJoin(companies, eq(applications.companyId, companies.id))
 		.where(
 			and(
 				eq(creditPayments.creditId, creditId),
@@ -1219,6 +1215,16 @@ export async function getCreditPaymentsForEquipo(
 			),
 		)
 		.orderBy(asc(creditPayments.dueDate))
+	return rows.map((r) => ({
+		id: r.id,
+		dueDate: r.dueDate,
+		amount: r.amount,
+		hrConfirmedAt: r.hrConfirmedAt,
+		paymentsConfirmedAt: r.paymentsConfirmedAt,
+		employeeSalaryFrequency: employeeSalaryFrequencyFromDb(
+			r.companySalaryFrequency,
+		),
+	}))
 }
 
 // ---- Installments queue (shared by /equipo/deductions and /equipo/payments) ----
@@ -1311,7 +1317,7 @@ export async function getInstallmentsForQueue(params: {
 	const today = new Date()
 	return rows.rows.map((row) => {
 		const r = row
-		const employeeSalaryFrequency = employeeSalaryFrequencyFromRow(
+		const employeeSalaryFrequency = employeeSalaryFrequencyFromDb(
 			r.company_salary_frequency,
 		)
 		const nextDeductionDate = getUpcomingDeductionDate(

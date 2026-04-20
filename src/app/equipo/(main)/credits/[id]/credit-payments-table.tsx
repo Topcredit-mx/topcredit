@@ -6,20 +6,23 @@ import { toast } from 'sonner'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
-import { canHrConfirm } from '~/lib/payment-confirmation'
+import {
+	canConfirmReceiptForCreditDetailRow,
+	canHrConfirm,
+} from '~/lib/payment-confirmation'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { CreditPaymentRowForEquipo } from '~/server/queries'
-import { confirmHrDeductionFromCreditAction } from './actions'
+import {
+	confirmHrDeductionFromCreditAction,
+	confirmPaymentReceiptFromCreditAction,
+} from './actions'
 
-// A payment is confirmable when its due date falls on or before the upcoming
-// deduction period — this covers both overdue (past-due, unconfirmed) and the
-// current period's installment. Future installments beyond the period are excluded.
-function isWithinUpcomingPeriod(
+function isWithinUpcomingPeriodYmd(
 	dueDate: Date,
-	upcomingDeductionDate: string,
+	upcomingDeductionDateYmd: string,
 ): boolean {
-	return dueDate.toISOString().slice(0, 10) <= upcomingDeductionDate
+	return dueDate.toISOString().slice(0, 10) <= upcomingDeductionDateYmd
 }
 
 function HrStatusBadge({
@@ -29,8 +32,6 @@ function HrStatusBadge({
 }: {
 	hrConfirmedAt: Date | null
 	dueDate: Date
-	// Passed from the parent's useEffect so it is always undefined during SSR,
-	// preventing a hydration mismatch when cy.clock() freezes time in E2E tests.
 	today: string | undefined
 }) {
 	const t = useTranslations('equipo')
@@ -60,9 +61,13 @@ function HrStatusBadge({
 function PaymentsStatusBadge({
 	hrConfirmedAt,
 	paymentsConfirmedAt,
+	dueDate,
+	today,
 }: {
 	hrConfirmedAt: Date | null
 	paymentsConfirmedAt: Date | null
+	dueDate: Date
+	today: string | undefined
 }) {
 	const t = useTranslations('equipo')
 	if (paymentsConfirmedAt !== null) {
@@ -73,6 +78,15 @@ function PaymentsStatusBadge({
 		)
 	}
 	if (hrConfirmedAt !== null) {
+		const dueYmd = dueDate.toISOString().slice(0, 10)
+		const isReceiptDelayed = today !== undefined && dueYmd < today
+		if (isReceiptDelayed) {
+			return (
+				<span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-900 text-xs">
+					{t('credit-detail-payments-status-delayed')}
+				</span>
+			)
+		}
 		return (
 			<span className="rounded-full bg-blue-100 px-2 py-0.5 font-medium text-blue-800 text-xs">
 				{t('credit-detail-payments-status-pending')}
@@ -88,11 +102,13 @@ function PaymentsStatusBadge({
 
 export function CreditPaymentsTable({
 	payments: initialPayments,
-	canConfirm,
+	canConfirmHrDeduction,
+	canConfirmPaymentReceipt,
 	employeeSalaryFrequency,
 }: {
 	payments: CreditPaymentRowForEquipo[]
-	canConfirm: boolean
+	canConfirmHrDeduction: boolean
+	canConfirmPaymentReceipt: boolean
 	employeeSalaryFrequency?: 'bi-monthly' | 'monthly'
 }) {
 	const t = useTranslations('equipo')
@@ -100,9 +116,6 @@ export function CreditPaymentsTable({
 	const [, startTransition] = useTransition()
 	const [payments, setPayments] = useState(initialPayments)
 
-	// Both values start as undefined so the SSR output matches the initial
-	// client render, avoiding hydration mismatches. useEffect fires only in
-	// the browser, where cy.clock() can freeze new Date() for E2E tests.
 	const [today, setToday] = useState<string | undefined>(undefined)
 	const [upcomingDeductionDate, setUpcomingDeductionDate] = useState<
 		string | undefined
@@ -130,6 +143,22 @@ export function CreditPaymentsTable({
 				setPayments((prev) =>
 					prev.map((p) =>
 						p.id === paymentId ? { ...p, hrConfirmedAt: new Date() } : p,
+					),
+				)
+			}
+		})
+	}
+
+	const handlePaymentReceiptConfirm = (paymentId: number) => {
+		startTransition(async () => {
+			const result = await confirmPaymentReceiptFromCreditAction(paymentId)
+			if (result?.error != null) {
+				toast.error(resolveError(result.error))
+			} else {
+				toast.success(t('payments-confirm-receipt-success'))
+				setPayments((prev) =>
+					prev.map((p) =>
+						p.id === paymentId ? { ...p, paymentsConfirmedAt: new Date() } : p,
 					),
 				)
 			}
@@ -168,52 +197,82 @@ export function CreditPaymentsTable({
 					</tr>
 				</thead>
 				<tbody>
-					{payments.map((payment, index) => (
-						<tr key={payment.id} className="border-slate-100 border-b">
-							<td className="px-5 py-3.5 text-slate-800 text-sm">
-								{index + 1}
-							</td>
-							<td className="px-5 py-3.5 text-slate-800 text-sm">
-								<FormattedDate
-									value={payment.dueDate.toISOString().slice(0, 10)}
-									format="date"
-								/>
-							</td>
-							<td className="px-5 py-3.5 text-slate-800 text-sm">
-								{formatCurrencyMxn(payment.amount)}
-							</td>
-							<td className="px-5 py-3.5 text-sm">
-								<HrStatusBadge
-									hrConfirmedAt={payment.hrConfirmedAt}
-									dueDate={payment.dueDate}
-									today={today}
-								/>
-							</td>
-							<td className="px-5 py-3.5 text-sm">
-								<PaymentsStatusBadge
-									hrConfirmedAt={payment.hrConfirmedAt}
-									paymentsConfirmedAt={payment.paymentsConfirmedAt}
-								/>
-							</td>
-							<td className="px-5 py-3.5">
-								{canConfirm &&
-									canHrConfirm(payment) &&
-									upcomingDeductionDate !== undefined &&
-									isWithinUpcomingPeriod(
-										payment.dueDate,
-										upcomingDeductionDate,
-									) && (
-										<Button
-											size="sm"
-											variant="outline"
-											onClick={() => handleHrConfirm(payment.id)}
-										>
-											{t('credit-detail-confirm')}
-										</Button>
-									)}
-							</td>
-						</tr>
-					))}
+					{payments.map((payment, index) => {
+						const todayDate =
+							today !== undefined
+								? new Date(`${today}T12:00:00.000Z`)
+								: undefined
+						const showHrConfirm =
+							canConfirmHrDeduction &&
+							canHrConfirm(payment) &&
+							upcomingDeductionDate !== undefined &&
+							isWithinUpcomingPeriodYmd(payment.dueDate, upcomingDeductionDate)
+						const showReceiptConfirm =
+							canConfirmPaymentReceipt &&
+							todayDate !== undefined &&
+							canConfirmReceiptForCreditDetailRow(
+								{
+									hrConfirmedAt: payment.hrConfirmedAt,
+									paymentsConfirmedAt: payment.paymentsConfirmedAt,
+									dueDate: payment.dueDate,
+									employeeSalaryFrequency: payment.employeeSalaryFrequency,
+								},
+								todayDate,
+							)
+						return (
+							<tr key={payment.id} className="border-slate-100 border-b">
+								<td className="px-5 py-3.5 text-slate-800 text-sm">
+									{index + 1}
+								</td>
+								<td className="px-5 py-3.5 text-slate-800 text-sm">
+									<FormattedDate
+										value={payment.dueDate.toISOString().slice(0, 10)}
+										format="date"
+									/>
+								</td>
+								<td className="px-5 py-3.5 text-slate-800 text-sm">
+									{formatCurrencyMxn(payment.amount)}
+								</td>
+								<td className="px-5 py-3.5 text-sm">
+									<HrStatusBadge
+										hrConfirmedAt={payment.hrConfirmedAt}
+										dueDate={payment.dueDate}
+										today={today}
+									/>
+								</td>
+								<td className="px-5 py-3.5 text-sm">
+									<PaymentsStatusBadge
+										hrConfirmedAt={payment.hrConfirmedAt}
+										paymentsConfirmedAt={payment.paymentsConfirmedAt}
+										dueDate={payment.dueDate}
+										today={today}
+									/>
+								</td>
+								<td className="px-5 py-3.5">
+									<div className="flex flex-col items-end gap-2">
+										{showHrConfirm ? (
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={() => handleHrConfirm(payment.id)}
+											>
+												{t('credit-detail-confirm')}
+											</Button>
+										) : null}
+										{showReceiptConfirm ? (
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={() => handlePaymentReceiptConfirm(payment.id)}
+											>
+												{t('payments-confirm-receipt')}
+											</Button>
+										) : null}
+									</div>
+								</td>
+							</tr>
+						)
+					})}
 				</tbody>
 			</table>
 		</div>

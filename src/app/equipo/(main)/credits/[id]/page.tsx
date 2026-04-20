@@ -34,11 +34,18 @@ export default async function EquipoCreditDetailPage({
 	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
 
 	const firstCompanyId = assignedCompanyIds[0]
-	const canConfirm =
+	const canConfirmHrDeduction =
 		isAdmin ||
 		(firstCompanyId !== undefined &&
 			ability.can(
 				'confirmHrDeduction',
+				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
+			))
+	const canConfirmPaymentReceipt =
+		isAdmin ||
+		(firstCompanyId !== undefined &&
+			ability.can(
+				'confirmPaymentReceipt',
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
 
@@ -187,7 +194,8 @@ export default async function EquipoCreditDetailPage({
 					{payments.length > 0 ? (
 						<CreditPaymentsTable
 							payments={payments}
-							canConfirm={canConfirm}
+							canConfirmHrDeduction={canConfirmHrDeduction}
+							canConfirmPaymentReceipt={canConfirmPaymentReceipt}
 							employeeSalaryFrequency={company?.employeeSalaryFrequency}
 						/>
 					) : (

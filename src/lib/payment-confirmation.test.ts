@@ -3,6 +3,7 @@ import { describe, test } from 'node:test'
 import {
 	allPaymentsFullyConfirmed,
 	canConfirmReceipt,
+	canConfirmReceiptForCreditDetailRow,
 	canConfirmReceiptQueueInstallment,
 	canHrConfirm,
 	isFullyConfirmed,
@@ -18,6 +19,70 @@ describe('canHrConfirm', () => {
 
 	test('returns false when hrConfirmedAt is set', () => {
 		assert.equal(canHrConfirm({ hrConfirmedAt: NOW }), false)
+	})
+})
+
+describe('canConfirmReceiptForCreditDetailRow', () => {
+	const today = new Date('2023-01-05T12:00:00.000Z')
+
+	test('allows delayed installment with HR confirmed and receipt pending within period', () => {
+		assert.equal(
+			canConfirmReceiptForCreditDetailRow(
+				{
+					hrConfirmedAt: new Date('2022-12-31T12:00:00.000Z'),
+					paymentsConfirmedAt: null,
+					dueDate: new Date('2022-12-31T12:00:00.000Z'),
+					employeeSalaryFrequency: 'monthly',
+				},
+				today,
+			),
+			true,
+		)
+	})
+
+	test('allows upcoming-period installment when due is on upcoming deduction date', () => {
+		assert.equal(
+			canConfirmReceiptForCreditDetailRow(
+				{
+					hrConfirmedAt: new Date('2023-01-31T12:00:00.000Z'),
+					paymentsConfirmedAt: null,
+					dueDate: new Date('2023-01-31T12:00:00.000Z'),
+					employeeSalaryFrequency: 'monthly',
+				},
+				today,
+			),
+			true,
+		)
+	})
+
+	test('blocks future installment after upcoming deduction date', () => {
+		assert.equal(
+			canConfirmReceiptForCreditDetailRow(
+				{
+					hrConfirmedAt: new Date('2023-02-28T12:00:00.000Z'),
+					paymentsConfirmedAt: null,
+					dueDate: new Date('2023-02-28T12:00:00.000Z'),
+					employeeSalaryFrequency: 'monthly',
+				},
+				today,
+			),
+			false,
+		)
+	})
+
+	test('returns false when HR has not confirmed', () => {
+		assert.equal(
+			canConfirmReceiptForCreditDetailRow(
+				{
+					hrConfirmedAt: null,
+					paymentsConfirmedAt: null,
+					dueDate: new Date('2022-12-31T12:00:00.000Z'),
+					employeeSalaryFrequency: 'monthly',
+				},
+				today,
+			),
+			false,
+		)
 	})
 })
 

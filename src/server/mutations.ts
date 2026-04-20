@@ -19,9 +19,11 @@ import {
 } from '~/lib/authorization-package-readiness'
 import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
+import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
 import {
 	allPaymentsFullyConfirmed,
 	canConfirmReceipt,
+	canConfirmReceiptForCreditDetailRow,
 	canHrConfirm,
 	parseCsvPaymentConfirmations,
 } from '~/lib/payment-confirmation'
@@ -1098,23 +1100,60 @@ type PaymentWithContext = {
 	paymentsConfirmedAt: Date | null
 	creditId: number
 	companyId: number
+	dueDate: Date
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 }
 
 async function fetchPaymentsWithContext(
 	paymentIds: number[],
 ): Promise<PaymentWithContext[]> {
-	return db
+	const rows = await db
 		.select({
 			paymentId: creditPayments.id,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
 			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
 			creditId: creditPayments.creditId,
 			companyId: applications.companyId,
+			dueDate: creditPayments.dueDate,
+			companySalaryFrequency: companies.employeeSalaryFrequency,
 		})
 		.from(creditPayments)
 		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
 		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.innerJoin(companies, eq(applications.companyId, companies.id))
 		.where(inArray(creditPayments.id, paymentIds))
+	return rows.map((r) => ({
+		paymentId: r.paymentId,
+		hrConfirmedAt: r.hrConfirmedAt,
+		paymentsConfirmedAt: r.paymentsConfirmedAt,
+		creditId: r.creditId,
+		companyId: r.companyId,
+		dueDate: r.dueDate,
+		employeeSalaryFrequency: employeeSalaryFrequencyFromDb(
+			r.companySalaryFrequency,
+		),
+	}))
+}
+
+function canConfirmPaymentReceiptWithinPeriod(
+	payment: Pick<
+		PaymentWithContext,
+		| 'hrConfirmedAt'
+		| 'paymentsConfirmedAt'
+		| 'dueDate'
+		| 'employeeSalaryFrequency'
+	>,
+	today: Date,
+): boolean {
+	return canConfirmReceiptForCreditDetailRow(
+		{
+			hrConfirmedAt: payment.hrConfirmedAt,
+			paymentsConfirmedAt: payment.paymentsConfirmedAt,
+			dueDate: payment.dueDate,
+			employeeSalaryFrequency: payment.employeeSalaryFrequency,
+		},
+		today,
+	)
 }
 
 async function settleCreditsIfFullyConfirmed(
@@ -1724,6 +1763,11 @@ export async function confirmPaymentReceipt(
 			: { error: ValidationCode.PAYMENT_ALREADY_RECEIVED }
 	}
 
+	const today = new Date()
+	if (!canConfirmPaymentReceiptWithinPeriod(payment, today)) {
+		return { error: ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE }
+	}
+
 	const now = new Date()
 	await db
 		.update(creditPayments)
@@ -1736,6 +1780,8 @@ export async function confirmPaymentReceipt(
 	await settleCreditsIfFullyConfirmed([payment.creditId], now)
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/credits')
+	revalidatePath(`/equipo/credits/${payment.creditId}`)
 	revalidatePath('/cuenta/credits')
 	return {}
 }
@@ -1778,6 +1824,15 @@ export async function confirmPaymentReceipts(
 		}
 	}
 
+	const today = new Date()
+	for (const payment of rows) {
+		if (!canConfirmPaymentReceiptWithinPeriod(payment, today)) {
+			return {
+				error: `${ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE}:${payment.paymentId}`,
+			}
+		}
+	}
+
 	const now = new Date()
 	await db
 		.update(creditPayments)
@@ -1796,6 +1851,10 @@ export async function confirmPaymentReceipts(
 	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/credits')
+	for (const creditId of uniqueCreditIds) {
+		revalidatePath(`/equipo/credits/${creditId}`)
+	}
 	revalidatePath('/cuenta/credits')
 	return {}
 }
@@ -1844,10 +1903,12 @@ export async function confirmPaymentReceiptsFromCsv(
 			payrollNumber: applications.payrollNumber,
 			amount: creditPayments.amount,
 			dueDate: creditPayments.dueDate,
+			companySalaryFrequency: companies.employeeSalaryFrequency,
 		})
 		.from(creditPayments)
 		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
 		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.innerJoin(companies, eq(applications.companyId, companies.id))
 		.where(
 			isAdmin ? undefined : inArray(applications.companyId, assignedCompanyIds),
 		)
@@ -1876,7 +1937,21 @@ export async function confirmPaymentReceiptsFromCsv(
 		ability.can('confirmPaymentReceipt', toCreditPaymentSubject(row)),
 	)
 
-	const toConfirm = authorized.filter((r) => canConfirmReceipt(r))
+	const todayCsv = new Date()
+	const toConfirm = authorized.filter((r) => {
+		if (!canConfirmReceipt(r)) return false
+		return canConfirmPaymentReceiptWithinPeriod(
+			{
+				hrConfirmedAt: r.hrConfirmedAt,
+				paymentsConfirmedAt: r.paymentsConfirmedAt,
+				dueDate: r.dueDate,
+				employeeSalaryFrequency: employeeSalaryFrequencyFromDb(
+					r.companySalaryFrequency,
+				),
+			},
+			todayCsv,
+		)
+	})
 	const alreadyReceived = authorized.filter(
 		(r) => r.paymentsConfirmedAt !== null,
 	).length
