@@ -3172,6 +3172,8 @@ export type SeedPaymentsQueueResult = {
 	expectedRowCount: number
 	applicant1Name: string
 	applicant2Name: string
+	credit1Id: number
+	credit2Id: number
 	/** Application id for the on-time receipt confirmation (credit1 / applicant1). */
 	onTimeReceiptApplicationId: number
 	/** Application id for the late receipt confirmation (synthetic row / applicant2). */
@@ -3469,6 +3471,8 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 		expectedRowCount: 3,
 		applicant1Name: applicant1.name,
 		applicant2Name: applicant2.name,
+		credit1Id: credit1.id,
+		credit2Id: credit2.id,
 		onTimeReceiptApplicationId: app1.id,
 		lateReceiptApplicationId: app2.id,
 		paymentsReceiptConfirmedByName: paymentsQueueAgent.name ?? '',

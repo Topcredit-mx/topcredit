@@ -12,6 +12,7 @@ import {
 	type SQL,
 	sql,
 } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
@@ -1195,23 +1196,37 @@ export type CreditPaymentRowForEquipo = {
 	amount: string
 	hrConfirmedAt: Date | null
 	paymentsConfirmedAt: Date | null
+	paymentsConfirmedByUser: {
+		id: number
+		name: string | null
+		email: string
+	} | null
 }
 
 export async function getCreditPaymentsForEquipo(
 	creditId: number,
 	companyId: number,
 ): Promise<CreditPaymentRowForEquipo[]> {
-	return db
+	const paymentsConfirmer = alias(users, 'payments_confirmer')
+
+	const rows = await db
 		.select({
 			id: creditPayments.id,
 			dueDate: creditPayments.dueDate,
 			amount: creditPayments.amount,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
 			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+			confirmerId: paymentsConfirmer.id,
+			confirmerName: paymentsConfirmer.name,
+			confirmerEmail: paymentsConfirmer.email,
 		})
 		.from(creditPayments)
 		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
 		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.leftJoin(
+			paymentsConfirmer,
+			eq(creditPayments.paymentsConfirmedByUserId, paymentsConfirmer.id),
+		)
 		.where(
 			and(
 				eq(creditPayments.creditId, creditId),
@@ -1219,6 +1234,22 @@ export async function getCreditPaymentsForEquipo(
 			),
 		)
 		.orderBy(asc(creditPayments.dueDate))
+
+	return rows.map((r) => ({
+		id: r.id,
+		dueDate: r.dueDate,
+		amount: String(r.amount),
+		hrConfirmedAt: r.hrConfirmedAt,
+		paymentsConfirmedAt: r.paymentsConfirmedAt,
+		paymentsConfirmedByUser:
+			r.confirmerId != null
+				? {
+						id: r.confirmerId,
+						name: r.confirmerName,
+						email: r.confirmerEmail != null ? String(r.confirmerEmail) : '',
+					}
+				: null,
+	}))
 }
 
 // ---- Installments queue (shared by /equipo/deductions and /equipo/payments) ----

@@ -221,6 +221,53 @@ describe('Payments receipt queue', () => {
 		})
 	})
 
+	describe('Payments agent manages receipt on credit detail schedule', () => {
+		beforeEach(() => {
+			cy.login(paymentsAgentQueue.email)
+			cy.setCookie('selected_company_id', String(seed.companyId))
+		})
+
+		it('shows receipt confirmation and reversal next to the schedule row', () => {
+			cy.visit(`/equipo/credits/${seed.credit1Id}`)
+			cy.contains('h1', /detalle del crédito/i).should('be.visible')
+			cy.contains('h2', /calendario de pagos/i).should('be.visible')
+			cy.get('table tbody tr')
+				.first()
+				.within(() => {
+					cy.contains(/recepci.n el/i).should('be.visible')
+					cy.contains(seed.paymentsReceiptConfirmedByName).should('be.visible')
+					cy.contains('button', /revertir recepci/i).should('be.visible')
+				})
+		})
+
+		it('reverts then re-confirms receipt from the credit detail schedule', () => {
+			cy.visit(`/equipo/credits/${seed.credit1Id}`)
+			cy.contains('h2', /calendario de pagos/i).should('be.visible')
+			cy.get('table tbody tr')
+				.first()
+				.within(() => {
+					cy.contains('button', /revertir recepci/i)
+						.should('be.visible')
+						.click()
+				})
+			cy.contains(/recepci.n revertida/i).should('be.visible')
+			cy.get('table tbody tr')
+				.first()
+				.within(() => {
+					cy.contains('button', /confirmar recepci/i)
+						.should('be.visible')
+						.click()
+				})
+			cy.contains(/recepci.n confirmada/i).should('be.visible')
+			cy.get('table tbody tr')
+				.first()
+				.within(() => {
+					cy.contains(/recepci.n el/i).should('be.visible')
+					cy.contains('button', /revertir recepci/i).should('be.visible')
+				})
+		})
+	})
+
 	describe('Non-Payments agent cannot access payments queue', () => {
 		beforeEach(() => {
 			cy.login(nonPaymentsAgentQueue.email)
@@ -230,6 +277,17 @@ describe('Payments receipt queue', () => {
 		it('redirects to unauthorized when accessing payments queue', () => {
 			cy.visit('/equipo/payments', { failOnStatusCode: false })
 			cy.url().should('include', '/unauthorized')
+		})
+
+		it('does not show payments receipt actions on credit detail', () => {
+			cy.visit(`/equipo/credits/${seed.credit1Id}`)
+			cy.contains('h1', /detalle del crédito/i).should('be.visible')
+			cy.get('table tbody tr')
+				.first()
+				.within(() => {
+					cy.contains('button', /confirmar recepci/i).should('not.exist')
+					cy.contains('button', /revertir recepci/i).should('not.exist')
+				})
 		})
 	})
 })

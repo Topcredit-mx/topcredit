@@ -1,20 +1,26 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
-import { canHrConfirm } from '~/lib/payment-confirmation'
+import {
+	canConfirmReceipt,
+	canHrConfirm,
+	canReversePaymentsReceiptConfirmation,
+} from '~/lib/payment-confirmation'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { CreditPaymentRowForEquipo } from '~/server/queries'
-import { confirmHrDeductionFromCreditAction } from './actions'
+import {
+	confirmHrDeductionFromCreditAction,
+	confirmPaymentReceiptFromCreditAction,
+	reversePaymentReceiptFromCreditAction,
+} from './actions'
 
-// A payment is confirmable when its due date falls on or before the upcoming
-// deduction period — this covers both overdue (past-due, unconfirmed) and the
-// current period's installment. Future installments beyond the period are excluded.
 function isWithinUpcomingPeriod(
 	dueDate: Date,
 	upcomingDeductionDate: string,
@@ -29,8 +35,6 @@ function HrStatusBadge({
 }: {
 	hrConfirmedAt: Date | null
 	dueDate: Date
-	// Passed from the parent's useEffect so it is always undefined during SSR,
-	// preventing a hydration mismatch when cy.clock() freezes time in E2E tests.
 	today: string | undefined
 }) {
 	const t = useTranslations('equipo')
@@ -88,25 +92,29 @@ function PaymentsStatusBadge({
 
 export function CreditPaymentsTable({
 	payments: initialPayments,
-	canConfirm,
+	canConfirmHr,
+	canConfirmPaymentReceipt,
 	employeeSalaryFrequency,
 }: {
 	payments: CreditPaymentRowForEquipo[]
-	canConfirm: boolean
+	canConfirmHr: boolean
+	canConfirmPaymentReceipt: boolean
 	employeeSalaryFrequency?: 'bi-monthly' | 'monthly'
 }) {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
+	const router = useRouter()
 	const [, startTransition] = useTransition()
 	const [payments, setPayments] = useState(initialPayments)
 
-	// Both values start as undefined so the SSR output matches the initial
-	// client render, avoiding hydration mismatches. useEffect fires only in
-	// the browser, where cy.clock() can freeze new Date() for E2E tests.
 	const [today, setToday] = useState<string | undefined>(undefined)
 	const [upcomingDeductionDate, setUpcomingDeductionDate] = useState<
 		string | undefined
 	>(undefined)
+
+	useEffect(() => {
+		setPayments(initialPayments)
+	}, [initialPayments])
 
 	useEffect(() => {
 		const now = new Date()
@@ -132,6 +140,31 @@ export function CreditPaymentsTable({
 						p.id === paymentId ? { ...p, hrConfirmedAt: new Date() } : p,
 					),
 				)
+				router.refresh()
+			}
+		})
+	}
+
+	const handleConfirmReceipt = (paymentId: number) => {
+		startTransition(async () => {
+			const result = await confirmPaymentReceiptFromCreditAction(paymentId)
+			if (result?.error != null) {
+				toast.error(resolveError(result.error))
+			} else {
+				toast.success(t('credit-detail-confirm-receipt-success'))
+				router.refresh()
+			}
+		})
+	}
+
+	const handleReverseReceipt = (paymentId: number) => {
+		startTransition(async () => {
+			const result = await reversePaymentReceiptFromCreditAction(paymentId)
+			if (result?.error != null) {
+				toast.error(resolveError(result.error))
+			} else {
+				toast.success(t('credit-detail-reverse-receipt-success'))
+				router.refresh()
 			}
 		})
 	}
@@ -164,56 +197,107 @@ export function CreditPaymentsTable({
 						<th className="px-5 py-3 font-semibold" scope="col">
 							{t('credit-detail-col-payments-status')}
 						</th>
-						<th className="px-5 py-3" scope="col" />
+						<th className="px-5 py-3 font-semibold" scope="col">
+							{t('credit-detail-col-actions')}
+						</th>
 					</tr>
 				</thead>
 				<tbody>
-					{payments.map((payment, index) => (
-						<tr key={payment.id} className="border-slate-100 border-b">
-							<td className="px-5 py-3.5 text-slate-800 text-sm">
-								{index + 1}
-							</td>
-							<td className="px-5 py-3.5 text-slate-800 text-sm">
-								<FormattedDate
-									value={payment.dueDate.toISOString().slice(0, 10)}
-									format="date"
-								/>
-							</td>
-							<td className="px-5 py-3.5 text-slate-800 text-sm">
-								{formatCurrencyMxn(payment.amount)}
-							</td>
-							<td className="px-5 py-3.5 text-sm">
-								<HrStatusBadge
-									hrConfirmedAt={payment.hrConfirmedAt}
-									dueDate={payment.dueDate}
-									today={today}
-								/>
-							</td>
-							<td className="px-5 py-3.5 text-sm">
-								<PaymentsStatusBadge
-									hrConfirmedAt={payment.hrConfirmedAt}
-									paymentsConfirmedAt={payment.paymentsConfirmedAt}
-								/>
-							</td>
-							<td className="px-5 py-3.5">
-								{canConfirm &&
-									canHrConfirm(payment) &&
-									upcomingDeductionDate !== undefined &&
-									isWithinUpcomingPeriod(
-										payment.dueDate,
-										upcomingDeductionDate,
-									) && (
-										<Button
-											size="sm"
-											variant="outline"
-											onClick={() => handleHrConfirm(payment.id)}
-										>
-											{t('credit-detail-confirm')}
-										</Button>
-									)}
-							</td>
-						</tr>
-					))}
+					{payments.map((payment, index) => {
+						const inPeriod =
+							upcomingDeductionDate !== undefined &&
+							isWithinUpcomingPeriod(payment.dueDate, upcomingDeductionDate)
+						const showHrButton =
+							canConfirmHr && canHrConfirm(payment) && inPeriod
+						const showConfirmReceiptButton =
+							canConfirmPaymentReceipt && canConfirmReceipt(payment) && inPeriod
+						const showReverseReceiptButton =
+							canConfirmPaymentReceipt &&
+							canReversePaymentsReceiptConfirmation(payment)
+
+						const confirmer = payment.paymentsConfirmedByUser
+						const actor =
+							confirmer === null
+								? null
+								: confirmer.name?.trim() || confirmer.email.trim() || null
+
+						return (
+							<tr key={payment.id} className="border-slate-100 border-b">
+								<td className="px-5 py-3.5 text-slate-800 text-sm">
+									{index + 1}
+								</td>
+								<td className="px-5 py-3.5 text-slate-800 text-sm">
+									<FormattedDate
+										value={payment.dueDate.toISOString().slice(0, 10)}
+										format="date"
+									/>
+								</td>
+								<td className="px-5 py-3.5 text-slate-800 text-sm">
+									{formatCurrencyMxn(payment.amount)}
+								</td>
+								<td className="px-5 py-3.5 text-sm">
+									<HrStatusBadge
+										hrConfirmedAt={payment.hrConfirmedAt}
+										dueDate={payment.dueDate}
+										today={today}
+									/>
+								</td>
+								<td className="px-5 py-3.5 text-sm">
+									<PaymentsStatusBadge
+										hrConfirmedAt={payment.hrConfirmedAt}
+										paymentsConfirmedAt={payment.paymentsConfirmedAt}
+									/>
+								</td>
+								<td className="px-5 py-3.5 align-top">
+									{payment.paymentsConfirmedAt !== null ? (
+										<div className="mb-2 space-y-0.5 text-muted-foreground text-xs">
+											<div>
+												{t('credit-detail-receipt-confirmed-at')}:{' '}
+												<FormattedDate
+													value={payment.paymentsConfirmedAt.toISOString()}
+													format="datetime-short"
+												/>
+											</div>
+											{actor !== null ? (
+												<div>
+													{t('credit-detail-receipt-confirmed-by')}: {actor}
+												</div>
+											) : null}
+										</div>
+									) : null}
+									<div className="flex flex-wrap gap-2">
+										{showHrButton ? (
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={() => handleHrConfirm(payment.id)}
+											>
+												{t('credit-detail-confirm')}
+											</Button>
+										) : null}
+										{showConfirmReceiptButton ? (
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={() => handleConfirmReceipt(payment.id)}
+											>
+												{t('credit-detail-confirm-receipt')}
+											</Button>
+										) : null}
+										{showReverseReceiptButton ? (
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={() => handleReverseReceipt(payment.id)}
+											>
+												{t('credit-detail-reverse-receipt')}
+											</Button>
+										) : null}
+									</div>
+								</td>
+							</tr>
+						)
+					})}
 				</tbody>
 			</table>
 		</div>
