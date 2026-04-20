@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { neon } from '@neondatabase/serverless'
+import postgres from 'postgres'
 
 const TABLES = [
 	'users',
@@ -20,37 +20,41 @@ export type TableCounts = Record<(typeof TABLES)[number], number>
 export async function getTableCounts(
 	databaseUrl: string,
 ): Promise<TableCounts> {
-	const sql = neon(databaseUrl)
-	const rows = await sql`
-		SELECT
-			(SELECT COUNT(*)::int FROM users) AS users,
-			(SELECT COUNT(*)::int FROM email_otps) AS email_otps,
-			(SELECT COUNT(*)::int FROM session) AS session,
-			(SELECT COUNT(*)::int FROM user_roles) AS user_roles,
-			(SELECT COUNT(*)::int FROM companies) AS companies,
-			(SELECT COUNT(*)::int FROM user_companies) AS user_companies,
-			(SELECT COUNT(*)::int FROM terms) AS terms,
-			(SELECT COUNT(*)::int FROM term_offerings) AS term_offerings,
-			(SELECT COUNT(*)::int FROM applications) AS applications,
-			(SELECT COUNT(*)::int FROM application_status_history) AS application_status_history,
-			(SELECT COUNT(*)::int FROM application_documents) AS application_documents
-	`
-	const row = rows[0]
-	if (!row) {
-		throw new Error('No row returned from count query')
-	}
-	return {
-		users: row.users,
-		email_otps: row.email_otps,
-		session: row.session,
-		user_roles: row.user_roles,
-		companies: row.companies,
-		user_companies: row.user_companies,
-		terms: row.terms,
-		term_offerings: row.term_offerings,
-		applications: row.applications,
-		application_status_history: row.application_status_history,
-		application_documents: row.application_documents,
+	const sql = postgres(databaseUrl, { max: 1 })
+	try {
+		const rows = await sql`
+			SELECT
+				(SELECT COUNT(*)::int FROM users) AS users,
+				(SELECT COUNT(*)::int FROM email_otps) AS email_otps,
+				(SELECT COUNT(*)::int FROM session) AS session,
+				(SELECT COUNT(*)::int FROM user_roles) AS user_roles,
+				(SELECT COUNT(*)::int FROM companies) AS companies,
+				(SELECT COUNT(*)::int FROM user_companies) AS user_companies,
+				(SELECT COUNT(*)::int FROM terms) AS terms,
+				(SELECT COUNT(*)::int FROM term_offerings) AS term_offerings,
+				(SELECT COUNT(*)::int FROM applications) AS applications,
+				(SELECT COUNT(*)::int FROM application_status_history) AS application_status_history,
+				(SELECT COUNT(*)::int FROM application_documents) AS application_documents
+		`
+		const row = rows[0]
+		if (!row) {
+			throw new Error('No row returned from count query')
+		}
+		return {
+			users: row.users,
+			email_otps: row.email_otps,
+			session: row.session,
+			user_roles: row.user_roles,
+			companies: row.companies,
+			user_companies: row.user_companies,
+			terms: row.terms,
+			term_offerings: row.term_offerings,
+			applications: row.applications,
+			application_status_history: row.application_status_history,
+			application_documents: row.application_documents,
+		}
+	} finally {
+		await sql.end({ timeout: 5 })
 	}
 }
 
