@@ -3,6 +3,9 @@ import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
+import { getPaymentReceiptConfirmationHistory } from '~/server/queries'
+import { getEffectiveCompanyScope } from '~/server/scopes'
+import { PaymentReceiptHistoryTable } from './payment-receipt-history-table'
 
 export default async function PaymentsHistoryPage() {
 	getRequiredAgentUser()
@@ -22,13 +25,20 @@ export default async function PaymentsHistoryPage() {
 
 	const t = await getTranslations('equipo')
 
+	const scope = await getEffectiveCompanyScope()
+	const historyItems = await getPaymentReceiptConfirmationHistory(scope)
+
 	return (
 		<div className="container mx-auto py-6">
-			<Card className="p-8 text-center">
-				<p className="text-muted-foreground">
-					{t('payments-history-placeholder')}
-				</p>
-			</Card>
+			{historyItems.length === 0 ? (
+				<Card className="p-8 text-center">
+					<p className="text-muted-foreground">
+						{t('payments-receipt-history-empty')}
+					</p>
+				</Card>
+			) : (
+				<PaymentReceiptHistoryTable items={historyItems} />
+			)}
 		</div>
 	)
 }

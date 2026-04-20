@@ -5,11 +5,16 @@ import { Card } from '~/components/ui/card'
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
-import { getCompanyById, getInstallmentsForQueue } from '~/server/queries'
+import {
+	getCompanyById,
+	getInstallmentsForQueue,
+	getPaymentReceiptConfirmationHistory,
+} from '~/server/queries'
 import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
+import { PaymentReceiptHistoryLog } from './payment-receipt-history-log'
 import { PaymentsTable } from './payments-table'
 
 export default async function PaymentsPage() {
@@ -65,10 +70,13 @@ export default async function PaymentsPage() {
 		? nextDeductionDate.toISOString().slice(0, 10)
 		: undefined
 
-	const installments = await getInstallmentsForQueue({
-		scope,
-		queue: 'payments',
-	})
+	const [installments, historyItems] = await Promise.all([
+		getInstallmentsForQueue({
+			scope,
+			queue: 'payments',
+		}),
+		getPaymentReceiptConfirmationHistory(scope, 10),
+	])
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
@@ -86,6 +94,19 @@ export default async function PaymentsPage() {
 					companyName={company?.name ?? ''}
 				/>
 			)}
+			<div className="mt-10">
+				<PaymentReceiptHistoryLog
+					items={historyItems}
+					title={t('payments-receipt-history-title')}
+					description={t('payments-receipt-history-description')}
+					emptyMessage={t('payments-receipt-history-empty')}
+					confirmedByLabel={t('payments-receipt-history-confirmed-by')}
+					onTimeLabel={t('payments-receipt-history-on-time')}
+					lateLabel={t('payments-receipt-history-late')}
+					viewAllHref="/equipo/payments/history"
+					viewAllLabel={t('payments-receipt-history-view-all')}
+				/>
+			</div>
 		</div>
 	)
 }

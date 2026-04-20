@@ -17,6 +17,7 @@ export const BREADCRUMB_LABEL_KEYS = [
 	'equipo-deductions-history',
 	'equipo-deductions-overdue',
 	'equipo-payments',
+	'equipo-payments-history',
 ] as const
 
 export type BreadcrumbLabelKey = (typeof BREADCRUMB_LABEL_KEYS)[number]
@@ -174,6 +175,16 @@ export function getEquipoBreadcrumbSegments(
 		return [
 			{ href: base, labelKey: 'equipo-home' },
 			{ href: `${base}/payments`, labelKey: 'equipo-payments' },
+		]
+	}
+	if (pathname === `${base}/payments/history`) {
+		return [
+			{ href: base, labelKey: 'equipo-home' },
+			{ href: `${base}/payments`, labelKey: 'equipo-payments' },
+			{
+				href: `${base}/payments/history`,
+				labelKey: 'equipo-payments-history',
+			},
 		]
 	}
 	return [{ href: base, labelKey: 'equipo-home' }]

@@ -48,4 +48,14 @@ describe('getEquipoBreadcrumbSegments - payments', () => {
 		assert.equal(segments[1]?.labelKey, 'equipo-payments')
 		assert.equal(segments[1]?.href, `${base}/payments`)
 	})
+
+	test('payments/history shows Home > Pagos > Historial', () => {
+		const segments = getEquipoBreadcrumbSegments(`${base}/payments/history`, {})
+		assert.equal(segments.length, 3)
+		assert.equal(segments[0]?.labelKey, 'equipo-home')
+		assert.equal(segments[1]?.labelKey, 'equipo-payments')
+		assert.equal(segments[1]?.href, `${base}/payments`)
+		assert.equal(segments[2]?.labelKey, 'equipo-payments-history')
+		assert.equal(segments[2]?.href, `${base}/payments/history`)
+	})
 })

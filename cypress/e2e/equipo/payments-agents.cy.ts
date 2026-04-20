@@ -1,9 +1,13 @@
-import type { SeedPaymentsQueueResult } from '~/cypress/tasks'
+import type {
+	SeedPaymentsQueueResult,
+	SeedPaymentsQueueTwentyPendingResult,
+} from '~/cypress/tasks'
 import {
 	adminPaymentsQueue,
 	nonPaymentsAgentQueue,
 	paymentsAgentQueue,
 } from './payments-agents.fixtures'
+import { paymentsBulkPaymentsAgent } from './payments-bulk-queue.fixtures'
 
 describe('Payments receipt queue', () => {
 	let seed: SeedPaymentsQueueResult
@@ -111,6 +115,9 @@ describe('Payments receipt queue', () => {
 		it('bulk-confirms receipt for multiple eligible rows in one action', () => {
 			cy.visit('/equipo/payments')
 			cy.get('table').should('be.visible')
+			cy.get(
+				'[aria-labelledby="payments-receipt-history-heading"] ol li',
+			).should('have.length', 2)
 			cy.contains('tr', 'PAYMENTS002')
 				.scrollIntoView()
 				.within(() => {
@@ -128,6 +135,9 @@ describe('Payments receipt queue', () => {
 			// One row per credit remains; the next receipt-pending installment per credit re-enters the queue.
 			cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 			cy.contains('tr', seed.applicant1Name).should('be.visible')
+			cy.get(
+				'[aria-labelledby="payments-receipt-history-heading"] ol li',
+			).should('have.length', 4)
 		})
 	})
 
@@ -156,6 +166,58 @@ describe('Payments receipt queue', () => {
 			cy.get('main').should('be.visible')
 			cy.contains(/selecciona una empresa/i).should('be.visible')
 			cy.get('table').should('not.exist')
+		})
+	})
+
+	describe('Twenty pending receipts (bulk queue seed)', () => {
+		let bulkSeed: SeedPaymentsQueueTwentyPendingResult
+
+		before(() => {
+			cy.task('cleanupPaymentsBulkQueue')
+			cy.task<SeedPaymentsQueueTwentyPendingResult>(
+				'seedPaymentsQueueTwentyPendingReceipts',
+			).then((result) => {
+				bulkSeed = result
+			})
+		})
+
+		after(() => {
+			cy.task('cleanupPaymentsBulkQueue')
+		})
+
+		beforeEach(() => {
+			cy.login(paymentsBulkPaymentsAgent.email)
+			cy.setCookie('selected_company_id', String(bulkSeed.companyId))
+		})
+
+		it('selects all rows, confirms every receipt, preview shows 10 and full history holds 20 across pages', () => {
+			cy.visit('/equipo/payments')
+			cy.get('table').should('be.visible')
+			// Default page size is 10; header "select all" only targets the current page — show every row first.
+			cy.get('#data-table-page-size').click()
+			cy.get('[role="option"]').contains('25').click()
+			cy.get('table tbody tr').should(
+				'have.length',
+				bulkSeed.expectedQueueRowCount,
+			)
+			cy.get(
+				'button[aria-label="Seleccionar todas las filas elegibles"]',
+			).click()
+			cy.contains('button', /confirmar recepción de 20 pagos/i)
+				.should('be.visible')
+				.click()
+			cy.contains(/recepción de 20 pagos confirmada/i).should('be.visible')
+			cy.get(
+				'[aria-labelledby="payments-receipt-history-heading"] ol li',
+			).should('have.length', 10)
+			cy.visit('/equipo/payments/history')
+			cy.contains(/0 de 20 filas seleccionadas/i).should('be.visible')
+			cy.get('main table tbody tr').should('have.length', 10)
+			cy.contains(/página 1 de 2/i).should('be.visible')
+			cy.get('button[title="Ir a la página siguiente"]')
+				.should('be.visible')
+				.click()
+			cy.get('main table tbody tr').should('have.length', 10)
 		})
 	})
 

@@ -94,6 +94,13 @@ import {
 	paymentsQueueCompany,
 } from '~/cypress/e2e/equipo/payments-agents.fixtures'
 import {
+	allPaymentsBulkQueueUsers,
+	paymentsBulkApplicants,
+	paymentsBulkHrAgent,
+	paymentsBulkPaymentsAgent,
+	paymentsBulkQueueCompany,
+} from '~/cypress/e2e/equipo/payments-bulk-queue.fixtures'
+import {
 	allNavAgents,
 	navCompany,
 } from '~/cypress/e2e/equipo/role-queue-nav.fixtures'
@@ -3165,6 +3172,11 @@ export type SeedPaymentsQueueResult = {
 	expectedRowCount: number
 	applicant1Name: string
 	applicant2Name: string
+	/** Application id for the on-time receipt confirmation (credit1 / applicant1). */
+	onTimeReceiptApplicationId: number
+	/** Application id for the late receipt confirmation (synthetic row / applicant2). */
+	lateReceiptApplicationId: number
+	paymentsReceiptConfirmedByName: string
 	firstInstallmentForCsv: {
 		payrollNumber: string
 		amount: string
@@ -3387,6 +3399,17 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 		})),
 	)
 
+	// Extra installment on credit2: receipt confirmed after due date (history: late badge)
+	await db.insert(creditPayments).values({
+		creditId: credit2.id,
+		dueDate: new Date(Date.UTC(2019, 5, 1)),
+		amount: '100.00',
+		hrConfirmedAt: new Date(Date.UTC(2019, 5, 1)),
+		hrConfirmedByUserId: hrQueueAgent.id,
+		paymentsConfirmedAt: new Date(Date.UTC(2019, 6, 15)),
+		paymentsConfirmedByUserId: paymentsQueueAgent.id,
+	})
+
 	// Credit 3: second dispersed credit for applicant2 — receipt-pending (bulk E2E with credit2)
 	const [app3] = await db
 		.insert(applications)
@@ -3446,6 +3469,9 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 		expectedRowCount: 3,
 		applicant1Name: applicant1.name,
 		applicant2Name: applicant2.name,
+		onTimeReceiptApplicationId: app1.id,
+		lateReceiptApplicationId: app2.id,
+		paymentsReceiptConfirmedByName: paymentsQueueAgent.name ?? '',
 		firstInstallmentForCsv: {
 			payrollNumber: 'PAYMENTS002',
 			amount: s2First.amount,
@@ -3474,6 +3500,206 @@ export const cleanupPaymentsQueue = async () => {
 	await db
 		.delete(companies)
 		.where(eq(companies.domain, paymentsQueueCompany.domain))
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
+	return null
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Payments queue — 20 credits with one HR-confirmed / receipt-pending installment each
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type SeedPaymentsQueueTwentyPendingResult = {
+	companyId: number
+	expectedQueueRowCount: number
+	paymentsReceiptConfirmedByName: string
+}
+
+export const seedPaymentsQueueTwentyPendingReceipts =
+	async (): Promise<SeedPaymentsQueueTwentyPendingResult> => {
+		const db = getDb(process.env.DATABASE_URL || '')
+		const now = new Date()
+
+		await Promise.all(
+			allPaymentsBulkQueueUsers.map((u) =>
+				db.delete(users).where(eq(users.email, u.email)),
+			),
+		)
+		await db
+			.delete(companies)
+			.where(eq(companies.domain, paymentsBulkQueueCompany.domain))
+
+		const [[company], createdUsers] = await Promise.all([
+			db
+				.insert(companies)
+				.values({
+					name: paymentsBulkQueueCompany.name,
+					domain: paymentsBulkQueueCompany.domain,
+					rate: paymentsBulkQueueCompany.rate,
+					employeeSalaryFrequency:
+						paymentsBulkQueueCompany.employeeSalaryFrequency,
+					active: paymentsBulkQueueCompany.active,
+				})
+				.returning(),
+			db
+				.insert(users)
+				.values(
+					allPaymentsBulkQueueUsers.map((u) => ({
+						email: u.email,
+						name: u.name,
+						emailVerified: now,
+					})),
+				)
+				.returning(),
+		])
+
+		if (!company)
+			throw new Error('Seed Payments Bulk Queue: company not created')
+
+		const findUser = (email: string) => {
+			const u = createdUsers.find((r) => r.email === email)
+			if (!u)
+				throw new Error(`Seed Payments Bulk Queue: user ${email} not found`)
+			return u
+		}
+
+		const [term] = await db
+			.insert(terms)
+			.values({ durationType: 'monthly', duration: 4 })
+			.returning()
+
+		if (!term) throw new Error('Seed Payments Bulk Queue: term not created')
+
+		const [offering] = await db
+			.insert(termOfferings)
+			.values({ termId: term.id, companyId: company.id })
+			.returning()
+
+		if (!offering)
+			throw new Error('Seed Payments Bulk Queue: offering not created')
+
+		await Promise.all(
+			createdUsers.flatMap((agent) => {
+				const fixture = allPaymentsBulkQueueUsers.find(
+					(u) => u.email === agent.email,
+				)
+				if (!fixture)
+					throw new Error(
+						`Seed Payments Bulk Queue: fixture not found for ${agent.email}`,
+					)
+				const roleInserts = fixture.roles.map((role) => ({
+					userId: agent.id,
+					role,
+				}))
+				const hasAgent = new Set<string>(fixture.roles).has('agent')
+				return [
+					db.insert(userRoles).values(roleInserts),
+					...(hasAgent
+						? [
+								db.insert(userCompanies).values({
+									userId: agent.id,
+									companyId: company.id,
+								}),
+							]
+						: []),
+				]
+			}),
+		)
+
+		const paymentsAgent = findUser(paymentsBulkPaymentsAgent.email)
+		const hrAgent = findUser(paymentsBulkHrAgent.email)
+
+		const firstDiscountDate = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 0),
+		)
+		const creditAmount = '12000.00'
+
+		for (let i = 0; i < paymentsBulkApplicants.length; i++) {
+			const applicantFixture = paymentsBulkApplicants[i]
+			if (!applicantFixture) {
+				throw new Error('Seed Payments Bulk Queue: applicant fixture missing')
+			}
+			const applicant = findUser(applicantFixture.email)
+			const payrollNumber = `BULK${String(i + 1).padStart(3, '0')}`
+
+			const [app] = await db
+				.insert(applications)
+				.values({
+					applicantId: applicant.id,
+					companyId: company.id,
+					termOfferingId: offering.id,
+					creditAmount,
+					salaryAtApplication: '30000',
+					salaryFrequency: paymentsBulkQueueCompany.employeeSalaryFrequency,
+					status: 'disbursed' as const,
+					firstDiscountDate,
+					payrollNumber,
+				})
+				.returning()
+
+			if (!app)
+				throw new Error('Seed Payments Bulk Queue: application not created')
+
+			const [credit] = await db
+				.insert(credits)
+				.values({
+					applicationId: app.id,
+					status: 'dispersed',
+					disbursementDate: now,
+					transferAmount: creditAmount,
+					disbursedByUserId: applicant.id,
+				})
+				.returning()
+
+			if (!credit)
+				throw new Error('Seed Payments Bulk Queue: credit not created')
+
+			const [scheduleEntry] = generatePaymentSchedule({
+				loanPrincipal: Number(creditAmount),
+				rate: Number(paymentsBulkQueueCompany.rate),
+				totalPayments: 1,
+				frequency: paymentsBulkQueueCompany.employeeSalaryFrequency,
+				firstDiscountDate,
+			})
+
+			if (!scheduleEntry) {
+				throw new Error('Seed Payments Bulk Queue: schedule entry missing')
+			}
+
+			await db.insert(creditPayments).values({
+				creditId: credit.id,
+				dueDate: scheduleEntry.dueDate,
+				amount: scheduleEntry.amount,
+				hrConfirmedAt: new Date(now.getTime() - (i + 1) * 60 * 60_000),
+				hrConfirmedByUserId: hrAgent.id,
+			})
+		}
+
+		return {
+			companyId: company.id,
+			expectedQueueRowCount: paymentsBulkApplicants.length,
+			paymentsReceiptConfirmedByName: paymentsAgent.name ?? '',
+		}
+	}
+
+export const cleanupPaymentsBulkQueue = async () => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	await Promise.all(
+		allPaymentsBulkQueueUsers.map((u) =>
+			db.delete(users).where(eq(users.email, u.email)),
+		),
+	)
+	await db
+		.delete(companies)
+		.where(eq(companies.domain, paymentsBulkQueueCompany.domain))
 	await db
 		.delete(terms)
 		.where(

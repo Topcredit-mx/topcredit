@@ -17,7 +17,8 @@
 		"equipo-deductions": "Deducciones",
 		"equipo-deductions-history": "Historial",
 		"equipo-deductions-overdue": "Retrasos",
-		"equipo-payments": "Pagos"
+		"equipo-payments": "Pagos",
+		"equipo-payments-history": "Historial"
 	},
 	"common": {
 		"save": "Guardar",
@@ -28,7 +29,14 @@
 		"loading": "Cargando...",
 		"download": "Descargar",
 		"copied": "¡Copiado!",
-		"copy": "Copiar"
+		"copy": "Copiar",
+		"data-table-rows-selected": "{selected} de {total} filas seleccionadas",
+		"data-table-rows-per-page": "Filas por página",
+		"data-table-page-status": "Página {current} de {total}",
+		"data-table-first-page": "Ir a la primera página",
+		"data-table-previous-page": "Ir a la página anterior",
+		"data-table-next-page": "Ir a la página siguiente",
+		"data-table-last-page": "Ir a la última página"
 	},
 	"admin": {
 		"overview-title": "Vista general",
@@ -681,7 +689,16 @@
 		"payments-empty": "No hay pagos pendientes",
 		"payments-empty-no-company-title": "Selecciona una empresa",
 		"payments-empty-no-company-description": "Usa el selector de empresa en la barra lateral para ver los pagos de una empresa.",
-		"payments-history-placeholder": "Historial de pagos — próximamente.",
+		"payments-receipt-history-title": "Historial de comprobantes",
+		"payments-receipt-history-description": "Últimas recepciones de comprobantes confirmadas",
+		"payments-receipt-history-empty": "No hay comprobantes confirmados",
+		"payments-receipt-history-confirmed-by": "Confirmado por",
+		"payments-receipt-history-on-time": "A tiempo",
+		"payments-receipt-history-late": "Tarde",
+		"payments-receipt-history-view-all": "Ver todo el historial",
+		"payments-receipt-history-back": "Volver a pagos",
+		"payments-receipt-history-col-confirmed-at": "Confirmado el",
+		"payments-receipt-history-col-timing": "Puntualidad",
 		"payments-overdue-placeholder": "Retrasos de pagos — próximamente."
 	},
 	"cuenta": {
