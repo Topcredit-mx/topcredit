@@ -23,6 +23,7 @@ import {
 	allPaymentsFullyConfirmed,
 	canConfirmReceipt,
 	canHrConfirm,
+	canRevertPaymentsReceipt,
 	parseCsvPaymentConfirmations,
 } from '~/lib/payment-confirmation'
 import {
@@ -1117,11 +1118,12 @@ async function fetchPaymentsWithContext(
 		.where(inArray(creditPayments.id, paymentIds))
 }
 
-async function settleCreditsIfFullyConfirmed(
+async function syncCreditLifecycleAfterPaymentsChange(
 	creditIds: number[],
 	now: Date,
-): Promise<number[]> {
-	const settled: number[] = []
+): Promise<{ settledCreditIds: number[]; dispersedCreditIds: number[] }> {
+	const settledCreditIds: number[] = []
+	const dispersedCreditIds: number[] = []
 	for (const creditId of creditIds) {
 		const remaining = await db
 			.select({
@@ -1136,10 +1138,19 @@ async function settleCreditsIfFullyConfirmed(
 				.update(credits)
 				.set({ status: 'settled', updatedAt: now })
 				.where(eq(credits.id, creditId))
-			settled.push(creditId)
+			settledCreditIds.push(creditId)
+		} else {
+			const result = await db
+				.update(credits)
+				.set({ status: 'dispersed', updatedAt: now })
+				.where(and(eq(credits.id, creditId), eq(credits.status, 'settled')))
+				.returning({ id: credits.id })
+			if (result.length > 0) {
+				dispersedCreditIds.push(creditId)
+			}
 		}
 	}
-	return settled
+	return { settledCreditIds, dispersedCreditIds }
 }
 
 function toCreditPaymentSubject(
@@ -1733,10 +1744,59 @@ export async function confirmPaymentReceipt(
 		})
 		.where(eq(creditPayments.id, paymentId))
 
-	await settleCreditsIfFullyConfirmed([payment.creditId], now)
+	await syncCreditLifecycleAfterPaymentsChange([payment.creditId], now)
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/credits')
+	revalidatePath(`/equipo/credits/${payment.creditId}`)
 	revalidatePath('/cuenta/credits')
+	return {}
+}
+
+export async function revertPaymentReceipt(
+	paymentId: number,
+): Promise<{ error?: string }> {
+	const { ability } = await getAbility()
+
+	const rows = await fetchPaymentsWithContext([paymentId])
+	const payment = rows[0]
+
+	if (!payment) {
+		return { error: ValidationCode.PAYMENT_NOT_FOUND }
+	}
+
+	if (!ability.can('confirmPaymentReceipt', toCreditPaymentSubject(payment))) {
+		return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
+	}
+
+	if (!canRevertPaymentsReceipt(payment)) {
+		return payment.hrConfirmedAt === null
+			? { error: ValidationCode.PAYMENT_NOT_HR_CONFIRMED }
+			: { error: ValidationCode.PAYMENT_RECEIPT_NOT_CONFIRMED }
+	}
+
+	const now = new Date()
+	await db
+		.update(creditPayments)
+		.set({
+			paymentsConfirmedAt: null,
+			paymentsConfirmedByUserId: null,
+		})
+		.where(eq(creditPayments.id, paymentId))
+
+	const { dispersedCreditIds } = await syncCreditLifecycleAfterPaymentsChange(
+		[payment.creditId],
+		now,
+	)
+
+	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/credits')
+	revalidatePath(`/equipo/credits/${payment.creditId}`)
+	revalidatePath('/cuenta/credits')
+	for (const id of dispersedCreditIds) {
+		revalidatePath(`/equipo/credits/${id}`)
+	}
+
 	return {}
 }
 
@@ -1793,9 +1853,13 @@ export async function confirmPaymentReceipts(
 		)
 
 	const uniqueCreditIds = [...new Set(rows.map((r) => r.creditId))]
-	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
+	await syncCreditLifecycleAfterPaymentsChange(uniqueCreditIds, now)
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/credits')
+	for (const id of uniqueCreditIds) {
+		revalidatePath(`/equipo/credits/${id}`)
+	}
 	revalidatePath('/cuenta/credits')
 	return {}
 }
@@ -1905,12 +1969,16 @@ export async function confirmPaymentReceiptsFromCsv(
 	}
 
 	const uniqueCreditIds = [...new Set(toConfirm.map((r) => r.creditId))]
-	const settledCreditIds = await settleCreditsIfFullyConfirmed(
+	const { settledCreditIds } = await syncCreditLifecycleAfterPaymentsChange(
 		uniqueCreditIds,
 		now,
 	)
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/credits')
+	for (const id of uniqueCreditIds) {
+		revalidatePath(`/equipo/credits/${id}`)
+	}
 	revalidatePath('/cuenta/credits')
 
 	return {

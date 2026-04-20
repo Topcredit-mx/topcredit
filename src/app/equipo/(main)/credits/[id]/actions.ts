@@ -1,6 +1,10 @@
 'use server'
 
-import { confirmHrDeduction } from '~/server/mutations'
+import {
+	confirmHrDeduction,
+	confirmPaymentReceipt,
+	revertPaymentReceipt,
+} from '~/server/mutations'
 
 export type ConfirmDeductionFromCreditState = {
 	error?: string
@@ -15,4 +19,29 @@ export async function confirmHrDeductionFromCreditAction(
 		return { error: result.error }
 	}
 	return { confirmed: true }
+}
+
+export type PaymentReceiptFromCreditState = {
+	error?: string
+	ok?: true
+} | null
+
+export async function confirmPaymentReceiptFromCreditAction(
+	paymentId: number,
+): Promise<PaymentReceiptFromCreditState> {
+	const result = await confirmPaymentReceipt(paymentId)
+	if (result.error != null) {
+		return { error: result.error }
+	}
+	return { ok: true }
+}
+
+export async function revertPaymentReceiptFromCreditAction(
+	paymentId: number,
+): Promise<PaymentReceiptFromCreditState> {
+	const result = await revertPaymentReceipt(paymentId)
+	if (result.error != null) {
+		return { error: result.error }
+	}
+	return { ok: true }
 }

@@ -1,16 +1,25 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
-import { canHrConfirm } from '~/lib/payment-confirmation'
+import {
+	canConfirmReceipt,
+	canHrConfirm,
+	canRevertPaymentsReceipt,
+} from '~/lib/payment-confirmation'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { CreditPaymentRowForEquipo } from '~/server/queries'
-import { confirmHrDeductionFromCreditAction } from './actions'
+import {
+	confirmHrDeductionFromCreditAction,
+	confirmPaymentReceiptFromCreditAction,
+	revertPaymentReceiptFromCreditAction,
+} from './actions'
 
 // A payment is confirmable when its due date falls on or before the upcoming
 // deduction period — this covers both overdue (past-due, unconfirmed) and the
@@ -88,14 +97,17 @@ function PaymentsStatusBadge({
 
 export function CreditPaymentsTable({
 	payments: initialPayments,
-	canConfirm,
+	canConfirmHr,
+	canConfirmPaymentReceipt,
 	employeeSalaryFrequency,
 }: {
 	payments: CreditPaymentRowForEquipo[]
-	canConfirm: boolean
+	canConfirmHr: boolean
+	canConfirmPaymentReceipt: boolean
 	employeeSalaryFrequency?: 'bi-monthly' | 'monthly'
 }) {
 	const t = useTranslations('equipo')
+	const router = useRouter()
 	const resolveError = useResolveValidationError()
 	const [, startTransition] = useTransition()
 	const [payments, setPayments] = useState(initialPayments)
@@ -132,6 +144,41 @@ export function CreditPaymentsTable({
 						p.id === paymentId ? { ...p, hrConfirmedAt: new Date() } : p,
 					),
 				)
+				router.refresh()
+			}
+		})
+	}
+
+	const handleConfirmReceipt = (paymentId: number) => {
+		startTransition(async () => {
+			const result = await confirmPaymentReceiptFromCreditAction(paymentId)
+			if (result?.error != null) {
+				toast.error(resolveError(result.error))
+			} else {
+				toast.success(t('credit-detail-confirm-receipt-success'))
+				setPayments((prev) =>
+					prev.map((p) =>
+						p.id === paymentId ? { ...p, paymentsConfirmedAt: new Date() } : p,
+					),
+				)
+				router.refresh()
+			}
+		})
+	}
+
+	const handleRevertReceipt = (paymentId: number) => {
+		startTransition(async () => {
+			const result = await revertPaymentReceiptFromCreditAction(paymentId)
+			if (result?.error != null) {
+				toast.error(resolveError(result.error))
+			} else {
+				toast.success(t('credit-detail-revert-receipt-success'))
+				setPayments((prev) =>
+					prev.map((p) =>
+						p.id === paymentId ? { ...p, paymentsConfirmedAt: null } : p,
+					),
+				)
+				router.refresh()
 			}
 		})
 	}
@@ -164,7 +211,12 @@ export function CreditPaymentsTable({
 						<th className="px-5 py-3 font-semibold" scope="col">
 							{t('credit-detail-col-payments-status')}
 						</th>
-						<th className="px-5 py-3" scope="col" />
+						<th className="px-5 py-3 font-semibold" scope="col">
+							{t('credit-detail-col-hr-actions')}
+						</th>
+						<th className="px-5 py-3 font-semibold" scope="col">
+							{t('credit-detail-col-payments-actions')}
+						</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -196,7 +248,7 @@ export function CreditPaymentsTable({
 								/>
 							</td>
 							<td className="px-5 py-3.5">
-								{canConfirm &&
+								{canConfirmHr &&
 									canHrConfirm(payment) &&
 									upcomingDeductionDate !== undefined &&
 									isWithinUpcomingPeriod(
@@ -211,6 +263,29 @@ export function CreditPaymentsTable({
 											{t('credit-detail-confirm')}
 										</Button>
 									)}
+							</td>
+							<td className="px-5 py-3.5">
+								<div className="flex flex-wrap items-center gap-2">
+									{canConfirmPaymentReceipt && canConfirmReceipt(payment) && (
+										<Button
+											size="sm"
+											variant="outline"
+											onClick={() => handleConfirmReceipt(payment.id)}
+										>
+											{t('credit-detail-confirm-receipt')}
+										</Button>
+									)}
+									{canConfirmPaymentReceipt &&
+										canRevertPaymentsReceipt(payment) && (
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={() => handleRevertReceipt(payment.id)}
+											>
+												{t('credit-detail-revert-receipt')}
+											</Button>
+										)}
+								</div>
 							</td>
 						</tr>
 					))}

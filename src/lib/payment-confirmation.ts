@@ -13,6 +13,10 @@ export function canConfirmReceipt(p: PaymentTimestamps): boolean {
 	return p.hrConfirmedAt !== null && p.paymentsConfirmedAt === null
 }
 
+export function canRevertPaymentsReceipt(p: PaymentTimestamps): boolean {
+	return p.hrConfirmedAt !== null && p.paymentsConfirmedAt !== null
+}
+
 export type QueueInstallmentReceiptTimestamps = {
 	hrConfirmedAt: string | null
 	paymentsConfirmedAt: string | null
