@@ -23,7 +23,6 @@ import {
 	allPaymentsFullyConfirmed,
 	canConfirmReceipt,
 	canHrConfirm,
-	canReversePaymentsReceiptConfirmation,
 	parseCsvPaymentConfirmations,
 } from '~/lib/payment-confirmation'
 import {
@@ -79,7 +78,6 @@ import { getApplicationDocuments } from '~/server/queries'
 import {
 	applyApplicationDocumentDecisionsSchema,
 	confirmHrDeductionsBulkSchema,
-	confirmPaymentReceiptSchema,
 	confirmPaymentReceiptsBulkSchema,
 	preAuthorizeApplicationSchema,
 	updateApplicationStatusSchema,
@@ -1937,50 +1935,4 @@ export async function confirmPaymentReceiptsFromCsv(
 		unmatched,
 		settledCredits: settledCount,
 	}
-}
-
-export async function reversePaymentReceiptConfirmation(
-	paymentId: number,
-): Promise<{ error?: string }> {
-	const parsed = confirmPaymentReceiptSchema.safeParse({ paymentId })
-	if (!parsed.success) {
-		const first = parsed.error.issues[0]
-		return { error: first?.message ?? ValidationCode.PAYMENT_NOT_FOUND }
-	}
-
-	const { ability } = await getAbility()
-	await getRequiredUser()
-
-	const rows = await fetchPaymentsWithContext([parsed.data.paymentId])
-	const payment = rows[0]
-
-	if (!payment) {
-		return { error: ValidationCode.PAYMENT_NOT_FOUND }
-	}
-
-	if (!ability.can('confirmPaymentReceipt', toCreditPaymentSubject(payment))) {
-		return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
-	}
-
-	if (!canReversePaymentsReceiptConfirmation(payment)) {
-		return payment.hrConfirmedAt === null
-			? { error: ValidationCode.PAYMENT_NOT_HR_CONFIRMED }
-			: { error: ValidationCode.PAYMENT_RECEIPT_NOT_CONFIRMED }
-	}
-
-	const now = new Date()
-	await db
-		.update(creditPayments)
-		.set({
-			paymentsConfirmedAt: null,
-			paymentsConfirmedByUserId: null,
-		})
-		.where(eq(creditPayments.id, parsed.data.paymentId))
-
-	await syncCreditLifecycleAfterPaymentsChange([payment.creditId], now)
-
-	revalidatePath('/equipo/payments')
-	revalidatePath('/equipo/payments/history')
-	revalidatePath('/cuenta/credits')
-	return {}
 }

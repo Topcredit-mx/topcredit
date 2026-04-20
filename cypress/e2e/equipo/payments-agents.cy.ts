@@ -227,7 +227,7 @@ describe('Payments receipt queue', () => {
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 
-		it('shows receipt confirmation and reversal next to the schedule row', () => {
+		it('shows confirmed receipt metadata on the credit detail schedule', () => {
 			cy.visit(`/equipo/credits/${seed.credit1Id}`)
 			cy.contains('h1', /detalle del crédito/i).should('be.visible')
 			cy.contains('h2', /calendario de pagos/i).should('be.visible')
@@ -236,67 +236,19 @@ describe('Payments receipt queue', () => {
 				.within(() => {
 					cy.contains(/recepci.n el/i).should('be.visible')
 					cy.contains(seed.paymentsReceiptConfirmedByName).should('be.visible')
-					cy.contains('button', /revertir recepci/i).should('be.visible')
 				})
 		})
 
-		it('reverts then re-confirms receipt from the credit detail schedule', () => {
-			cy.visit(`/equipo/credits/${seed.credit1Id}`)
+		it('confirms receipt from the credit detail schedule when the installment is eligible', () => {
+			cy.visit(`/equipo/credits/${seed.credit2Id}`)
 			cy.contains('h2', /calendario de pagos/i).should('be.visible')
-			cy.get('table tbody tr')
+			cy.get('table').should('be.visible')
+			cy.contains('button', /confirmar recepci/i)
 				.first()
-				.within(() => {
-					cy.contains('button', /revertir recepci/i)
-						.should('be.visible')
-						.click()
-				})
-			cy.contains(/recepci.n revertida/i).should('be.visible')
-			cy.get('table tbody tr')
-				.first()
-				.within(() => {
-					cy.contains('button', /confirmar recepci/i)
-						.should('be.visible')
-						.click()
-				})
+				.scrollIntoView()
+				.should('be.visible')
+				.click()
 			cy.contains(/recepci.n confirmada/i).should('be.visible')
-			cy.get('table tbody tr')
-				.first()
-				.within(() => {
-					cy.contains(/recepci.n el/i).should('be.visible')
-					cy.contains('button', /revertir recepci/i).should('be.visible')
-				})
-		})
-
-		it('removes reverted receipt from the full history table until it is confirmed again', () => {
-			cy.visit(`/equipo/credits/${seed.credit1Id}`)
-			cy.contains('h2', /calendario de pagos/i).should('be.visible')
-			cy.get('table tbody tr')
-				.first()
-				.within(() => {
-					cy.contains('button', /revertir recepci/i)
-						.should('be.visible')
-						.click()
-				})
-			cy.contains(/recepci.n revertida/i).should('be.visible')
-			cy.visit('/equipo/payments/history')
-			cy.get('main table').should('be.visible')
-			cy.get('main table').within(() => {
-				cy.contains('tr', seed.applicant1Name).should('not.exist')
-			})
-			cy.visit(`/equipo/credits/${seed.credit1Id}`)
-			cy.contains('h2', /calendario de pagos/i).should('be.visible')
-			cy.get('table tbody tr')
-				.first()
-				.within(() => {
-					cy.contains('button', /confirmar recepci/i)
-						.should('be.visible')
-						.click()
-				})
-			cy.contains(/recepci.n confirmada/i).should('be.visible')
-			cy.visit('/equipo/payments/history')
-			cy.get('main table').within(() => {
-				cy.contains('tr', seed.applicant1Name).should('be.visible')
-			})
 		})
 	})
 
@@ -318,7 +270,6 @@ describe('Payments receipt queue', () => {
 				.first()
 				.within(() => {
 					cy.contains('button', /confirmar recepci/i).should('not.exist')
-					cy.contains('button', /revertir recepci/i).should('not.exist')
 				})
 		})
 	})

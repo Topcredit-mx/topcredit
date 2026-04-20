@@ -5,7 +5,6 @@ import {
 	canConfirmReceipt,
 	canConfirmReceiptQueueInstallment,
 	canHrConfirm,
-	canReversePaymentsReceiptConfirmation,
 	isFullyConfirmed,
 	parseCsvPaymentConfirmations,
 } from './payment-confirmation'
@@ -73,38 +72,6 @@ describe('canConfirmReceiptQueueInstallment', () => {
 				paymentsConfirmedAt: '2026-01-20T12:00:00.000Z',
 			}),
 			false,
-		)
-	})
-})
-
-describe('canReversePaymentsReceiptConfirmation', () => {
-	test('returns false when payments receipt is not confirmed', () => {
-		assert.equal(
-			canReversePaymentsReceiptConfirmation({
-				hrConfirmedAt: NOW,
-				paymentsConfirmedAt: null,
-			}),
-			false,
-		)
-	})
-
-	test('returns false when HR has not confirmed', () => {
-		assert.equal(
-			canReversePaymentsReceiptConfirmation({
-				hrConfirmedAt: null,
-				paymentsConfirmedAt: NOW,
-			}),
-			false,
-		)
-	})
-
-	test('returns true when both HR and payments receipt are confirmed', () => {
-		assert.equal(
-			canReversePaymentsReceiptConfirmation({
-				hrConfirmedAt: NOW,
-				paymentsConfirmedAt: NOW,
-			}),
-			true,
 		)
 	})
 })

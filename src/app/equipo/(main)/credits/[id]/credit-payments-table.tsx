@@ -7,18 +7,13 @@ import { toast } from 'sonner'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
-import {
-	canConfirmReceipt,
-	canHrConfirm,
-	canReversePaymentsReceiptConfirmation,
-} from '~/lib/payment-confirmation'
+import { canConfirmReceipt, canHrConfirm } from '~/lib/payment-confirmation'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { CreditPaymentRowForEquipo } from '~/server/queries'
 import {
 	confirmHrDeductionFromCreditAction,
 	confirmPaymentReceiptFromCreditAction,
-	reversePaymentReceiptFromCreditAction,
 } from './actions'
 
 function isWithinUpcomingPeriod(
@@ -157,18 +152,6 @@ export function CreditPaymentsTable({
 		})
 	}
 
-	const handleReverseReceipt = (paymentId: number) => {
-		startTransition(async () => {
-			const result = await reversePaymentReceiptFromCreditAction(paymentId)
-			if (result?.error != null) {
-				toast.error(resolveError(result.error))
-			} else {
-				toast.success(t('credit-detail-reverse-receipt-success'))
-				router.refresh()
-			}
-		})
-	}
-
 	return (
 		<div>
 			{upcomingDeductionDate && (
@@ -211,9 +194,6 @@ export function CreditPaymentsTable({
 							canConfirmHr && canHrConfirm(payment) && inPeriod
 						const showConfirmReceiptButton =
 							canConfirmPaymentReceipt && canConfirmReceipt(payment) && inPeriod
-						const showReverseReceiptButton =
-							canConfirmPaymentReceipt &&
-							canReversePaymentsReceiptConfirmation(payment)
 
 						const confirmer = payment.paymentsConfirmedByUser
 						const actor =
@@ -282,15 +262,6 @@ export function CreditPaymentsTable({
 												onClick={() => handleConfirmReceipt(payment.id)}
 											>
 												{t('credit-detail-confirm-receipt')}
-											</Button>
-										) : null}
-										{showReverseReceiptButton ? (
-											<Button
-												size="sm"
-												variant="outline"
-												onClick={() => handleReverseReceipt(payment.id)}
-											>
-												{t('credit-detail-reverse-receipt')}
 											</Button>
 										) : null}
 									</div>

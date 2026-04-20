@@ -44,12 +44,6 @@ export function allPaymentsFullyConfirmed(
 	return payments.every(isFullyConfirmed)
 }
 
-export function canReversePaymentsReceiptConfirmation(
-	p: PaymentTimestamps,
-): boolean {
-	return p.hrConfirmedAt !== null && p.paymentsConfirmedAt !== null
-}
-
 export type CsvPaymentRow = {
 	payrollNumber: string
 	amount: string
