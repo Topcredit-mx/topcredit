@@ -99,21 +99,21 @@ import {
 	hrAgentPaymentsQueue,
 	paymentsAgentQueue,
 	paymentsQueueCompany,
-} from '~/cypress/e2e/equipo/payments-agents.fixtures'
+} from '~/cypress/e2e/equipo/installments-agents.fixtures'
 import {
 	allPaymentsBulkQueueUsers,
 	paymentsBulkApplicants,
 	paymentsBulkHrAgent,
 	paymentsBulkPaymentsAgent,
 	paymentsBulkQueueCompany,
-} from '~/cypress/e2e/equipo/payments-bulk-queue.fixtures'
+} from '~/cypress/e2e/equipo/installments-bulk-queue.fixtures'
 import {
 	allPaymentsOverdueReceiptUsers,
 	applicantOverdueReceipt,
 	applicantOverdueReceiptHrPending,
 	hrOverdueReceiptAgent,
 	paymentsOverdueReceiptCompany,
-} from '~/cypress/e2e/equipo/payments-overdue-receipt.fixtures'
+} from '~/cypress/e2e/equipo/installments-overdue.fixtures'
 import {
 	allNavAgents,
 	navCompany,
@@ -3528,6 +3528,10 @@ export const cleanupPaymentsQueue = async () => {
 	return null
 }
 
+export type SeedInstallmentsQueueResult = SeedPaymentsQueueResult
+export const seedInstallmentsQueue = seedPaymentsQueue
+export const cleanupInstallmentsQueue = cleanupPaymentsQueue
+
 export type SeedPaymentsOverdueReceiptResult = {
 	companyId: number
 	applicantPaymentsBlockedName: string
@@ -3779,6 +3783,10 @@ export const cleanupPaymentsOverdueReceipt = async () => {
 	return null
 }
 
+export type SeedInstallmentsOverdueResult = SeedPaymentsOverdueReceiptResult
+export const seedInstallmentsOverdue = seedPaymentsOverdueReceipt
+export const cleanupInstallmentsOverdue = cleanupPaymentsOverdueReceipt
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Payments queue — 20 credits with one HR-confirmed / receipt-pending installment each
 // ──────────────────────────────────────────────────────────────────────────────
@@ -3976,6 +3984,12 @@ export const cleanupPaymentsBulkQueue = async () => {
 		)
 	return null
 }
+
+export type SeedInstallmentsQueueTwentyPendingResult =
+	SeedPaymentsQueueTwentyPendingResult
+export const seedInstallmentsQueueTwentyPending =
+	seedPaymentsQueueTwentyPendingReceipts
+export const cleanupInstallmentsBulkQueue = cleanupPaymentsBulkQueue
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Credit detail — mixed payment states (button visibility test)

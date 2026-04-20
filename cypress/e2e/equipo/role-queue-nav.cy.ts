@@ -150,12 +150,12 @@ describe('Role-based queue navigation', () => {
 			navScope().should('be.visible')
 		})
 
-		it('sees Pagos nav group with a link to /equipo/payments', () => {
+		it('sees Instalaciones nav group with a link to /equipo/installments', () => {
 			navScope().within(() => {
-				cy.contains('button', 'Pagos').should('be.visible').click()
+				cy.contains('button', 'Instalaciones').should('be.visible').click()
 				cy.contains('a', 'Próximo Corte')
 					.should('be.visible')
-					.and('have.attr', 'href', '/equipo/payments')
+					.and('have.attr', 'href', '/equipo/installments')
 			})
 		})
 

@@ -1,13 +1,13 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
-import { Card } from '~/components/ui/card'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
-import { getPaymentReceiptConfirmationHistory } from '~/server/queries'
+import { getInstallmentConfirmationHistory } from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
-import { PaymentReceiptHistoryTable } from './payment-receipt-history-table'
+import { InstallmentHistoryTable } from './installment-history-table'
 
-export default async function PaymentsHistoryPage() {
+export default async function InstallmentsHistoryPage() {
 	getRequiredAgentUser()
 
 	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
@@ -26,18 +26,24 @@ export default async function PaymentsHistoryPage() {
 	const t = await getTranslations('equipo')
 
 	const scope = await getEffectiveCompanyScope()
-	const historyItems = await getPaymentReceiptConfirmationHistory(scope)
+	const historyItems = await getInstallmentConfirmationHistory(scope)
 
 	return (
 		<div className="container mx-auto py-6">
+			<div className="mb-6">
+				<Link
+					href="/equipo/installments"
+					className="text-muted-foreground text-sm hover:underline"
+				>
+					{t('installments-history-back')}
+				</Link>
+			</div>
 			{historyItems.length === 0 ? (
-				<Card className="p-8 text-center">
-					<p className="text-muted-foreground">
-						{t('payments-receipt-history-empty')}
-					</p>
-				</Card>
+				<p className="text-center text-muted-foreground text-sm">
+					{t('installments-history-full-empty')}
+				</p>
 			) : (
-				<PaymentReceiptHistoryTable items={historyItems} />
+				<InstallmentHistoryTable items={historyItems} />
 			)}
 		</div>
 	)

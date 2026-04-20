@@ -6,9 +6,9 @@ import { useTranslations } from 'next-intl'
 import { FormattedDate } from '~/components/formatted-date'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
 import { formatCurrencyMxn } from '~/lib/utils'
-import type { PaymentReceiptConfirmationHistoryItem } from '~/server/queries'
+import type { InstallmentConfirmationHistoryItem } from '~/server/queries'
 
-export function usePaymentReceiptHistoryColumns(): ColumnDef<PaymentReceiptConfirmationHistoryItem>[] {
+export function useInstallmentHistoryColumns(): ColumnDef<InstallmentConfirmationHistoryItem>[] {
 	const t = useTranslations('equipo')
 
 	return [
@@ -17,7 +17,7 @@ export function usePaymentReceiptHistoryColumns(): ColumnDef<PaymentReceiptConfi
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('payments-col-employee')}
+					title={t('installments-col-employee')}
 				/>
 			),
 			cell: ({ row }) => (
@@ -34,7 +34,7 @@ export function usePaymentReceiptHistoryColumns(): ColumnDef<PaymentReceiptConfi
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('payments-col-amount')}
+					title={t('installments-col-amount')}
 				/>
 			),
 			cell: ({ row }) => (
@@ -48,7 +48,7 @@ export function usePaymentReceiptHistoryColumns(): ColumnDef<PaymentReceiptConfi
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('payments-receipt-history-confirmed-by')}
+					title={t('installments-history-confirmed-by-col')}
 				/>
 			),
 			cell: ({ row }) => {
@@ -62,7 +62,7 @@ export function usePaymentReceiptHistoryColumns(): ColumnDef<PaymentReceiptConfi
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('payments-receipt-history-col-confirmed-at')}
+					title={t('installments-history-col-confirmed-at')}
 				/>
 			),
 			cell: ({ row }) => (
@@ -79,18 +79,18 @@ export function usePaymentReceiptHistoryColumns(): ColumnDef<PaymentReceiptConfi
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('payments-receipt-history-col-timing')}
+					title={t('installments-history-col-timing')}
 				/>
 			),
 			cell: ({ row }) => {
 				const onTime = row.getValue<boolean>('confirmedOnTime')
 				return onTime ? (
 					<span className="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800 text-xs">
-						{t('payments-receipt-history-on-time')}
+						{t('installments-history-on-time')}
 					</span>
 				) : (
 					<span className="rounded-full bg-red-100 px-2 py-0.5 font-medium text-red-800 text-xs">
-						{t('payments-receipt-history-late')}
+						{t('installments-history-late')}
 					</span>
 				)
 			},

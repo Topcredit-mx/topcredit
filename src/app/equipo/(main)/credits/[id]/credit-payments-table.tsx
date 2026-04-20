@@ -15,7 +15,7 @@ import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { CreditPaymentRowForEquipo } from '~/server/queries'
 import {
 	confirmHrDeductionFromCreditAction,
-	confirmPaymentReceiptFromCreditAction,
+	confirmInstallmentFromCreditAction,
 } from './actions'
 
 function isWithinUpcomingPeriodYmd(
@@ -151,11 +151,11 @@ export function CreditPaymentsTable({
 
 	const handlePaymentReceiptConfirm = (paymentId: number) => {
 		startTransition(async () => {
-			const result = await confirmPaymentReceiptFromCreditAction(paymentId)
+			const result = await confirmInstallmentFromCreditAction(paymentId)
 			if (result?.error != null) {
 				toast.error(resolveError(result.error))
 			} else {
-				toast.success(t('payments-confirm-receipt-success'))
+				toast.success(t('installments-confirm-success'))
 				setPayments((prev) =>
 					prev.map((p) =>
 						p.id === paymentId ? { ...p, paymentsConfirmedAt: new Date() } : p,
@@ -265,7 +265,7 @@ export function CreditPaymentsTable({
 												variant="outline"
 												onClick={() => handlePaymentReceiptConfirm(payment.id)}
 											>
-												{t('payments-confirm-receipt')}
+												{t('installments-confirm')}
 											</Button>
 										) : null}
 									</div>

@@ -6,30 +6,30 @@ import {
 	DataTablePagination,
 } from '~/components/ui/data-table'
 import { canConfirmReceiptQueueInstallment } from '~/lib/payment-confirmation'
-import type { OverduePaymentsInstallment } from '~/server/queries'
-import { OverduePaymentReceiptsBulkBar } from './overdue-payment-receipts-bulk-bar'
-import { useOverduePaymentsColumns } from './overdue-payment-receipts-columns'
+import type { OverdueInstallment } from '~/server/queries'
+import { OverdueInstallmentsBulkBar } from './overdue-installments-bulk-bar'
+import { useOverdueInstallmentsColumns } from './overdue-installments-columns'
 
-export function OverduePaymentReceiptsTable({
+export function OverdueInstallmentsTable({
 	installments,
 }: {
-	installments: OverduePaymentsInstallment[]
+	installments: OverdueInstallment[]
 }) {
-	const columns = useOverduePaymentsColumns()
+	const columns = useOverdueInstallmentsColumns()
 
 	return (
 		<div className="min-w-0 space-y-4">
 			<DataTable
 				columns={columns}
 				data={installments}
-				schema="payments-overdue-receipts"
+				schema="installments-overdue"
 				enableRowSelection={(row) =>
 					row.original.blockingParty === 'payments' &&
 					canConfirmReceiptQueueInstallment(row.original)
 				}
 			>
 				<div className="flex min-w-0 justify-end">
-					<OverduePaymentReceiptsBulkBar />
+					<OverdueInstallmentsBulkBar />
 				</div>
 				<DataTableContent />
 				<DataTablePagination />

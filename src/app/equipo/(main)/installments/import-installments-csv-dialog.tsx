@@ -29,8 +29,8 @@ import type {
 	ValidateDeductionsCsvErrorRow,
 } from '~/server/mutations'
 import {
-	confirmPaymentReceiptsFromCsvAction,
-	validatePaymentReceiptsCsvAction,
+	confirmInstallmentsFromCsvAction,
+	validateInstallmentsCsvAction,
 } from './actions'
 
 type UploadState = { stage: 'upload' }
@@ -46,15 +46,15 @@ type PreviewState = {
 
 type DialogState = UploadState | PreviewState
 
-interface ImportPaymentReceiptsDialogProps {
+interface ImportInstallmentsCsvDialogProps {
 	open: boolean
 	onClose: () => void
 }
 
-export function ImportPaymentReceiptsDialog({
+export function ImportInstallmentsCsvDialog({
 	open,
 	onClose,
-}: ImportPaymentReceiptsDialogProps) {
+}: ImportInstallmentsCsvDialogProps) {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
@@ -74,7 +74,7 @@ export function ImportPaymentReceiptsDialog({
 		startTransition(async () => {
 			const formData = new FormData()
 			formData.set('file', file)
-			const result = await validatePaymentReceiptsCsvAction(formData)
+			const result = await validateInstallmentsCsvAction(formData)
 			if (!result.ok) {
 				toast.error(resolveError(result.error))
 				if (fileInputRef.current) {
@@ -96,15 +96,15 @@ export function ImportPaymentReceiptsDialog({
 
 	function handleConfirm(paymentIds: number[]) {
 		startTransition(async () => {
-			const res = await confirmPaymentReceiptsFromCsvAction(paymentIds)
+			const res = await confirmInstallmentsFromCsvAction(paymentIds)
 			if (res?.error != null) {
 				toast.error(resolveError(res.error))
 				return
 			}
 			toast.success(
 				paymentIds.length === 1
-					? t('payments-bulk-confirm-success-one')
-					: t('payments-bulk-confirm-success-many', {
+					? t('installments-bulk-confirm-success-one')
+					: t('installments-bulk-confirm-success-many', {
 							count: paymentIds.length,
 						}),
 			)
@@ -118,7 +118,7 @@ export function ImportPaymentReceiptsDialog({
 			<DialogContent
 				className="sm:max-w-2xl"
 				aria-describedby={
-					state.stage === 'preview' ? 'payments-import-csv-desc' : undefined
+					state.stage === 'preview' ? 'installments-import-csv-desc' : undefined
 				}
 			>
 				<DialogHeader className="space-y-3">
@@ -127,12 +127,12 @@ export function ImportPaymentReceiptsDialog({
 							className="size-5 shrink-0 text-muted-foreground"
 							aria-hidden
 						/>
-						{t('payments-import-dialog-title')}
+						{t('installments-import-dialog-title')}
 					</DialogTitle>
 					{state.stage === 'preview' && (
 						<ImportCsvPreviewSummary
-							id="payments-import-csv-desc"
-							variant="payments"
+							id="installments-import-csv-desc"
+							variant="installments"
 							fileName={state.fileName}
 							parseStats={state.parseStats}
 						/>
@@ -179,17 +179,17 @@ function UploadStage({
 		<div className="space-y-4 py-2">
 			<div className="space-y-2">
 				<label
-					htmlFor="import-payment-receipt-file"
+					htmlFor="import-installments-csv-file"
 					className="flex items-center gap-2 font-medium text-sm"
 				>
 					<Upload
 						className="size-4 shrink-0 text-muted-foreground"
 						aria-hidden
 					/>
-					{t('payments-import-file-label')}
+					{t('installments-import-file-label')}
 				</label>
 				<p className="text-muted-foreground text-sm">
-					{t('payments-import-file-hint')}
+					{t('installments-import-file-hint')}
 				</p>
 				<div
 					className={cn(
@@ -198,7 +198,7 @@ function UploadStage({
 					)}
 				>
 					<input
-						id="import-payment-receipt-file"
+						id="import-installments-csv-file"
 						ref={fileInputRef}
 						type="file"
 						accept=".csv,text/csv"
@@ -216,7 +216,7 @@ function UploadStage({
 							aria-live="polite"
 						>
 							<Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-							{t('payments-import-validating')}
+							{t('installments-import-validating')}
 						</span>
 					) : null}
 				</div>
@@ -230,17 +230,17 @@ function errorCellMessage(
 	t: TFunction,
 ): string {
 	if (err.message === 'no-match') {
-		return t('payments-import-error-no-match')
+		return t('installments-import-error-no-match')
 	}
 	return err.message
 }
 
 function warningReason(w: ValidateDeductionsCsvErrorRow, t: TFunction): string {
 	if (w.message === 'already-received') {
-		return t('payments-import-warning-already-received')
+		return t('installments-import-warning-already-received')
 	}
 	if (w.message === 'not-hr-confirmed') {
-		return t('payments-import-warning-not-hr-confirmed')
+		return t('installments-import-warning-not-hr-confirmed')
 	}
 	return w.message
 }
@@ -261,8 +261,8 @@ function PreviewStage({
 	const total = state.matchedCount + state.warnings.length + state.errors.length
 	const matchedLabel =
 		total === 1 && state.matchedCount === 1
-			? t('payments-import-ready-one-total')
-			: t('payments-import-ready-many-total', {
+			? t('installments-import-ready-one-total')
+			: t('installments-import-ready-many-total', {
 					matched: state.matchedCount,
 					total,
 				})
@@ -274,23 +274,23 @@ function PreviewStage({
 					<div className="space-y-2">
 						<p className="flex items-center gap-2 font-medium text-amber-700 text-sm">
 							<TriangleAlert className="size-4 shrink-0" aria-hidden />
-							{t('payments-import-warnings-title')}
+							{t('installments-import-warnings-title')}
 						</p>
 						<div className="max-h-56 overflow-auto rounded-md border border-amber-500/20">
 							<table className="w-full text-sm">
 								<thead>
 									<tr className="border-b bg-muted/50 text-left">
 										<th className="px-3 py-2 font-medium">
-											{t('payments-import-col-payroll')}
+											{t('installments-import-col-payroll')}
 										</th>
 										<th className="px-3 py-2 font-medium">
-											{t('payments-import-col-amount')}
+											{t('installments-import-col-amount')}
 										</th>
 										<th className="px-3 py-2 font-medium">
-											{t('payments-import-col-date')}
+											{t('installments-import-col-date')}
 										</th>
 										<th className="px-3 py-2 font-medium">
-											{t('payments-import-col-reason')}
+											{t('installments-import-col-reason')}
 										</th>
 									</tr>
 								</thead>
@@ -315,23 +315,23 @@ function PreviewStage({
 					<div className="space-y-2">
 						<p className="flex items-center gap-2 font-medium text-destructive text-sm">
 							<OctagonAlert className="size-4 shrink-0" aria-hidden />
-							{t('payments-import-errors-title')}
+							{t('installments-import-errors-title')}
 						</p>
 						<div className="max-h-56 overflow-auto rounded-md border border-destructive/20">
 							<table className="w-full text-sm">
 								<thead>
 									<tr className="border-b bg-muted/50 text-left">
 										<th className="px-3 py-2 font-medium">
-											{t('payments-import-col-payroll')}
+											{t('installments-import-col-payroll')}
 										</th>
 										<th className="px-3 py-2 font-medium">
-											{t('payments-import-col-amount')}
+											{t('installments-import-col-amount')}
 										</th>
 										<th className="px-3 py-2 font-medium">
-											{t('payments-import-col-date')}
+											{t('installments-import-col-date')}
 										</th>
 										<th className="px-3 py-2 font-medium">
-											{t('payments-import-col-error')}
+											{t('installments-import-col-error')}
 										</th>
 									</tr>
 								</thead>
@@ -382,13 +382,13 @@ function PreviewStage({
 							disabled={isPending}
 						>
 							<X className="mr-2 size-4" aria-hidden />
-							{t('payments-import-cancel')}
+							{t('installments-import-cancel')}
 						</Button>
 						{state.matchedCount > 0 ? (
 							<Button
 								type="button"
 								disabled={isPending}
-								aria-label={t('payments-import-confirm-aria', {
+								aria-label={t('installments-import-confirm-aria', {
 									count: state.matchedCount,
 								})}
 								onClick={() => onConfirm(state.matchedPaymentIds)}
@@ -396,12 +396,12 @@ function PreviewStage({
 								{isPending ? (
 									<>
 										<Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-										{t('payments-import-confirming')}
+										{t('installments-import-confirming')}
 									</>
 								) : (
 									<>
 										<Check className="mr-2 size-4" aria-hidden />
-										{t('payments-import-confirm-action')}
+										{t('installments-import-confirm-action')}
 									</>
 								)}
 							</Button>

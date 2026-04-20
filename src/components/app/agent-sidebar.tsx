@@ -42,7 +42,7 @@ interface AgentSidebarProps {
 	companies: CompanyForSwitcher[]
 	selectedCompanyId: number | null
 	overdueDeductionsCount?: number
-	overduePaymentReceiptsCount?: number
+	overdueInstallmentsCount?: number
 }
 
 export function AgentSidebar({
@@ -50,7 +50,7 @@ export function AgentSidebar({
 	companies,
 	selectedCompanyId,
 	overdueDeductionsCount = 0,
-	overduePaymentReceiptsCount = 0,
+	overdueInstallmentsCount = 0,
 }: AgentSidebarProps) {
 	const t = useTranslations('equipo')
 	const isAdmin = user.roles?.includes('admin')
@@ -77,28 +77,28 @@ export function AgentSidebar({
 					],
 				},
 				{
-					title: t('nav-payments'),
-					url: '/equipo/payments',
+					title: t('nav-installments'),
+					url: '/equipo/installments',
 					icon: CreditCard,
 					items: [
 						{
-							title: t('nav-payments-next-cutoff'),
-							url: '/equipo/payments',
+							title: t('nav-installments-next-cutoff'),
+							url: '/equipo/installments',
 							icon: CalendarClock,
 							exact: true,
 						},
 						{
-							title: t('nav-payments-history'),
-							url: '/equipo/payments/history',
+							title: t('nav-installments-history'),
+							url: '/equipo/installments/history',
 							icon: History,
 						},
 						{
-							title: t('nav-payments-overdue'),
-							url: '/equipo/payments/overdue',
+							title: t('nav-installments-overdue'),
+							url: '/equipo/installments/overdue',
 							icon: TriangleAlert,
 							badge:
-								overduePaymentReceiptsCount > 0
-									? overduePaymentReceiptsCount
+								overdueInstallmentsCount > 0
+									? overdueInstallmentsCount
 									: undefined,
 						},
 					],
@@ -173,28 +173,28 @@ export function AgentSidebar({
 				...(roles.includes('payments')
 					? [
 							{
-								title: t('nav-payments'),
-								url: '/equipo/payments',
+								title: t('nav-installments'),
+								url: '/equipo/installments',
 								icon: Banknote,
 								items: [
 									{
-										title: t('nav-payments-next-cutoff'),
-										url: '/equipo/payments',
+										title: t('nav-installments-next-cutoff'),
+										url: '/equipo/installments',
 										icon: CalendarClock,
 										exact: true,
 									},
 									{
-										title: t('nav-payments-history'),
-										url: '/equipo/payments/history',
+										title: t('nav-installments-history'),
+										url: '/equipo/installments/history',
 										icon: History,
 									},
 									{
-										title: t('nav-payments-overdue'),
-										url: '/equipo/payments/overdue',
+										title: t('nav-installments-overdue'),
+										url: '/equipo/installments/overdue',
 										icon: TriangleAlert,
 										badge:
-											overduePaymentReceiptsCount > 0
-												? overduePaymentReceiptsCount
+											overdueInstallmentsCount > 0
+												? overdueInstallmentsCount
 												: undefined,
 									},
 								],

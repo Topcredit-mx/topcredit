@@ -81,7 +81,7 @@ import { getApplicationDocuments } from '~/server/queries'
 import {
 	applyApplicationDocumentDecisionsSchema,
 	confirmHrDeductionsBulkSchema,
-	confirmPaymentReceiptsBulkSchema,
+	confirmInstallmentsBulkSchema,
 	preAuthorizeApplicationSchema,
 	updateApplicationStatusSchema,
 } from '~/server/schemas'
@@ -1223,7 +1223,7 @@ export async function confirmHrDeduction(
 
 	revalidatePath('/equipo/deductions')
 	revalidatePath('/equipo/deductions/overdue')
-	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/installments')
 	revalidatePath('/equipo/credits')
 	revalidatePath('/cuenta/credits')
 	return {}
@@ -1274,7 +1274,7 @@ export async function confirmHrDeductions(
 
 	revalidatePath('/equipo/deductions')
 	revalidatePath('/equipo/deductions/overdue')
-	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/installments')
 	revalidatePath('/equipo/credits')
 	revalidatePath('/cuenta/credits')
 	return {}
@@ -1480,7 +1480,7 @@ export async function validateDeductionsCsv(
 	}
 }
 
-export type ValidatePaymentReceiptsCsvResult = {
+export type ValidateInstallmentsCsvResult = {
 	matchedPaymentIds: number[]
 	matchedRows: Array<{ payrollNumber: string; amount: string; dueDate: string }>
 	errors: ValidateDeductionsCsvErrorRow[]
@@ -1488,10 +1488,10 @@ export type ValidatePaymentReceiptsCsvResult = {
 	parseStats: CsvImportParseStats
 }
 
-export async function validatePaymentReceiptsCsv(
+export async function validateInstallmentsCsv(
 	csvContent: string,
 	companyId: number,
-): Promise<ValidatePaymentReceiptsCsvResult> {
+): Promise<ValidateInstallmentsCsvResult> {
 	const errorRows: ValidateDeductionsCsvErrorRow[] = []
 	type ParsedRow = {
 		payrollNumber: string
@@ -1731,7 +1731,7 @@ export async function confirmHrDeductionsFromCsv(
 	}
 
 	revalidatePath('/equipo/deductions')
-	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/installments')
 	revalidatePath('/cuenta/credits')
 
 	return {
@@ -1741,7 +1741,7 @@ export async function confirmHrDeductionsFromCsv(
 	}
 }
 
-export async function confirmPaymentReceipt(
+export async function confirmInstallmentReceipt(
 	paymentId: number,
 ): Promise<{ error?: string }> {
 	const { ability } = await getAbility()
@@ -1791,18 +1791,18 @@ export async function confirmPaymentReceipt(
 
 	await settleCreditsIfFullyConfirmed([payment.creditId], now)
 
-	revalidatePath('/equipo/payments')
-	revalidatePath('/equipo/payments/overdue')
+	revalidatePath('/equipo/installments')
+	revalidatePath('/equipo/installments/overdue')
 	revalidatePath('/equipo/credits')
 	revalidatePath(`/equipo/credits/${payment.creditId}`)
 	revalidatePath('/cuenta/credits')
 	return {}
 }
 
-export async function confirmPaymentReceipts(
+export async function confirmInstallments(
 	paymentIds: number[],
 ): Promise<{ error?: string }> {
-	const parsed = confirmPaymentReceiptsBulkSchema.safeParse({ paymentIds })
+	const parsed = confirmInstallmentsBulkSchema.safeParse({ paymentIds })
 	if (!parsed.success) {
 		const first = parsed.error.issues[0]
 		return { error: first?.message ?? ValidationCode.PAYMENT_BULK_EMPTY }
@@ -1874,8 +1874,8 @@ export async function confirmPaymentReceipts(
 	const uniqueCreditIds = [...new Set(rows.map((r) => r.creditId))]
 	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
 
-	revalidatePath('/equipo/payments')
-	revalidatePath('/equipo/payments/overdue')
+	revalidatePath('/equipo/installments')
+	revalidatePath('/equipo/installments/overdue')
 	revalidatePath('/equipo/credits')
 	for (const creditId of uniqueCreditIds) {
 		revalidatePath(`/equipo/credits/${creditId}`)
@@ -1884,7 +1884,7 @@ export async function confirmPaymentReceipts(
 	return {}
 }
 
-export type ConfirmPaymentReceiptsFromCsvResult = {
+export type ConfirmInstallmentsFromCsvResult = {
 	confirmed: number
 	alreadyReceived: number
 	notHrConfirmed: number
@@ -1893,10 +1893,10 @@ export type ConfirmPaymentReceiptsFromCsvResult = {
 	error?: string
 }
 
-export async function confirmPaymentReceiptsFromCsv(
+export async function confirmInstallmentsFromCsv(
 	csvContent: string,
-): Promise<ConfirmPaymentReceiptsFromCsvResult> {
-	const empty: ConfirmPaymentReceiptsFromCsvResult = {
+): Promise<ConfirmInstallmentsFromCsvResult> {
+	const empty: ConfirmInstallmentsFromCsvResult = {
 		confirmed: 0,
 		alreadyReceived: 0,
 		notHrConfirmed: 0,
@@ -2019,8 +2019,8 @@ export async function confirmPaymentReceiptsFromCsv(
 		now,
 	)
 
-	revalidatePath('/equipo/payments')
-	revalidatePath('/equipo/payments/overdue')
+	revalidatePath('/equipo/installments')
+	revalidatePath('/equipo/installments/overdue')
 	revalidatePath('/cuenta/credits')
 
 	return {

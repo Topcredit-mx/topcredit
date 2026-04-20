@@ -206,11 +206,11 @@ export const confirmHrDeductionsBulkSchema = z.object({
 		.min(1, ValidationCode.PAYMENT_BULK_EMPTY),
 })
 
-export const confirmPaymentReceiptSchema = z.object({
+export const confirmInstallmentSchema = z.object({
 	paymentId: z.number().int().positive(ValidationCode.PAYMENT_NOT_FOUND),
 })
 
-export const confirmPaymentReceiptsBulkSchema = z.object({
+export const confirmInstallmentsBulkSchema = z.object({
 	paymentIds: z
 		.array(z.number().int().positive(ValidationCode.PAYMENT_NOT_FOUND))
 		.min(1, ValidationCode.PAYMENT_BULK_EMPTY),

@@ -10,22 +10,76 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
+import { canConfirmReceiptQueueInstallment } from '~/lib/payment-confirmation'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
-import type { OverduePaymentsInstallment } from '~/server/queries'
-import { confirmPaymentReceiptAction } from '../actions'
+import type { InstallmentForQueue } from '~/server/queries'
+import { confirmInstallmentAction } from './actions'
 
-function OverdueReceiptActionsCell({
-	row,
+function HrStatusCell({
+	hrConfirmedAt,
+	pendingLabel,
+	confirmedLabel,
 }: {
-	row: OverduePaymentsInstallment
+	hrConfirmedAt: string | null
+	pendingLabel: string
+	confirmedLabel: string
 }) {
+	if (hrConfirmedAt === null) {
+		return (
+			<span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800 text-xs">
+				{pendingLabel}
+			</span>
+		)
+	}
+	return (
+		<span className="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800 text-xs">
+			{confirmedLabel}
+		</span>
+	)
+}
+
+function PagosInstallmentStatusCell({
+	hrConfirmedAt,
+	paymentsConfirmedAt,
+	pendingLabel,
+	confirmedLabel,
+	awaitingHrLabel,
+}: {
+	hrConfirmedAt: string | null
+	paymentsConfirmedAt: string | null
+	pendingLabel: string
+	confirmedLabel: string
+	awaitingHrLabel: string
+}) {
+	if (paymentsConfirmedAt !== null) {
+		return (
+			<span className="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800 text-xs">
+				{confirmedLabel}
+			</span>
+		)
+	}
+	if (hrConfirmedAt !== null) {
+		return (
+			<span className="rounded-full bg-blue-100 px-2 py-0.5 font-medium text-blue-800 text-xs">
+				{pendingLabel}
+			</span>
+		)
+	}
+	return (
+		<span className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-600 text-xs">
+			{awaitingHrLabel}
+		</span>
+	)
+}
+
+function InstallmentConfirmActionsCell({ row }: { row: InstallmentForQueue }) {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
 
-	if (row.blockingParty !== 'payments') {
+	if (!canConfirmReceiptQueueInstallment(row)) {
 		return <span className="text-muted-foreground text-sm">—</span>
 	}
 
@@ -36,22 +90,22 @@ function OverdueReceiptActionsCell({
 			disabled={isPending}
 			onClick={() => {
 				startTransition(async () => {
-					const res = await confirmPaymentReceiptAction(row.id)
+					const res = await confirmInstallmentAction(row.id)
 					if (res?.error != null) {
 						toast.error(resolveError(res.error))
 					} else {
-						toast.success(t('payments-confirm-receipt-success'))
+						toast.success(t('installments-confirm-success'))
 						router.refresh()
 					}
 				})
 			}}
 		>
-			{t('payments-confirm-receipt')}
+			{t('installments-confirm')}
 		</Button>
 	)
 }
 
-export function useOverduePaymentsColumns(): ColumnDef<OverduePaymentsInstallment>[] {
+export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] {
 	const t = useTranslations('equipo')
 
 	return [
@@ -74,7 +128,7 @@ export function useOverduePaymentsColumns(): ColumnDef<OverduePaymentsInstallmen
 								row.toggleSelected(select)
 							}
 						}}
-						aria-label={t('payments-select-all')}
+						aria-label={t('installments-select-all')}
 					/>
 				)
 			},
@@ -83,7 +137,7 @@ export function useOverduePaymentsColumns(): ColumnDef<OverduePaymentsInstallmen
 					checked={row.getIsSelected()}
 					onCheckedChange={(value) => row.toggleSelected(!!value)}
 					disabled={!row.getCanSelect()}
-					aria-label={t('payments-select-row')}
+					aria-label={t('installments-select-row')}
 				/>
 			),
 			enableSorting: false,
@@ -94,7 +148,7 @@ export function useOverduePaymentsColumns(): ColumnDef<OverduePaymentsInstallmen
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('payments-col-employee')}
+					title={t('installments-col-employee')}
 				/>
 			),
 			cell: ({ row }) => {
@@ -122,7 +176,7 @@ export function useOverduePaymentsColumns(): ColumnDef<OverduePaymentsInstallmen
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('payments-col-company')}
+					title={t('installments-col-company')}
 				/>
 			),
 			cell: ({ row }) => (
@@ -132,28 +186,11 @@ export function useOverduePaymentsColumns(): ColumnDef<OverduePaymentsInstallmen
 			),
 		},
 		{
-			id: 'blockingParty',
-			header: ({ column }) => (
-				<DataTableColumnHeader
-					column={column}
-					title={t('payments-overdue-col-blocking')}
-				/>
-			),
-			cell: ({ row }) => (
-				<div className="text-muted-foreground text-sm">
-					{row.original.blockingParty === 'hr'
-						? t('payments-overdue-blocking-hr')
-						: t('payments-overdue-blocking-payments')}
-				</div>
-			),
-			enableSorting: false,
-		},
-		{
 			accessorKey: 'amount',
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('payments-overdue-col-amount-due')}
+					title={t('installments-col-amount')}
 				/>
 			),
 			cell: ({ row }) => (
@@ -167,13 +204,61 @@ export function useOverduePaymentsColumns(): ColumnDef<OverduePaymentsInstallmen
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('payments-overdue-col-overdue-since')}
+					title={t('installments-col-due-date')}
 				/>
 			),
 			cell: ({ row }) => (
 				<div className="text-muted-foreground text-sm">
-					<FormattedDate value={row.getValue('dueDate')} format="date" />
+					<FormattedDate value={row.getValue('dueDate')} />
 				</div>
+			),
+		},
+		{
+			accessorKey: 'nextDeductionDate',
+			header: ({ column }) => (
+				<DataTableColumnHeader
+					column={column}
+					title={t('installments-col-next-deduction')}
+				/>
+			),
+			cell: ({ row }) => (
+				<div className="text-muted-foreground text-sm">
+					<FormattedDate value={row.getValue('nextDeductionDate')} />
+				</div>
+			),
+		},
+		{
+			accessorKey: 'hrConfirmedAt',
+			header: ({ column }) => (
+				<DataTableColumnHeader
+					column={column}
+					title={t('installments-col-hr-status')}
+				/>
+			),
+			cell: ({ row }) => (
+				<HrStatusCell
+					hrConfirmedAt={row.getValue('hrConfirmedAt')}
+					pendingLabel={t('installments-status-pending')}
+					confirmedLabel={t('installments-status-confirmed')}
+				/>
+			),
+		},
+		{
+			id: 'pagosInstallmentStatus',
+			header: ({ column }) => (
+				<DataTableColumnHeader
+					column={column}
+					title={t('installments-col-pagos-status')}
+				/>
+			),
+			cell: ({ row }) => (
+				<PagosInstallmentStatusCell
+					hrConfirmedAt={row.original.hrConfirmedAt}
+					paymentsConfirmedAt={row.original.paymentsConfirmedAt}
+					pendingLabel={t('installments-status-pending')}
+					confirmedLabel={t('installments-status-confirmed')}
+					awaitingHrLabel={t('installments-status-awaiting-hr')}
+				/>
 			),
 		},
 		{
@@ -181,10 +266,10 @@ export function useOverduePaymentsColumns(): ColumnDef<OverduePaymentsInstallmen
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('payments-col-actions')}
+					title={t('installments-col-actions')}
 				/>
 			),
-			cell: ({ row }) => <OverdueReceiptActionsCell row={row.original} />,
+			cell: ({ row }) => <InstallmentConfirmActionsCell row={row.original} />,
 			enableSorting: false,
 		},
 	]

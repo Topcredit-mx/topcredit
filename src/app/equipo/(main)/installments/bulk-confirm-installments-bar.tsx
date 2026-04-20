@@ -10,11 +10,11 @@ import { useDataTable } from '~/components/ui/data-table'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { InstallmentForQueue } from '~/server/queries'
 import {
-	confirmPaymentReceiptsAction,
-	exportPendingPaymentReceiptsCsvAction,
+	confirmInstallmentsAction,
+	exportPendingInstallmentsCsvAction,
 } from './actions'
 
-export function BulkConfirmPaymentsBar({
+export function BulkConfirmInstallmentsBar({
 	companyName,
 	onImportClick,
 }: {
@@ -34,14 +34,14 @@ export function BulkConfirmPaymentsBar({
 	function handleConfirm() {
 		const paymentIds = selectedRows.map((row) => row.original.id)
 		startConfirmTransition(async () => {
-			const res = await confirmPaymentReceiptsAction(paymentIds)
+			const res = await confirmInstallmentsAction(paymentIds)
 			if (res?.error != null) {
 				toast.error(resolveError(res.error))
 			} else {
 				toast.success(
 					paymentIds.length === 1
-						? t('payments-bulk-confirm-success-one')
-						: t('payments-bulk-confirm-success-many', {
+						? t('installments-bulk-confirm-success-one')
+						: t('installments-bulk-confirm-success-many', {
 								count: paymentIds.length,
 							}),
 				)
@@ -53,9 +53,9 @@ export function BulkConfirmPaymentsBar({
 
 	function handleExportCsv() {
 		startExportTransition(async () => {
-			const result = await exportPendingPaymentReceiptsCsvAction()
+			const result = await exportPendingInstallmentsCsvAction()
 			if ('error' in result) {
-				toast.error(t('payments-export-error'))
+				toast.error(t('installments-export-error'))
 				return
 			}
 			const blob = new Blob([result.csv], { type: 'text/csv' })
@@ -64,19 +64,19 @@ export function BulkConfirmPaymentsBar({
 			a.href = url
 			const slug = companyName.replace(/\s+/g, '-').toLowerCase() || 'empresa'
 			const day = new Date().toISOString().slice(0, 10)
-			a.download = `recepciones-pendientes-${slug}-${day}.csv`
+			a.download = `instalaciones-pendientes-${slug}-${day}.csv`
 			document.body.appendChild(a)
 			a.click()
 			document.body.removeChild(a)
 			URL.revokeObjectURL(url)
-			toast.success(t('payments-export-success'))
+			toast.success(t('installments-export-success'))
 		})
 	}
 
 	const confirmLabel =
 		count === 1
-			? t('payments-bulk-confirm-one')
-			: t('payments-bulk-confirm-many', { count })
+			? t('installments-bulk-confirm-one')
+			: t('installments-bulk-confirm-many', { count })
 
 	return (
 		<div className="flex min-w-0 flex-wrap items-center justify-end gap-2 py-2">
@@ -98,7 +98,7 @@ export function BulkConfirmPaymentsBar({
 				onClick={onImportClick}
 			>
 				<Upload className="mr-2 size-4" />
-				{t('payments-import-csv')}
+				{t('installments-import-csv')}
 			</Button>
 			<Button
 				type="button"
@@ -108,7 +108,7 @@ export function BulkConfirmPaymentsBar({
 				onClick={handleExportCsv}
 			>
 				<Download className="mr-2 size-4" />
-				{t('payments-export-csv')}
+				{t('installments-export-csv')}
 			</Button>
 		</div>
 	)

@@ -4,9 +4,11 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { SectionTitleRow } from '~/components/ui/section-card'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
-import type { PaymentReceiptConfirmationHistoryItem } from '~/server/queries'
+import type { InstallmentConfirmationHistoryItem } from '~/server/queries'
 
-export function PaymentReceiptHistoryLog({
+const INSTALLMENTS_HISTORY_HEADING_ID = 'installments-history-preview-heading'
+
+export function InstallmentHistoryPreview({
 	items,
 	title,
 	description,
@@ -17,7 +19,7 @@ export function PaymentReceiptHistoryLog({
 	viewAllHref,
 	viewAllLabel,
 }: {
-	items: readonly PaymentReceiptConfirmationHistoryItem[]
+	items: readonly InstallmentConfirmationHistoryItem[]
 	title: string
 	description: string
 	emptyMessage: string
@@ -30,10 +32,10 @@ export function PaymentReceiptHistoryLog({
 	return (
 		<section
 			className="space-y-5"
-			aria-labelledby="payments-receipt-history-heading"
+			aria-labelledby={INSTALLMENTS_HISTORY_HEADING_ID}
 		>
 			<SectionTitleRow
-				headingId="payments-receipt-history-heading"
+				headingId={INSTALLMENTS_HISTORY_HEADING_ID}
 				icon={History}
 				title={title}
 				description={description}

@@ -8,7 +8,7 @@ import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
 import {
 	getOverdueDeductionsCount,
-	getOverduePaymentsCount,
+	getOverdueInstallmentsCount,
 } from '~/server/queries'
 import {
 	getCompaniesForSwitcher,
@@ -40,9 +40,9 @@ export default async function AppMainLayout({
 			? await getOverdueDeductionsCount(selectedCompanyId)
 			: 0
 
-	const overduePaymentReceiptsCount =
+	const overdueInstallmentsCount =
 		hasPaymentsAccess && selectedCompanyId !== null
-			? await getOverduePaymentsCount(selectedCompanyId)
+			? await getOverdueInstallmentsCount(selectedCompanyId)
 			: 0
 
 	const showNoAssignmentsEmpty = !isAdmin && companies.length === 0
@@ -54,7 +54,7 @@ export default async function AppMainLayout({
 				companies={companies}
 				selectedCompanyId={selectedCompanyId}
 				overdueDeductionsCount={overdueDeductionsCount}
-				overduePaymentReceiptsCount={overduePaymentReceiptsCount}
+				overdueInstallmentsCount={overdueInstallmentsCount}
 			/>
 			<main className="flex min-w-0 flex-1 flex-col">
 				<header className="border-b">

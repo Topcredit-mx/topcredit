@@ -7,10 +7,10 @@ import {
 } from '~/lib/payment-confirmation'
 import { getAbility, subject } from '~/server/auth/ability'
 import {
-	confirmPaymentReceipt,
-	confirmPaymentReceipts,
-	type ValidatePaymentReceiptsCsvResult,
-	validatePaymentReceiptsCsv,
+	confirmInstallmentReceipt,
+	confirmInstallments,
+	type ValidateInstallmentsCsvResult,
+	validateInstallmentsCsv,
 } from '~/server/mutations'
 import { getInstallmentsForQueue } from '~/server/queries'
 import {
@@ -18,38 +18,38 @@ import {
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
 
-export type ConfirmPaymentReceiptState = {
+export type ConfirmInstallmentState = {
 	error?: string
 	ok?: true
 } | null
 
-export async function confirmPaymentReceiptAction(
+export async function confirmInstallmentAction(
 	paymentId: number,
-): Promise<ConfirmPaymentReceiptState> {
-	const result = await confirmPaymentReceipt(paymentId)
+): Promise<ConfirmInstallmentState> {
+	const result = await confirmInstallmentReceipt(paymentId)
 	if (result.error != null) {
 		return { error: result.error }
 	}
 	return { ok: true }
 }
 
-export async function confirmPaymentReceiptsAction(
+export async function confirmInstallmentsAction(
 	paymentIds: number[],
-): Promise<ConfirmPaymentReceiptState> {
-	const result = await confirmPaymentReceipts(paymentIds)
+): Promise<ConfirmInstallmentState> {
+	const result = await confirmInstallments(paymentIds)
 	if (result.error != null) {
 		return { error: result.error }
 	}
 	return { ok: true }
 }
 
-export type ValidatePaymentReceiptsCsvActionResult =
-	| ({ ok: true } & ValidatePaymentReceiptsCsvResult & { fileName: string })
+export type ValidateInstallmentsCsvActionResult =
+	| ({ ok: true } & ValidateInstallmentsCsvResult & { fileName: string })
 	| { ok: false; error: string }
 
-export async function validatePaymentReceiptsCsvAction(
+export async function validateInstallmentsCsvAction(
 	formData: FormData,
-): Promise<ValidatePaymentReceiptsCsvActionResult> {
+): Promise<ValidateInstallmentsCsvActionResult> {
 	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
 
 	const firstCompanyId = assignedCompanyIds[0]
@@ -76,21 +76,21 @@ export async function validatePaymentReceiptsCsvAction(
 	}
 
 	const csvContent = await file.text()
-	const result = await validatePaymentReceiptsCsv(csvContent, selectedCompanyId)
+	const result = await validateInstallmentsCsv(csvContent, selectedCompanyId)
 	return { ok: true, ...result, fileName: file.name }
 }
 
-export async function confirmPaymentReceiptsFromCsvAction(
+export async function confirmInstallmentsFromCsvAction(
 	paymentIds: number[],
-): Promise<ConfirmPaymentReceiptState> {
-	const result = await confirmPaymentReceipts(paymentIds)
+): Promise<ConfirmInstallmentState> {
+	const result = await confirmInstallments(paymentIds)
 	if (result.error != null) {
 		return { error: result.error }
 	}
 	return { ok: true }
 }
 
-export async function exportPendingPaymentReceiptsCsvAction(): Promise<
+export async function exportPendingInstallmentsCsvAction(): Promise<
 	{ csv: string } | { error: string }
 > {
 	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
@@ -116,7 +116,7 @@ export async function exportPendingPaymentReceiptsCsvAction(): Promise<
 	const scope = await getEffectiveCompanyScope()
 	const installments = await getInstallmentsForQueue({
 		scope,
-		queue: 'payments',
+		queue: 'installments',
 	})
 	const today = new Date()
 	const pendingReceipt = installments.filter(

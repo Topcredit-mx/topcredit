@@ -16,9 +16,9 @@ export const BREADCRUMB_LABEL_KEYS = [
 	'equipo-deductions',
 	'equipo-deductions-history',
 	'equipo-deductions-overdue',
-	'equipo-payments',
-	'equipo-payments-history',
-	'equipo-payments-overdue',
+	'equipo-installments',
+	'equipo-installments-history',
+	'equipo-installments-overdue',
 ] as const
 
 export type BreadcrumbLabelKey = (typeof BREADCRUMB_LABEL_KEYS)[number]
@@ -172,29 +172,29 @@ export function getEquipoBreadcrumbSegments(
 			},
 		]
 	}
-	if (pathname === `${base}/payments`) {
+	if (pathname === `${base}/installments`) {
 		return [
 			{ href: base, labelKey: 'equipo-home' },
-			{ href: `${base}/payments`, labelKey: 'equipo-payments' },
+			{ href: `${base}/installments`, labelKey: 'equipo-installments' },
 		]
 	}
-	if (pathname === `${base}/payments/history`) {
+	if (pathname === `${base}/installments/history`) {
 		return [
 			{ href: base, labelKey: 'equipo-home' },
-			{ href: `${base}/payments`, labelKey: 'equipo-payments' },
+			{ href: `${base}/installments`, labelKey: 'equipo-installments' },
 			{
-				href: `${base}/payments/history`,
-				labelKey: 'equipo-payments-history',
+				href: `${base}/installments/history`,
+				labelKey: 'equipo-installments-history',
 			},
 		]
 	}
-	if (pathname === `${base}/payments/overdue`) {
+	if (pathname === `${base}/installments/overdue`) {
 		return [
 			{ href: base, labelKey: 'equipo-home' },
-			{ href: `${base}/payments`, labelKey: 'equipo-payments' },
+			{ href: `${base}/installments`, labelKey: 'equipo-installments' },
 			{
-				href: `${base}/payments/overdue`,
-				labelKey: 'equipo-payments-overdue',
+				href: `${base}/installments/overdue`,
+				labelKey: 'equipo-installments-overdue',
 			},
 		]
 	}

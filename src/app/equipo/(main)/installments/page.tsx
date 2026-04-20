@@ -7,17 +7,17 @@ import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
 	getCompanyById,
+	getInstallmentConfirmationHistory,
 	getInstallmentsForQueue,
-	getPaymentReceiptConfirmationHistory,
 } from '~/server/queries'
 import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
-import { PaymentReceiptHistoryLog } from './payment-receipt-history-log'
-import { PaymentsTable } from './payments-table'
+import { InstallmentHistoryPreview } from './installment-history-preview'
+import { InstallmentsQueueTable } from './installments-queue-table'
 
-export default async function PaymentsPage() {
+export default async function InstallmentsPage() {
 	getRequiredAgentUser()
 
 	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
@@ -47,10 +47,10 @@ export default async function PaymentsPage() {
 					</div>
 					<div className="space-y-1">
 						<h2 className="font-semibold text-lg">
-							{t('payments-empty-no-company-title')}
+							{t('installments-empty-no-company-title')}
 						</h2>
 						<p className="max-w-sm text-muted-foreground text-sm">
-							{t('payments-empty-no-company-description')}
+							{t('installments-empty-no-company-description')}
 						</p>
 					</div>
 				</div>
@@ -73,19 +73,19 @@ export default async function PaymentsPage() {
 	const [installments, historyItems] = await Promise.all([
 		getInstallmentsForQueue({
 			scope,
-			queue: 'payments',
+			queue: 'installments',
 		}),
-		getPaymentReceiptConfirmationHistory(scope, 10),
+		getInstallmentConfirmationHistory(scope, 10),
 	])
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
 			{installments.length === 0 ? (
 				<Card className="p-8 text-center">
-					<p className="text-muted-foreground">{t('payments-empty')}</p>
+					<p className="text-muted-foreground">{t('installments-empty')}</p>
 				</Card>
 			) : (
-				<PaymentsTable
+				<InstallmentsQueueTable
 					installments={installments}
 					nextDeductionDate={nextDeductionDateStr}
 					employeeSalaryFrequency={
@@ -95,16 +95,16 @@ export default async function PaymentsPage() {
 				/>
 			)}
 			<div className="mt-10">
-				<PaymentReceiptHistoryLog
+				<InstallmentHistoryPreview
 					items={historyItems}
-					title={t('payments-receipt-history-title')}
-					description={t('payments-receipt-history-description')}
-					emptyMessage={t('payments-receipt-history-empty')}
-					confirmedByLabel={t('payments-receipt-history-confirmed-by')}
-					onTimeLabel={t('payments-receipt-history-on-time')}
-					lateLabel={t('payments-receipt-history-late')}
-					viewAllHref="/equipo/payments/history"
-					viewAllLabel={t('payments-receipt-history-view-all')}
+					title={t('installments-history-preview-title')}
+					description={t('installments-history-preview-description')}
+					emptyMessage={t('installments-history-preview-empty')}
+					confirmedByLabel={t('installments-history-confirmed-by')}
+					onTimeLabel={t('installments-history-on-time')}
+					lateLabel={t('installments-history-late')}
+					viewAllHref="/equipo/installments/history"
+					viewAllLabel={t('installments-history-view-all')}
 				/>
 			</div>
 		</div>

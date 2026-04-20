@@ -5,14 +5,14 @@ import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
-import { getOverduePaymentsInstallments } from '~/server/queries'
+import { getOverdueInstallments } from '~/server/queries'
 import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
-import { OverduePaymentReceiptsTable } from './overdue-payment-receipts-table'
+import { OverdueInstallmentsTable } from './overdue-installments-table'
 
-export default async function PaymentsOverdueReceiptsPage() {
+export default async function InstallmentsOverduePage() {
 	getRequiredAgentUser()
 
 	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
@@ -42,10 +42,10 @@ export default async function PaymentsOverdueReceiptsPage() {
 					</div>
 					<div className="space-y-1">
 						<h2 className="font-semibold text-lg">
-							{t('payments-overdue-empty-no-company-title')}
+							{t('installments-overdue-empty-no-company-title')}
 						</h2>
 						<p className="max-w-sm text-muted-foreground text-sm">
-							{t('payments-overdue-empty-no-company-description')}
+							{t('installments-overdue-empty-no-company-description')}
 						</p>
 					</div>
 				</div>
@@ -54,32 +54,34 @@ export default async function PaymentsOverdueReceiptsPage() {
 	}
 
 	const scope = await getEffectiveCompanyScope()
-	const installments = await getOverduePaymentsInstallments({ scope })
+	const installments = await getOverdueInstallments({ scope })
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
 			<div className="mb-2">
 				<Link
-					href="/equipo/payments"
+					href="/equipo/installments"
 					className="text-muted-foreground text-sm hover:underline"
 				>
-					{t('payments-overdue-back')}
+					{t('installments-overdue-back')}
 				</Link>
 			</div>
 			<div className="mb-6 space-y-1">
 				<h1 className="font-semibold text-2xl tracking-tight">
-					{t('payments-overdue-title')}
+					{t('installments-overdue-title')}
 				</h1>
 				<p className="text-muted-foreground text-sm">
-					{t('payments-overdue-subtitle')}
+					{t('installments-overdue-subtitle')}
 				</p>
 			</div>
 			{installments.length === 0 ? (
 				<Card className="p-8 text-center">
-					<p className="text-muted-foreground">{t('payments-overdue-empty')}</p>
+					<p className="text-muted-foreground">
+						{t('installments-overdue-empty')}
+					</p>
 				</Card>
 			) : (
-				<OverduePaymentReceiptsTable installments={installments} />
+				<OverdueInstallmentsTable installments={installments} />
 			)}
 		</div>
 	)

@@ -1,30 +1,32 @@
-import type { SeedPaymentsQueueResult } from '~/cypress/tasks'
-import { paymentsAgentQueue } from './payments-agents.fixtures'
+import type { SeedInstallmentsQueueResult } from '~/cypress/tasks'
+import { paymentsAgentQueue } from './installments-agents.fixtures'
 
-describe('Payments queue CSV import', () => {
-	let seed: SeedPaymentsQueueResult
+describe('Installments queue CSV import', () => {
+	let seed: SeedInstallmentsQueueResult
 
 	beforeEach(() => {
-		cy.task('cleanupPaymentsQueue')
-		cy.task<SeedPaymentsQueueResult>('seedPaymentsQueue').then((result) => {
-			seed = result
-			cy.login(paymentsAgentQueue.email)
-			cy.setCookie('selected_company_id', String(result.companyId))
-		})
+		cy.task('cleanupInstallmentsQueue')
+		cy.task<SeedInstallmentsQueueResult>('seedInstallmentsQueue').then(
+			(result) => {
+				seed = result
+				cy.login(paymentsAgentQueue.email)
+				cy.setCookie('selected_company_id', String(result.companyId))
+			},
+		)
 	})
 
 	afterEach(() => {
-		cy.task('cleanupPaymentsQueue')
+		cy.task('cleanupInstallmentsQueue')
 	})
 
 	it('shows import CSV button when company is selected and table is visible', () => {
-		cy.visit('/equipo/payments')
+		cy.visit('/equipo/installments')
 		cy.get('table').should('be.visible')
 		cy.contains('button', /importar csv/i).should('be.visible')
 	})
 
 	it('opens import dialog when import button is clicked', () => {
-		cy.visit('/equipo/payments')
+		cy.visit('/equipo/installments')
 		cy.get('table').should('be.visible')
 		cy.contains('button', /importar csv/i)
 			.should('be.visible')
@@ -36,7 +38,7 @@ describe('Payments queue CSV import', () => {
 	})
 
 	it('closes import dialog when cancel is clicked', () => {
-		cy.visit('/equipo/payments')
+		cy.visit('/equipo/installments')
 		cy.get('table').should('be.visible')
 		cy.contains('button', /importar csv/i)
 			.should('be.visible')
@@ -47,7 +49,7 @@ describe('Payments queue CSV import', () => {
 	})
 
 	it('uploads valid CSV, shows preview, confirms, shows success toast (one row per credit unchanged)', () => {
-		cy.visit('/equipo/payments')
+		cy.visit('/equipo/installments')
 		cy.get('table').should('be.visible')
 		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 
@@ -69,7 +71,9 @@ describe('Payments queue CSV import', () => {
 				{ force: true },
 			)
 		})
-		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
+		cy.get('#installments-import-csv-desc', { timeout: 15000 }).should(
+			'be.visible',
+		)
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.contains(/lista(s)? para confirmar/i).should('be.visible')
@@ -78,13 +82,13 @@ describe('Payments queue CSV import', () => {
 				.click()
 		})
 
-		cy.contains(/recepción de 1 pago confirmada/i).should('be.visible')
+		cy.contains(/1 instalación confirmada/i).should('be.visible')
 		cy.get('[role="dialog"]').should('not.exist')
 		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 	})
 
 	it('shows error table when CSV has invalid format rows', () => {
-		cy.visit('/equipo/payments')
+		cy.visit('/equipo/installments')
 		cy.get('table').should('be.visible')
 
 		cy.contains('button', /importar csv/i)
@@ -107,7 +111,9 @@ describe('Payments queue CSV import', () => {
 				{ force: true },
 			)
 		})
-		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
+		cy.get('#installments-import-csv-desc', { timeout: 15000 }).should(
+			'be.visible',
+		)
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.contains(/filas con errores/i).should('be.visible')
@@ -123,7 +129,7 @@ describe('Payments queue CSV import', () => {
 	})
 
 	it('shows no-match errors for rows not in the selected company data', () => {
-		cy.visit('/equipo/payments')
+		cy.visit('/equipo/installments')
 		cy.get('table').should('be.visible')
 
 		cy.contains('button', /importar csv/i)
@@ -146,7 +152,9 @@ describe('Payments queue CSV import', () => {
 				{ force: true },
 			)
 		})
-		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
+		cy.get('#installments-import-csv-desc', { timeout: 15000 }).should(
+			'be.visible',
+		)
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.contains(/filas con errores/i).should('be.visible')
@@ -160,7 +168,7 @@ describe('Payments queue CSV import', () => {
 	})
 
 	it('shows warning when CSV row is already receipt-confirmed', () => {
-		cy.visit('/equipo/payments')
+		cy.visit('/equipo/installments')
 		cy.get('table').should('be.visible')
 
 		cy.contains('button', /importar csv/i)
@@ -185,17 +193,19 @@ describe('Payments queue CSV import', () => {
 				{ force: true },
 			)
 		})
-		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
+		cy.get('#installments-import-csv-desc', { timeout: 15000 }).should(
+			'be.visible',
+		)
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.contains(/filas omitidas/i).should('be.visible')
-			cy.contains(/recepción ya confirmada/i).should('be.visible')
+			cy.contains(/instalación ya confirmada/i).should('be.visible')
 			cy.contains(payrollNumber).should('exist')
 		})
 	})
 
 	it('shows not-hr-confirmed warning for matching row awaiting HR', () => {
-		cy.visit('/equipo/payments')
+		cy.visit('/equipo/installments')
 		cy.get('table').should('be.visible')
 
 		cy.contains('button', /importar csv/i)
@@ -220,7 +230,9 @@ describe('Payments queue CSV import', () => {
 				{ force: true },
 			)
 		})
-		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
+		cy.get('#installments-import-csv-desc', { timeout: 15000 }).should(
+			'be.visible',
+		)
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.contains(/filas omitidas/i).should('be.visible')
@@ -229,7 +241,7 @@ describe('Payments queue CSV import', () => {
 	})
 
 	it('mixed CSV: confirms the pending row and warns about already-received', () => {
-		cy.visit('/equipo/payments')
+		cy.visit('/equipo/installments')
 		cy.get('table').should('be.visible')
 		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 
@@ -256,7 +268,9 @@ describe('Payments queue CSV import', () => {
 				{ force: true },
 			)
 		})
-		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
+		cy.get('#installments-import-csv-desc', { timeout: 15000 }).should(
+			'be.visible',
+		)
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.contains(/lista(s)? para confirmar/i).should('be.visible')
@@ -267,13 +281,13 @@ describe('Payments queue CSV import', () => {
 				.click()
 		})
 
-		cy.contains(/recepción de 1 pago confirmada/i).should('be.visible')
+		cy.contains(/1 instalación confirmada/i).should('be.visible')
 		cy.get('[role="dialog"]').should('not.exist')
 		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 	})
 
 	it('mixed CSV: 1 valid, 1 already-received, 1 parse error — confirms only the valid row', () => {
-		cy.visit('/equipo/payments')
+		cy.visit('/equipo/installments')
 		cy.get('table').should('be.visible')
 		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 
@@ -301,7 +315,9 @@ describe('Payments queue CSV import', () => {
 				{ force: true },
 			)
 		})
-		cy.get('#payments-import-csv-desc', { timeout: 15000 }).should('be.visible')
+		cy.get('#installments-import-csv-desc', { timeout: 15000 }).should(
+			'be.visible',
+		)
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.contains(/lista(s)? para confirmar/i).should('be.visible')
@@ -314,7 +330,7 @@ describe('Payments queue CSV import', () => {
 				.click()
 		})
 
-		cy.contains(/recepción de 1 pago confirmada/i).should('be.visible')
+		cy.contains(/1 instalación confirmada/i).should('be.visible')
 		cy.get('[role="dialog"]').should('not.exist')
 		cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 	})

@@ -1227,7 +1227,7 @@ export async function getCreditPaymentsForEquipo(
 	}))
 }
 
-// ---- Installments queue (shared by /equipo/deductions and /equipo/payments) ----
+// ---- Installments queue (shared by /equipo/deductions and /equipo/installments) ----
 
 export type InstallmentForQueue = {
 	id: number
@@ -1246,7 +1246,7 @@ export type InstallmentForQueue = {
 
 export async function getInstallmentsForQueue(params: {
 	scope: CompanyScope
-	queue: 'deductions' | 'payments'
+	queue: 'deductions' | 'installments'
 	upcomingDeductionDate?: string
 }): Promise<InstallmentForQueue[]> {
 	const { scope, queue, upcomingDeductionDate } = params
@@ -1268,7 +1268,7 @@ export async function getInstallmentsForQueue(params: {
 	}
 
 	// deductions: earliest installment where HR has not yet confirmed
-	// payments: earliest installment still awaiting Payments receipt (HR may or may not have confirmed yet)
+	// installments: earliest installment still awaiting installment confirmation on the Pagos side (RH may or may not have confirmed yet)
 	const statusCondition: SQL =
 		queue === 'deductions'
 			? sql`cp.hr_confirmed_at IS NULL`
@@ -1290,8 +1290,8 @@ export async function getInstallmentsForQueue(params: {
 				)`
 			: sql``
 
-	const paymentsExcludeOverdue: SQL =
-		queue === 'payments'
+	const installmentsExcludeOverdue: SQL =
+		queue === 'installments'
 			? sql`AND NOT (
 				(cp.due_date)::date < CURRENT_DATE
 				AND (
@@ -1321,7 +1321,7 @@ export async function getInstallmentsForQueue(params: {
 		INNER JOIN applications a ON cr.application_id = a.id
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
-		WHERE ${companyCondition} AND ${statusCondition} ${dateCondition} ${paymentsExcludeOverdue}
+		WHERE ${companyCondition} AND ${statusCondition} ${dateCondition} ${installmentsExcludeOverdue}
 		ORDER BY cp.credit_id, cp.due_date ASC
 	`)
 
@@ -1367,13 +1367,13 @@ export async function getInstallmentsForQueue(params: {
 	})
 }
 
-export type OverduePaymentsInstallment = InstallmentForQueue & {
+export type OverdueInstallment = InstallmentForQueue & {
 	blockingParty: 'hr' | 'payments'
 }
 
-export async function getOverduePaymentsInstallments(params: {
+export async function getOverdueInstallments(params: {
 	scope: CompanyScope
-}): Promise<OverduePaymentsInstallment[]> {
+}): Promise<OverdueInstallment[]> {
 	const { scope } = params
 	const { ability } = await getAbility()
 
@@ -1633,7 +1633,7 @@ export async function getOverdueDeductionsCount(
 	return row ? Number(row.count) : 0
 }
 
-export async function getOverduePaymentsCount(
+export async function getOverdueInstallmentsCount(
 	companyId: number,
 ): Promise<number> {
 	const result = await db.execute(sql`
@@ -1835,9 +1835,9 @@ export async function getDeductionConfirmationHistory(
 	})
 }
 
-// ---- Payment receipt confirmation history ----
+// ---- Installment confirmation history (Pagos role) ----
 
-export type PaymentReceiptConfirmationHistoryItem = {
+export type InstallmentConfirmationHistoryItem = {
 	id: number
 	amount: string
 	dueDate: string
@@ -1848,10 +1848,10 @@ export type PaymentReceiptConfirmationHistoryItem = {
 	confirmedByUser: { id: number; name: string | null; email: string } | null
 }
 
-export async function getPaymentReceiptConfirmationHistory(
+export async function getInstallmentConfirmationHistory(
 	scope: CompanyScope,
 	limit?: number,
-): Promise<PaymentReceiptConfirmationHistoryItem[]> {
+): Promise<InstallmentConfirmationHistoryItem[]> {
 	const { ability } = await getAbility()
 
 	let companyCondition: SQL

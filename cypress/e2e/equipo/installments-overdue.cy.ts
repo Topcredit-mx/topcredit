@@ -1,34 +1,34 @@
-import type { SeedPaymentsOverdueReceiptResult } from '~/cypress/tasks'
+import type { SeedInstallmentsOverdueResult } from '~/cypress/tasks'
 import {
 	nonPaymentsOverdueReceiptAgent,
 	paymentsOverdueReceiptAgent,
-} from './payments-overdue-receipt.fixtures'
+} from './installments-overdue.fixtures'
 
-describe('Payments overdue receipt confirmations', () => {
-	let seed: SeedPaymentsOverdueReceiptResult
+describe('Installments overdue page', () => {
+	let seed: SeedInstallmentsOverdueResult
 
 	before(() => {
-		cy.task('cleanupPaymentsOverdueReceipt')
-		cy.task<SeedPaymentsOverdueReceiptResult>(
-			'seedPaymentsOverdueReceipt',
-		).then((result) => {
-			seed = result
-		})
+		cy.task('cleanupInstallmentsOverdue')
+		cy.task<SeedInstallmentsOverdueResult>('seedInstallmentsOverdue').then(
+			(result) => {
+				seed = result
+			},
+		)
 	})
 
 	after(() => {
-		cy.task('cleanupPaymentsOverdueReceipt')
+		cy.task('cleanupInstallmentsOverdue')
 	})
 
-	describe('Payments agent uses the overdue receipt page', () => {
+	describe('Payments agent uses the overdue installments page', () => {
 		beforeEach(() => {
 			cy.login(paymentsOverdueReceiptAgent.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 
 		it('shows overdue rows with amount, overdue start, and who is blocking', () => {
-			cy.visit('/equipo/payments/overdue')
-			cy.contains('h1', /pagos atrasados/i).should('be.visible')
+			cy.visit('/equipo/installments/overdue')
+			cy.contains('h1', /instalaciones atrasadas/i).should('be.visible')
 			cy.get('table').should('be.visible').scrollIntoView()
 			for (const label of [
 				/pendiente por/i,
@@ -50,15 +50,15 @@ describe('Payments overdue receipt confirmations', () => {
 				})
 		})
 
-		it('does not list overdue payment rows on the main payments queue', () => {
-			cy.visit('/equipo/payments')
+		it('does not list overdue rows on the main installments queue', () => {
+			cy.visit('/equipo/installments')
 			cy.get('main').should('be.visible')
 			cy.contains(seed.applicantPaymentsBlockedName).should('not.exist')
 			cy.contains(seed.applicantHrBlockedName).should('not.exist')
 		})
 
-		it('bulk-confirms only payments-blocked overdue rows in one action', () => {
-			cy.visit('/equipo/payments/overdue')
+		it('bulk-confirms only Pagos-blocked overdue rows in one action', () => {
+			cy.visit('/equipo/installments/overdue')
 			cy.get('table').should('be.visible')
 			cy.get('table tbody tr').should('have.length', seed.totalOverdueRowCount)
 			cy.get(
@@ -67,7 +67,7 @@ describe('Payments overdue receipt confirmations', () => {
 			cy.contains(
 				'button',
 				new RegExp(
-					`confirmar recepci(ó|o)n de ${seed.paymentsBulkConfirmableCount} pagos`,
+					`confirmar ${seed.paymentsBulkConfirmableCount} instalaciones`,
 					'i',
 				),
 			)
@@ -82,14 +82,14 @@ describe('Payments overdue receipt confirmations', () => {
 		})
 	})
 
-	describe('Non-Payments agent cannot open the overdue receipt page', () => {
+	describe('Non-Payments agent cannot open the overdue installments page', () => {
 		beforeEach(() => {
 			cy.login(nonPaymentsOverdueReceiptAgent.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 
-		it('redirects to unauthorized when visiting the overdue payments page', () => {
-			cy.visit('/equipo/payments/overdue', { failOnStatusCode: false })
+		it('redirects to unauthorized when visiting the overdue installments page', () => {
+			cy.visit('/equipo/installments/overdue', { failOnStatusCode: false })
 			cy.url().should('include', '/unauthorized')
 		})
 	})

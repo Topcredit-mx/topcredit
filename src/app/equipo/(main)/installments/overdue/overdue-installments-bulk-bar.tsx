@@ -7,30 +7,30 @@ import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import { useDataTable } from '~/components/ui/data-table'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
-import type { OverduePaymentsInstallment } from '~/server/queries'
-import { confirmPaymentReceiptsAction } from '../actions'
+import type { OverdueInstallment } from '~/server/queries'
+import { confirmInstallmentsAction } from '../actions'
 
-export function OverduePaymentReceiptsBulkBar() {
+export function OverdueInstallmentsBulkBar() {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
 	const [isConfirmPending, startConfirmTransition] = useTransition()
 
-	const { table } = useDataTable<OverduePaymentsInstallment>()
+	const { table } = useDataTable<OverdueInstallment>()
 	const selectedRows = table.getFilteredSelectedRowModel().rows
 	const count = selectedRows.length
 
 	function handleConfirm() {
 		const paymentIds = selectedRows.map((row) => row.original.id)
 		startConfirmTransition(async () => {
-			const res = await confirmPaymentReceiptsAction(paymentIds)
+			const res = await confirmInstallmentsAction(paymentIds)
 			if (res?.error != null) {
 				toast.error(resolveError(res.error))
 			} else {
 				toast.success(
 					paymentIds.length === 1
-						? t('payments-bulk-confirm-success-one')
-						: t('payments-bulk-confirm-success-many', {
+						? t('installments-bulk-confirm-success-one')
+						: t('installments-bulk-confirm-success-many', {
 								count: paymentIds.length,
 							}),
 				)
@@ -42,8 +42,8 @@ export function OverduePaymentReceiptsBulkBar() {
 
 	const confirmLabel =
 		count === 1
-			? t('payments-bulk-confirm-one')
-			: t('payments-bulk-confirm-many', { count })
+			? t('installments-bulk-confirm-one')
+			: t('installments-bulk-confirm-many', { count })
 
 	return (
 		<div className="flex min-w-0 flex-wrap items-center justify-end gap-2 py-2">

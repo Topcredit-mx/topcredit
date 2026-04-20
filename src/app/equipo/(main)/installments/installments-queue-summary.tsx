@@ -2,7 +2,7 @@
 
 import { PayrollQueueHeaderLine } from '~/components/equipo/payroll-queue-header-line'
 
-export function PaymentsQueueSummary({
+export function InstallmentsQueueSummary({
 	nextDeductionDate,
 	employeeSalaryFrequency,
 }: {
