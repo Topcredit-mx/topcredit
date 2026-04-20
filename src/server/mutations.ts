@@ -19,6 +19,7 @@ import {
 } from '~/lib/authorization-package-readiness'
 import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
+import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
 import {
 	allPaymentsFullyConfirmed,
 	canConfirmReceipt,
@@ -1103,14 +1104,6 @@ type PaymentWithContext = {
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 }
 
-function employeeSalaryFrequencyFromCompanyRow(
-	value: unknown,
-): 'monthly' | 'bi-monthly' {
-	if (value === 'monthly') return 'monthly'
-	if (value === 'bi-monthly') return 'bi-monthly'
-	return 'monthly'
-}
-
 async function fetchPaymentsWithContext(
 	paymentIds: number[],
 ): Promise<PaymentWithContext[]> {
@@ -1136,7 +1129,7 @@ async function fetchPaymentsWithContext(
 		creditId: r.creditId,
 		companyId: r.companyId,
 		dueDate: r.dueDate,
-		employeeSalaryFrequency: employeeSalaryFrequencyFromCompanyRow(
+		employeeSalaryFrequency: employeeSalaryFrequencyFromDb(
 			r.companySalaryFrequency,
 		),
 	}))
@@ -1834,7 +1827,9 @@ export async function confirmPaymentReceipts(
 	const today = new Date()
 	for (const payment of rows) {
 		if (!canConfirmPaymentReceiptWithinPeriod(payment, today)) {
-			return { error: ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE }
+			return {
+				error: `${ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE}:${payment.paymentId}`,
+			}
 		}
 	}
 
@@ -1950,7 +1945,7 @@ export async function confirmPaymentReceiptsFromCsv(
 				hrConfirmedAt: r.hrConfirmedAt,
 				paymentsConfirmedAt: r.paymentsConfirmedAt,
 				dueDate: r.dueDate,
-				employeeSalaryFrequency: employeeSalaryFrequencyFromCompanyRow(
+				employeeSalaryFrequency: employeeSalaryFrequencyFromDb(
 					r.companySalaryFrequency,
 				),
 			},

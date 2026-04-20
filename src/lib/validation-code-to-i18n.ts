@@ -5,6 +5,8 @@ import {
 	type ValidationCode as ValidationCodeType,
 } from './validation-codes'
 
+const PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE_BULK_PREFIX = `${ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE}:`
+
 type AdminKey = keyof (typeof messages)['admin']
 type CuentaApplicationsKey = keyof (typeof messages)['cuenta']['applications']
 type EquipoKey = keyof (typeof messages)['equipo']
@@ -348,6 +350,17 @@ export function useResolveValidationError(): (code: string) => string {
 	const tAuth = useTranslations('auth')
 
 	return (code: string) => {
+		if (code.startsWith(PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE_BULK_PREFIX)) {
+			const idPart = code.slice(
+				PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE_BULK_PREFIX.length,
+			)
+			const paymentId = Number(idPart)
+			if (Number.isInteger(paymentId) && paymentId > 0) {
+				return tEquipo('PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE_FOR_BULK', {
+					paymentId: String(paymentId),
+				})
+			}
+		}
 		if (!isValidationCode(code)) return code
 		const { namespace, key } = CODE_TO_I18N[code]
 		if (namespace === 'admin') return tAdmin(key)

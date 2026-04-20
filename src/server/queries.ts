@@ -12,6 +12,7 @@ import {
 	type SQL,
 	sql,
 } from 'drizzle-orm'
+import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
@@ -39,14 +40,6 @@ import type { CompanyBasic, CompanyScope } from '~/server/scopes'
 import { isBlobStorageKey } from '~/server/storage'
 
 export type { CompanyBasic, CompanyScope } from '~/server/scopes'
-
-function employeeSalaryFrequencyFromRow(
-	value: unknown,
-): 'monthly' | 'bi-monthly' {
-	if (value === 'monthly') return 'monthly'
-	if (value === 'bi-monthly') return 'bi-monthly'
-	return 'monthly'
-}
 
 // ---- User ----
 
@@ -1228,7 +1221,7 @@ export async function getCreditPaymentsForEquipo(
 		amount: r.amount,
 		hrConfirmedAt: r.hrConfirmedAt,
 		paymentsConfirmedAt: r.paymentsConfirmedAt,
-		employeeSalaryFrequency: employeeSalaryFrequencyFromRow(
+		employeeSalaryFrequency: employeeSalaryFrequencyFromDb(
 			r.companySalaryFrequency,
 		),
 	}))
@@ -1324,7 +1317,7 @@ export async function getInstallmentsForQueue(params: {
 	const today = new Date()
 	return rows.rows.map((row) => {
 		const r = row
-		const employeeSalaryFrequency = employeeSalaryFrequencyFromRow(
+		const employeeSalaryFrequency = employeeSalaryFrequencyFromDb(
 			r.company_salary_frequency,
 		)
 		const nextDeductionDate = getUpcomingDeductionDate(
