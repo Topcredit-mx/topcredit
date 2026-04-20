@@ -317,6 +317,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'PAYMENT_CONFIRM_FORBIDDEN',
 	},
+	[ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE]: {
+		namespace: 'equipo',
+		key: 'PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE',
+	},
 }
 
 function isValidationCode(s: string): s is ValidationCodeType {

@@ -1,3 +1,5 @@
+import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
+
 export type PaymentTimestamps = {
 	hrConfirmedAt: Date | null
 	paymentsConfirmedAt: Date | null
@@ -11,6 +13,30 @@ export function canHrConfirm(
 
 export function canConfirmReceipt(p: PaymentTimestamps): boolean {
 	return p.hrConfirmedAt !== null && p.paymentsConfirmedAt === null
+}
+
+export function isWithinUpcomingDeductionPeriodForReceipt(
+	dueDate: Date,
+	upcomingDeductionDate: Date,
+): boolean {
+	return (
+		dueDate.toISOString().slice(0, 10) <=
+		upcomingDeductionDate.toISOString().slice(0, 10)
+	)
+}
+
+export type ReceiptEligibilityInput = PaymentTimestamps & {
+	dueDate: Date
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+}
+
+export function canConfirmReceiptForCreditDetailRow(
+	p: ReceiptEligibilityInput,
+	today: Date,
+): boolean {
+	if (!canConfirmReceipt(p)) return false
+	const upcoming = getUpcomingDeductionDate(p.employeeSalaryFrequency, today)
+	return isWithinUpcomingDeductionPeriodForReceipt(p.dueDate, upcoming)
 }
 
 export type QueueInstallmentReceiptTimestamps = {

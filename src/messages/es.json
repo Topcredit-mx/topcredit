@@ -432,6 +432,7 @@
 		"PAYMENT_CSV_NO_MATCHES": "No se encontraron pagos pendientes que coincidan con los datos del archivo.",
 		"PAYMENT_BULK_EMPTY": "Selecciona al menos un pago para confirmar.",
 		"PAYMENT_CONFIRM_FORBIDDEN": "No tienes permiso para confirmar este pago.",
+		"PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE": "Esta cuota no está en el periodo de deducción actual; no se puede registrar el cobro todavía.",
 		"applications-action-approve": "Aprobar",
 		"applications-action-pre-authorize": "Pre-autorizar",
 		"applications-action-authorize": "Autorizar",

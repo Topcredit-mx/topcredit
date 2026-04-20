@@ -65,6 +65,13 @@ import {
 	switcherCompanyList,
 } from '~/cypress/e2e/equipo/company-switcher.fixtures'
 import {
+	allCreditDetailCollectionUsers,
+	creditDetailCollectionApplicant,
+	creditDetailCollectionCompany,
+	creditDetailCollectionHrOnlyAgent,
+	creditDetailCollectionPaymentsAgent,
+} from '~/cypress/e2e/equipo/credit-detail-collection.fixtures'
+import {
 	allCreditDetailStatesUsers,
 	creditDetailStatesApplicant,
 	creditDetailStatesCompany,
@@ -3915,6 +3922,218 @@ export const cleanupCreditDetailPaymentStates = async () => {
 	await db
 		.delete(companies)
 		.where(eq(companies.domain, creditDetailStatesCompany.domain))
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
+	return null
+}
+
+export type SeedCreditDetailCollectionReceiptResult = {
+	companyId: number
+	creditId: number
+}
+
+export const seedCreditDetailCollectionReceipt =
+	async (): Promise<SeedCreditDetailCollectionReceiptResult> => {
+		const db = getDb(process.env.DATABASE_URL || '')
+		const now = new Date()
+
+		await Promise.all(
+			allCreditDetailCollectionUsers.map((u) =>
+				db.delete(users).where(eq(users.email, u.email)),
+			),
+		)
+		await db
+			.delete(companies)
+			.where(eq(companies.domain, creditDetailCollectionCompany.domain))
+
+		const [[company], createdUsers] = await Promise.all([
+			db
+				.insert(companies)
+				.values({
+					name: creditDetailCollectionCompany.name,
+					domain: creditDetailCollectionCompany.domain,
+					rate: creditDetailCollectionCompany.rate,
+					employeeSalaryFrequency:
+						creditDetailCollectionCompany.employeeSalaryFrequency,
+					active: creditDetailCollectionCompany.active,
+				})
+				.returning(),
+			db
+				.insert(users)
+				.values(
+					allCreditDetailCollectionUsers.map((u) => ({
+						email: u.email,
+						name: u.name,
+						emailVerified: now,
+					})),
+				)
+				.returning(),
+		])
+
+		if (!company)
+			throw new Error('Seed CreditDetailCollection: company not created')
+
+		const findUser = (email: string) => {
+			const u = createdUsers.find((r) => r.email === email)
+			if (!u)
+				throw new Error(`Seed CreditDetailCollection: user ${email} not found`)
+			return u
+		}
+
+		const hrAgent = findUser(creditDetailCollectionHrOnlyAgent.email)
+		const paymentsAgent = findUser(creditDetailCollectionPaymentsAgent.email)
+		const applicant = findUser(creditDetailCollectionApplicant.email)
+
+		const [term] = await db
+			.insert(terms)
+			.values({ durationType: 'monthly', duration: 5 })
+			.returning()
+		if (!term) throw new Error('Seed CreditDetailCollection: term not created')
+
+		const [offering] = await db
+			.insert(termOfferings)
+			.values({ termId: term.id, companyId: company.id })
+			.returning()
+		if (!offering)
+			throw new Error('Seed CreditDetailCollection: offering not created')
+
+		await Promise.all(
+			createdUsers.flatMap((u) => {
+				const fixture = allCreditDetailCollectionUsers.find(
+					(f) => f.email === u.email,
+				)
+				if (!fixture)
+					throw new Error(
+						`Seed CreditDetailCollection: fixture not found for ${u.email}`,
+					)
+				return [
+					db
+						.insert(userRoles)
+						.values(fixture.roles.map((role) => ({ userId: u.id, role }))),
+					...(new Set<string>(fixture.roles).has('agent')
+						? [
+								db
+									.insert(userCompanies)
+									.values({ userId: u.id, companyId: company.id }),
+							]
+						: []),
+				]
+			}),
+		)
+
+		const confirmedPastDate = new Date(Date.UTC(2022, 10, 30))
+		const overdueDate = new Date(Date.UTC(2022, 11, 31))
+		const upcomingDate = new Date(Date.UTC(2023, 0, 31))
+		const future1Date = new Date(Date.UTC(2023, 1, 28))
+		const future2Date = new Date(Date.UTC(2023, 2, 31))
+
+		const [app] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicant.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: '50000.00',
+				salaryAtApplication: '40000',
+				salaryFrequency: creditDetailCollectionCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate: upcomingDate,
+			})
+			.returning()
+		if (!app)
+			throw new Error('Seed CreditDetailCollection: application not created')
+
+		await db.insert(applicationStatusHistory).values(
+			createOrderedSeedStatusHistory({
+				finalStatus: 'disbursed',
+				defaultActorUserId: applicant.id,
+			}).map((entry, index) => ({
+				applicationId: app.id,
+				status: entry.status,
+				setByUserId: entry.setByUserId,
+				createdAt: new Date(now.getTime() - (6 - index) * 60_000),
+			})),
+		)
+
+		const [credit] = await db
+			.insert(credits)
+			.values({
+				applicationId: app.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: '50000.00',
+				disbursedByUserId: applicant.id,
+			})
+			.returning()
+		if (!credit)
+			throw new Error('Seed CreditDetailCollection: credit not created')
+
+		const hrAt = (d: Date) => new Date(d.getTime() + 24 * 60 * 60_000)
+
+		await db.insert(creditPayments).values([
+			{
+				creditId: credit.id,
+				dueDate: confirmedPastDate,
+				amount: '10250.00',
+				hrConfirmedAt: hrAt(confirmedPastDate),
+				hrConfirmedByUserId: hrAgent.id,
+				paymentsConfirmedAt: hrAt(confirmedPastDate),
+				paymentsConfirmedByUserId: paymentsAgent.id,
+			},
+			{
+				creditId: credit.id,
+				dueDate: overdueDate,
+				amount: '10250.00',
+				hrConfirmedAt: hrAt(overdueDate),
+				hrConfirmedByUserId: hrAgent.id,
+			},
+			{
+				creditId: credit.id,
+				dueDate: upcomingDate,
+				amount: '10250.00',
+				hrConfirmedAt: hrAt(upcomingDate),
+				hrConfirmedByUserId: hrAgent.id,
+			},
+			{
+				creditId: credit.id,
+				dueDate: future1Date,
+				amount: '10250.00',
+				hrConfirmedAt: hrAt(future1Date),
+				hrConfirmedByUserId: hrAgent.id,
+			},
+			{
+				creditId: credit.id,
+				dueDate: future2Date,
+				amount: '10250.00',
+				hrConfirmedAt: hrAt(future2Date),
+				hrConfirmedByUserId: hrAgent.id,
+			},
+		])
+
+		return {
+			companyId: company.id,
+			creditId: credit.id,
+		}
+	}
+
+export const cleanupCreditDetailCollectionReceipt = async () => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	await Promise.all(
+		allCreditDetailCollectionUsers.map((u) =>
+			db.delete(users).where(eq(users.email, u.email)),
+		),
+	)
+	await db
+		.delete(companies)
+		.where(eq(companies.domain, creditDetailCollectionCompany.domain))
 	await db
 		.delete(terms)
 		.where(
