@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, notExists } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, notExists, sql } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import {
 	adminUser as companiesAdminUser,
@@ -3174,6 +3174,8 @@ export type SeedPaymentsQueueResult = {
 	applicant2Name: string
 	credit1Id: number
 	credit2Id: number
+	/** `credit_payments.id` for credit1’s first installment (HR + Payments receipt confirmed). */
+	onTimeReceiptPaymentId: number
 	/** Application id for the on-time receipt confirmation (credit1 / applicant1). */
 	onTimeReceiptApplicationId: number
 	/** Application id for the late receipt confirmation (synthetic row / applicant2). */
@@ -3466,6 +3468,22 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 		throw new Error('Seed Payments Queue: schedule entry missing')
 	}
 
+	const onTimePaymentRows = await db
+		.select({ id: creditPayments.id })
+		.from(creditPayments)
+		.where(
+			and(
+				eq(creditPayments.creditId, credit1.id),
+				sql`${creditPayments.paymentsConfirmedAt} IS NOT NULL`,
+			),
+		)
+		.orderBy(asc(creditPayments.dueDate))
+		.limit(1)
+	const onTimePayment = onTimePaymentRows[0]
+	if (!onTimePayment) {
+		throw new Error('Seed Payments Queue: on-time payment row not found')
+	}
+
 	return {
 		companyId: company.id,
 		expectedRowCount: 3,
@@ -3473,6 +3491,7 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 		applicant2Name: applicant2.name,
 		credit1Id: credit1.id,
 		credit2Id: credit2.id,
+		onTimeReceiptPaymentId: onTimePayment.id,
 		onTimeReceiptApplicationId: app1.id,
 		lateReceiptApplicationId: app2.id,
 		paymentsReceiptConfirmedByName: paymentsQueueAgent.name ?? '',

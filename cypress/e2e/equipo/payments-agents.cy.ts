@@ -266,6 +266,38 @@ describe('Payments receipt queue', () => {
 					cy.contains('button', /revertir recepci/i).should('be.visible')
 				})
 		})
+
+		it('removes reverted receipt from the full history table until it is confirmed again', () => {
+			cy.visit(`/equipo/credits/${seed.credit1Id}`)
+			cy.contains('h2', /calendario de pagos/i).should('be.visible')
+			cy.get('table tbody tr')
+				.first()
+				.within(() => {
+					cy.contains('button', /revertir recepci/i)
+						.should('be.visible')
+						.click()
+				})
+			cy.contains(/recepci.n revertida/i).should('be.visible')
+			cy.visit('/equipo/payments/history')
+			cy.get('main table').should('be.visible')
+			cy.get('main table').within(() => {
+				cy.contains('tr', seed.applicant1Name).should('not.exist')
+			})
+			cy.visit(`/equipo/credits/${seed.credit1Id}`)
+			cy.contains('h2', /calendario de pagos/i).should('be.visible')
+			cy.get('table tbody tr')
+				.first()
+				.within(() => {
+					cy.contains('button', /confirmar recepci/i)
+						.should('be.visible')
+						.click()
+				})
+			cy.contains(/recepci.n confirmada/i).should('be.visible')
+			cy.visit('/equipo/payments/history')
+			cy.get('main table').within(() => {
+				cy.contains('tr', seed.applicant1Name).should('be.visible')
+			})
+		})
 	})
 
 	describe('Non-Payments agent cannot access payments queue', () => {

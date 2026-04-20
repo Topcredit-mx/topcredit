@@ -1741,6 +1741,7 @@ export async function confirmPaymentReceipt(
 	await syncCreditLifecycleAfterPaymentsChange([payment.creditId], now)
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/payments/history')
 	revalidatePath('/cuenta/credits')
 	return {}
 }
@@ -1801,6 +1802,7 @@ export async function confirmPaymentReceipts(
 	await syncCreditLifecycleAfterPaymentsChange(uniqueCreditIds, now)
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/payments/history')
 	revalidatePath('/cuenta/credits')
 	return {}
 }
@@ -1925,6 +1927,7 @@ export async function confirmPaymentReceiptsFromCsv(
 	).length
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/payments/history')
 	revalidatePath('/cuenta/credits')
 
 	return {
@@ -1977,6 +1980,7 @@ export async function reversePaymentReceiptConfirmation(
 	await syncCreditLifecycleAfterPaymentsChange([payment.creditId], now)
 
 	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/payments/history')
 	revalidatePath('/cuenta/credits')
 	return {}
 }
