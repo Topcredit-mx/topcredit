@@ -85,8 +85,8 @@ describe('Login Flow', () => {
 			cy.get('form').submit()
 			cy.contains('h1', 'Verificación').should('be.visible')
 			cy.contains(applicantUser.email).should('be.visible')
-			cy.env(['E2E_OTP_CODE']).then(({ E2E_OTP_CODE }) => {
-				const code = E2E_OTP_CODE
+			cy.then(() => {
+				const code = Cypress.env('E2E_OTP_CODE')
 				if (!code || typeof code !== 'string' || code.length !== 6)
 					throw new Error(
 						'E2E_OTP_CODE must be set for full UI login tests (e.g. in CI or E2E_OTP_CODE=123456 when running Cypress)',

@@ -81,7 +81,7 @@
 		"@types/react-dom": "^19.2.3",
 		"@types/speakeasy": "^2.0.10",
 		"cy2": "4.0.9",
-		"cypress": "^15.10.0",
+		"cypress": "12.17.4",
 		"dotenv": "^17.2.3",
 		"drizzle-kit": "^0.31.8",
 		"husky": "^9.1.7",

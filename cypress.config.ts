@@ -4,7 +4,6 @@ import * as tasks from './cypress/tasks'
 import { assertE2eDatabaseEmpty } from './scripts/e2e-db-snapshot'
 
 export default defineConfig({
-	allowCypressEnv: false,
 	projectId: 'qv8a5k',
 	env: {
 		E2E_OTP_CODE: process.env.E2E_OTP_CODE,

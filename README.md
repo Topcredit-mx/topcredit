@@ -20,7 +20,7 @@ The intended end-to-end flow is documented in `docs/app-flow-proposal.md`.
 - Inngest (queued jobs)
 - Resend (email), Vercel (deploy)
 - Biome (lint/format)
-- Cypress E2E (CI records to [Sorry Cypress](https://sorry-cypress.dev/) via [cy2](https://github.com/sorry-cypress/cy2))
+- Cypress **12.17.4** for E2E (CI `--record` to [Sorry Cypress](https://sorry-cypress.dev/) via [cy2](https://github.com/sorry-cypress/cy2); Cypress **13+** [blocks](https://www.cypress.io/blog/update-defense-intellectual-property) recording to non–Cypress Cloud services)
 
 ## Getting started
 
@@ -77,7 +77,7 @@ Copy `.env.example` to `.env` and set:
 
 ### Sorry Cypress (CI and local)
 
-Cypress [blocks](https://github.com/cypress-io/cypress/issues/29827) the `cypress-cloud` npm package when loading `cypress.config`, so this repo uses **`cy2`** instead (Sorry Cypress documents this flow). **cy2 v4** uses a local proxy and does not patch the Cypress binary on disk—**cy2 v3** assumed macOS bundle paths and could fail on Linux CI (`ENOENT` on `Cypress.app/.../index.js`). **cy2** v4 is **GPL-3.0**.
+**Why Cypress 12.17.4:** Cypress **13+** rejects `--record` to anything other than Cypress Cloud (“Unsupported recording service”). Sorry Cypress maintainers [do not expect](https://github.com/sorry-cypress/sorry-cypress/discussions/911) newer Cypress versions to work with third-party dashboards. This repo uses **`cy2`** (Sorry Cypress [documents](https://docs.sorry-cypress.dev/guide/cloud-setup) this flow); **cy2 v4** uses a local proxy (cy2 v3 assumed macOS bundle paths and could fail on Linux CI). **cy2** v4 is **GPL-3.0**. The `cypress-cloud` npm package is also blocked when loading `cypress.config` ([issue](https://github.com/cypress-io/cypress/issues/29827)).
 
 Configure these **repository secrets** (testing environment):
 
