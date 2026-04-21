@@ -91,21 +91,30 @@ describe('canConfirmInstallmentForCreditDetailRow', () => {
 describe('canConfirmInstallment', () => {
 	test('returns false when hrConfirmedAt is null', () => {
 		assert.equal(
-			canConfirmInstallment({ hrConfirmedAt: null, installmentConfirmedAt: null }),
+			canConfirmInstallment({
+				hrConfirmedAt: null,
+				installmentConfirmedAt: null,
+			}),
 			false,
 		)
 	})
 
 	test('returns true when hrConfirmedAt is set and installmentConfirmedAt is null', () => {
 		assert.equal(
-			canConfirmInstallment({ hrConfirmedAt: NOW, installmentConfirmedAt: null }),
+			canConfirmInstallment({
+				hrConfirmedAt: NOW,
+				installmentConfirmedAt: null,
+			}),
 			true,
 		)
 	})
 
 	test('returns false when both timestamps are set', () => {
 		assert.equal(
-			canConfirmInstallment({ hrConfirmedAt: NOW, installmentConfirmedAt: NOW }),
+			canConfirmInstallment({
+				hrConfirmedAt: NOW,
+				installmentConfirmedAt: NOW,
+			}),
 			false,
 		)
 	})

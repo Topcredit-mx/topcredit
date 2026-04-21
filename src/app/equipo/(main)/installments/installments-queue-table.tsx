@@ -33,9 +33,7 @@ export function InstallmentsQueueTable({
 				columns={columns}
 				data={installments}
 				schema="installments"
-				enableRowSelection={(row) =>
-					canConfirmInstallmentInQueue(row.original)
-				}
+				enableRowSelection={(row) => canConfirmInstallmentInQueue(row.original)}
 			>
 				<div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 					<div className="flex min-w-0 flex-1 items-center">

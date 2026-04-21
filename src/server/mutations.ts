@@ -1711,7 +1711,11 @@ export async function confirmHrDeductionsFromCsv(
 	const alreadyConfirmed = authorized.filter((r) => !canHrConfirm(r)).length
 
 	if (toConfirm.length === 0 && alreadyConfirmed === 0) {
-		return { ...empty, unmatched, error: ValidationCode.CREDIT_PAYMENT_CSV_NO_MATCHES }
+		return {
+			...empty,
+			unmatched,
+			error: ValidationCode.CREDIT_PAYMENT_CSV_NO_MATCHES,
+		}
 	}
 
 	const now = new Date()
@@ -1773,11 +1777,10 @@ export async function confirmInstallment(
 		},
 		today,
 	)
-	if (
-		!paymentsOverdue &&
-		!canConfirmInstallmentWithinPeriod(payment, today)
-	) {
-		return { error: ValidationCode.CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE }
+	if (!paymentsOverdue && !canConfirmInstallmentWithinPeriod(payment, today)) {
+		return {
+			error: ValidationCode.CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE,
+		}
 	}
 
 	const now = new Date()
@@ -1819,9 +1822,7 @@ export async function confirmInstallments(
 	}
 
 	for (const payment of rows) {
-		if (
-			!ability.can('confirmInstallment', toCreditPaymentSubject(payment))
-		) {
+		if (!ability.can('confirmInstallment', toCreditPaymentSubject(payment))) {
 			return { error: ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN }
 		}
 	}
@@ -1994,7 +1995,11 @@ export async function confirmInstallmentsFromCsv(
 	).length
 
 	if (toConfirm.length === 0 && alreadyReceived === 0 && notHrConfirmed === 0) {
-		return { ...empty, unmatched, error: ValidationCode.CREDIT_PAYMENT_CSV_NO_MATCHES }
+		return {
+			...empty,
+			unmatched,
+			error: ValidationCode.CREDIT_PAYMENT_CSV_NO_MATCHES,
+		}
 	}
 
 	const now = new Date()

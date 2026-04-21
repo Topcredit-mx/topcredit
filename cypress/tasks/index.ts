@@ -102,9 +102,9 @@ import {
 } from '~/cypress/e2e/equipo/installments-agents.fixtures'
 import {
 	allInstallmentsBulkQueueUsers,
+	installmentsBulkAgent,
 	installmentsBulkApplicants,
 	installmentsBulkHrAgent,
-	installmentsBulkAgent,
 	installmentsBulkQueueCompany,
 } from '~/cypress/e2e/equipo/installments-bulk-queue.fixtures'
 import {
@@ -3232,7 +3232,8 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 				name: installmentsQueueCompany.name,
 				domain: installmentsQueueCompany.domain,
 				rate: installmentsQueueCompany.rate,
-				employeeSalaryFrequency: installmentsQueueCompany.employeeSalaryFrequency,
+				employeeSalaryFrequency:
+					installmentsQueueCompany.employeeSalaryFrequency,
 				active: installmentsQueueCompany.active,
 			})
 			.returning(),
@@ -3272,7 +3273,9 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 
 	await Promise.all(
 		createdUsers.flatMap((agent) => {
-			const fixture = allInstallmentsQueueUsers.find((u) => u.email === agent.email)
+			const fixture = allInstallmentsQueueUsers.find(
+				(u) => u.email === agent.email,
+			)
 			if (!fixture)
 				throw new Error(
 					`Seed Payments Queue: fixture not found for ${agent.email}`,
@@ -3384,7 +3387,9 @@ export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
 					amount: entry.amount,
 					hrConfirmedAt: new Date(now.getTime() - 10 * 24 * 60 * 60_000),
 					hrConfirmedByUserId: hrQueueAgent.id,
-					installmentConfirmedAt: new Date(now.getTime() - 9 * 24 * 60 * 60_000),
+					installmentConfirmedAt: new Date(
+						now.getTime() - 9 * 24 * 60 * 60_000,
+					),
 					installmentConfirmedByUserId: installmentQueueAgent.id,
 				}
 			}
@@ -4260,7 +4265,9 @@ export const seedCreditDetailCollectionReceipt =
 		}
 
 		const hrAgent = findUser(creditDetailCollectionHrOnlyAgent.email)
-		const installmentAgent = findUser(creditDetailCollectionInstallmentsAgent.email)
+		const installmentAgent = findUser(
+			creditDetailCollectionInstallmentsAgent.email,
+		)
 		const applicant = findUser(creditDetailCollectionApplicant.email)
 
 		const [term] = await db

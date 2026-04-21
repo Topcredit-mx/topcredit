@@ -1,7 +1,7 @@
 import type { SeedInstallmentsOverdueResult } from '~/cypress/tasks'
 import {
-	nonInstallmentsOverdueAgent,
 	installmentsOverdueAgent,
+	nonInstallmentsOverdueAgent,
 } from './installments-overdue.fixtures'
 
 describe('Installments overdue page', () => {

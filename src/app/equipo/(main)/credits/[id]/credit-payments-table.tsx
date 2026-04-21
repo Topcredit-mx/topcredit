@@ -158,7 +158,9 @@ export function CreditPaymentsTable({
 				toast.success(t('installments-confirm-success'))
 				setPayments((prev) =>
 					prev.map((p) =>
-						p.id === paymentId ? { ...p, installmentConfirmedAt: new Date() } : p,
+						p.id === paymentId
+							? { ...p, installmentConfirmedAt: new Date() }
+							: p,
 					),
 				)
 			}

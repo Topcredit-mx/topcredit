@@ -1,7 +1,7 @@
 import type { SeedInstallmentsQueueResult } from '~/cypress/tasks'
 import {
-	nonInstallmentsAgentQueue,
 	installmentAgentQueue,
+	nonInstallmentsAgentQueue,
 } from './installments-agents.fixtures'
 
 describe('Installments confirmation history', () => {

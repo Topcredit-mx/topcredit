@@ -102,7 +102,8 @@ export function isInstallmentOverdueFromDb(
 	p: CreditPaymentTimestamps & { dueDate: Date },
 	today: Date,
 ): boolean {
-	if (p.hrConfirmedAt !== null && p.installmentConfirmedAt !== null) return false
+	if (p.hrConfirmedAt !== null && p.installmentConfirmedAt !== null)
+		return false
 	return isDueDateBeforeToday(p.dueDate.toISOString(), today)
 }
 

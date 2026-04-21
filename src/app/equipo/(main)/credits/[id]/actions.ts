@@ -1,9 +1,6 @@
 'use server'
 
-import {
-	confirmHrDeduction,
-	confirmInstallment,
-} from '~/server/mutations'
+import { confirmHrDeduction, confirmInstallment } from '~/server/mutations'
 
 export type ConfirmDeductionFromCreditState = {
 	error?: string
