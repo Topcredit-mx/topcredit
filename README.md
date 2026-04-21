@@ -77,7 +77,7 @@ Copy `.env.example` to `.env` and set:
 
 ### Sorry Cypress (CI and local)
 
-Cypress [blocks](https://github.com/cypress-io/cypress/issues/29827) the `cypress-cloud` npm package when loading `cypress.config`, so this repo uses **`cy2`** instead: it sets `CYPRESS_API_URL` and runs the real `cypress` CLI (Sorry Cypress documents this flow).
+Cypress [blocks](https://github.com/cypress-io/cypress/issues/29827) the `cypress-cloud` npm package when loading `cypress.config`, so this repo uses **`cy2`** instead (Sorry Cypress documents this flow). **cy2 v4** uses a local proxy and does not patch the Cypress binary on disk—**cy2 v3** assumed macOS bundle paths and could fail on Linux CI (`ENOENT` on `Cypress.app/.../index.js`). **cy2** v4 is **GPL-3.0**.
 
 Configure these **repository secrets** (testing environment):
 
