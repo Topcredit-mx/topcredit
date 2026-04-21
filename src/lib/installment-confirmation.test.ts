@@ -27,7 +27,7 @@ describe('canHrConfirm', () => {
 describe('canConfirmInstallmentForCreditDetailRow', () => {
 	const today = new Date('2023-01-05T12:00:00.000Z')
 
-	test('allows delayed installment with HR confirmed and receipt pending within period', () => {
+	test('allows delayed installment with HR confirmed and installment pending within period', () => {
 		assert.equal(
 			canConfirmInstallmentForCreditDetailRow(
 				{
@@ -131,7 +131,7 @@ describe('canConfirmInstallmentInQueue', () => {
 		)
 	})
 
-	test('returns true when hr is set and payments receipt is null', () => {
+	test('returns true when hr is set and installment confirmation is null', () => {
 		assert.equal(
 			canConfirmInstallmentInQueue({
 				hrConfirmedAt: '2026-01-15T12:00:00.000Z',
@@ -183,7 +183,7 @@ describe('isInstallmentOverdueInQueue', () => {
 		)
 	})
 
-	test('returns true when HR confirmed, receipt pending, and due date is before today', () => {
+	test('returns true when HR confirmed, installment pending, and due date is before today', () => {
 		assert.equal(
 			isInstallmentOverdueInQueue(
 				{
@@ -197,7 +197,7 @@ describe('isInstallmentOverdueInQueue', () => {
 		)
 	})
 
-	test('returns false when both HR and payments are confirmed', () => {
+	test('returns false when both HR and installment are confirmed', () => {
 		assert.equal(
 			isInstallmentOverdueInQueue(
 				{
@@ -215,7 +215,7 @@ describe('isInstallmentOverdueInQueue', () => {
 describe('isInstallmentOverdueFromDb', () => {
 	const today = new Date('2026-01-20T12:00:00.000Z')
 
-	test('returns true when HR confirmed, receipt pending, and due is before today', () => {
+	test('returns true when HR confirmed, installment pending, and due is before today', () => {
 		assert.equal(
 			isInstallmentOverdueFromDb(
 				{
@@ -307,7 +307,7 @@ describe('allInstallmentsFullyConfirmed', () => {
 		assert.equal(allInstallmentsFullyConfirmed([]), true)
 	})
 
-	test('returns true when all payments have both timestamps set', () => {
+	test('returns true when all credit payments have both timestamps set', () => {
 		assert.equal(
 			allInstallmentsFullyConfirmed([
 				{ hrConfirmedAt: NOW, installmentConfirmedAt: NOW },
@@ -317,7 +317,7 @@ describe('allInstallmentsFullyConfirmed', () => {
 		)
 	})
 
-	test('returns false when any payment has no hrConfirmedAt', () => {
+	test('returns false when any credit payment has no hrConfirmedAt', () => {
 		assert.equal(
 			allInstallmentsFullyConfirmed([
 				{ hrConfirmedAt: NOW, installmentConfirmedAt: NOW },
@@ -327,7 +327,7 @@ describe('allInstallmentsFullyConfirmed', () => {
 		)
 	})
 
-	test('returns false when any payment has hrConfirmedAt but no installmentConfirmedAt', () => {
+	test('returns false when any credit payment has hrConfirmedAt but no installmentConfirmedAt', () => {
 		assert.equal(
 			allInstallmentsFullyConfirmed([
 				{ hrConfirmedAt: NOW, installmentConfirmedAt: NOW },
@@ -337,7 +337,7 @@ describe('allInstallmentsFullyConfirmed', () => {
 		)
 	})
 
-	test('returns false when all payments are pending', () => {
+	test('returns false when all credit payments are pending', () => {
 		assert.equal(
 			allInstallmentsFullyConfirmed([
 				{ hrConfirmedAt: null, installmentConfirmedAt: null },

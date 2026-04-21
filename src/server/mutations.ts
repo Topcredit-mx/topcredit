@@ -1769,7 +1769,7 @@ export async function confirmInstallment(
 	}
 
 	const today = new Date()
-	const paymentsOverdue = isInstallmentOverdueFromDb(
+	const installmentOverdue = isInstallmentOverdueFromDb(
 		{
 			hrConfirmedAt: payment.hrConfirmedAt,
 			installmentConfirmedAt: payment.installmentConfirmedAt,
@@ -1777,7 +1777,7 @@ export async function confirmInstallment(
 		},
 		today,
 	)
-	if (!paymentsOverdue && !canConfirmInstallmentWithinPeriod(payment, today)) {
+	if (!installmentOverdue && !canConfirmInstallmentWithinPeriod(payment, today)) {
 		return {
 			error: ValidationCode.CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE,
 		}
@@ -1840,7 +1840,7 @@ export async function confirmInstallments(
 
 	const today = new Date()
 	for (const payment of rows) {
-		const paymentsOverdue = isInstallmentOverdueFromDb(
+		const installmentOverdue = isInstallmentOverdueFromDb(
 			{
 				hrConfirmedAt: payment.hrConfirmedAt,
 				installmentConfirmedAt: payment.installmentConfirmedAt,
@@ -1849,7 +1849,7 @@ export async function confirmInstallments(
 			today,
 		)
 		if (
-			!paymentsOverdue &&
+			!installmentOverdue &&
 			!canConfirmInstallmentWithinPeriod(payment, today)
 		) {
 			return {
@@ -1966,7 +1966,7 @@ export async function confirmInstallmentsFromCsv(
 	const todayCsv = new Date()
 	const toConfirm = authorized.filter((r) => {
 		if (!canConfirmInstallment(r)) return false
-		const paymentsOverdue = isInstallmentOverdueFromDb(
+		const installmentOverdue = isInstallmentOverdueFromDb(
 			{
 				hrConfirmedAt: r.hrConfirmedAt,
 				installmentConfirmedAt: r.installmentConfirmedAt,
@@ -1974,7 +1974,7 @@ export async function confirmInstallmentsFromCsv(
 			},
 			todayCsv,
 		)
-		if (paymentsOverdue) return true
+		if (installmentOverdue) return true
 		return canConfirmInstallmentWithinPeriod(
 			{
 				hrConfirmedAt: r.hrConfirmedAt,

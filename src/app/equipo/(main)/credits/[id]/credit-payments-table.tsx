@@ -101,12 +101,12 @@ function InstallmentStatusBadge({
 }
 
 export function CreditPaymentsTable({
-	payments: initialPayments,
+	creditPayments: initialCreditPayments,
 	canConfirmHrDeduction,
 	canConfirmInstallment,
 	employeeSalaryFrequency,
 }: {
-	payments: CreditPaymentRowForEquipo[]
+	creditPayments: CreditPaymentRowForEquipo[]
 	canConfirmHrDeduction: boolean
 	canConfirmInstallment: boolean
 	employeeSalaryFrequency?: 'bi-monthly' | 'monthly'
@@ -114,7 +114,7 @@ export function CreditPaymentsTable({
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
 	const [, startTransition] = useTransition()
-	const [payments, setPayments] = useState(initialPayments)
+	const [creditPayments, setCreditPayments] = useState(initialCreditPayments)
 
 	const [today, setToday] = useState<string | undefined>(undefined)
 	const [upcomingDeductionDate, setUpcomingDeductionDate] = useState<
@@ -140,7 +140,7 @@ export function CreditPaymentsTable({
 				toast.error(resolveError(result.error))
 			} else {
 				toast.success(t('credit-detail-confirm-success'))
-				setPayments((prev) =>
+				setCreditPayments((prev) =>
 					prev.map((p) =>
 						p.id === paymentId ? { ...p, hrConfirmedAt: new Date() } : p,
 					),
@@ -156,7 +156,7 @@ export function CreditPaymentsTable({
 				toast.error(resolveError(result.error))
 			} else {
 				toast.success(t('installments-confirm-success'))
-				setPayments((prev) =>
+				setCreditPayments((prev) =>
 					prev.map((p) =>
 						p.id === paymentId
 							? { ...p, installmentConfirmedAt: new Date() }
@@ -199,54 +199,57 @@ export function CreditPaymentsTable({
 					</tr>
 				</thead>
 				<tbody>
-					{payments.map((payment, index) => {
+					{creditPayments.map((creditPayment, index) => {
 						const todayDate =
 							today !== undefined
 								? new Date(`${today}T12:00:00.000Z`)
 								: undefined
 						const showHrConfirm =
 							canConfirmHrDeduction &&
-							canHrConfirm(payment) &&
+							canHrConfirm(creditPayment) &&
 							upcomingDeductionDate !== undefined &&
-							isWithinUpcomingPeriodYmd(payment.dueDate, upcomingDeductionDate)
+							isWithinUpcomingPeriodYmd(
+								creditPayment.dueDate,
+								upcomingDeductionDate,
+							)
 						const showInstallmentConfirm =
 							canConfirmInstallment &&
 							todayDate !== undefined &&
 							canConfirmInstallmentForCreditDetailRow(
 								{
-									hrConfirmedAt: payment.hrConfirmedAt,
-									installmentConfirmedAt: payment.installmentConfirmedAt,
-									dueDate: payment.dueDate,
-									employeeSalaryFrequency: payment.employeeSalaryFrequency,
+									hrConfirmedAt: creditPayment.hrConfirmedAt,
+									installmentConfirmedAt: creditPayment.installmentConfirmedAt,
+									dueDate: creditPayment.dueDate,
+									employeeSalaryFrequency: creditPayment.employeeSalaryFrequency,
 								},
 								todayDate,
 							)
 						return (
-							<tr key={payment.id} className="border-slate-100 border-b">
+							<tr key={creditPayment.id} className="border-slate-100 border-b">
 								<td className="px-5 py-3.5 text-slate-800 text-sm">
 									{index + 1}
 								</td>
 								<td className="px-5 py-3.5 text-slate-800 text-sm">
 									<FormattedDate
-										value={payment.dueDate.toISOString().slice(0, 10)}
+										value={creditPayment.dueDate.toISOString().slice(0, 10)}
 										format="date"
 									/>
 								</td>
 								<td className="px-5 py-3.5 text-slate-800 text-sm">
-									{formatCurrencyMxn(payment.amount)}
+									{formatCurrencyMxn(creditPayment.amount)}
 								</td>
 								<td className="px-5 py-3.5 text-sm">
 									<HrStatusBadge
-										hrConfirmedAt={payment.hrConfirmedAt}
-										dueDate={payment.dueDate}
+										hrConfirmedAt={creditPayment.hrConfirmedAt}
+										dueDate={creditPayment.dueDate}
 										today={today}
 									/>
 								</td>
 								<td className="px-5 py-3.5 text-sm">
 									<InstallmentStatusBadge
-										hrConfirmedAt={payment.hrConfirmedAt}
-										installmentConfirmedAt={payment.installmentConfirmedAt}
-										dueDate={payment.dueDate}
+										hrConfirmedAt={creditPayment.hrConfirmedAt}
+										installmentConfirmedAt={creditPayment.installmentConfirmedAt}
+										dueDate={creditPayment.dueDate}
 										today={today}
 									/>
 								</td>
@@ -256,7 +259,7 @@ export function CreditPaymentsTable({
 											<Button
 												size="sm"
 												variant="outline"
-												onClick={() => handleHrConfirm(payment.id)}
+												onClick={() => handleHrConfirm(creditPayment.id)}
 											>
 												{t('credit-detail-confirm')}
 											</Button>
@@ -265,7 +268,9 @@ export function CreditPaymentsTable({
 											<Button
 												size="sm"
 												variant="outline"
-												onClick={() => handleInstallmentConfirm(payment.id)}
+												onClick={() =>
+													handleInstallmentConfirm(creditPayment.id)
+												}
 											>
 												{t('installments-confirm')}
 											</Button>
