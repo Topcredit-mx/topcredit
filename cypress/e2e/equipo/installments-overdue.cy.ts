@@ -41,7 +41,9 @@ describe('Installments overdue page', () => {
 			cy.contains('tr', seed.payrollInstallmentsBlocked)
 				.scrollIntoView()
 				.within(() => {
-					cy.root().contains('Pagos').should('exist')
+					cy.root()
+						.contains(/instalaciones/i)
+						.should('exist')
 				})
 			cy.contains('tr', seed.payrollHrBlocked)
 				.scrollIntoView()
@@ -57,7 +59,7 @@ describe('Installments overdue page', () => {
 			cy.contains(seed.applicantHrBlockedName).should('not.exist')
 		})
 
-		it('bulk-confirms only Pagos-blocked overdue rows in one action', () => {
+		it('bulk-confirms only installments-blocked overdue rows in one action', () => {
 			cy.visit('/equipo/installments/overdue')
 			cy.get('table').should('be.visible')
 			cy.get('table tbody tr').should('have.length', seed.totalOverdueRowCount)
