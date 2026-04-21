@@ -2,8 +2,13 @@ import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
-import { getInstallmentConfirmationHistory } from '~/server/queries'
+import {
+	getInstallmentConfirmationHistory,
+	getPaymentsCollectedAmountSummary,
+	getPaymentsCollectedCountSummary,
+} from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
+import { InstallmentsPaymentsOverview } from '../installments-payments-overview'
 import { InstallmentHistoryTable } from './installment-history-table'
 
 export default async function InstallmentsHistoryPage() {
@@ -25,10 +30,22 @@ export default async function InstallmentsHistoryPage() {
 	const t = await getTranslations('equipo')
 
 	const scope = await getEffectiveCompanyScope()
-	const historyItems = await getInstallmentConfirmationHistory(scope)
+	const [historyItems, collectedAmount, collectedCount] = await Promise.all([
+		getInstallmentConfirmationHistory(scope),
+		getPaymentsCollectedAmountSummary(scope),
+		getPaymentsCollectedCountSummary(scope),
+	])
 
 	return (
 		<div className="container mx-auto py-6">
+			<InstallmentsPaymentsOverview
+				totalCollectedAmount={collectedAmount.totalAmount}
+				amountChangePercent={collectedAmount.changePercent}
+				collectedPaymentsCount={collectedCount.totalPayments}
+				countChangePercent={collectedCount.changePercent}
+				oldestPendingDays={null}
+				pendingAgeApplicable={false}
+			/>
 			{historyItems.length === 0 ? (
 				<p className="text-center text-muted-foreground text-sm">
 					{t('installments-history-full-empty')}

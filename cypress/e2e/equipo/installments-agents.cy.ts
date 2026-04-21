@@ -37,6 +37,49 @@ describe('Installments queue', () => {
 			cy.get('table').should('be.visible')
 		})
 
+		it('shows three payment overview cards above the queue table', () => {
+			cy.visit('/equipo/installments')
+			cy.contains('h2', /resumen de pagos/i).should('be.visible')
+			cy.contains(/total cobrado \(7 días\)/i).should('be.visible')
+			cy.contains(/pagos cobrados \(7 días\)/i).should('be.visible')
+			cy.contains(/antigüedad del pago pendiente más antiguo/i).should(
+				'be.visible',
+			)
+			cy.get('table').should('be.visible')
+			cy.contains('h2', /resumen de pagos/i).then(($h) => {
+				cy.get('table').then(($table) => {
+					const headingBottom = $h[0]?.getBoundingClientRect().bottom ?? 0
+					const tableTop = $table[0]?.getBoundingClientRect().top ?? 0
+					expect(headingBottom).to.be.at.most(tableTop + 2)
+				})
+			})
+		})
+
+		it('shows weekly comparison labels on the collected amount and count cards', () => {
+			cy.visit('/equipo/installments')
+			cy.get('main').within(() => {
+				cy.contains(/total cobrado \(7 días\)/i)
+					.closest('[data-slot="card"]')
+					.within(() => {
+						cy.contains(/vs semana anterior/i).should('be.visible')
+					})
+				cy.contains(/pagos cobrados \(7 días\)/i)
+					.closest('[data-slot="card"]')
+					.within(() => {
+						cy.contains(/vs semana anterior/i).should('be.visible')
+					})
+			})
+		})
+
+		it('shows zero-day oldest pending when the queue uses future due dates', () => {
+			cy.visit('/equipo/installments')
+			cy.contains(/antigüedad del pago pendiente más antiguo/i)
+				.closest('[data-slot="card"]')
+				.within(() => {
+					cy.contains(/0 días/i).should('be.visible')
+				})
+		})
+
 		it('shows employee, amount, due date, next deduction, HR status, and installment confirmation status columns', () => {
 			cy.visit('/equipo/installments')
 			cy.get('table').should('be.visible')

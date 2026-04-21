@@ -6,6 +6,7 @@ import {
 	gte,
 	ilike,
 	inArray,
+	isNotNull,
 	isNull,
 	lt,
 	or,
@@ -1464,6 +1465,278 @@ export async function getOverdueInstallments(params: {
 			blockingParty,
 		}
 	})
+}
+
+// ---- Installments payments overview (collected + pending age by screen) ----
+
+const MS_PER_DAY = 86_400_000
+
+function rollingWindowBounds(periodDays: number): {
+	currentStart: Date
+	currentEnd: Date
+	previousStart: Date
+	previousEnd: Date
+} {
+	const currentEnd = new Date()
+	const currentStart = new Date(currentEnd.getTime() - periodDays * MS_PER_DAY)
+	const previousEnd = currentStart
+	const previousStart = new Date(
+		currentEnd.getTime() - 2 * periodDays * MS_PER_DAY,
+	)
+	return { currentStart, currentEnd, previousStart, previousEnd }
+}
+
+function paymentsOverviewCompanyFilterDrizzle(
+	scope: CompanyScope,
+): SQL | undefined {
+	if (scope.type === 'single') {
+		return eq(applications.companyId, scope.companyId)
+	}
+	if (scope.type === 'multi') {
+		if (scope.companyIds.length === 0) {
+			return sql`false`
+		}
+		return inArray(applications.companyId, scope.companyIds)
+	}
+	return undefined
+}
+
+function paymentsOverviewCompanyFilterRaw(scope: CompanyScope): SQL {
+	if (scope.type === 'single') {
+		return sql`a.company_id = ${scope.companyId}`
+	}
+	if (scope.type === 'multi') {
+		if (scope.companyIds.length === 0) {
+			return sql`false`
+		}
+		return sql`a.company_id = ANY(${scope.companyIds})`
+	}
+	return sql`true`
+}
+
+export type PaymentsOverviewPendingScreen =
+	| 'installments-queue'
+	| 'installments-overdue'
+
+export async function getPaymentsCollectedAmountSummary(
+	scope: CompanyScope,
+	periodDays = 7,
+): Promise<{ totalAmount: string; changePercent: number | null }> {
+	const { ability } = await getAbility()
+	if (scope.type === 'single') {
+		requireAbility(ability, 'read', subject('Company', { id: scope.companyId }))
+	} else if (scope.type === 'multi') {
+		const firstId = scope.companyIds[0]
+		if (firstId === undefined) {
+			return { totalAmount: '0', changePercent: null }
+		}
+		requireAbility(ability, 'read', subject('Company', { id: firstId }))
+	} else {
+		requireAbility(ability, 'read', 'Admin')
+	}
+
+	const companyFilter = paymentsOverviewCompanyFilterDrizzle(scope)
+	const { currentStart, currentEnd, previousStart, previousEnd } =
+		rollingWindowBounds(periodDays)
+
+	const windowCurrent = and(
+		isNotNull(creditPayments.installmentConfirmedAt),
+		gte(creditPayments.installmentConfirmedAt, currentStart),
+		lt(creditPayments.installmentConfirmedAt, currentEnd),
+	)
+	const windowPrevious = and(
+		isNotNull(creditPayments.installmentConfirmedAt),
+		gte(creditPayments.installmentConfirmedAt, previousStart),
+		lt(creditPayments.installmentConfirmedAt, previousEnd),
+	)
+	const whereCurrent =
+		companyFilter === undefined
+			? windowCurrent
+			: and(companyFilter, windowCurrent)
+	const wherePrevious =
+		companyFilter === undefined
+			? windowPrevious
+			: and(companyFilter, windowPrevious)
+
+	const [currentRow, previousRow] = await Promise.all([
+		db
+			.select({
+				total: sql<string>`COALESCE(SUM(${creditPayments.amount}), '0')`,
+			})
+			.from(creditPayments)
+			.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+			.innerJoin(applications, eq(credits.applicationId, applications.id))
+			.where(whereCurrent),
+		db
+			.select({
+				total: sql<string>`COALESCE(SUM(${creditPayments.amount}), '0')`,
+			})
+			.from(creditPayments)
+			.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+			.innerJoin(applications, eq(credits.applicationId, applications.id))
+			.where(wherePrevious),
+	])
+
+	const totalAmount = currentRow[0]?.total ?? '0'
+	const prevAmount = Number(previousRow[0]?.total ?? '0')
+	const currAmount = Number(totalAmount)
+	const changePercent =
+		prevAmount === 0 ? null : ((currAmount - prevAmount) / prevAmount) * 100
+
+	return { totalAmount, changePercent }
+}
+
+export async function getPaymentsCollectedCountSummary(
+	scope: CompanyScope,
+	periodDays = 7,
+): Promise<{ totalPayments: number; changePercent: number | null }> {
+	const { ability } = await getAbility()
+	if (scope.type === 'single') {
+		requireAbility(ability, 'read', subject('Company', { id: scope.companyId }))
+	} else if (scope.type === 'multi') {
+		const firstId = scope.companyIds[0]
+		if (firstId === undefined) {
+			return { totalPayments: 0, changePercent: null }
+		}
+		requireAbility(ability, 'read', subject('Company', { id: firstId }))
+	} else {
+		requireAbility(ability, 'read', 'Admin')
+	}
+
+	const companyFilter = paymentsOverviewCompanyFilterDrizzle(scope)
+	const { currentStart, currentEnd, previousStart, previousEnd } =
+		rollingWindowBounds(periodDays)
+
+	const countWindowCurrent = and(
+		isNotNull(creditPayments.installmentConfirmedAt),
+		gte(creditPayments.installmentConfirmedAt, currentStart),
+		lt(creditPayments.installmentConfirmedAt, currentEnd),
+	)
+	const countWindowPrevious = and(
+		isNotNull(creditPayments.installmentConfirmedAt),
+		gte(creditPayments.installmentConfirmedAt, previousStart),
+		lt(creditPayments.installmentConfirmedAt, previousEnd),
+	)
+	const countWhereCurrent =
+		companyFilter === undefined
+			? countWindowCurrent
+			: and(companyFilter, countWindowCurrent)
+	const countWherePrevious =
+		companyFilter === undefined
+			? countWindowPrevious
+			: and(companyFilter, countWindowPrevious)
+
+	const [currentRow, previousRow] = await Promise.all([
+		db
+			.select({
+				count: sql<number>`COUNT(*)::int`,
+			})
+			.from(creditPayments)
+			.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+			.innerJoin(applications, eq(credits.applicationId, applications.id))
+			.where(countWhereCurrent),
+		db
+			.select({
+				count: sql<number>`COUNT(*)::int`,
+			})
+			.from(creditPayments)
+			.innerJoin(credits, eq(creditPayments.creditId, credits.id))
+			.innerJoin(applications, eq(credits.applicationId, applications.id))
+			.where(countWherePrevious),
+	])
+
+	const totalPayments = Number(currentRow[0]?.count ?? 0)
+	const prevCount = Number(previousRow[0]?.count ?? 0)
+	const changePercent =
+		prevCount === 0 ? null : ((totalPayments - prevCount) / prevCount) * 100
+
+	return { totalPayments, changePercent }
+}
+
+export async function getOldestPendingPaymentAgeDays(
+	scope: CompanyScope,
+	screen: PaymentsOverviewPendingScreen,
+	upcomingDeductionDate?: string,
+): Promise<{ oldestPendingDays: number | null }> {
+	const { ability } = await getAbility()
+	if (scope.type === 'single') {
+		requireAbility(ability, 'read', subject('Company', { id: scope.companyId }))
+	} else if (scope.type === 'multi') {
+		const firstId = scope.companyIds[0]
+		if (firstId === undefined) {
+			return { oldestPendingDays: null }
+		}
+		requireAbility(ability, 'read', subject('Company', { id: firstId }))
+	} else {
+		requireAbility(ability, 'read', 'Admin')
+	}
+
+	const companyWhere = paymentsOverviewCompanyFilterRaw(scope)
+
+	let pendingCondition: SQL
+	if (screen === 'installments-queue') {
+		const dateCondition: SQL =
+			upcomingDeductionDate !== undefined
+				? sql`
+				AND (cp.due_date)::date >= CURRENT_DATE
+				AND (cp.due_date)::date <= (${upcomingDeductionDate})::date
+				AND NOT EXISTS (
+					SELECT 1 FROM credit_payments cp2
+					WHERE cp2.credit_id = cp.credit_id
+					  AND cp2.hr_confirmed_at IS NULL
+					  AND (cp2.due_date)::date < CURRENT_DATE
+				)`
+				: sql``
+
+		pendingCondition = sql`
+			cp.installment_confirmed_at IS NULL
+			AND NOT (
+				(cp.due_date)::date < CURRENT_DATE
+				AND (
+					cp.hr_confirmed_at IS NULL
+					OR cp.installment_confirmed_at IS NULL
+				)
+			)
+			${dateCondition}
+		`
+	} else {
+		pendingCondition = sql`
+			(cp.due_date)::date < CURRENT_DATE
+			AND (
+				cp.hr_confirmed_at IS NULL
+				OR cp.installment_confirmed_at IS NULL
+			)
+		`
+	}
+
+	const rows = await db.execute(sql`
+		SELECT MIN((cp.due_date)::date)::text AS min_due
+		FROM credit_payments cp
+		INNER JOIN credits cr ON cp.credit_id = cr.id
+		INNER JOIN applications a ON cr.application_id = a.id
+		WHERE ${companyWhere} AND ${pendingCondition}
+	`)
+
+	const raw = rows.rows[0]?.min_due
+	if (raw === null || raw === undefined) {
+		return { oldestPendingDays: null }
+	}
+	const minDueStr = String(raw)
+	const minDue = new Date(`${minDueStr}T00:00:00.000Z`)
+	if (Number.isNaN(minDue.getTime())) {
+		return { oldestPendingDays: null }
+	}
+
+	const today = new Date()
+	const todayUtc = new Date(
+		Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+	)
+	const rawAgeDays = Math.floor(
+		(todayUtc.getTime() - minDue.getTime()) / MS_PER_DAY,
+	)
+	const oldestPendingDays = rawAgeDays < 0 ? 0 : rawAgeDays
+
+	return { oldestPendingDays }
 }
 
 // ---- Overdue deductions overview ----

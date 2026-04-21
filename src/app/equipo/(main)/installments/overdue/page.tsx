@@ -5,11 +5,17 @@ import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
-import { getOverdueInstallments } from '~/server/queries'
+import {
+	getOldestPendingPaymentAgeDays,
+	getOverdueInstallments,
+	getPaymentsCollectedAmountSummary,
+	getPaymentsCollectedCountSummary,
+} from '~/server/queries'
 import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
+import { InstallmentsPaymentsOverview } from '../installments-payments-overview'
 import { OverdueInstallmentsTable } from './overdue-installments-table'
 
 export default async function InstallmentsOverduePage() {
@@ -54,10 +60,24 @@ export default async function InstallmentsOverduePage() {
 	}
 
 	const scope = await getEffectiveCompanyScope()
-	const installments = await getOverdueInstallments({ scope })
+	const [installments, collectedAmount, collectedCount, oldestPending] =
+		await Promise.all([
+			getOverdueInstallments({ scope }),
+			getPaymentsCollectedAmountSummary(scope),
+			getPaymentsCollectedCountSummary(scope),
+			getOldestPendingPaymentAgeDays(scope, 'installments-overdue'),
+		])
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
+			<InstallmentsPaymentsOverview
+				totalCollectedAmount={collectedAmount.totalAmount}
+				amountChangePercent={collectedAmount.changePercent}
+				collectedPaymentsCount={collectedCount.totalPayments}
+				countChangePercent={collectedCount.changePercent}
+				oldestPendingDays={oldestPending.oldestPendingDays}
+				pendingAgeApplicable
+			/>
 			<div className="mb-2">
 				<Link
 					href="/equipo/installments"
