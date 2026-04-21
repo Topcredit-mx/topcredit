@@ -1777,7 +1777,10 @@ export async function confirmInstallment(
 		},
 		today,
 	)
-	if (!installmentOverdue && !canConfirmInstallmentWithinPeriod(payment, today)) {
+	if (
+		!installmentOverdue &&
+		!canConfirmInstallmentWithinPeriod(payment, today)
+	) {
 		return {
 			error: ValidationCode.CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE,
 		}

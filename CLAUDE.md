@@ -41,3 +41,9 @@ Defaults for how to write and test code in this repository.
 - If in plan mode, the todos should clearly follow a "Red-Green-Refactor" cycle: write a failing test, write minimal code to pass, and refactor.
 - Between each todo (Red, Green, Refactor), run unit or E2E tests only for the affected tests.
 - Do **not** run the full E2E or unit test suite at the end of a task. Only run the tests related to the changes you made.
+
+## Commits (Husky vs. cloud agents)
+
+Husky `pre-commit` runs `pnpm check && pnpm typecheck` when Git uses hooks from `pnpm install` / `prepare`.
+
+If `core.hooksPath` points elsewhere (e.g. Cursor agent hooks), Husky will not run. Run `pnpm validate` before `git commit` so the same checks still run.

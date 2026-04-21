@@ -220,7 +220,8 @@ export function CreditPaymentsTable({
 									hrConfirmedAt: creditPayment.hrConfirmedAt,
 									installmentConfirmedAt: creditPayment.installmentConfirmedAt,
 									dueDate: creditPayment.dueDate,
-									employeeSalaryFrequency: creditPayment.employeeSalaryFrequency,
+									employeeSalaryFrequency:
+										creditPayment.employeeSalaryFrequency,
 								},
 								todayDate,
 							)
@@ -248,7 +249,9 @@ export function CreditPaymentsTable({
 								<td className="px-5 py-3.5 text-sm">
 									<InstallmentStatusBadge
 										hrConfirmedAt={creditPayment.hrConfirmedAt}
-										installmentConfirmedAt={creditPayment.installmentConfirmedAt}
+										installmentConfirmedAt={
+											creditPayment.installmentConfirmedAt
+										}
 										dueDate={creditPayment.dueDate}
 										today={today}
 									/>
