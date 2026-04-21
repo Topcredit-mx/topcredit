@@ -8,7 +8,7 @@ import {
 	getPaymentsCollectedCountSummary,
 } from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
-import { InstallmentsPaymentsOverview } from '../installments-payments-overview'
+import { InstallmentsOverview } from '../installments-overview'
 import { InstallmentHistoryTable } from './installment-history-table'
 
 export default async function InstallmentsHistoryPage() {
@@ -38,10 +38,10 @@ export default async function InstallmentsHistoryPage() {
 
 	return (
 		<div className="container mx-auto py-6">
-			<InstallmentsPaymentsOverview
+			<InstallmentsOverview
 				totalCollectedAmount={collectedAmount.totalAmount}
 				amountChangePercent={collectedAmount.changePercent}
-				collectedPaymentsCount={collectedCount.totalPayments}
+				collectedInstallmentsCount={collectedCount.totalPayments}
 				countChangePercent={collectedCount.changePercent}
 				oldestPendingDays={null}
 				pendingAgeApplicable={false}

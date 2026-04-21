@@ -37,16 +37,16 @@ describe('Installments queue', () => {
 			cy.get('table').should('be.visible')
 		})
 
-		it('shows three payment overview cards above the queue table', () => {
+		it('shows three installments overview cards above the queue table', () => {
 			cy.visit('/equipo/installments')
-			cy.contains('h2', /resumen de pagos/i).should('be.visible')
+			cy.contains('h2', /resumen de instalaciones/i).should('be.visible')
 			cy.contains(/total cobrado \(7 días\)/i).should('be.visible')
-			cy.contains(/pagos cobrados \(7 días\)/i).should('be.visible')
-			cy.contains(/antigüedad del pago pendiente más antiguo/i).should(
+			cy.contains(/instalaciones cobradas \(7 días\)/i).should('be.visible')
+			cy.contains(/antigüedad de la instalación pendiente más antigua/i).should(
 				'be.visible',
 			)
 			cy.get('table').should('be.visible')
-			cy.contains('h2', /resumen de pagos/i).then(($h) => {
+			cy.contains('h2', /resumen de instalaciones/i).then(($h) => {
 				cy.get('table').then(($table) => {
 					const headingBottom = $h[0]?.getBoundingClientRect().bottom ?? 0
 					const tableTop = $table[0]?.getBoundingClientRect().top ?? 0
@@ -63,7 +63,7 @@ describe('Installments queue', () => {
 					.within(() => {
 						cy.contains(/vs semana anterior/i).should('be.visible')
 					})
-				cy.contains(/pagos cobrados \(7 días\)/i)
+				cy.contains(/instalaciones cobradas \(7 días\)/i)
 					.closest('[data-slot="card"]')
 					.within(() => {
 						cy.contains(/vs semana anterior/i).should('be.visible')
@@ -73,7 +73,7 @@ describe('Installments queue', () => {
 
 		it('shows zero-day oldest pending when the queue uses future due dates', () => {
 			cy.visit('/equipo/installments')
-			cy.contains(/antigüedad del pago pendiente más antiguo/i)
+			cy.contains(/antigüedad de la instalación pendiente más antigua/i)
 				.closest('[data-slot="card"]')
 				.within(() => {
 					cy.contains(/0 días/i).should('be.visible')

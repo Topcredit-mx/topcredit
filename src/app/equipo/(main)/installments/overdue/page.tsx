@@ -15,7 +15,7 @@ import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
-import { InstallmentsPaymentsOverview } from '../installments-payments-overview'
+import { InstallmentsOverview } from '../installments-overview'
 import { OverdueInstallmentsTable } from './overdue-installments-table'
 
 export default async function InstallmentsOverduePage() {
@@ -70,10 +70,10 @@ export default async function InstallmentsOverduePage() {
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
-			<InstallmentsPaymentsOverview
+			<InstallmentsOverview
 				totalCollectedAmount={collectedAmount.totalAmount}
 				amountChangePercent={collectedAmount.changePercent}
-				collectedPaymentsCount={collectedCount.totalPayments}
+				collectedInstallmentsCount={collectedCount.totalPayments}
 				countChangePercent={collectedCount.changePercent}
 				oldestPendingDays={oldestPending.oldestPendingDays}
 				pendingAgeApplicable

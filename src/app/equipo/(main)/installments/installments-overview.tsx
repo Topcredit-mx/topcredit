@@ -13,16 +13,16 @@ import { cn, formatCurrencyMxn } from '~/lib/utils'
 type Props = {
 	totalCollectedAmount: string
 	amountChangePercent: number | null
-	collectedPaymentsCount: number
+	collectedInstallmentsCount: number
 	countChangePercent: number | null
 	oldestPendingDays: number | null
 	pendingAgeApplicable: boolean
 }
 
-export async function InstallmentsPaymentsOverview({
+export async function InstallmentsOverview({
 	totalCollectedAmount,
 	amountChangePercent,
-	collectedPaymentsCount,
+	collectedInstallmentsCount,
 	countChangePercent,
 	oldestPendingDays,
 	pendingAgeApplicable,
@@ -30,40 +30,37 @@ export async function InstallmentsPaymentsOverview({
 	const t = await getTranslations('equipo')
 
 	return (
-		<section
-			aria-labelledby="installments-payments-overview-heading"
-			className="mb-6"
-		>
+		<section aria-labelledby="installments-overview-heading" className="mb-6">
 			<h2
-				id="installments-payments-overview-heading"
+				id="installments-overview-heading"
 				className="mb-3 font-medium text-muted-foreground text-sm"
 			>
-				{t('installments-payments-overview-heading')}
+				{t('installments-overview-heading')}
 			</h2>
 			<div className="grid gap-4 md:grid-cols-3">
 				<StatCard
-					title={t('installments-payments-overview-total-collected')}
+					title={t('installments-overview-total-collected')}
 					value={formatCurrencyMxn(totalCollectedAmount)}
 					changePercent={amountChangePercent}
-					changeLabel={t('installments-payments-overview-change')}
+					changeLabel={t('installments-overview-change')}
 					icon={DollarSign}
 					trendPositiveIsGood
 				/>
 				<StatCard
-					title={t('installments-payments-overview-payments-count')}
-					value={String(collectedPaymentsCount)}
+					title={t('installments-overview-collected-count')}
+					value={String(collectedInstallmentsCount)}
 					changePercent={countChangePercent}
-					changeLabel={t('installments-payments-overview-change')}
+					changeLabel={t('installments-overview-change')}
 					icon={CreditCard}
 					trendPositiveIsGood
 				/>
 				<StatCard
-					title={t('installments-payments-overview-oldest-pending')}
+					title={t('installments-overview-oldest-pending')}
 					value={
 						!pendingAgeApplicable
 							? '—'
 							: oldestPendingDays !== null
-								? t('installments-payments-overview-days', {
+								? t('installments-overview-days', {
 										count: oldestPendingDays,
 									})
 								: '—'

@@ -18,7 +18,7 @@ import {
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
 import { InstallmentHistoryPreview } from './installment-history-preview'
-import { InstallmentsPaymentsOverview } from './installments-payments-overview'
+import { InstallmentsOverview } from './installments-overview'
 import { InstallmentsQueueTable } from './installments-queue-table'
 
 export default async function InstallmentsPage() {
@@ -93,10 +93,10 @@ export default async function InstallmentsPage() {
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
-			<InstallmentsPaymentsOverview
+			<InstallmentsOverview
 				totalCollectedAmount={collectedAmount.totalAmount}
 				amountChangePercent={collectedAmount.changePercent}
-				collectedPaymentsCount={collectedCount.totalPayments}
+				collectedInstallmentsCount={collectedCount.totalPayments}
 				countChangePercent={collectedCount.changePercent}
 				oldestPendingDays={oldestPending.oldestPendingDays}
 				pendingAgeApplicable
