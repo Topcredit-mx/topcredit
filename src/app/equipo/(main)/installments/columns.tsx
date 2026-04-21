@@ -10,7 +10,7 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
-import { canConfirmReceiptQueueInstallment } from '~/lib/payment-confirmation'
+import { canConfirmInstallmentInQueue } from '~/lib/installment-confirmation'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { InstallmentForQueue } from '~/server/queries'
@@ -41,18 +41,18 @@ function HrStatusCell({
 
 function PagosInstallmentStatusCell({
 	hrConfirmedAt,
-	paymentsConfirmedAt,
+	installmentConfirmedAt,
 	pendingLabel,
 	confirmedLabel,
 	awaitingHrLabel,
 }: {
 	hrConfirmedAt: string | null
-	paymentsConfirmedAt: string | null
+	installmentConfirmedAt: string | null
 	pendingLabel: string
 	confirmedLabel: string
 	awaitingHrLabel: string
 }) {
-	if (paymentsConfirmedAt !== null) {
+	if (installmentConfirmedAt !== null) {
 		return (
 			<span className="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800 text-xs">
 				{confirmedLabel}
@@ -79,7 +79,7 @@ function InstallmentConfirmActionsCell({ row }: { row: InstallmentForQueue }) {
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
 
-	if (!canConfirmReceiptQueueInstallment(row)) {
+	if (!canConfirmInstallmentInQueue(row)) {
 		return <span className="text-muted-foreground text-sm">—</span>
 	}
 
@@ -254,7 +254,7 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 			cell: ({ row }) => (
 				<PagosInstallmentStatusCell
 					hrConfirmedAt={row.original.hrConfirmedAt}
-					paymentsConfirmedAt={row.original.paymentsConfirmedAt}
+					installmentConfirmedAt={row.original.installmentConfirmedAt}
 					pendingLabel={t('installments-status-pending')}
 					confirmedLabel={t('installments-status-confirmed')}
 					awaitingHrLabel={t('installments-status-awaiting-hr')}

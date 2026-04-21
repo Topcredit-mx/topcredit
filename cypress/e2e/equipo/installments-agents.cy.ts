@@ -3,11 +3,11 @@ import type {
 	SeedInstallmentsQueueTwentyPendingResult,
 } from '~/cypress/tasks'
 import {
-	adminPaymentsQueue,
-	nonPaymentsAgentQueue,
-	paymentsAgentQueue,
+	adminInstallmentsQueue,
+	installmentAgentQueue,
+	nonInstallmentsAgentQueue,
 } from './installments-agents.fixtures'
-import { paymentsBulkPaymentsAgent } from './installments-bulk-queue.fixtures'
+import { installmentsBulkAgent } from './installments-bulk-queue.fixtures'
 
 describe('Installments queue', () => {
 	let seed: SeedInstallmentsQueueResult
@@ -27,7 +27,7 @@ describe('Installments queue', () => {
 
 	describe('Payments agent views installments queue', () => {
 		beforeEach(() => {
-			cy.login(paymentsAgentQueue.email)
+			cy.login(installmentAgentQueue.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 
@@ -145,7 +145,7 @@ describe('Installments queue', () => {
 
 	describe('Payments agent with no company selected', () => {
 		beforeEach(() => {
-			cy.login(paymentsAgentQueue.email)
+			cy.login(installmentAgentQueue.email)
 			cy.clearCookie('selected_company_id')
 		})
 
@@ -159,7 +159,7 @@ describe('Installments queue', () => {
 
 	describe('Admin with no company selected', () => {
 		beforeEach(() => {
-			cy.login(adminPaymentsQueue.email)
+			cy.login(adminInstallmentsQueue.email)
 			cy.clearCookie('selected_company_id')
 		})
 
@@ -188,7 +188,7 @@ describe('Installments queue', () => {
 		})
 
 		beforeEach(() => {
-			cy.login(paymentsBulkPaymentsAgent.email)
+			cy.login(installmentsBulkAgent.email)
 			cy.setCookie('selected_company_id', String(bulkSeed.companyId))
 		})
 
@@ -225,7 +225,7 @@ describe('Installments queue', () => {
 
 	describe('Non-Payments agent cannot access installments queue', () => {
 		beforeEach(() => {
-			cy.login(nonPaymentsAgentQueue.email)
+			cy.login(nonInstallmentsAgentQueue.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 

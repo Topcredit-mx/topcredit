@@ -3,7 +3,7 @@ import {
 	authorizationsAgent,
 	dualQueueAgent,
 	hrAgent,
-	paymentsAgent,
+	installmentAgent,
 	preAuthAgent,
 	requestsAgent,
 } from './role-queue-nav.fixtures'
@@ -144,7 +144,7 @@ describe('Role-based queue navigation', () => {
 
 	describe('Payments agent', () => {
 		beforeEach(() => {
-			cy.login(paymentsAgent.email)
+			cy.login(installmentAgent.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 			cy.visit('/equipo')
 			navScope().should('be.visible')

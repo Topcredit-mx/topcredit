@@ -6,10 +6,10 @@ export const creditDetailCollectionCompany = {
 	active: true,
 }
 
-export const creditDetailCollectionPaymentsAgent = {
-	name: 'Payments Agent Credit Collection',
-	email: 'payments@credit-detail-collection.e2e',
-	roles: ['agent', 'payments'] as const,
+export const creditDetailCollectionInstallmentsAgent = {
+	name: 'Installments Agent Credit Collection',
+	email: 'installments@credit-detail-collection.e2e',
+	roles: ['agent', 'installments'] as const,
 }
 
 export const creditDetailCollectionHrOnlyAgent = {
@@ -25,7 +25,7 @@ export const creditDetailCollectionApplicant = {
 }
 
 export const allCreditDetailCollectionUsers = [
-	creditDetailCollectionPaymentsAgent,
+	creditDetailCollectionInstallmentsAgent,
 	creditDetailCollectionHrOnlyAgent,
 	creditDetailCollectionApplicant,
 ]

@@ -29,7 +29,7 @@ export default async function AppMainLayout({
 	const isAdmin = user.roles?.includes('admin') ?? false
 	const hasHrAccess = isAdmin || (user.roles?.includes('hr') ?? false)
 	const hasPaymentsAccess =
-		isAdmin || (user.roles?.includes('payments') ?? false)
+		isAdmin || (user.roles?.includes('installments') ?? false)
 	const [companies, selectedCompanyId] = await Promise.all([
 		getCompaniesForSwitcher(user.id, isAdmin),
 		getEffectiveSelectedCompanyId(),

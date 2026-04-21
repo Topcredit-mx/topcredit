@@ -1,7 +1,7 @@
 import type { SeedInstallmentsQueueResult } from '~/cypress/tasks'
 import {
-	nonPaymentsAgentQueue,
-	paymentsAgentQueue,
+	nonInstallmentsAgentQueue,
+	installmentAgentQueue,
 } from './installments-agents.fixtures'
 
 describe('Installments confirmation history', () => {
@@ -22,7 +22,7 @@ describe('Installments confirmation history', () => {
 
 	describe('Payments agent views installment history on the installments page', () => {
 		beforeEach(() => {
-			cy.login(paymentsAgentQueue.email)
+			cy.login(installmentAgentQueue.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 
@@ -44,7 +44,7 @@ describe('Installments confirmation history', () => {
 			cy.visit('/equipo/installments')
 			cy.get('[aria-labelledby="installments-history-preview-heading"]').within(
 				() => {
-					cy.contains(seed.paymentsReceiptConfirmedByName).should('be.visible')
+					cy.contains(seed.installmentConfirmedByUserName).should('be.visible')
 				},
 			)
 		})
@@ -109,7 +109,7 @@ describe('Installments confirmation history', () => {
 
 	describe('Payments agent views the full installments history page', () => {
 		beforeEach(() => {
-			cy.login(paymentsAgentQueue.email)
+			cy.login(installmentAgentQueue.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 
@@ -125,7 +125,7 @@ describe('Installments confirmation history', () => {
 
 	describe('Non-payments agent cannot access installments history', () => {
 		beforeEach(() => {
-			cy.login(nonPaymentsAgentQueue.email)
+			cy.login(nonInstallmentsAgentQueue.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 

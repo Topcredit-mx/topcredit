@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import type { InstallmentForQueue } from '~/server/queries'
-import { formatPendingPaymentReceiptsCsv } from './format-pending-payment-receipts-csv'
+import { formatPendingInstallmentsCsv } from './format-pending-installments-csv'
 
 const HEADERS =
-	'empleado,numero_nomina,empresa,monto,fecha_de_pago,proxima_deduccion,deduccion_rh,recepcion'
+	'empleado,numero_nomina,empresa,monto,fecha_de_pago,proxima_deduccion,deduccion_rh,instalacion'
 
 function makeInstallment(
 	overrides: Partial<InstallmentForQueue> = {},
@@ -15,7 +15,7 @@ function makeInstallment(
 		dueDate: '2026-04-30T00:00:00.000Z',
 		amount: '1500.00',
 		hrConfirmedAt: '2026-04-01T00:00:00.000Z',
-		paymentsConfirmedAt: null,
+		installmentConfirmedAt: null,
 		employeeName: 'Ana López',
 		payrollNumber: 'NOM001',
 		companyName: 'Acme Corp',
@@ -26,14 +26,14 @@ function makeInstallment(
 	}
 }
 
-describe('formatPendingPaymentReceiptsCsv', () => {
+describe('formatPendingInstallmentsCsv', () => {
 	test('empty array returns headers only', () => {
-		const result = formatPendingPaymentReceiptsCsv([])
+		const result = formatPendingInstallmentsCsv([])
 		assert.equal(result, HEADERS)
 	})
 
-	test('single row with receipt pending after HR confirmed', () => {
-		const result = formatPendingPaymentReceiptsCsv([makeInstallment()])
+	test('single row with installment pending after HR confirmed', () => {
+		const result = formatPendingInstallmentsCsv([makeInstallment()])
 		const lines = result.split('\n')
 		assert.equal(lines.length, 2)
 		assert.equal(lines[0], HEADERS)
@@ -44,16 +44,16 @@ describe('formatPendingPaymentReceiptsCsv', () => {
 	})
 
 	test('escapes employee name with comma', () => {
-		const result = formatPendingPaymentReceiptsCsv([
+		const result = formatPendingInstallmentsCsv([
 			makeInstallment({ employeeName: 'López, Ana' }),
 		])
 		const lines = result.split('\n')
 		assert.equal(lines[1]?.startsWith('"López, Ana"'), true)
 	})
 
-	test('awaiting HR receipt label when hr not confirmed', () => {
-		const result = formatPendingPaymentReceiptsCsv([
-			makeInstallment({ hrConfirmedAt: null, paymentsConfirmedAt: null }),
+	test('awaiting HR label when hr not confirmed', () => {
+		const result = formatPendingInstallmentsCsv([
+			makeInstallment({ hrConfirmedAt: null, installmentConfirmedAt: null }),
 		])
 		const lines = result.split('\n')
 		assert.equal(
@@ -62,11 +62,11 @@ describe('formatPendingPaymentReceiptsCsv', () => {
 		)
 	})
 
-	test('receipt confirmed label', () => {
-		const result = formatPendingPaymentReceiptsCsv([
+	test('installment confirmed label', () => {
+		const result = formatPendingInstallmentsCsv([
 			makeInstallment({
 				hrConfirmedAt: '2026-04-01T00:00:00.000Z',
-				paymentsConfirmedAt: '2026-04-10T00:00:00.000Z',
+				installmentConfirmedAt: '2026-04-10T00:00:00.000Z',
 			}),
 		])
 		const lines = result.split('\n')

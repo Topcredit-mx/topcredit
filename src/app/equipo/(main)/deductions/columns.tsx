@@ -33,18 +33,18 @@ function HrStatusCell({
 
 function ReceiptStatusCell({
 	hrConfirmedAt,
-	paymentsConfirmedAt,
+	installmentConfirmedAt,
 	pendingLabel,
 	confirmedLabel,
 	awaitingHrLabel,
 }: {
 	hrConfirmedAt: string | null
-	paymentsConfirmedAt: string | null
+	installmentConfirmedAt: string | null
 	pendingLabel: string
 	confirmedLabel: string
 	awaitingHrLabel: string
 }) {
-	if (paymentsConfirmedAt !== null) {
+	if (installmentConfirmedAt !== null) {
 		return (
 			<span className="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800 text-xs">
 				{confirmedLabel}
@@ -168,13 +168,13 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('deductions-col-receipt-status')}
+					title={t('deductions-col-installment-status')}
 				/>
 			),
 			cell: ({ row }) => (
 				<ReceiptStatusCell
 					hrConfirmedAt={row.original.hrConfirmedAt}
-					paymentsConfirmedAt={row.original.paymentsConfirmedAt}
+					installmentConfirmedAt={row.original.installmentConfirmedAt}
 					pendingLabel={t('deductions-status-pending')}
 					confirmedLabel={t('deductions-status-confirmed')}
 					awaitingHrLabel={t('deductions-status-awaiting-hr')}

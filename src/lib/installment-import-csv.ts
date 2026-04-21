@@ -1,4 +1,4 @@
-export type PaymentReceiptImportCsvErrorRow = {
+export type InstallmentImportCsvErrorRow = {
 	line: number
 	payrollNumber: string | null
 	amount: string | null
@@ -6,21 +6,21 @@ export type PaymentReceiptImportCsvErrorRow = {
 	message: string
 }
 
-export type PaymentReceiptImportParsedRow = {
+export type InstallmentImportParsedRow = {
 	payrollNumber: string
 	amount: string
 	dueDate: string
 	line: number
 }
 
-export type PaymentReceiptImportCandidate = {
+export type InstallmentImportCandidate = {
 	paymentId: number
 	companyId: number
 	hrConfirmedAt: Date | null
-	paymentsConfirmedAt: Date | null
+	installmentConfirmedAt: Date | null
 }
 
-export function makePaymentReceiptImportKey(
+export function makeInstallmentImportKey(
 	payrollNumber: string,
 	amount: string,
 	dueDate: string,
@@ -28,34 +28,34 @@ export function makePaymentReceiptImportKey(
 	return `${payrollNumber}|${amount}|${dueDate}`
 }
 
-export function classifyPaymentReceiptCsvImportRows(
-	validRows: PaymentReceiptImportParsedRow[],
-	candidateByKey: Map<string, PaymentReceiptImportCandidate>,
-	canConfirmPaymentReceipt: (c: PaymentReceiptImportCandidate) => boolean,
+export function classifyInstallmentCsvImportRows(
+	validRows: InstallmentImportParsedRow[],
+	candidateByKey: Map<string, InstallmentImportCandidate>,
+	canConfirmInstallmentRow: (c: InstallmentImportCandidate) => boolean,
 ): {
 	matchedPaymentIds: number[]
 	matchedRows: Array<{ payrollNumber: string; amount: string; dueDate: string }>
-	errors: PaymentReceiptImportCsvErrorRow[]
-	warnings: PaymentReceiptImportCsvErrorRow[]
+	errors: InstallmentImportCsvErrorRow[]
+	warnings: InstallmentImportCsvErrorRow[]
 } {
-	const errorRows: PaymentReceiptImportCsvErrorRow[] = []
+	const errorRows: InstallmentImportCsvErrorRow[] = []
 	const matchedPaymentIds: number[] = []
 	const matchedRows: Array<{
 		payrollNumber: string
 		amount: string
 		dueDate: string
 	}> = []
-	const warningRows: PaymentReceiptImportCsvErrorRow[] = []
+	const warningRows: InstallmentImportCsvErrorRow[] = []
 
 	for (const csvRow of validRows) {
-		const key = makePaymentReceiptImportKey(
+		const key = makeInstallmentImportKey(
 			csvRow.payrollNumber,
 			csvRow.amount,
 			csvRow.dueDate,
 		)
 		const candidate = candidateByKey.get(key)
 
-		if (candidate == null || !canConfirmPaymentReceipt(candidate)) {
+		if (candidate == null || !canConfirmInstallmentRow(candidate)) {
 			errorRows.push({
 				line: csvRow.line,
 				payrollNumber: csvRow.payrollNumber,
@@ -63,7 +63,7 @@ export function classifyPaymentReceiptCsvImportRows(
 				dueDate: csvRow.dueDate,
 				message: 'no-match',
 			})
-		} else if (candidate.paymentsConfirmedAt != null) {
+		} else if (candidate.installmentConfirmedAt != null) {
 			warningRows.push({
 				line: csvRow.line,
 				payrollNumber: csvRow.payrollNumber,

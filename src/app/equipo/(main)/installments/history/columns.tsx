@@ -58,7 +58,7 @@ export function useInstallmentHistoryColumns(): ColumnDef<InstallmentConfirmatio
 			},
 		},
 		{
-			accessorKey: 'paymentsConfirmedAt',
+			accessorKey: 'installmentConfirmedAt',
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
@@ -68,7 +68,7 @@ export function useInstallmentHistoryColumns(): ColumnDef<InstallmentConfirmatio
 			cell: ({ row }) => (
 				<div className="text-muted-foreground text-sm">
 					<FormattedDate
-						value={row.getValue('paymentsConfirmedAt')}
+						value={row.getValue('installmentConfirmedAt')}
 						format="datetime-short"
 					/>
 				</div>

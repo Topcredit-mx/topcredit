@@ -2,7 +2,7 @@
 
 import {
 	confirmHrDeduction,
-	confirmInstallmentReceipt,
+	confirmCreditPaymentInstallment,
 } from '~/server/mutations'
 
 export type ConfirmDeductionFromCreditState = {
@@ -28,7 +28,7 @@ export type ConfirmInstallmentFromCreditState = {
 export async function confirmInstallmentFromCreditAction(
 	paymentId: number,
 ): Promise<ConfirmInstallmentFromCreditState> {
-	const result = await confirmInstallmentReceipt(paymentId)
+	const result = await confirmCreditPaymentInstallment(paymentId)
 	if (result.error != null) {
 		return { error: result.error }
 	}

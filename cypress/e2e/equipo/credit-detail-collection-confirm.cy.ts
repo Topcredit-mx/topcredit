@@ -1,7 +1,7 @@
 import type { SeedCreditDetailCollectionReceiptResult } from '~/cypress/tasks'
 import {
 	creditDetailCollectionHrOnlyAgent,
-	creditDetailCollectionPaymentsAgent,
+	creditDetailCollectionInstallmentsAgent,
 } from './credit-detail-collection.fixtures'
 
 describe('Credit detail — confirm collection from schedule', () => {
@@ -23,7 +23,7 @@ describe('Credit detail — confirm collection from schedule', () => {
 	describe('Payments agent with company selected', () => {
 		beforeEach(() => {
 			cy.clock(new Date('2023-01-05').getTime())
-			cy.login(creditDetailCollectionPaymentsAgent.email)
+			cy.login(creditDetailCollectionInstallmentsAgent.email)
 			cy.then(() => {
 				cy.setCookie('selected_company_id', String(seed.companyId))
 			})

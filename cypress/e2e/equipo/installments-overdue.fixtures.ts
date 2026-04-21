@@ -1,7 +1,7 @@
-export const paymentsOverdueReceiptAgent = {
+export const installmentsOverdueAgent = {
 	name: 'Payments Overdue Receipt Agent',
 	email: 'payments.overdue.receipt@paymentsoverduereceipt.com',
-	roles: ['agent', 'payments'] as const,
+	roles: ['agent', 'installments'] as const,
 }
 
 export const hrOverdueReceiptAgent = {
@@ -10,7 +10,7 @@ export const hrOverdueReceiptAgent = {
 	roles: ['agent', 'hr'] as const,
 }
 
-export const nonPaymentsOverdueReceiptAgent = {
+export const nonInstallmentsOverdueAgent = {
 	name: 'Authz Overdue Receipt Agent',
 	email: 'authz.overdue.receipt@paymentsoverduereceipt.com',
 	roles: ['agent', 'authorizations'] as const,
@@ -28,15 +28,15 @@ export const applicantOverdueReceiptHrPending = {
 	roles: ['applicant'] as const,
 }
 
-export const allPaymentsOverdueReceiptUsers = [
-	paymentsOverdueReceiptAgent,
+export const allInstallmentsOverdueUsers = [
+	installmentsOverdueAgent,
 	hrOverdueReceiptAgent,
-	nonPaymentsOverdueReceiptAgent,
+	nonInstallmentsOverdueAgent,
 	applicantOverdueReceipt,
 	applicantOverdueReceiptHrPending,
 ]
 
-export const paymentsOverdueReceiptCompany = {
+export const installmentsOverdueCompany = {
 	name: 'Payments Overdue Receipt E2E Company',
 	domain: 'paymentsoverduereceipt.com',
 	rate: '0.0250',

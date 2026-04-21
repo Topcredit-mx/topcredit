@@ -21,7 +21,7 @@ function OverdueInstallmentActionsCell({ row }: { row: OverdueInstallment }) {
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
 
-	if (row.blockingParty !== 'payments') {
+	if (row.blockingParty !== 'installments') {
 		return <span className="text-muted-foreground text-sm">—</span>
 	}
 
@@ -139,7 +139,7 @@ export function useOverdueInstallmentsColumns(): ColumnDef<OverdueInstallment>[]
 				<div className="text-muted-foreground text-sm">
 					{row.original.blockingParty === 'hr'
 						? t('installments-overdue-blocking-hr')
-						: t('installments-overdue-blocking-payments')}
+						: t('installments-overdue-blocking-installments')}
 				</div>
 			),
 			enableSorting: false,

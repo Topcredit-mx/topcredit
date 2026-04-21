@@ -1,35 +1,35 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import {
-	classifyPaymentReceiptCsvImportRows,
-	makePaymentReceiptImportKey,
-} from './payment-receipt-import-csv'
+	classifyInstallmentCsvImportRows,
+	makeInstallmentImportKey,
+} from './installment-import-csv'
 
-describe('makePaymentReceiptImportKey', () => {
+describe('makeInstallmentImportKey', () => {
 	test('joins fields with pipe', () => {
 		assert.equal(
-			makePaymentReceiptImportKey('PN1', '100.00', '2026-02-28'),
+			makeInstallmentImportKey('PN1', '100.00', '2026-02-28'),
 			'PN1|100.00|2026-02-28',
 		)
 	})
 })
 
-describe('classifyPaymentReceiptCsvImportRows', () => {
+describe('classifyInstallmentCsvImportRows', () => {
 	const baseCandidate = {
 		paymentId: 1,
 		companyId: 10,
 		hrConfirmedAt: new Date('2026-01-01'),
-		paymentsConfirmedAt: null as Date | null,
+		installmentConfirmedAt: null as Date | null,
 	}
 
 	test('matches when HR confirmed and receipt pending and ability allows', () => {
 		const map = new Map([
 			[
-				makePaymentReceiptImportKey('PN', '50.00', '2026-03-01'),
+				makeInstallmentImportKey('PN', '50.00', '2026-03-01'),
 				{ ...baseCandidate, paymentId: 99 },
 			],
 		])
-		const r = classifyPaymentReceiptCsvImportRows(
+		const r = classifyInstallmentCsvImportRows(
 			[
 				{
 					line: 2,
@@ -47,7 +47,7 @@ describe('classifyPaymentReceiptCsvImportRows', () => {
 	})
 
 	test('no-match when key missing from map', () => {
-		const r = classifyPaymentReceiptCsvImportRows(
+		const r = classifyInstallmentCsvImportRows(
 			[
 				{
 					line: 2,
@@ -67,11 +67,11 @@ describe('classifyPaymentReceiptCsvImportRows', () => {
 	test('no-match when ability denies', () => {
 		const map = new Map([
 			[
-				makePaymentReceiptImportKey('PN', '1.00', '2026-01-01'),
+				makeInstallmentImportKey('PN', '1.00', '2026-01-01'),
 				{ ...baseCandidate },
 			],
 		])
-		const r = classifyPaymentReceiptCsvImportRows(
+		const r = classifyInstallmentCsvImportRows(
 			[{ line: 2, payrollNumber: 'PN', amount: '1.00', dueDate: '2026-01-01' }],
 			map,
 			() => false,
@@ -82,14 +82,14 @@ describe('classifyPaymentReceiptCsvImportRows', () => {
 	test('warns already-received', () => {
 		const map = new Map([
 			[
-				makePaymentReceiptImportKey('PN', '1.00', '2026-01-01'),
+				makeInstallmentImportKey('PN', '1.00', '2026-01-01'),
 				{
 					...baseCandidate,
-					paymentsConfirmedAt: new Date('2026-01-02'),
+					installmentConfirmedAt: new Date('2026-01-02'),
 				},
 			],
 		])
-		const r = classifyPaymentReceiptCsvImportRows(
+		const r = classifyInstallmentCsvImportRows(
 			[{ line: 2, payrollNumber: 'PN', amount: '1.00', dueDate: '2026-01-01' }],
 			map,
 			() => true,
@@ -101,15 +101,15 @@ describe('classifyPaymentReceiptCsvImportRows', () => {
 	test('warns not-hr-confirmed', () => {
 		const map = new Map([
 			[
-				makePaymentReceiptImportKey('PN', '1.00', '2026-01-01'),
+				makeInstallmentImportKey('PN', '1.00', '2026-01-01'),
 				{
 					...baseCandidate,
 					hrConfirmedAt: null,
-					paymentsConfirmedAt: null,
+					installmentConfirmedAt: null,
 				},
 			],
 		])
-		const r = classifyPaymentReceiptCsvImportRows(
+		const r = classifyInstallmentCsvImportRows(
 			[{ line: 2, payrollNumber: 'PN', amount: '1.00', dueDate: '2026-01-01' }],
 			map,
 			() => true,
@@ -121,19 +121,19 @@ describe('classifyPaymentReceiptCsvImportRows', () => {
 	test('mixed: one matched one warning', () => {
 		const map = new Map([
 			[
-				makePaymentReceiptImportKey('A', '10.00', '2026-01-01'),
+				makeInstallmentImportKey('A', '10.00', '2026-01-01'),
 				{ ...baseCandidate, paymentId: 1 },
 			],
 			[
-				makePaymentReceiptImportKey('B', '20.00', '2026-01-02'),
+				makeInstallmentImportKey('B', '20.00', '2026-01-02'),
 				{
 					...baseCandidate,
 					paymentId: 2,
-					paymentsConfirmedAt: new Date(),
+					installmentConfirmedAt: new Date(),
 				},
 			],
 		])
-		const r = classifyPaymentReceiptCsvImportRows(
+		const r = classifyInstallmentCsvImportRows(
 			[
 				{ line: 2, payrollNumber: 'A', amount: '10.00', dueDate: '2026-01-01' },
 				{ line: 3, payrollNumber: 'B', amount: '20.00', dueDate: '2026-01-02' },

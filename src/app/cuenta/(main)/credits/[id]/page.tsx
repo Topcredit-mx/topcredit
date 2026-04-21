@@ -186,7 +186,7 @@ export default async function CuentaCreditDetailPage({
 										{formatCurrencyMxn(payment.amount)}
 									</td>
 									<td className="px-5 py-3.5 text-sm">
-										{payment.paymentsConfirmedAt !== null ? (
+										{payment.installmentConfirmedAt !== null ? (
 											<Badge variant="default">
 												{t('payment-status-confirmed')}
 											</Badge>

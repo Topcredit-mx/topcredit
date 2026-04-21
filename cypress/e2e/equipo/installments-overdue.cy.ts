@@ -1,7 +1,7 @@
 import type { SeedInstallmentsOverdueResult } from '~/cypress/tasks'
 import {
-	nonPaymentsOverdueReceiptAgent,
-	paymentsOverdueReceiptAgent,
+	nonInstallmentsOverdueAgent,
+	installmentsOverdueAgent,
 } from './installments-overdue.fixtures'
 
 describe('Installments overdue page', () => {
@@ -22,7 +22,7 @@ describe('Installments overdue page', () => {
 
 	describe('Payments agent uses the overdue installments page', () => {
 		beforeEach(() => {
-			cy.login(paymentsOverdueReceiptAgent.email)
+			cy.login(installmentsOverdueAgent.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 
@@ -67,7 +67,7 @@ describe('Installments overdue page', () => {
 			cy.contains(
 				'button',
 				new RegExp(
-					`confirmar ${seed.paymentsBulkConfirmableCount} instalaciones`,
+					`confirmar ${seed.installmentsBulkConfirmableCount} instalaciones`,
 					'i',
 				),
 			)
@@ -75,7 +75,7 @@ describe('Installments overdue page', () => {
 				.click()
 			cy.get('table tbody tr').should(
 				'have.length',
-				seed.totalOverdueRowCount - seed.paymentsBulkConfirmableCount,
+				seed.totalOverdueRowCount - seed.installmentsBulkConfirmableCount,
 			)
 			cy.contains('tr', seed.payrollHrBlocked).should('be.visible')
 			cy.contains('tr', seed.payrollPaymentsBlocked).should('not.exist')
@@ -84,7 +84,7 @@ describe('Installments overdue page', () => {
 
 	describe('Non-Payments agent cannot open the overdue installments page', () => {
 		beforeEach(() => {
-			cy.login(nonPaymentsOverdueReceiptAgent.email)
+			cy.login(nonInstallmentsOverdueAgent.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 

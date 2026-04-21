@@ -4,10 +4,10 @@ export const hrAgentDeductions = {
 	roles: ['agent', 'hr'] as const,
 }
 
-export const paymentsAgentDeductions = {
-	name: 'Payments Agent Deductions',
-	email: 'payments.agent@deductionsqueue.com',
-	roles: ['agent', 'payments'] as const,
+export const installmentsAgentDeductions = {
+	name: 'Installments Agent Deductions',
+	email: 'installments.agent@deductionsqueue.com',
+	roles: ['agent', 'installments'] as const,
 }
 
 export const nonHrAgentDeductions = {
@@ -60,7 +60,7 @@ export const applicantDeductionsOverdueRecent = {
 
 export const allDeductionUsers = [
 	hrAgentDeductions,
-	paymentsAgentDeductions,
+	installmentsAgentDeductions,
 	nonHrAgentDeductions,
 	applicantDeductions,
 	applicantDeductions2,

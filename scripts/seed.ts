@@ -20,6 +20,9 @@ function isRole(s: string): s is Role {
 		s === 'requests' ||
 		s === 'pre-authorizations' ||
 		s === 'authorizations' ||
+		s === 'hr' ||
+		s === 'dispersions' ||
+		s === 'installments' ||
 		s === 'admin'
 	)
 }

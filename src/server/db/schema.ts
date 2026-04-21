@@ -23,7 +23,7 @@ export const rolesEnum = pgEnum('roles', [
 	'authorizations',
 	'hr',
 	'dispersions',
-	'payments',
+	'installments',
 	'admin',
 ])
 
@@ -360,11 +360,11 @@ export const creditPayments = pgTable('credit_payments', {
 		() => users.id,
 		{ onDelete: 'set null' },
 	),
-	paymentsConfirmedAt: timestamp('payments_confirmed_at', {
+	installmentConfirmedAt: timestamp('installment_confirmed_at', {
 		withTimezone: true,
 	}),
-	paymentsConfirmedByUserId: integer(
-		'payments_confirmed_by_user_id',
+	installmentConfirmedByUserId: integer(
+		'installment_confirmed_by_user_id',
 	).references(() => users.id, { onDelete: 'set null' }),
 	createdAt: timestamp('created_at', { withTimezone: true })
 		.defaultNow()
@@ -380,8 +380,8 @@ export const usersRelations = relations(users, ({ many }) => ({
 	hrConfirmedCreditPayments: many(creditPayments, {
 		relationName: 'hrConfirmedCreditPayments',
 	}),
-	paymentsConfirmedCreditPayments: many(creditPayments, {
-		relationName: 'paymentsConfirmedCreditPayments',
+	installmentConfirmedCreditPayments: many(creditPayments, {
+		relationName: 'installmentConfirmedCreditPayments',
 	}),
 }))
 
@@ -466,9 +466,9 @@ export const creditPaymentsRelations = relations(creditPayments, ({ one }) => ({
 		fields: [creditPayments.hrConfirmedByUserId],
 		references: [users.id],
 	}),
-	paymentsConfirmedByUser: one(users, {
-		relationName: 'paymentsConfirmedCreditPayments',
-		fields: [creditPayments.paymentsConfirmedByUserId],
+	installmentConfirmedByUser: one(users, {
+		relationName: 'installmentConfirmedCreditPayments',
+		fields: [creditPayments.installmentConfirmedByUserId],
 		references: [users.id],
 	}),
 }))

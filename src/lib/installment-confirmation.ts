@@ -1,21 +1,21 @@
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 
-export type PaymentTimestamps = {
+export type CreditPaymentTimestamps = {
 	hrConfirmedAt: Date | null
-	paymentsConfirmedAt: Date | null
+	installmentConfirmedAt: Date | null
 }
 
 export function canHrConfirm(
-	p: Pick<PaymentTimestamps, 'hrConfirmedAt'>,
+	p: Pick<CreditPaymentTimestamps, 'hrConfirmedAt'>,
 ): boolean {
 	return p.hrConfirmedAt === null
 }
 
-export function canConfirmReceipt(p: PaymentTimestamps): boolean {
-	return p.hrConfirmedAt !== null && p.paymentsConfirmedAt === null
+export function canConfirmInstallment(p: CreditPaymentTimestamps): boolean {
+	return p.hrConfirmedAt !== null && p.installmentConfirmedAt === null
 }
 
-export function isWithinUpcomingDeductionPeriodForReceipt(
+export function isWithinUpcomingDeductionPeriodForInstallment(
 	dueDate: Date,
 	upcomingDeductionDate: Date,
 ): boolean {
@@ -25,23 +25,23 @@ export function isWithinUpcomingDeductionPeriodForReceipt(
 	)
 }
 
-export type ReceiptEligibilityInput = PaymentTimestamps & {
+export type InstallmentEligibilityInput = CreditPaymentTimestamps & {
 	dueDate: Date
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 }
 
-export function canConfirmReceiptForCreditDetailRow(
-	p: ReceiptEligibilityInput,
+export function canConfirmInstallmentForCreditDetailRow(
+	p: InstallmentEligibilityInput,
 	today: Date,
 ): boolean {
-	if (!canConfirmReceipt(p)) return false
+	if (!canConfirmInstallment(p)) return false
 	const upcoming = getUpcomingDeductionDate(p.employeeSalaryFrequency, today)
-	return isWithinUpcomingDeductionPeriodForReceipt(p.dueDate, upcoming)
+	return isWithinUpcomingDeductionPeriodForInstallment(p.dueDate, upcoming)
 }
 
-export type QueueInstallmentReceiptTimestamps = {
+export type InstallmentQueueTimestamps = {
 	hrConfirmedAt: string | null
-	paymentsConfirmedAt: string | null
+	installmentConfirmedAt: string | null
 }
 
 function parseIsoDateString(value: string | null): Date | null {
@@ -50,13 +50,12 @@ function parseIsoDateString(value: string | null): Date | null {
 	return Number.isNaN(d.getTime()) ? null : d
 }
 
-/** Queue row (ISO string timestamps) eligible for Payments “confirm receipt”, same as the table checkbox. */
-export function canConfirmReceiptQueueInstallment(
-	row: QueueInstallmentReceiptTimestamps,
+export function canConfirmInstallmentInQueue(
+	row: InstallmentQueueTimestamps,
 ): boolean {
-	return canConfirmReceipt({
+	return canConfirmInstallment({
 		hrConfirmedAt: parseIsoDateString(row.hrConfirmedAt),
-		paymentsConfirmedAt: parseIsoDateString(row.paymentsConfirmedAt),
+		installmentConfirmedAt: parseIsoDateString(row.installmentConfirmedAt),
 	})
 }
 
@@ -80,63 +79,61 @@ export function isDueDateBeforeToday(
 	return dueDay < utcDateOnlyString(today)
 }
 
-function queueRowFullyConfirmed(
-	row: QueueInstallmentReceiptTimestamps,
-): boolean {
+function queueRowFullyConfirmed(row: InstallmentQueueTimestamps): boolean {
 	return (
 		parseIsoDateString(row.hrConfirmedAt) !== null &&
-		parseIsoDateString(row.paymentsConfirmedAt) !== null
+		parseIsoDateString(row.installmentConfirmedAt) !== null
 	)
 }
 
-export type PaymentsOverdueQueueRow = QueueInstallmentReceiptTimestamps & {
+export type InstallmentOverdueQueueRow = InstallmentQueueTimestamps & {
 	dueDate: string
 }
 
-export function isPaymentsOverdueQueueInstallment(
-	row: PaymentsOverdueQueueRow,
+export function isInstallmentOverdueInQueue(
+	row: InstallmentOverdueQueueRow,
 	today: Date,
 ): boolean {
 	if (queueRowFullyConfirmed(row)) return false
 	return isDueDateBeforeToday(row.dueDate, today)
 }
 
-export function isPaymentsOverdueFromDb(
-	p: PaymentTimestamps & { dueDate: Date },
+export function isInstallmentOverdueFromDb(
+	p: CreditPaymentTimestamps & { dueDate: Date },
 	today: Date,
 ): boolean {
-	if (p.hrConfirmedAt !== null && p.paymentsConfirmedAt !== null) return false
+	if (p.hrConfirmedAt !== null && p.installmentConfirmedAt !== null) return false
 	return isDueDateBeforeToday(p.dueDate.toISOString(), today)
 }
 
-export function isFullyConfirmed(p: PaymentTimestamps): boolean {
-	return p.hrConfirmedAt !== null && p.paymentsConfirmedAt !== null
+export function isFullyConfirmed(p: CreditPaymentTimestamps): boolean {
+	return p.hrConfirmedAt !== null && p.installmentConfirmedAt !== null
 }
 
-export function allPaymentsFullyConfirmed(
-	payments: ReadonlyArray<PaymentTimestamps>,
+export function allInstallmentsFullyConfirmed(
+	installments: ReadonlyArray<CreditPaymentTimestamps>,
 ): boolean {
-	return payments.every(isFullyConfirmed)
+	return installments.every(isFullyConfirmed)
 }
 
-export type CsvPaymentRow = {
+export type CsvInstallmentRow = {
 	payrollNumber: string
 	amount: string
 	dueDate: string
 }
 
-export type CsvParseResult = {
-	rows: CsvPaymentRow[]
+export type CsvInstallmentParseResult = {
+	rows: CsvInstallmentRow[]
 	errors: Array<{ line: number; message: string }>
 }
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 const POSITIVE_NUMBER_REGEX = /^\d+(\.\d+)?$/
 
-export function parseCsvPaymentConfirmations(
+export function parseCsvInstallmentConfirmations(
 	csvContent: string,
-): CsvParseResult {
-	const rows: CsvPaymentRow[] = []
+): CsvInstallmentParseResult {
+	const rows: CsvInstallmentRow[] = []
 	const errors: Array<{ line: number; message: string }> = []
 
 	const lines = csvContent
@@ -144,10 +141,8 @@ export function parseCsvPaymentConfirmations(
 		.map((l) => l.trim())
 		.filter((l) => l.length > 0)
 
-	// Nothing or just a header
 	if (lines.length <= 1) return { rows, errors }
 
-	// Skip header (line index 0), data starts at index 1 (line number 2)
 	for (let i = 1; i < lines.length; i++) {
 		const lineNumber = i + 1
 		const line = lines[i]

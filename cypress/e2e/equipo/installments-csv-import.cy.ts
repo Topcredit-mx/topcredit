@@ -1,5 +1,5 @@
 import type { SeedInstallmentsQueueResult } from '~/cypress/tasks'
-import { paymentsAgentQueue } from './installments-agents.fixtures'
+import { installmentAgentQueue } from './installments-agents.fixtures'
 
 describe('Installments queue CSV import', () => {
 	let seed: SeedInstallmentsQueueResult
@@ -9,7 +9,7 @@ describe('Installments queue CSV import', () => {
 		cy.task<SeedInstallmentsQueueResult>('seedInstallmentsQueue').then(
 			(result) => {
 				seed = result
-				cy.login(paymentsAgentQueue.email)
+				cy.login(installmentAgentQueue.email)
 				cy.setCookie('selected_company_id', String(result.companyId))
 			},
 		)

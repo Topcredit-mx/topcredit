@@ -96,7 +96,7 @@ export function InstallmentHistoryPreview({
 											</div>
 											<span className="text-slate-500 text-xs">
 												<FormattedDate
-													value={item.paymentsConfirmedAt}
+													value={item.installmentConfirmedAt}
 													format="datetime-short"
 												/>
 											</span>

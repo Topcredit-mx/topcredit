@@ -1,19 +1,17 @@
 import type { InstallmentForQueue } from '~/server/queries'
 
 const HEADERS =
-	'empleado,numero_nomina,empresa,monto,fecha_de_pago,proxima_deduccion,deduccion_rh,recepcion'
+	'empleado,numero_nomina,empresa,monto,fecha_de_pago,proxima_deduccion,deduccion_rh,instalacion'
 
-/** Matches `payments-status-*` in UI (Spanish). */
 function hrDeductionLabel(hrConfirmedAt: string | null): string {
 	return hrConfirmedAt === null ? 'Pendiente' : 'Confirmado'
 }
 
-/** Matches receipt column labels in payments queue (Spanish). */
-function receiptLabel(
+function installmentColumnLabel(
 	hrConfirmedAt: string | null,
-	paymentsConfirmedAt: string | null,
+	installmentConfirmedAt: string | null,
 ): string {
-	if (paymentsConfirmedAt !== null) return 'Confirmado'
+	if (installmentConfirmedAt !== null) return 'Confirmado'
 	if (hrConfirmedAt !== null) return 'Pendiente'
 	return 'En espera de RH'
 }
@@ -29,7 +27,7 @@ function csvField(value: string): string {
 	return value
 }
 
-export function formatPendingPaymentReceiptsCsv(
+export function formatPendingInstallmentsCsv(
 	installments: InstallmentForQueue[],
 ): string {
 	if (installments.length === 0) return HEADERS
@@ -43,7 +41,9 @@ export function formatPendingPaymentReceiptsCsv(
 			csvField(dateYmd(row.dueDate)),
 			csvField(dateYmd(row.nextDeductionDate)),
 			csvField(hrDeductionLabel(row.hrConfirmedAt)),
-			csvField(receiptLabel(row.hrConfirmedAt, row.paymentsConfirmedAt)),
+			csvField(
+				installmentColumnLabel(row.hrConfirmedAt, row.installmentConfirmedAt),
+			),
 		].join(','),
 	)
 

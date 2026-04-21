@@ -170,7 +170,7 @@ export function AgentSidebar({
 							},
 						]
 					: []),
-				...(roles.includes('payments')
+				...(roles.includes('installments')
 					? [
 							{
 								title: t('nav-installments'),

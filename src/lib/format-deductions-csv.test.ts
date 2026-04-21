@@ -12,7 +12,7 @@ function makeInstallment(
 		dueDate: '2026-04-30',
 		amount: '1500.00',
 		hrConfirmedAt: null,
-		paymentsConfirmedAt: null,
+		installmentConfirmedAt: null,
 		employeeName: 'Ana López',
 		payrollNumber: 'NOM001',
 		companyName: 'Acme Corp',

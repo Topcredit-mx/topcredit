@@ -7,9 +7,9 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import {
-	canConfirmReceiptForCreditDetailRow,
+	canConfirmInstallmentForCreditDetailRow,
 	canHrConfirm,
-} from '~/lib/payment-confirmation'
+} from '~/lib/installment-confirmation'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { CreditPaymentRowForEquipo } from '~/server/queries'
@@ -58,44 +58,44 @@ function HrStatusBadge({
 	)
 }
 
-function PaymentsStatusBadge({
+function InstallmentStatusBadge({
 	hrConfirmedAt,
-	paymentsConfirmedAt,
+	installmentConfirmedAt,
 	dueDate,
 	today,
 }: {
 	hrConfirmedAt: Date | null
-	paymentsConfirmedAt: Date | null
+	installmentConfirmedAt: Date | null
 	dueDate: Date
 	today: string | undefined
 }) {
 	const t = useTranslations('equipo')
-	if (paymentsConfirmedAt !== null) {
+	if (installmentConfirmedAt !== null) {
 		return (
 			<span className="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800 text-xs">
-				{t('credit-detail-payments-status-confirmed')}
+				{t('credit-detail-installment-status-confirmed')}
 			</span>
 		)
 	}
 	if (hrConfirmedAt !== null) {
 		const dueYmd = dueDate.toISOString().slice(0, 10)
-		const isReceiptDelayed = today !== undefined && dueYmd < today
-		if (isReceiptDelayed) {
+		const isInstallmentDelayed = today !== undefined && dueYmd < today
+		if (isInstallmentDelayed) {
 			return (
 				<span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-900 text-xs">
-					{t('credit-detail-payments-status-delayed')}
+					{t('credit-detail-installment-status-delayed')}
 				</span>
 			)
 		}
 		return (
 			<span className="rounded-full bg-blue-100 px-2 py-0.5 font-medium text-blue-800 text-xs">
-				{t('credit-detail-payments-status-pending')}
+				{t('credit-detail-installment-status-pending')}
 			</span>
 		)
 	}
 	return (
 		<span className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-600 text-xs">
-			{t('credit-detail-payments-status-awaiting-hr')}
+			{t('credit-detail-installment-status-awaiting-hr')}
 		</span>
 	)
 }
@@ -103,12 +103,12 @@ function PaymentsStatusBadge({
 export function CreditPaymentsTable({
 	payments: initialPayments,
 	canConfirmHrDeduction,
-	canConfirmPaymentReceipt,
+	canConfirmInstallment,
 	employeeSalaryFrequency,
 }: {
 	payments: CreditPaymentRowForEquipo[]
 	canConfirmHrDeduction: boolean
-	canConfirmPaymentReceipt: boolean
+	canConfirmInstallment: boolean
 	employeeSalaryFrequency?: 'bi-monthly' | 'monthly'
 }) {
 	const t = useTranslations('equipo')
@@ -149,7 +149,7 @@ export function CreditPaymentsTable({
 		})
 	}
 
-	const handlePaymentReceiptConfirm = (paymentId: number) => {
+	const handleInstallmentConfirm = (paymentId: number) => {
 		startTransition(async () => {
 			const result = await confirmInstallmentFromCreditAction(paymentId)
 			if (result?.error != null) {
@@ -158,7 +158,7 @@ export function CreditPaymentsTable({
 				toast.success(t('installments-confirm-success'))
 				setPayments((prev) =>
 					prev.map((p) =>
-						p.id === paymentId ? { ...p, paymentsConfirmedAt: new Date() } : p,
+						p.id === paymentId ? { ...p, installmentConfirmedAt: new Date() } : p,
 					),
 				)
 			}
@@ -191,7 +191,7 @@ export function CreditPaymentsTable({
 							{t('credit-detail-col-hr-status')}
 						</th>
 						<th className="px-5 py-3 font-semibold" scope="col">
-							{t('credit-detail-col-payments-status')}
+							{t('credit-detail-col-installment-status')}
 						</th>
 						<th className="px-5 py-3" scope="col" />
 					</tr>
@@ -207,13 +207,13 @@ export function CreditPaymentsTable({
 							canHrConfirm(payment) &&
 							upcomingDeductionDate !== undefined &&
 							isWithinUpcomingPeriodYmd(payment.dueDate, upcomingDeductionDate)
-						const showReceiptConfirm =
-							canConfirmPaymentReceipt &&
+						const showInstallmentConfirm =
+							canConfirmInstallment &&
 							todayDate !== undefined &&
-							canConfirmReceiptForCreditDetailRow(
+							canConfirmInstallmentForCreditDetailRow(
 								{
 									hrConfirmedAt: payment.hrConfirmedAt,
-									paymentsConfirmedAt: payment.paymentsConfirmedAt,
+									installmentConfirmedAt: payment.installmentConfirmedAt,
 									dueDate: payment.dueDate,
 									employeeSalaryFrequency: payment.employeeSalaryFrequency,
 								},
@@ -241,9 +241,9 @@ export function CreditPaymentsTable({
 									/>
 								</td>
 								<td className="px-5 py-3.5 text-sm">
-									<PaymentsStatusBadge
+									<InstallmentStatusBadge
 										hrConfirmedAt={payment.hrConfirmedAt}
-										paymentsConfirmedAt={payment.paymentsConfirmedAt}
+										installmentConfirmedAt={payment.installmentConfirmedAt}
 										dueDate={payment.dueDate}
 										today={today}
 									/>
@@ -259,11 +259,11 @@ export function CreditPaymentsTable({
 												{t('credit-detail-confirm')}
 											</Button>
 										) : null}
-										{showReceiptConfirm ? (
+										{showInstallmentConfirm ? (
 											<Button
 												size="sm"
 												variant="outline"
-												onClick={() => handlePaymentReceiptConfirm(payment.id)}
+												onClick={() => handleInstallmentConfirm(payment.id)}
 											>
 												{t('installments-confirm')}
 											</Button>

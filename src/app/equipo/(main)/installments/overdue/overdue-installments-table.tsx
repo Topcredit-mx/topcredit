@@ -5,7 +5,7 @@ import {
 	DataTableContent,
 	DataTablePagination,
 } from '~/components/ui/data-table'
-import { canConfirmReceiptQueueInstallment } from '~/lib/payment-confirmation'
+import { canConfirmInstallmentInQueue } from '~/lib/installment-confirmation'
 import type { OverdueInstallment } from '~/server/queries'
 import { OverdueInstallmentsBulkBar } from './overdue-installments-bulk-bar'
 import { useOverdueInstallmentsColumns } from './overdue-installments-columns'
@@ -24,8 +24,8 @@ export function OverdueInstallmentsTable({
 				data={installments}
 				schema="installments-overdue"
 				enableRowSelection={(row) =>
-					row.original.blockingParty === 'payments' &&
-					canConfirmReceiptQueueInstallment(row.original)
+					row.original.blockingParty === 'installments' &&
+					canConfirmInstallmentInQueue(row.original)
 				}
 			>
 				<div className="flex min-w-0 justify-end">

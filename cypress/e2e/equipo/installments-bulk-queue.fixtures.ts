@@ -1,7 +1,7 @@
 /** Isolated seed domain for “many pending receipts” E2E (20 queue rows). */
 export const PAYMENTS_BULK_QUEUE_COUNT = 20
 
-export const paymentsBulkQueueCompany = {
+export const installmentsBulkQueueCompany = {
 	name: 'Payments Bulk Queue E2E',
 	domain: 'paymentsbulk.com',
 	rate: '0.0250',
@@ -9,19 +9,19 @@ export const paymentsBulkQueueCompany = {
 	active: true,
 }
 
-export const paymentsBulkPaymentsAgent = {
-	name: 'Payments Bulk Agent',
-	email: 'payments.bulk@paymentsbulk.com',
-	roles: ['agent', 'payments'] as const,
+export const installmentsBulkAgent = {
+	name: 'Installments Bulk Agent',
+	email: 'installments.bulk@paymentsbulk.com',
+	roles: ['agent', 'installments'] as const,
 }
 
-export const paymentsBulkHrAgent = {
+export const installmentsBulkHrAgent = {
 	name: 'HR Bulk Agent',
 	email: 'hr.bulk@paymentsbulk.com',
 	roles: ['agent', 'hr'] as const,
 }
 
-export const paymentsBulkApplicants = Array.from(
+export const installmentsBulkApplicants = Array.from(
 	{ length: PAYMENTS_BULK_QUEUE_COUNT },
 	(_, i) => ({
 		name: `Bulk Employee ${i + 1}`,
@@ -30,8 +30,8 @@ export const paymentsBulkApplicants = Array.from(
 	}),
 )
 
-export const allPaymentsBulkQueueUsers = [
-	paymentsBulkPaymentsAgent,
-	paymentsBulkHrAgent,
-	...paymentsBulkApplicants,
+export const allInstallmentsBulkQueueUsers = [
+	installmentsBulkAgent,
+	installmentsBulkHrAgent,
+	...installmentsBulkApplicants,
 ]

@@ -5,7 +5,7 @@ import {
 	type ValidationCode as ValidationCodeType,
 } from './validation-codes'
 
-const PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE_BULK_PREFIX = `${ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE}:`
+const CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE_BULK_PREFIX = `${ValidationCode.CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE}:`
 
 type AdminKey = keyof (typeof messages)['admin']
 type CuentaApplicationsKey = keyof (typeof messages)['cuenta']['applications']
@@ -287,41 +287,41 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'DISBURSE_HR_NOT_APPROVED',
 	},
-	[ValidationCode.PAYMENT_NOT_FOUND]: {
+	[ValidationCode.CREDIT_PAYMENT_NOT_FOUND]: {
 		namespace: 'equipo',
-		key: 'PAYMENT_NOT_FOUND',
+		key: 'CREDIT_PAYMENT_NOT_FOUND',
 	},
-	[ValidationCode.PAYMENT_ALREADY_CONFIRMED]: {
+	[ValidationCode.CREDIT_PAYMENT_ALREADY_CONFIRMED]: {
 		namespace: 'equipo',
-		key: 'PAYMENT_ALREADY_CONFIRMED',
+		key: 'CREDIT_PAYMENT_ALREADY_CONFIRMED',
 	},
-	[ValidationCode.PAYMENT_NOT_HR_CONFIRMED]: {
+	[ValidationCode.CREDIT_PAYMENT_NOT_HR_CONFIRMED]: {
 		namespace: 'equipo',
-		key: 'PAYMENT_NOT_HR_CONFIRMED',
+		key: 'CREDIT_PAYMENT_NOT_HR_CONFIRMED',
 	},
-	[ValidationCode.PAYMENT_ALREADY_RECEIVED]: {
+	[ValidationCode.CREDIT_PAYMENT_ALREADY_INSTALLMENT_CONFIRMED]: {
 		namespace: 'equipo',
-		key: 'PAYMENT_ALREADY_RECEIVED',
+		key: 'CREDIT_PAYMENT_ALREADY_INSTALLMENT_CONFIRMED',
 	},
-	[ValidationCode.PAYMENT_CSV_PARSE_ERROR]: {
+	[ValidationCode.CREDIT_PAYMENT_CSV_PARSE_ERROR]: {
 		namespace: 'equipo',
-		key: 'PAYMENT_CSV_PARSE_ERROR',
+		key: 'CREDIT_PAYMENT_CSV_PARSE_ERROR',
 	},
-	[ValidationCode.PAYMENT_CSV_NO_MATCHES]: {
+	[ValidationCode.CREDIT_PAYMENT_CSV_NO_MATCHES]: {
 		namespace: 'equipo',
-		key: 'PAYMENT_CSV_NO_MATCHES',
+		key: 'CREDIT_PAYMENT_CSV_NO_MATCHES',
 	},
-	[ValidationCode.PAYMENT_BULK_EMPTY]: {
+	[ValidationCode.CREDIT_PAYMENT_BULK_EMPTY]: {
 		namespace: 'equipo',
-		key: 'PAYMENT_BULK_EMPTY',
+		key: 'CREDIT_PAYMENT_BULK_EMPTY',
 	},
-	[ValidationCode.PAYMENT_CONFIRM_FORBIDDEN]: {
+	[ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN]: {
 		namespace: 'equipo',
-		key: 'PAYMENT_CONFIRM_FORBIDDEN',
+		key: 'CREDIT_PAYMENT_CONFIRM_FORBIDDEN',
 	},
-	[ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE]: {
+	[ValidationCode.CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE]: {
 		namespace: 'equipo',
-		key: 'PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE',
+		key: 'CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE',
 	},
 }
 
@@ -350,15 +350,22 @@ export function useResolveValidationError(): (code: string) => string {
 	const tAuth = useTranslations('auth')
 
 	return (code: string) => {
-		if (code.startsWith(PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE_BULK_PREFIX)) {
+		if (
+			code.startsWith(
+				CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE_BULK_PREFIX,
+			)
+		) {
 			const idPart = code.slice(
-				PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE_BULK_PREFIX.length,
+				CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE_BULK_PREFIX.length,
 			)
 			const paymentId = Number(idPart)
 			if (Number.isInteger(paymentId) && paymentId > 0) {
-				return tEquipo('PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE_FOR_BULK', {
-					paymentId: String(paymentId),
-				})
+				return tEquipo(
+					'CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE_FOR_BULK',
+					{
+						paymentId: String(paymentId),
+					},
+				)
 			}
 		}
 		if (!isValidationCode(code)) return code

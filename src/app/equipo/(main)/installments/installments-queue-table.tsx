@@ -6,7 +6,7 @@ import {
 	DataTableContent,
 	DataTablePagination,
 } from '~/components/ui/data-table'
-import { canConfirmReceiptQueueInstallment } from '~/lib/payment-confirmation'
+import { canConfirmInstallmentInQueue } from '~/lib/installment-confirmation'
 import type { InstallmentForQueue } from '~/server/queries'
 import { BulkConfirmInstallmentsBar } from './bulk-confirm-installments-bar'
 import { useInstallmentsQueueColumns } from './columns'
@@ -34,7 +34,7 @@ export function InstallmentsQueueTable({
 				data={installments}
 				schema="installments"
 				enableRowSelection={(row) =>
-					canConfirmReceiptQueueInstallment(row.original)
+					canConfirmInstallmentInQueue(row.original)
 				}
 			>
 				<div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

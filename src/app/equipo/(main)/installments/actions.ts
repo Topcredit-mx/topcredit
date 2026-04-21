@@ -1,13 +1,13 @@
 'use server'
 
-import { formatPendingPaymentReceiptsCsv } from '~/lib/format-pending-payment-receipts-csv'
+import { formatPendingInstallmentsCsv } from '~/lib/format-pending-installments-csv'
 import {
-	canConfirmReceiptQueueInstallment,
-	isPaymentsOverdueQueueInstallment,
-} from '~/lib/payment-confirmation'
+	canConfirmInstallmentInQueue,
+	isInstallmentOverdueInQueue,
+} from '~/lib/installment-confirmation'
 import { getAbility, subject } from '~/server/auth/ability'
 import {
-	confirmInstallmentReceipt,
+	confirmCreditPaymentInstallment,
 	confirmInstallments,
 	type ValidateInstallmentsCsvResult,
 	validateInstallmentsCsv,
@@ -26,7 +26,7 @@ export type ConfirmInstallmentState = {
 export async function confirmInstallmentAction(
 	paymentId: number,
 ): Promise<ConfirmInstallmentState> {
-	const result = await confirmInstallmentReceipt(paymentId)
+	const result = await confirmCreditPaymentInstallment(paymentId)
 	if (result.error != null) {
 		return { error: result.error }
 	}
@@ -57,7 +57,7 @@ export async function validateInstallmentsCsvAction(
 		isAdmin ||
 		(firstCompanyId !== undefined &&
 			ability.can(
-				'confirmPaymentReceipt',
+				'confirmCreditPaymentInstallment',
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
 
@@ -100,7 +100,7 @@ export async function exportPendingInstallmentsCsvAction(): Promise<
 		isAdmin ||
 		(firstCompanyId !== undefined &&
 			ability.can(
-				'confirmPaymentReceipt',
+				'confirmCreditPaymentInstallment',
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
 
@@ -119,18 +119,18 @@ export async function exportPendingInstallmentsCsvAction(): Promise<
 		queue: 'installments',
 	})
 	const today = new Date()
-	const pendingReceipt = installments.filter(
+	const pendingRows = installments.filter(
 		(row) =>
-			canConfirmReceiptQueueInstallment(row) &&
-			!isPaymentsOverdueQueueInstallment(
+			canConfirmInstallmentInQueue(row) &&
+			!isInstallmentOverdueInQueue(
 				{
 					dueDate: row.dueDate,
 					hrConfirmedAt: row.hrConfirmedAt,
-					paymentsConfirmedAt: row.paymentsConfirmedAt,
+					installmentConfirmedAt: row.installmentConfirmedAt,
 				},
 				today,
 			),
 	)
 
-	return { csv: formatPendingPaymentReceiptsCsv(pendingReceipt) }
+	return { csv: formatPendingInstallmentsCsv(pendingRows) }
 }

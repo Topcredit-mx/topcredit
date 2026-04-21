@@ -1,9 +1,10 @@
-CREATE TYPE "public"."application_status" AS ENUM('pending', 'approved', 'invalid-documentation', 'pre-authorized', 'awaiting-authorization', 'authorized', 'denied');--> statement-breakpoint
+CREATE TYPE "public"."application_status" AS ENUM('pending', 'approved', 'invalid-documentation', 'pre-authorized', 'awaiting-authorization', 'authorized', 'disbursed', 'denied');--> statement-breakpoint
+CREATE TYPE "public"."credit_status" AS ENUM('dispersed', 'settled');--> statement-breakpoint
 CREATE TYPE "public"."document_status" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."document_type" AS ENUM('official-id', 'proof-of-address', 'bank-statement', 'authorization', 'contract', 'payroll-receipt');--> statement-breakpoint
 CREATE TYPE "public"."duration_type" AS ENUM('bi-monthly', 'monthly');--> statement-breakpoint
 CREATE TYPE "public"."employee_salary_frequency" AS ENUM('bi-monthly', 'monthly');--> statement-breakpoint
-CREATE TYPE "public"."roles" AS ENUM('applicant', 'agent', 'requests', 'pre-authorizations', 'authorizations', 'admin');--> statement-breakpoint
+CREATE TYPE "public"."roles" AS ENUM('applicant', 'agent', 'requests', 'pre-authorizations', 'authorizations', 'hr', 'dispersions', 'installments', 'admin');--> statement-breakpoint
 CREATE TABLE "application_documents" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"application_id" integer NOT NULL,
@@ -45,6 +46,10 @@ CREATE TABLE "applications" (
 	"phone_number" text,
 	"status" "application_status" NOT NULL,
 	"denial_reason" text,
+	"transfer_reference" text,
+	"receipt_storage_key" text,
+	"receipt_file_name" text,
+	"first_discount_date" timestamp,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "applications_financial_terms_required_for_late_statuses_check" CHECK (("applications"."status" NOT IN ('pre-authorized', 'awaiting-authorization', 'authorized') OR ("applications"."term_offering_id" IS NOT NULL AND "applications"."credit_amount" IS NOT NULL)))
@@ -61,6 +66,30 @@ CREATE TABLE "companies" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "companies_domain_unique" UNIQUE("domain")
+);
+--> statement-breakpoint
+CREATE TABLE "credit_payments" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"credit_id" integer NOT NULL,
+	"due_date" timestamp NOT NULL,
+	"amount" numeric(12, 2) NOT NULL,
+	"hr_confirmed_at" timestamp with time zone,
+	"confirmed_by_user_id" integer,
+	"installment_confirmed_at" timestamp with time zone,
+	"installment_confirmed_by_user_id" integer,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "credits" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"application_id" integer NOT NULL,
+	"status" "credit_status" NOT NULL,
+	"disbursement_date" timestamp with time zone NOT NULL,
+	"transfer_amount" numeric(12, 2) NOT NULL,
+	"disbursed_by_user_id" integer,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "credits_application_id_unique" UNIQUE("application_id")
 );
 --> statement-breakpoint
 CREATE TABLE "email_otps" (
@@ -132,6 +161,11 @@ ALTER TABLE "application_status_history" ADD CONSTRAINT "application_status_hist
 ALTER TABLE "applications" ADD CONSTRAINT "applications_applicant_id_users_id_fk" FOREIGN KEY ("applicant_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "applications" ADD CONSTRAINT "applications_company_id_companies_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "applications" ADD CONSTRAINT "applications_term_offering_id_term_offerings_id_fk" FOREIGN KEY ("term_offering_id") REFERENCES "public"."term_offerings"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "credit_payments" ADD CONSTRAINT "credit_payments_credit_id_credits_id_fk" FOREIGN KEY ("credit_id") REFERENCES "public"."credits"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "credit_payments" ADD CONSTRAINT "credit_payments_confirmed_by_user_id_users_id_fk" FOREIGN KEY ("confirmed_by_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "credit_payments" ADD CONSTRAINT "credit_payments_installment_confirmed_by_user_id_users_id_fk" FOREIGN KEY ("installment_confirmed_by_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "credits" ADD CONSTRAINT "credits_application_id_applications_id_fk" FOREIGN KEY ("application_id") REFERENCES "public"."applications"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "credits" ADD CONSTRAINT "credits_disbursed_by_user_id_users_id_fk" FOREIGN KEY ("disbursed_by_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "term_offerings" ADD CONSTRAINT "term_offerings_company_id_companies_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "term_offerings" ADD CONSTRAINT "term_offerings_term_id_terms_id_fk" FOREIGN KEY ("term_id") REFERENCES "public"."terms"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
