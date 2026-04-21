@@ -16,7 +16,7 @@ export default async function InstallmentsHistoryPage() {
 		isAdmin ||
 		(firstCompanyId !== undefined &&
 			ability.can(
-				'confirmCreditPaymentInstallment',
+				'confirmInstallment',
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
 

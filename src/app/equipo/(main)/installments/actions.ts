@@ -7,7 +7,7 @@ import {
 } from '~/lib/installment-confirmation'
 import { getAbility, subject } from '~/server/auth/ability'
 import {
-	confirmCreditPaymentInstallment,
+	confirmInstallment,
 	confirmInstallments,
 	type ValidateInstallmentsCsvResult,
 	validateInstallmentsCsv,
@@ -26,7 +26,7 @@ export type ConfirmInstallmentState = {
 export async function confirmInstallmentAction(
 	paymentId: number,
 ): Promise<ConfirmInstallmentState> {
-	const result = await confirmCreditPaymentInstallment(paymentId)
+	const result = await confirmInstallment(paymentId)
 	if (result.error != null) {
 		return { error: result.error }
 	}
@@ -57,7 +57,7 @@ export async function validateInstallmentsCsvAction(
 		isAdmin ||
 		(firstCompanyId !== undefined &&
 			ability.can(
-				'confirmCreditPaymentInstallment',
+				'confirmInstallment',
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
 
@@ -100,7 +100,7 @@ export async function exportPendingInstallmentsCsvAction(): Promise<
 		isAdmin ||
 		(firstCompanyId !== undefined &&
 			ability.can(
-				'confirmCreditPaymentInstallment',
+				'confirmInstallment',
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
 

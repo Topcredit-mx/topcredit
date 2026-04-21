@@ -1622,7 +1622,7 @@ export async function validateInstallmentsCsv(
 	const classified = classifyInstallmentCsvImportRows(
 		validRows,
 		candidateByKey,
-		(c) => ability.can('confirmCreditPaymentInstallment', toCreditPaymentSubject(c)),
+		(c) => ability.can('confirmInstallment', toCreditPaymentSubject(c)),
 	)
 
 	return {
@@ -1741,7 +1741,7 @@ export async function confirmHrDeductionsFromCsv(
 	}
 }
 
-export async function confirmCreditPaymentInstallment(
+export async function confirmInstallment(
 	paymentId: number,
 ): Promise<{ error?: string }> {
 	const { ability } = await getAbility()
@@ -1754,7 +1754,7 @@ export async function confirmCreditPaymentInstallment(
 		return { error: ValidationCode.CREDIT_PAYMENT_NOT_FOUND }
 	}
 
-	if (!ability.can('confirmCreditPaymentInstallment', toCreditPaymentSubject(payment))) {
+	if (!ability.can('confirmInstallment', toCreditPaymentSubject(payment))) {
 		return { error: ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN }
 	}
 
@@ -1820,7 +1820,7 @@ export async function confirmInstallments(
 
 	for (const payment of rows) {
 		if (
-			!ability.can('confirmCreditPaymentInstallment', toCreditPaymentSubject(payment))
+			!ability.can('confirmInstallment', toCreditPaymentSubject(payment))
 		) {
 			return { error: ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN }
 		}
@@ -1959,7 +1959,7 @@ export async function confirmInstallmentsFromCsv(
 	const unmatched = csvRows.length - matched.length
 
 	const authorized = matched.filter((row) =>
-		ability.can('confirmCreditPaymentInstallment', toCreditPaymentSubject(row)),
+		ability.can('confirmInstallment', toCreditPaymentSubject(row)),
 	)
 
 	const todayCsv = new Date()

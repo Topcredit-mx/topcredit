@@ -22,7 +22,7 @@ export default async function InstallmentsOverduePage() {
 		isAdmin ||
 		(firstCompanyId !== undefined &&
 			ability.can(
-				'confirmCreditPaymentInstallment',
+				'confirmInstallment',
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
 
