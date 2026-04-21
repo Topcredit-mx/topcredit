@@ -31,7 +31,7 @@ function HrStatusCell({
 	)
 }
 
-function ReceiptStatusCell({
+function InstallmentStatusCell({
 	hrConfirmedAt,
 	installmentConfirmedAt,
 	pendingLabel,
@@ -164,7 +164,7 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 			),
 		},
 		{
-			id: 'receiptStatus',
+			id: 'installmentStatus',
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
@@ -172,7 +172,7 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 				/>
 			),
 			cell: ({ row }) => (
-				<ReceiptStatusCell
+				<InstallmentStatusCell
 					hrConfirmedAt={row.original.hrConfirmedAt}
 					installmentConfirmedAt={row.original.installmentConfirmedAt}
 					pendingLabel={t('deductions-status-pending')}
