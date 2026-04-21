@@ -30,14 +30,14 @@ describe('HR deductions queue', () => {
 			cy.get('table').should('be.visible')
 		})
 
-		it('shows employee, amount, HR status, and receipt status columns but not a per-row due date column', () => {
+		it('shows employee, amount, HR status, and installment status columns but not a per-row due date column', () => {
 			cy.visit('/equipo/deductions')
 			cy.get('table').should('be.visible')
 			cy.get('table thead').within(() => {
 				cy.contains('th', /empleado/i).should('be.visible')
 				cy.contains('th', /monto/i).should('be.visible')
 				cy.contains('th', /deducción rh/i).should('be.visible')
-				cy.contains('th', /recepción/i).should('exist')
+				cy.contains('th', /instalación/i).should('exist')
 				cy.contains('th', /fecha de pago/i).should('not.exist')
 			})
 		})
