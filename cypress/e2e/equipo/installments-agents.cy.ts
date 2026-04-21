@@ -37,7 +37,7 @@ describe('Installments queue', () => {
 			cy.get('table').should('be.visible')
 		})
 
-		it('shows employee, amount, due date, next deduction, HR status, and Pagos installment status columns', () => {
+		it('shows employee, amount, due date, next deduction, HR status, and installment confirmation status columns', () => {
 			cy.visit('/equipo/installments')
 			cy.get('table').should('be.visible')
 			for (const label of [
@@ -46,14 +46,14 @@ describe('Installments queue', () => {
 				/fecha de pago/i,
 				/próxima deducción/i,
 				/deducción rh/i,
-				/instalación pagos/i,
+				/estado de instalación/i,
 			]) {
 				cy.get('table thead').contains('th', label).scrollIntoView()
 				cy.get('table thead').contains('th', label).should('be.visible')
 			}
 		})
 
-		it('shows exactly one queue row per credit with a pending Pagos installment', () => {
+		it('shows exactly one queue row per credit with a pending installment confirmation', () => {
 			cy.visit('/equipo/installments')
 			cy.get('table').should('be.visible')
 			cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
@@ -134,7 +134,7 @@ describe('Installments queue', () => {
 				.should('be.visible')
 				.click()
 			cy.contains(/2 instalaciones confirmadas/i).should('be.visible')
-			// One row per credit remains; the next Pagos-pending installment per credit re-enters the queue.
+			// One row per credit remains; the next installment-pending row per credit re-enters the queue.
 			cy.get('table tbody tr').should('have.length', seed.expectedRowCount)
 			cy.contains('tr', seed.applicant1Name).should('be.visible')
 			cy.get(

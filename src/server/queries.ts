@@ -1268,7 +1268,7 @@ export async function getInstallmentsForQueue(params: {
 	}
 
 	// deductions: earliest installment where HR has not yet confirmed
-	// installments: earliest installment still awaiting installment confirmation on the Pagos side (RH may or may not have confirmed yet)
+	// installments: earliest installment still awaiting installment confirmation on the Instalaciones side (RH may or may not have confirmed yet)
 	const statusCondition: SQL =
 		queue === 'deductions'
 			? sql`cp.hr_confirmed_at IS NULL`
@@ -1835,7 +1835,7 @@ export async function getDeductionConfirmationHistory(
 	})
 }
 
-// ---- Installment confirmation history (Pagos role) ----
+// ---- Installment confirmation history (installments role) ----
 
 export type InstallmentConfirmationHistoryItem = {
 	id: number

@@ -39,7 +39,7 @@ function HrStatusCell({
 	)
 }
 
-function PagosInstallmentStatusCell({
+function InstallmentConfirmationStatusCell({
 	hrConfirmedAt,
 	installmentConfirmedAt,
 	pendingLabel,
@@ -244,15 +244,15 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 			),
 		},
 		{
-			id: 'pagosInstallmentStatus',
+			id: 'installmentConfirmationStatus',
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('installments-col-pagos-status')}
+					title={t('installments-col-installment-status')}
 				/>
 			),
 			cell: ({ row }) => (
-				<PagosInstallmentStatusCell
+				<InstallmentConfirmationStatusCell
 					hrConfirmedAt={row.original.hrConfirmedAt}
 					installmentConfirmedAt={row.original.installmentConfirmedAt}
 					pendingLabel={t('installments-status-pending')}
