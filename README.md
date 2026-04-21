@@ -20,7 +20,7 @@ The intended end-to-end flow is documented in `docs/app-flow-proposal.md`.
 - Inngest (queued jobs)
 - Resend (email), Vercel (deploy)
 - Biome (lint/format)
-- Cypress E2E (CI records to [Sorry Cypress](https://sorry-cypress.dev/) via [cypress-cloud](https://github.com/currents-dev/cypress-cloud))
+- Cypress E2E (CI records to [Sorry Cypress](https://sorry-cypress.dev/) via [cy2](https://github.com/sorry-cypress/cy2))
 
 ## Getting started
 
@@ -65,28 +65,30 @@ Copy `.env.example` to `.env` and set:
 | `pnpm check` | Run Biome lint |
 | `pnpm cy:open` | Open Cypress UI |
 | `pnpm cy:run` | Run Cypress E2E headless (no cloud orchestration) |
-| `pnpm cy:run:cloud` | Run E2E with Sorry Cypress / Director (needs `CURRENTS_API_URL`, `CURRENTS_RECORD_KEY`, `CURRENTS_PROJECT_ID`; add `--parallel` for multi-machine orchestration) |
+| `pnpm cy:run:cloud` | Run E2E with Sorry Cypress / Director (set `CYPRESS_API_URL` and `CYPRESS_RECORD_KEY`; add `--parallel --record --ci-build-id …` in CI) |
 
 ## CI/CD
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | Type Check | Every push | `pnpm typecheck` |
-| Cypress Tests | Every push | Parallel E2E via Sorry Cypress (`cypress-cloud`), Neon branch per matrix job, then teardown |
+| Cypress Tests | Every push | Parallel E2E via Sorry Cypress (`cy2`), Neon branch per matrix job, then teardown |
+| Prod DB | Push to `main` when `drizzle/**` or `src/server/db/schema.ts` change | Runs in `production` env: generate, fail on uncommitted migration drift, then `db:migrate`. Needs `DATABASE_URL` in production environment secrets. |
 
 ### Sorry Cypress (CI and local)
 
-GitHub Actions uses **cypress-cloud** to orchestrate parallel runs against your self-hosted **Director**. Configure these **repository secrets** (testing environment):
+Cypress [blocks](https://github.com/cypress-io/cypress/issues/29827) the `cypress-cloud` npm package when loading `cypress.config`, so this repo uses **`cy2`** instead: it sets `CYPRESS_API_URL` and runs the real `cypress` CLI (Sorry Cypress documents this flow).
+
+Configure these **repository secrets** (testing environment):
 
 | Secret | Purpose |
 |--------|---------|
-| `SORRY_CYPRESS_DIRECTOR_URL` | Director base URL (same as `CURRENTS_API_URL`, e.g. `https://your-director.onrender.com/`) |
-| `CURRENTS_RECORD_KEY` | Record key (must match Director `ALLOWED_KEYS` if keys are restricted). If you previously used `CYPRESS_RECORD_KEY` for Cypress Cloud, use the same value here. |
+| `SORRY_CYPRESS_DIRECTOR_URL` | Director base URL (passed as `CYPRESS_API_URL`, include trailing slash if your Director expects it) |
+| `CYPRESS_RECORD_KEY` | Record key (must match Director `ALLOWED_KEYS` if keys are restricted) |
 
-`CURRENTS_PROJECT_ID` is set in the workflow to match `projectId` in `cypress.config.ts` (`qv8a5k`) so runs appear under the right project in the Sorry Cypress dashboard.
+`projectId` in `cypress.config.ts` (`qv8a5k`) is what Sorry Cypress uses for the dashboard.
 
-For a **local** run against Director, set `CURRENTS_API_URL` (or `CYPRESS_API_URL`), `CURRENTS_RECORD_KEY`, and `CURRENTS_PROJECT_ID`, then run `pnpm cy:run:cloud`.
-| Prod DB | Push to `main` when `drizzle/**` or `src/server/db/schema.ts` change | Runs in `production` env: generate, fail on uncommitted migration drift, then `db:migrate`. Needs `DATABASE_URL` in production environment secrets. |
+For a **local** run against Director, set `CYPRESS_API_URL` and `CYPRESS_RECORD_KEY`, then run `pnpm cy:run:cloud` (add `--parallel --record --ci-build-id <id>` to match CI).
 
 ## Project structure
 

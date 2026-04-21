@@ -1,6 +1,5 @@
 import 'dotenv/config'
 import { defineConfig } from 'cypress'
-import { cloudPlugin } from 'cypress-cloud/plugin'
 import * as tasks from './cypress/tasks'
 import { assertE2eDatabaseEmpty } from './scripts/e2e-db-snapshot'
 
@@ -15,7 +14,7 @@ export default defineConfig({
 		baseUrl: 'http://localhost:3000',
 		retries: process.env.GITHUB_ACTIONS === 'true' ? 2 : 0,
 		specPattern: ['cypress/e2e/**/*.cy.{js,ts}'],
-		async setupNodeEvents(on, cypressConfig) {
+		setupNodeEvents(on, cypressConfig) {
 			on('task', tasks)
 			// Safe for parallel runs: CI creates an isolated Neon branch per matrix container.
 			const runE2eDbEmptyAssert = async () => {
@@ -30,7 +29,7 @@ export default defineConfig({
 			}
 			on('before:spec', runE2eDbEmptyAssert)
 			on('after:spec', runE2eDbEmptyAssert)
-			return cloudPlugin(on, cypressConfig)
+			return cypressConfig
 		},
 	},
 })
