@@ -4,7 +4,7 @@ import {
 	creditDetailCollectionInstallmentsAgent,
 } from './credit-detail-collection.fixtures'
 
-describe('Credit detail — confirm collection from schedule', () => {
+describe('Credit detail — confirm installment from schedule', () => {
 	let seed: SeedCreditDetailCollectionReceiptResult
 
 	before(() => {
@@ -20,7 +20,7 @@ describe('Credit detail — confirm collection from schedule', () => {
 		cy.task('cleanupCreditDetailCollectionReceipt')
 	})
 
-	describe('Payments agent with company selected', () => {
+	describe('Installments agent with company selected', () => {
 		beforeEach(() => {
 			cy.clock(new Date('2023-01-05').getTime())
 			cy.login(creditDetailCollectionInstallmentsAgent.email)
@@ -29,7 +29,7 @@ describe('Credit detail — confirm collection from schedule', () => {
 			})
 		})
 
-		it('shows 5 payment rows with buttons only for delayed and upcoming-period installments', () => {
+		it('shows 5 schedule rows with buttons only for delayed and upcoming-period installments', () => {
 			cy.visit(`/equipo/credits/${seed.creditId}`)
 			cy.contains('h1', /detalle del crédito/i).should('be.visible')
 			cy.get('table').should('be.visible')
@@ -39,56 +39,56 @@ describe('Credit detail — confirm collection from schedule', () => {
 			cy.get('table tbody tr')
 				.eq(0)
 				.within(() => {
-					cy.contains('button', /confirmar recepción/i).should('not.exist')
+					cy.contains('button', /confirmar instalación/i).should('not.exist')
 				})
 
 			cy.get('table tbody tr')
 				.eq(1)
 				.within(() => {
 					cy.contains(/atrasado/i).should('be.visible')
-					cy.contains('button', /confirmar recepción/i).should('be.visible')
+					cy.contains('button', /confirmar instalación/i).should('be.visible')
 				})
 
 			cy.get('table tbody tr')
 				.eq(2)
 				.within(() => {
 					cy.contains(/pendiente/i).should('be.visible')
-					cy.contains('button', /confirmar recepción/i).should('be.visible')
+					cy.contains('button', /confirmar instalación/i).should('be.visible')
 				})
 
 			cy.get('table tbody tr')
 				.eq(3)
 				.within(() => {
-					cy.contains('button', /confirmar recepción/i).should('not.exist')
+					cy.contains('button', /confirmar instalación/i).should('not.exist')
 				})
 
 			cy.get('table tbody tr')
 				.eq(4)
 				.within(() => {
-					cy.contains('button', /confirmar recepción/i).should('not.exist')
+					cy.contains('button', /confirmar instalación/i).should('not.exist')
 				})
 		})
 
-		it('confirms collection on a delayed row, updates the badge, and removes the button', () => {
+		it('confirms installment on a delayed row, updates the badge, and removes the button', () => {
 			cy.visit(`/equipo/credits/${seed.creditId}`)
 			cy.get('table').should('be.visible')
 			cy.get('table tbody tr')
 				.eq(1)
 				.within(() => {
-					cy.contains('button', /confirmar recepción/i)
+					cy.contains('button', /confirmar instalación/i)
 						.should('be.visible')
 						.click()
 				})
 			cy.get('table tbody tr')
 				.eq(1)
 				.within(() => {
-					cy.contains('button', /confirmar recepción/i).should('not.exist')
+					cy.contains('button', /confirmar instalación/i).should('not.exist')
 					cy.contains(/cobrado/i).should('be.visible')
 				})
 		})
 	})
 
-	describe('HR-only agent cannot confirm collection from credit detail', () => {
+	describe('HR-only agent cannot confirm installment from credit detail', () => {
 		beforeEach(() => {
 			cy.clock(new Date('2023-01-05').getTime())
 			cy.login(creditDetailCollectionHrOnlyAgent.email)
@@ -97,10 +97,10 @@ describe('Credit detail — confirm collection from schedule', () => {
 			})
 		})
 
-		it('shows the schedule without a confirm receipt button', () => {
+		it('shows the schedule without a confirm installment button', () => {
 			cy.visit(`/equipo/credits/${seed.creditId}`)
 			cy.get('table').should('be.visible')
-			cy.contains('button', /confirmar recepción/i).should('not.exist')
+			cy.contains('button', /confirmar instalación/i).should('not.exist')
 		})
 	})
 })
