@@ -22,6 +22,7 @@
 		"start": "next start",
 		"test:unit": "node --import tsx --test \"src/lib/**/*.test.ts\"",
 		"typecheck": "tsc --noEmit",
+		"validate": "pnpm check && pnpm typecheck",
 		"prepare": "husky"
 	},
 	"dependencies": {

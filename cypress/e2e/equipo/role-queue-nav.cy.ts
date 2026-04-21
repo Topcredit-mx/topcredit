@@ -3,7 +3,7 @@ import {
 	authorizationsAgent,
 	dualQueueAgent,
 	hrAgent,
-	paymentsAgent,
+	installmentAgent,
 	preAuthAgent,
 	requestsAgent,
 } from './role-queue-nav.fixtures'
@@ -142,20 +142,20 @@ describe('Role-based queue navigation', () => {
 		})
 	})
 
-	describe('Payments agent', () => {
+	describe('Installments agent', () => {
 		beforeEach(() => {
-			cy.login(paymentsAgent.email)
+			cy.login(installmentAgent.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 			cy.visit('/equipo')
 			navScope().should('be.visible')
 		})
 
-		it('sees Pagos nav group with a link to /equipo/payments', () => {
+		it('sees Instalaciones nav group with a link to /equipo/installments', () => {
 			navScope().within(() => {
-				cy.contains('button', 'Pagos').should('be.visible').click()
+				cy.contains('button', 'Instalaciones').should('be.visible').click()
 				cy.contains('a', 'Próximo Corte')
 					.should('be.visible')
-					.and('have.attr', 'href', '/equipo/payments')
+					.and('have.attr', 'href', '/equipo/installments')
 			})
 		})
 

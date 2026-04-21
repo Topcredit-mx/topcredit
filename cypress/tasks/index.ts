@@ -65,12 +65,12 @@ import {
 	switcherCompanyList,
 } from '~/cypress/e2e/equipo/company-switcher.fixtures'
 import {
-	allCreditDetailCollectionUsers,
-	creditDetailCollectionApplicant,
-	creditDetailCollectionCompany,
-	creditDetailCollectionHrOnlyAgent,
-	creditDetailCollectionPaymentsAgent,
-} from '~/cypress/e2e/equipo/credit-detail-collection.fixtures'
+	allCreditDetailInstallmentScheduleUsers,
+	creditDetailHrOnlyAgent,
+	creditDetailInstallmentScheduleApplicant,
+	creditDetailInstallmentScheduleCompany,
+	creditDetailInstallmentsAgent,
+} from '~/cypress/e2e/equipo/credit-detail-installment-schedule.fixtures'
 import {
 	allCreditDetailStatesUsers,
 	creditDetailStatesApplicant,
@@ -95,18 +95,25 @@ import {
 } from '~/cypress/e2e/equipo/disbursement-agents.fixtures'
 import { allHrUsers, hrCompany } from '~/cypress/e2e/equipo/hr-agents.fixtures'
 import {
-	allPaymentsQueueUsers,
-	hrAgentPaymentsQueue,
-	paymentsAgentQueue,
-	paymentsQueueCompany,
-} from '~/cypress/e2e/equipo/payments-agents.fixtures'
+	allInstallmentsQueueUsers,
+	hrAgentInstallmentsQueue,
+	installmentAgentQueue,
+	installmentsQueueCompany,
+} from '~/cypress/e2e/equipo/installments-agents.fixtures'
 import {
-	allPaymentsBulkQueueUsers,
-	paymentsBulkApplicants,
-	paymentsBulkHrAgent,
-	paymentsBulkPaymentsAgent,
-	paymentsBulkQueueCompany,
-} from '~/cypress/e2e/equipo/payments-bulk-queue.fixtures'
+	allInstallmentsBulkQueueUsers,
+	installmentsBulkAgent,
+	installmentsBulkApplicants,
+	installmentsBulkHrAgent,
+	installmentsBulkQueueCompany,
+} from '~/cypress/e2e/equipo/installments-bulk-queue.fixtures'
+import {
+	allInstallmentsOverdueUsers,
+	applicantOverdueHrPending,
+	applicantOverdueInstallmentsBlocked,
+	hrOverdueInstallmentsAgent,
+	installmentsOverdueCompany,
+} from '~/cypress/e2e/equipo/installments-overdue.fixtures'
 import {
 	allNavAgents,
 	navCompany,
@@ -2608,7 +2615,7 @@ async function seedCuentaCreditsBase(
 				amount: entry.amount,
 				hrConfirmedAt:
 					index <= 1 ? new Date(now.getTime() - 10 * 24 * 60 * 60_000) : null,
-				paymentsConfirmedAt:
+				installmentConfirmedAt:
 					index <= 1 ? new Date(now.getTime() - 5 * 24 * 60 * 60_000) : null,
 			})),
 		)
@@ -3171,23 +3178,23 @@ export const cleanupDeductionsQueue = async () => {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Payments queue (Payments role confirms receipt)
+// Installments queue (installments role confirms credit_payment installments)
 // ──────────────────────────────────────────────────────────────────────────────
 
 function endOfCurrentMonthUTC(now: Date): Date {
 	return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
 }
 
-export type SeedPaymentsQueueResult = {
+export type SeedInstallmentsQueueResult = {
 	companyId: number
 	expectedRowCount: number
 	applicant1Name: string
 	applicant2Name: string
-	/** Application id for the on-time receipt confirmation (credit1 / applicant1). */
-	onTimeReceiptApplicationId: number
-	/** Application id for the late receipt confirmation (synthetic row / applicant2). */
-	lateReceiptApplicationId: number
-	paymentsReceiptConfirmedByName: string
+	/** Application id for on-time installment confirmation (credit1 / applicant1). */
+	onTimeInstallmentApplicationId: number
+	/** Application id for late installment confirmation (synthetic row / applicant2). */
+	lateInstallmentApplicationId: number
+	installmentConfirmedByUserName: string
 	firstInstallmentForCsv: {
 		payrollNumber: string
 		amount: string
@@ -3205,362 +3212,36 @@ export type SeedPaymentsQueueResult = {
 	}
 }
 
-export const seedPaymentsQueue = async (): Promise<SeedPaymentsQueueResult> => {
-	const db = getDb(process.env.DATABASE_URL || '')
-	const now = new Date()
-
-	await Promise.all(
-		allPaymentsQueueUsers.map((u) =>
-			db.delete(users).where(eq(users.email, u.email)),
-		),
-	)
-	await db
-		.delete(companies)
-		.where(eq(companies.domain, paymentsQueueCompany.domain))
-
-	const [[company], createdUsers] = await Promise.all([
-		db
-			.insert(companies)
-			.values({
-				name: paymentsQueueCompany.name,
-				domain: paymentsQueueCompany.domain,
-				rate: paymentsQueueCompany.rate,
-				employeeSalaryFrequency: paymentsQueueCompany.employeeSalaryFrequency,
-				active: paymentsQueueCompany.active,
-			})
-			.returning(),
-		db
-			.insert(users)
-			.values(
-				allPaymentsQueueUsers.map((u) => ({
-					email: u.email,
-					name: u.name,
-					emailVerified: now,
-				})),
-			)
-			.returning(),
-	])
-
-	if (!company) throw new Error('Seed Payments Queue: company not created')
-
-	const findUser = (email: string) => {
-		const u = createdUsers.find((r) => r.email === email)
-		if (!u) throw new Error(`Seed Payments Queue: user ${email} not found`)
-		return u
-	}
-
-	const [term] = await db
-		.insert(terms)
-		.values({ durationType: 'monthly', duration: 4 })
-		.returning()
-
-	if (!term) throw new Error('Seed Payments Queue: term not created')
-
-	const [offering] = await db
-		.insert(termOfferings)
-		.values({ termId: term.id, companyId: company.id })
-		.returning()
-
-	if (!offering) throw new Error('Seed Payments Queue: offering not created')
-
-	await Promise.all(
-		createdUsers.flatMap((agent) => {
-			const fixture = allPaymentsQueueUsers.find((u) => u.email === agent.email)
-			if (!fixture)
-				throw new Error(
-					`Seed Payments Queue: fixture not found for ${agent.email}`,
-				)
-			const roleInserts = fixture.roles.map((role) => ({
-				userId: agent.id,
-				role,
-			}))
-			const hasAgent = new Set<string>(fixture.roles).has('agent')
-			return [
-				db.insert(userRoles).values(roleInserts),
-				...(hasAgent
-					? [
-							db.insert(userCompanies).values({
-								userId: agent.id,
-								companyId: company.id,
-							}),
-						]
-					: []),
-			]
-		}),
-	)
-
-	const applicant1 = findUser('applicant@paymentsqueue.com')
-	const applicant2 = findUser('applicant2@paymentsqueue.com')
-	const firstDiscountDate = endOfCurrentMonthUTC(now)
-	const creditAmount1 = '40000.00'
-	const creditAmount2 = '30000.00'
-
-	// Credit 1: belongs to applicant1 — has HR-confirmed/receipt-pending installments
-	const [app1] = await db
-		.insert(applications)
-		.values({
-			applicantId: applicant1.id,
-			companyId: company.id,
-			termOfferingId: offering.id,
-			creditAmount: creditAmount1,
-			salaryAtApplication: '30000',
-			salaryFrequency: paymentsQueueCompany.employeeSalaryFrequency,
-			status: 'disbursed' as const,
-			firstDiscountDate,
-			payrollNumber: 'PAYMENTS001',
-		})
-		.returning()
-
-	if (!app1) throw new Error('Seed Payments Queue: application 1 not created')
-
-	const [credit1] = await db
-		.insert(credits)
-		.values({
-			applicationId: app1.id,
-			status: 'dispersed',
-			disbursementDate: now,
-			transferAmount: creditAmount1,
-			disbursedByUserId: applicant1.id,
-		})
-		.returning()
-
-	if (!credit1) throw new Error('Seed Payments Queue: credit 1 not created')
-
-	// Credit 2: belongs to applicant2 — also has HR-confirmed/receipt-pending installments
-	const [app2] = await db
-		.insert(applications)
-		.values({
-			applicantId: applicant2.id,
-			companyId: company.id,
-			termOfferingId: offering.id,
-			creditAmount: creditAmount2,
-			salaryAtApplication: '25000',
-			salaryFrequency: paymentsQueueCompany.employeeSalaryFrequency,
-			status: 'disbursed' as const,
-			firstDiscountDate,
-			payrollNumber: 'PAYMENTS002',
-		})
-		.returning()
-
-	if (!app2) throw new Error('Seed Payments Queue: application 2 not created')
-
-	const [credit2] = await db
-		.insert(credits)
-		.values({
-			applicationId: app2.id,
-			status: 'dispersed',
-			disbursementDate: now,
-			transferAmount: creditAmount2,
-			disbursedByUserId: applicant2.id,
-		})
-		.returning()
-
-	if (!credit2) throw new Error('Seed Payments Queue: credit 2 not created')
-
-	const paymentsQueueAgent = findUser(paymentsAgentQueue.email)
-	const hrQueueAgent = findUser(hrAgentPaymentsQueue.email)
-
-	// credit1: first installment fully confirmed; second still pending HR (visible on payments queue, not receipt-actionable)
-	const schedule1 = generatePaymentSchedule({
-		loanPrincipal: Number(creditAmount1),
-		rate: Number(paymentsQueueCompany.rate),
-		totalPayments: 2,
-		frequency: paymentsQueueCompany.employeeSalaryFrequency,
-		firstDiscountDate,
-	})
-	await db.insert(creditPayments).values(
-		schedule1.map((entry, index) => {
-			if (index === 0) {
-				return {
-					creditId: credit1.id,
-					dueDate: entry.dueDate,
-					amount: entry.amount,
-					hrConfirmedAt: new Date(now.getTime() - 10 * 24 * 60 * 60_000),
-					hrConfirmedByUserId: hrQueueAgent.id,
-					paymentsConfirmedAt: new Date(now.getTime() - 9 * 24 * 60 * 60_000),
-					paymentsConfirmedByUserId: paymentsQueueAgent.id,
-				}
-			}
-			return {
-				creditId: credit1.id,
-				dueDate: entry.dueDate,
-				amount: entry.amount,
-				hrConfirmedAt: null,
-			}
-		}),
-	)
-
-	// credit2: both installments HR-confirmed + receipt-pending (shows in payments queue)
-	const schedule2 = generatePaymentSchedule({
-		loanPrincipal: Number(creditAmount2),
-		rate: Number(paymentsQueueCompany.rate),
-		totalPayments: 2,
-		frequency: paymentsQueueCompany.employeeSalaryFrequency,
-		firstDiscountDate,
-	})
-	await db.insert(creditPayments).values(
-		schedule2.map((entry) => ({
-			creditId: credit2.id,
-			dueDate: entry.dueDate,
-			amount: entry.amount,
-			hrConfirmedAt: new Date(now.getTime() - 5 * 24 * 60 * 60_000),
-		})),
-	)
-
-	// Extra installment on credit2: receipt confirmed after due date (history: late badge)
-	await db.insert(creditPayments).values({
-		creditId: credit2.id,
-		dueDate: new Date(Date.UTC(2019, 5, 1)),
-		amount: '100.00',
-		hrConfirmedAt: new Date(Date.UTC(2019, 5, 1)),
-		hrConfirmedByUserId: hrQueueAgent.id,
-		paymentsConfirmedAt: new Date(Date.UTC(2019, 6, 15)),
-		paymentsConfirmedByUserId: paymentsQueueAgent.id,
-	})
-
-	// Credit 3: second dispersed credit for applicant2 — receipt-pending (bulk E2E with credit2)
-	const [app3] = await db
-		.insert(applications)
-		.values({
-			applicantId: applicant2.id,
-			companyId: company.id,
-			termOfferingId: offering.id,
-			creditAmount: creditAmount2,
-			salaryAtApplication: '25000',
-			salaryFrequency: paymentsQueueCompany.employeeSalaryFrequency,
-			status: 'disbursed' as const,
-			firstDiscountDate,
-			payrollNumber: 'PAYMENTS003',
-		})
-		.returning()
-
-	if (!app3) throw new Error('Seed Payments Queue: application 3 not created')
-
-	const [credit3] = await db
-		.insert(credits)
-		.values({
-			applicationId: app3.id,
-			status: 'dispersed',
-			disbursementDate: now,
-			transferAmount: creditAmount2,
-			disbursedByUserId: applicant2.id,
-		})
-		.returning()
-
-	if (!credit3) throw new Error('Seed Payments Queue: credit 3 not created')
-
-	const schedule3 = generatePaymentSchedule({
-		loanPrincipal: Number(creditAmount2),
-		rate: Number(paymentsQueueCompany.rate),
-		totalPayments: 2,
-		frequency: paymentsQueueCompany.employeeSalaryFrequency,
-		firstDiscountDate,
-	})
-	await db.insert(creditPayments).values(
-		schedule3.map((entry) => ({
-			creditId: credit3.id,
-			dueDate: entry.dueDate,
-			amount: entry.amount,
-			hrConfirmedAt: new Date(now.getTime() - 4 * 24 * 60 * 60_000),
-		})),
-	)
-
-	const s1First = schedule1[0]
-	const s1Second = schedule1[1]
-	const s2First = schedule2[0]
-	if (!s1First || !s1Second || !s2First) {
-		throw new Error('Seed Payments Queue: schedule entry missing')
-	}
-
-	return {
-		companyId: company.id,
-		expectedRowCount: 3,
-		applicant1Name: applicant1.name,
-		applicant2Name: applicant2.name,
-		onTimeReceiptApplicationId: app1.id,
-		lateReceiptApplicationId: app2.id,
-		paymentsReceiptConfirmedByName: paymentsQueueAgent.name ?? '',
-		firstInstallmentForCsv: {
-			payrollNumber: 'PAYMENTS002',
-			amount: s2First.amount,
-			dueDateISO: s2First.dueDate.toISOString().slice(0, 10),
-		},
-		alreadyReceivedInstallmentForCsv: {
-			payrollNumber: 'PAYMENTS001',
-			amount: s1First.amount,
-			dueDateISO: s1First.dueDate.toISOString().slice(0, 10),
-		},
-		notHrConfirmedInstallmentForCsv: {
-			payrollNumber: 'PAYMENTS001',
-			amount: s1Second.amount,
-			dueDateISO: s1Second.dueDate.toISOString().slice(0, 10),
-		},
-	}
-}
-
-export const cleanupPaymentsQueue = async () => {
-	const db = getDb(process.env.DATABASE_URL || '')
-	await Promise.all(
-		allPaymentsQueueUsers.map((u) =>
-			db.delete(users).where(eq(users.email, u.email)),
-		),
-	)
-	await db
-		.delete(companies)
-		.where(eq(companies.domain, paymentsQueueCompany.domain))
-	await db
-		.delete(terms)
-		.where(
-			notExists(
-				db
-					.select({ id: termOfferings.id })
-					.from(termOfferings)
-					.where(eq(termOfferings.termId, terms.id)),
-			),
-		)
-	return null
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Payments queue — 20 credits with one HR-confirmed / receipt-pending installment each
-// ──────────────────────────────────────────────────────────────────────────────
-
-export type SeedPaymentsQueueTwentyPendingResult = {
-	companyId: number
-	expectedQueueRowCount: number
-	paymentsReceiptConfirmedByName: string
-}
-
-export const seedPaymentsQueueTwentyPendingReceipts =
-	async (): Promise<SeedPaymentsQueueTwentyPendingResult> => {
+export const seedInstallmentsQueue =
+	async (): Promise<SeedInstallmentsQueueResult> => {
 		const db = getDb(process.env.DATABASE_URL || '')
 		const now = new Date()
 
 		await Promise.all(
-			allPaymentsBulkQueueUsers.map((u) =>
+			allInstallmentsQueueUsers.map((u) =>
 				db.delete(users).where(eq(users.email, u.email)),
 			),
 		)
 		await db
 			.delete(companies)
-			.where(eq(companies.domain, paymentsBulkQueueCompany.domain))
+			.where(eq(companies.domain, installmentsQueueCompany.domain))
 
 		const [[company], createdUsers] = await Promise.all([
 			db
 				.insert(companies)
 				.values({
-					name: paymentsBulkQueueCompany.name,
-					domain: paymentsBulkQueueCompany.domain,
-					rate: paymentsBulkQueueCompany.rate,
+					name: installmentsQueueCompany.name,
+					domain: installmentsQueueCompany.domain,
+					rate: installmentsQueueCompany.rate,
 					employeeSalaryFrequency:
-						paymentsBulkQueueCompany.employeeSalaryFrequency,
-					active: paymentsBulkQueueCompany.active,
+						installmentsQueueCompany.employeeSalaryFrequency,
+					active: installmentsQueueCompany.active,
 				})
 				.returning(),
 			db
 				.insert(users)
 				.values(
-					allPaymentsBulkQueueUsers.map((u) => ({
+					allInstallmentsQueueUsers.map((u) => ({
 						email: u.email,
 						name: u.name,
 						emailVerified: now,
@@ -3570,12 +3251,12 @@ export const seedPaymentsQueueTwentyPendingReceipts =
 		])
 
 		if (!company)
-			throw new Error('Seed Payments Bulk Queue: company not created')
+			throw new Error('Seed Installments Queue: company not created')
 
 		const findUser = (email: string) => {
 			const u = createdUsers.find((r) => r.email === email)
 			if (!u)
-				throw new Error(`Seed Payments Bulk Queue: user ${email} not found`)
+				throw new Error(`Seed Installments Queue: user ${email} not found`)
 			return u
 		}
 
@@ -3584,7 +3265,7 @@ export const seedPaymentsQueueTwentyPendingReceipts =
 			.values({ durationType: 'monthly', duration: 4 })
 			.returning()
 
-		if (!term) throw new Error('Seed Payments Bulk Queue: term not created')
+		if (!term) throw new Error('Seed Installments Queue: term not created')
 
 		const [offering] = await db
 			.insert(termOfferings)
@@ -3592,16 +3273,16 @@ export const seedPaymentsQueueTwentyPendingReceipts =
 			.returning()
 
 		if (!offering)
-			throw new Error('Seed Payments Bulk Queue: offering not created')
+			throw new Error('Seed Installments Queue: offering not created')
 
 		await Promise.all(
 			createdUsers.flatMap((agent) => {
-				const fixture = allPaymentsBulkQueueUsers.find(
+				const fixture = allInstallmentsQueueUsers.find(
 					(u) => u.email === agent.email,
 				)
 				if (!fixture)
 					throw new Error(
-						`Seed Payments Bulk Queue: fixture not found for ${agent.email}`,
+						`Seed Installments Queue: fixture not found for ${agent.email}`,
 					)
 				const roleInserts = fixture.roles.map((role) => ({
 					userId: agent.id,
@@ -3622,16 +3303,610 @@ export const seedPaymentsQueueTwentyPendingReceipts =
 			}),
 		)
 
-		const paymentsAgent = findUser(paymentsBulkPaymentsAgent.email)
-		const hrAgent = findUser(paymentsBulkHrAgent.email)
+		const applicant1 = findUser('applicant@installmentsqueue.e2e')
+		const applicant2 = findUser('applicant2@installmentsqueue.e2e')
+		const firstDiscountDate = endOfCurrentMonthUTC(now)
+		const creditAmount1 = '40000.00'
+		const creditAmount2 = '30000.00'
+
+		// Credit 1: belongs to applicant1 — has HR-confirmed, installment-pending rows
+		const [app1] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicant1.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: creditAmount1,
+				salaryAtApplication: '30000',
+				salaryFrequency: installmentsQueueCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate,
+				payrollNumber: 'INST001',
+			})
+			.returning()
+
+		if (!app1)
+			throw new Error('Seed Installments Queue: application 1 not created')
+
+		const [credit1] = await db
+			.insert(credits)
+			.values({
+				applicationId: app1.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: creditAmount1,
+				disbursedByUserId: applicant1.id,
+			})
+			.returning()
+
+		if (!credit1)
+			throw new Error('Seed Installments Queue: credit 1 not created')
+
+		// Credit 2: belongs to applicant2 — also has HR-confirmed, installment-pending rows
+		const [app2] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicant2.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: creditAmount2,
+				salaryAtApplication: '25000',
+				salaryFrequency: installmentsQueueCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate,
+				payrollNumber: 'INST002',
+			})
+			.returning()
+
+		if (!app2)
+			throw new Error('Seed Installments Queue: application 2 not created')
+
+		const [credit2] = await db
+			.insert(credits)
+			.values({
+				applicationId: app2.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: creditAmount2,
+				disbursedByUserId: applicant2.id,
+			})
+			.returning()
+
+		if (!credit2)
+			throw new Error('Seed Installments Queue: credit 2 not created')
+
+		const installmentQueueAgent = findUser(installmentAgentQueue.email)
+		const hrQueueAgent = findUser(hrAgentInstallmentsQueue.email)
+
+		// credit1: first installment fully confirmed; second still pending HR (visible on installments queue, not actionable for installment confirm)
+		const schedule1 = generatePaymentSchedule({
+			loanPrincipal: Number(creditAmount1),
+			rate: Number(installmentsQueueCompany.rate),
+			totalPayments: 2,
+			frequency: installmentsQueueCompany.employeeSalaryFrequency,
+			firstDiscountDate,
+		})
+		await db.insert(creditPayments).values(
+			schedule1.map((entry, index) => {
+				if (index === 0) {
+					return {
+						creditId: credit1.id,
+						dueDate: entry.dueDate,
+						amount: entry.amount,
+						hrConfirmedAt: new Date(now.getTime() - 10 * 24 * 60 * 60_000),
+						hrConfirmedByUserId: hrQueueAgent.id,
+						installmentConfirmedAt: new Date(
+							now.getTime() - 9 * 24 * 60 * 60_000,
+						),
+						installmentConfirmedByUserId: installmentQueueAgent.id,
+					}
+				}
+				return {
+					creditId: credit1.id,
+					dueDate: entry.dueDate,
+					amount: entry.amount,
+					hrConfirmedAt: null,
+				}
+			}),
+		)
+
+		// credit2: both installments HR-confirmed + installment-pending (shows in installments queue)
+		const schedule2 = generatePaymentSchedule({
+			loanPrincipal: Number(creditAmount2),
+			rate: Number(installmentsQueueCompany.rate),
+			totalPayments: 2,
+			frequency: installmentsQueueCompany.employeeSalaryFrequency,
+			firstDiscountDate,
+		})
+		await db.insert(creditPayments).values(
+			schedule2.map((entry) => ({
+				creditId: credit2.id,
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+				hrConfirmedAt: new Date(now.getTime() - 5 * 24 * 60 * 60_000),
+			})),
+		)
+
+		// Extra installment on credit2: installment confirmed after due date (history: late badge)
+		await db.insert(creditPayments).values({
+			creditId: credit2.id,
+			dueDate: new Date(Date.UTC(2019, 5, 1)),
+			amount: '100.00',
+			hrConfirmedAt: new Date(Date.UTC(2019, 5, 1)),
+			hrConfirmedByUserId: hrQueueAgent.id,
+			installmentConfirmedAt: new Date(Date.UTC(2019, 6, 15)),
+			installmentConfirmedByUserId: installmentQueueAgent.id,
+		})
+
+		// Credit 3: second dispersed credit for applicant2 — installment-pending (bulk E2E with credit2)
+		const [app3] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicant2.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: creditAmount2,
+				salaryAtApplication: '25000',
+				salaryFrequency: installmentsQueueCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate,
+				payrollNumber: 'INST003',
+			})
+			.returning()
+
+		if (!app3)
+			throw new Error('Seed Installments Queue: application 3 not created')
+
+		const [credit3] = await db
+			.insert(credits)
+			.values({
+				applicationId: app3.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: creditAmount2,
+				disbursedByUserId: applicant2.id,
+			})
+			.returning()
+
+		if (!credit3)
+			throw new Error('Seed Installments Queue: credit 3 not created')
+
+		const schedule3 = generatePaymentSchedule({
+			loanPrincipal: Number(creditAmount2),
+			rate: Number(installmentsQueueCompany.rate),
+			totalPayments: 2,
+			frequency: installmentsQueueCompany.employeeSalaryFrequency,
+			firstDiscountDate,
+		})
+		await db.insert(creditPayments).values(
+			schedule3.map((entry) => ({
+				creditId: credit3.id,
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+				hrConfirmedAt: new Date(now.getTime() - 4 * 24 * 60 * 60_000),
+			})),
+		)
+
+		const s1First = schedule1[0]
+		const s1Second = schedule1[1]
+		const s2First = schedule2[0]
+		if (!s1First || !s1Second || !s2First) {
+			throw new Error('Seed Installments Queue: schedule entry missing')
+		}
+
+		return {
+			companyId: company.id,
+			expectedRowCount: 3,
+			applicant1Name: applicant1.name,
+			applicant2Name: applicant2.name,
+			onTimeInstallmentApplicationId: app1.id,
+			lateInstallmentApplicationId: app2.id,
+			installmentConfirmedByUserName: installmentQueueAgent.name ?? '',
+			firstInstallmentForCsv: {
+				payrollNumber: 'INST002',
+				amount: s2First.amount,
+				dueDateISO: s2First.dueDate.toISOString().slice(0, 10),
+			},
+			alreadyReceivedInstallmentForCsv: {
+				payrollNumber: 'INST001',
+				amount: s1First.amount,
+				dueDateISO: s1First.dueDate.toISOString().slice(0, 10),
+			},
+			notHrConfirmedInstallmentForCsv: {
+				payrollNumber: 'INST001',
+				amount: s1Second.amount,
+				dueDateISO: s1Second.dueDate.toISOString().slice(0, 10),
+			},
+		}
+	}
+
+export const cleanupInstallmentsQueue = async () => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	await Promise.all(
+		allInstallmentsQueueUsers.map((u) =>
+			db.delete(users).where(eq(users.email, u.email)),
+		),
+	)
+	await db
+		.delete(companies)
+		.where(eq(companies.domain, installmentsQueueCompany.domain))
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
+	return null
+}
+
+export type SeedInstallmentsOverdueResult = {
+	companyId: number
+	applicantInstallmentsBlockedName: string
+	applicantHrBlockedName: string
+	payrollInstallmentsBlocked: string
+	payrollHrBlocked: string
+	totalOverdueRowCount: number
+	installmentsBulkConfirmableCount: number
+}
+
+export const seedInstallmentsOverdue =
+	async (): Promise<SeedInstallmentsOverdueResult> => {
+		const db = getDb(process.env.DATABASE_URL || '')
+		const now = new Date()
+
+		await Promise.all(
+			allInstallmentsOverdueUsers.map((u) =>
+				db.delete(users).where(eq(users.email, u.email)),
+			),
+		)
+		await db
+			.delete(companies)
+			.where(eq(companies.domain, installmentsOverdueCompany.domain))
+
+		const [[company], createdUsers] = await Promise.all([
+			db
+				.insert(companies)
+				.values({
+					name: installmentsOverdueCompany.name,
+					domain: installmentsOverdueCompany.domain,
+					rate: installmentsOverdueCompany.rate,
+					employeeSalaryFrequency:
+						installmentsOverdueCompany.employeeSalaryFrequency,
+					active: installmentsOverdueCompany.active,
+				})
+				.returning(),
+			db
+				.insert(users)
+				.values(
+					allInstallmentsOverdueUsers.map((u) => ({
+						email: u.email,
+						name: u.name,
+						emailVerified: now,
+					})),
+				)
+				.returning(),
+		])
+
+		if (!company)
+			throw new Error('Seed Installments Overdue: company not created')
+
+		const findUser = (email: string) => {
+			const u = createdUsers.find((r) => r.email === email)
+			if (!u)
+				throw new Error(`Seed Installments Overdue: user ${email} not found`)
+			return u
+		}
+
+		const [term] = await db
+			.insert(terms)
+			.values({ durationType: 'monthly', duration: 4 })
+			.returning()
+
+		if (!term) throw new Error('Seed Installments Overdue: term not created')
+
+		const [offering] = await db
+			.insert(termOfferings)
+			.values({ termId: term.id, companyId: company.id })
+			.returning()
+
+		if (!offering)
+			throw new Error('Seed Installments Overdue: offering not created')
+
+		await Promise.all(
+			createdUsers.flatMap((agent) => {
+				const fixture = allInstallmentsOverdueUsers.find(
+					(u) => u.email === agent.email,
+				)
+				if (!fixture)
+					throw new Error(
+						`Seed Installments Overdue: fixture not found for ${agent.email}`,
+					)
+				const roleInserts = fixture.roles.map((role) => ({
+					userId: agent.id,
+					role,
+				}))
+				const hasAgent = new Set<string>(fixture.roles).has('agent')
+				return [
+					db.insert(userRoles).values(roleInserts),
+					...(hasAgent
+						? [
+								db.insert(userCompanies).values({
+									userId: agent.id,
+									companyId: company.id,
+								}),
+							]
+						: []),
+				]
+			}),
+		)
+
+		const applicantInstallmentsBlocked = findUser(
+			applicantOverdueInstallmentsBlocked.email,
+		)
+		const applicantHrPending = findUser(applicantOverdueHrPending.email)
+		const hrAgent = findUser(hrOverdueInstallmentsAgent.email)
+		const firstDiscountDate = new Date(Date.UTC(2019, 0, 31))
+		const creditAmount = '20000.00'
+
+		const [appInstallmentsBlocked] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantInstallmentsBlocked.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount,
+				salaryAtApplication: '25000',
+				salaryFrequency: installmentsOverdueCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate,
+				payrollNumber: 'OVERDUE-INST-01',
+			})
+			.returning()
+
+		if (!appInstallmentsBlocked)
+			throw new Error(
+				'Seed Installments Overdue: application (installments blocked) not created',
+			)
+
+		const [creditInstallmentsBlocked] = await db
+			.insert(credits)
+			.values({
+				applicationId: appInstallmentsBlocked.id,
+				status: 'dispersed',
+				disbursementDate: new Date(Date.UTC(2019, 0, 1)),
+				transferAmount: creditAmount,
+				disbursedByUserId: applicantInstallmentsBlocked.id,
+			})
+			.returning()
+
+		if (!creditInstallmentsBlocked)
+			throw new Error(
+				'Seed Installments Overdue: credit (installments blocked) not created',
+			)
+
+		const scheduleInstallmentsBlocked = generatePaymentSchedule({
+			loanPrincipal: Number(creditAmount),
+			rate: Number(installmentsOverdueCompany.rate),
+			totalPayments: 2,
+			frequency: installmentsOverdueCompany.employeeSalaryFrequency,
+			firstDiscountDate,
+		})
+
+		const hrAt = new Date(Date.UTC(2019, 1, 5))
+		await db.insert(creditPayments).values(
+			scheduleInstallmentsBlocked.map((entry) => ({
+				creditId: creditInstallmentsBlocked.id,
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+				hrConfirmedAt: hrAt,
+				hrConfirmedByUserId: hrAgent.id,
+			})),
+		)
+
+		const [appHr] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantHrPending.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount,
+				salaryAtApplication: '24000',
+				salaryFrequency: installmentsOverdueCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate,
+				payrollNumber: 'OVERDUE-HR-01',
+			})
+			.returning()
+
+		if (!appHr)
+			throw new Error(
+				'Seed Installments Overdue: application (hr pending) not created',
+			)
+
+		const [creditHrBlocked] = await db
+			.insert(credits)
+			.values({
+				applicationId: appHr.id,
+				status: 'dispersed',
+				disbursementDate: new Date(Date.UTC(2019, 0, 1)),
+				transferAmount: creditAmount,
+				disbursedByUserId: applicantHrPending.id,
+			})
+			.returning()
+
+		if (!creditHrBlocked)
+			throw new Error(
+				'Seed Installments Overdue: credit (hr pending) not created',
+			)
+
+		const scheduleHr = generatePaymentSchedule({
+			loanPrincipal: Number(creditAmount),
+			rate: Number(installmentsOverdueCompany.rate),
+			totalPayments: 2,
+			frequency: installmentsOverdueCompany.employeeSalaryFrequency,
+			firstDiscountDate,
+		})
+
+		await db.insert(creditPayments).values(
+			scheduleHr.map((entry) => ({
+				creditId: creditHrBlocked.id,
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+			})),
+		)
+
+		return {
+			companyId: company.id,
+			applicantInstallmentsBlockedName: applicantInstallmentsBlocked.name ?? '',
+			applicantHrBlockedName: applicantHrPending.name ?? '',
+			payrollInstallmentsBlocked: 'OVERDUE-INST-01',
+			payrollHrBlocked: 'OVERDUE-HR-01',
+			totalOverdueRowCount:
+				scheduleInstallmentsBlocked.length + scheduleHr.length,
+			installmentsBulkConfirmableCount: scheduleInstallmentsBlocked.length,
+		}
+	}
+
+export const cleanupInstallmentsOverdue = async () => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	await Promise.all(
+		allInstallmentsOverdueUsers.map((u) =>
+			db.delete(users).where(eq(users.email, u.email)),
+		),
+	)
+	await db
+		.delete(companies)
+		.where(eq(companies.domain, installmentsOverdueCompany.domain))
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
+	return null
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Installments queue — 20 credits with one HR-confirmed / installment-pending row each
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type SeedInstallmentsQueueTwentyPendingResult = {
+	companyId: number
+	expectedQueueRowCount: number
+	installmentConfirmedByUserName: string
+}
+
+export const seedInstallmentsQueueTwentyPending =
+	async (): Promise<SeedInstallmentsQueueTwentyPendingResult> => {
+		const db = getDb(process.env.DATABASE_URL || '')
+		const now = new Date()
+
+		await Promise.all(
+			allInstallmentsBulkQueueUsers.map((u) =>
+				db.delete(users).where(eq(users.email, u.email)),
+			),
+		)
+		await db
+			.delete(companies)
+			.where(eq(companies.domain, installmentsBulkQueueCompany.domain))
+
+		const [[company], createdUsers] = await Promise.all([
+			db
+				.insert(companies)
+				.values({
+					name: installmentsBulkQueueCompany.name,
+					domain: installmentsBulkQueueCompany.domain,
+					rate: installmentsBulkQueueCompany.rate,
+					employeeSalaryFrequency:
+						installmentsBulkQueueCompany.employeeSalaryFrequency,
+					active: installmentsBulkQueueCompany.active,
+				})
+				.returning(),
+			db
+				.insert(users)
+				.values(
+					allInstallmentsBulkQueueUsers.map((u) => ({
+						email: u.email,
+						name: u.name,
+						emailVerified: now,
+					})),
+				)
+				.returning(),
+		])
+
+		if (!company)
+			throw new Error('Seed Installments Bulk Queue: company not created')
+
+		const findUser = (email: string) => {
+			const u = createdUsers.find((r) => r.email === email)
+			if (!u)
+				throw new Error(`Seed Installments Bulk Queue: user ${email} not found`)
+			return u
+		}
+
+		const [term] = await db
+			.insert(terms)
+			.values({ durationType: 'monthly', duration: 4 })
+			.returning()
+
+		if (!term) throw new Error('Seed Installments Bulk Queue: term not created')
+
+		const [offering] = await db
+			.insert(termOfferings)
+			.values({ termId: term.id, companyId: company.id })
+			.returning()
+
+		if (!offering)
+			throw new Error('Seed Installments Bulk Queue: offering not created')
+
+		await Promise.all(
+			createdUsers.flatMap((agent) => {
+				const fixture = allInstallmentsBulkQueueUsers.find(
+					(u) => u.email === agent.email,
+				)
+				if (!fixture)
+					throw new Error(
+						`Seed Installments Bulk Queue: fixture not found for ${agent.email}`,
+					)
+				const roleInserts = fixture.roles.map((role) => ({
+					userId: agent.id,
+					role,
+				}))
+				const hasAgent = new Set<string>(fixture.roles).has('agent')
+				return [
+					db.insert(userRoles).values(roleInserts),
+					...(hasAgent
+						? [
+								db.insert(userCompanies).values({
+									userId: agent.id,
+									companyId: company.id,
+								}),
+							]
+						: []),
+				]
+			}),
+		)
+
+		const installmentAgent = findUser(installmentsBulkAgent.email)
+		const hrAgent = findUser(installmentsBulkHrAgent.email)
 
 		const firstDiscountDate = endOfCurrentMonthUTC(now)
 		const creditAmount = '12000.00'
 
-		for (let i = 0; i < paymentsBulkApplicants.length; i++) {
-			const applicantFixture = paymentsBulkApplicants[i]
+		for (let i = 0; i < installmentsBulkApplicants.length; i++) {
+			const applicantFixture = installmentsBulkApplicants[i]
 			if (!applicantFixture) {
-				throw new Error('Seed Payments Bulk Queue: applicant fixture missing')
+				throw new Error(
+					'Seed Installments Bulk Queue: applicant fixture missing',
+				)
 			}
 			const applicant = findUser(applicantFixture.email)
 			const payrollNumber = `BULK${String(i + 1).padStart(3, '0')}`
@@ -3644,7 +3919,7 @@ export const seedPaymentsQueueTwentyPendingReceipts =
 					termOfferingId: offering.id,
 					creditAmount,
 					salaryAtApplication: '30000',
-					salaryFrequency: paymentsBulkQueueCompany.employeeSalaryFrequency,
+					salaryFrequency: installmentsBulkQueueCompany.employeeSalaryFrequency,
 					status: 'disbursed' as const,
 					firstDiscountDate,
 					payrollNumber,
@@ -3652,7 +3927,7 @@ export const seedPaymentsQueueTwentyPendingReceipts =
 				.returning()
 
 			if (!app)
-				throw new Error('Seed Payments Bulk Queue: application not created')
+				throw new Error('Seed Installments Bulk Queue: application not created')
 
 			const [credit] = await db
 				.insert(credits)
@@ -3666,18 +3941,18 @@ export const seedPaymentsQueueTwentyPendingReceipts =
 				.returning()
 
 			if (!credit)
-				throw new Error('Seed Payments Bulk Queue: credit not created')
+				throw new Error('Seed Installments Bulk Queue: credit not created')
 
 			const [scheduleEntry] = generatePaymentSchedule({
 				loanPrincipal: Number(creditAmount),
-				rate: Number(paymentsBulkQueueCompany.rate),
+				rate: Number(installmentsBulkQueueCompany.rate),
 				totalPayments: 1,
-				frequency: paymentsBulkQueueCompany.employeeSalaryFrequency,
+				frequency: installmentsBulkQueueCompany.employeeSalaryFrequency,
 				firstDiscountDate,
 			})
 
 			if (!scheduleEntry) {
-				throw new Error('Seed Payments Bulk Queue: schedule entry missing')
+				throw new Error('Seed Installments Bulk Queue: schedule entry missing')
 			}
 
 			await db.insert(creditPayments).values({
@@ -3691,21 +3966,21 @@ export const seedPaymentsQueueTwentyPendingReceipts =
 
 		return {
 			companyId: company.id,
-			expectedQueueRowCount: paymentsBulkApplicants.length,
-			paymentsReceiptConfirmedByName: paymentsAgent.name ?? '',
+			expectedQueueRowCount: installmentsBulkApplicants.length,
+			installmentConfirmedByUserName: installmentAgent.name ?? '',
 		}
 	}
 
-export const cleanupPaymentsBulkQueue = async () => {
+export const cleanupInstallmentsBulkQueue = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	await Promise.all(
-		allPaymentsBulkQueueUsers.map((u) =>
+		allInstallmentsBulkQueueUsers.map((u) =>
 			db.delete(users).where(eq(users.email, u.email)),
 		),
 	)
 	await db
 		.delete(companies)
-		.where(eq(companies.domain, paymentsBulkQueueCompany.domain))
+		.where(eq(companies.domain, installmentsBulkQueueCompany.domain))
 	await db
 		.delete(terms)
 		.where(
@@ -3934,41 +4209,43 @@ export const cleanupCreditDetailPaymentStates = async () => {
 	return null
 }
 
-export type SeedCreditDetailCollectionReceiptResult = {
+export type SeedCreditDetailInstallmentScheduleResult = {
 	companyId: number
 	creditId: number
 }
 
-export const seedCreditDetailCollectionReceipt =
-	async (): Promise<SeedCreditDetailCollectionReceiptResult> => {
+export const seedCreditDetailInstallmentSchedule =
+	async (): Promise<SeedCreditDetailInstallmentScheduleResult> => {
 		const db = getDb(process.env.DATABASE_URL || '')
 		const now = new Date()
 
 		await Promise.all(
-			allCreditDetailCollectionUsers.map((u) =>
+			allCreditDetailInstallmentScheduleUsers.map((u) =>
 				db.delete(users).where(eq(users.email, u.email)),
 			),
 		)
 		await db
 			.delete(companies)
-			.where(eq(companies.domain, creditDetailCollectionCompany.domain))
+			.where(
+				eq(companies.domain, creditDetailInstallmentScheduleCompany.domain),
+			)
 
 		const [[company], createdUsers] = await Promise.all([
 			db
 				.insert(companies)
 				.values({
-					name: creditDetailCollectionCompany.name,
-					domain: creditDetailCollectionCompany.domain,
-					rate: creditDetailCollectionCompany.rate,
+					name: creditDetailInstallmentScheduleCompany.name,
+					domain: creditDetailInstallmentScheduleCompany.domain,
+					rate: creditDetailInstallmentScheduleCompany.rate,
 					employeeSalaryFrequency:
-						creditDetailCollectionCompany.employeeSalaryFrequency,
-					active: creditDetailCollectionCompany.active,
+						creditDetailInstallmentScheduleCompany.employeeSalaryFrequency,
+					active: creditDetailInstallmentScheduleCompany.active,
 				})
 				.returning(),
 			db
 				.insert(users)
 				.values(
-					allCreditDetailCollectionUsers.map((u) => ({
+					allCreditDetailInstallmentScheduleUsers.map((u) => ({
 						email: u.email,
 						name: u.name,
 						emailVerified: now,
@@ -3978,40 +4255,47 @@ export const seedCreditDetailCollectionReceipt =
 		])
 
 		if (!company)
-			throw new Error('Seed CreditDetailCollection: company not created')
+			throw new Error(
+				'Seed CreditDetailInstallmentSchedule: company not created',
+			)
 
 		const findUser = (email: string) => {
 			const u = createdUsers.find((r) => r.email === email)
 			if (!u)
-				throw new Error(`Seed CreditDetailCollection: user ${email} not found`)
+				throw new Error(
+					`Seed CreditDetailInstallmentSchedule: user ${email} not found`,
+				)
 			return u
 		}
 
-		const hrAgent = findUser(creditDetailCollectionHrOnlyAgent.email)
-		const paymentsAgent = findUser(creditDetailCollectionPaymentsAgent.email)
-		const applicant = findUser(creditDetailCollectionApplicant.email)
+		const hrAgent = findUser(creditDetailHrOnlyAgent.email)
+		const installmentAgent = findUser(creditDetailInstallmentsAgent.email)
+		const applicant = findUser(creditDetailInstallmentScheduleApplicant.email)
 
 		const [term] = await db
 			.insert(terms)
 			.values({ durationType: 'monthly', duration: 5 })
 			.returning()
-		if (!term) throw new Error('Seed CreditDetailCollection: term not created')
+		if (!term)
+			throw new Error('Seed CreditDetailInstallmentSchedule: term not created')
 
 		const [offering] = await db
 			.insert(termOfferings)
 			.values({ termId: term.id, companyId: company.id })
 			.returning()
 		if (!offering)
-			throw new Error('Seed CreditDetailCollection: offering not created')
+			throw new Error(
+				'Seed CreditDetailInstallmentSchedule: offering not created',
+			)
 
 		await Promise.all(
 			createdUsers.flatMap((u) => {
-				const fixture = allCreditDetailCollectionUsers.find(
+				const fixture = allCreditDetailInstallmentScheduleUsers.find(
 					(f) => f.email === u.email,
 				)
 				if (!fixture)
 					throw new Error(
-						`Seed CreditDetailCollection: fixture not found for ${u.email}`,
+						`Seed CreditDetailInstallmentSchedule: fixture not found for ${u.email}`,
 					)
 				return [
 					db
@@ -4042,13 +4326,16 @@ export const seedCreditDetailCollectionReceipt =
 				termOfferingId: offering.id,
 				creditAmount: '50000.00',
 				salaryAtApplication: '40000',
-				salaryFrequency: creditDetailCollectionCompany.employeeSalaryFrequency,
+				salaryFrequency:
+					creditDetailInstallmentScheduleCompany.employeeSalaryFrequency,
 				status: 'disbursed' as const,
 				firstDiscountDate: upcomingDate,
 			})
 			.returning()
 		if (!app)
-			throw new Error('Seed CreditDetailCollection: application not created')
+			throw new Error(
+				'Seed CreditDetailInstallmentSchedule: application not created',
+			)
 
 		await db.insert(applicationStatusHistory).values(
 			createOrderedSeedStatusHistory({
@@ -4073,7 +4360,9 @@ export const seedCreditDetailCollectionReceipt =
 			})
 			.returning()
 		if (!credit)
-			throw new Error('Seed CreditDetailCollection: credit not created')
+			throw new Error(
+				'Seed CreditDetailInstallmentSchedule: credit not created',
+			)
 
 		const hrAt = (d: Date) => new Date(d.getTime() + 24 * 60 * 60_000)
 
@@ -4084,8 +4373,8 @@ export const seedCreditDetailCollectionReceipt =
 				amount: '10250.00',
 				hrConfirmedAt: hrAt(confirmedPastDate),
 				hrConfirmedByUserId: hrAgent.id,
-				paymentsConfirmedAt: hrAt(confirmedPastDate),
-				paymentsConfirmedByUserId: paymentsAgent.id,
+				installmentConfirmedAt: hrAt(confirmedPastDate),
+				installmentConfirmedByUserId: installmentAgent.id,
 			},
 			{
 				creditId: credit.id,
@@ -4123,16 +4412,16 @@ export const seedCreditDetailCollectionReceipt =
 		}
 	}
 
-export const cleanupCreditDetailCollectionReceipt = async () => {
+export const cleanupCreditDetailInstallmentSchedule = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	await Promise.all(
-		allCreditDetailCollectionUsers.map((u) =>
+		allCreditDetailInstallmentScheduleUsers.map((u) =>
 			db.delete(users).where(eq(users.email, u.email)),
 		),
 	)
 	await db
 		.delete(companies)
-		.where(eq(companies.domain, creditDetailCollectionCompany.domain))
+		.where(eq(companies.domain, creditDetailInstallmentScheduleCompany.domain))
 	await db
 		.delete(terms)
 		.where(

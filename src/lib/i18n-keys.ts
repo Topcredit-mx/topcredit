@@ -55,7 +55,7 @@ export const PROFILE_ROLE_KEYS: Record<
 	authorizations: 'role-authorizations',
 	hr: 'role-hr',
 	dispersions: 'role-dispersions',
-	payments: 'role-payments',
+	installments: 'role-installments',
 	admin: 'role-admin',
 }
 

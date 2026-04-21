@@ -6,7 +6,7 @@ import { DialogDescription } from '~/components/ui/dialog'
 import { cn } from '~/lib/utils'
 import type { CsvImportParseStats } from '~/server/mutations'
 
-type ImportCsvVariant = 'deductions' | 'payments'
+type ImportCsvVariant = 'deductions' | 'installments'
 
 export function ImportCsvPreviewSummary({
 	id,
@@ -26,13 +26,13 @@ export function ImportCsvPreviewSummary({
 	const fileLabel =
 		variant === 'deductions'
 			? t('deductions-import-stats-file', { fileName })
-			: t('payments-import-stats-file', { fileName })
+			: t('installments-import-stats-file', { fileName })
 	const totalLabel =
 		variant === 'deductions'
 			? t('deductions-import-stats-total-rows', {
 					count: parseStats.totalDataRows,
 				})
-			: t('payments-import-stats-total-rows', {
+			: t('installments-import-stats-total-rows', {
 					count: parseStats.totalDataRows,
 				})
 	const parseOkLabel =
@@ -40,13 +40,13 @@ export function ImportCsvPreviewSummary({
 			? t('deductions-import-stats-parse-ok', {
 					count: parseStats.validParsedRowCount,
 				})
-			: t('payments-import-stats-parse-ok', {
+			: t('installments-import-stats-parse-ok', {
 					count: parseStats.validParsedRowCount,
 				})
 	const hint =
 		variant === 'deductions'
 			? t('deductions-import-stats-hint')
-			: t('payments-import-stats-hint')
+			: t('installments-import-stats-hint')
 
 	return (
 		<DialogDescription id={id} asChild>

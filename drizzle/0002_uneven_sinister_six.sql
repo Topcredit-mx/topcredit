@@ -1,1 +1,0 @@
-ALTER TYPE "public"."application_status" ADD VALUE 'disbursed' BEFORE 'denied';

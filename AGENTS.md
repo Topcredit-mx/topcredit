@@ -35,3 +35,13 @@ Defaults for how agents write and test code in this repository.
 - If in plan mode, the todo's should clearly follow a "Red-Green-Refactor" cycle: write a failing test, write minimal code to pass, and refactor
 - Between each todo, (Red, Green, Refactor) you should run unit or e2e tests only for the affected tests.
 - Do **not** run the full E2E or unit test suite at the end of a task. Only run the tests related to the changes you made.
+
+## Commits (Husky vs. cloud agents)
+
+The repo’s Husky `pre-commit` hook runs `pnpm check && pnpm typecheck` before every commit when Git is using the hooks from `pnpm install` (the `prepare` script installs Husky into `.husky`).
+
+Some environments (including Cursor agents) set Git’s `core.hooksPath` to a separate hook directory, so **Husky’s `.husky/pre-commit` does not run** even though the project is configured for it. In those environments you must run the same checks yourself **before** `git commit`:
+
+`pnpm validate`
+
+That matches what `.husky/pre-commit` runs and catches the same Biome/typecheck failures as CI’s lint and type-check steps.

@@ -21,16 +21,17 @@ import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
 import {
-	allPaymentsFullyConfirmed,
-	canConfirmReceipt,
-	canConfirmReceiptForCreditDetailRow,
+	allInstallmentsFullyConfirmed,
+	canConfirmInstallment,
+	canConfirmInstallmentForCreditDetailRow,
 	canHrConfirm,
-	parseCsvPaymentConfirmations,
-} from '~/lib/payment-confirmation'
+	isInstallmentOverdueFromDb,
+	parseCsvInstallmentConfirmations,
+} from '~/lib/installment-confirmation'
 import {
-	classifyPaymentReceiptCsvImportRows,
-	makePaymentReceiptImportKey,
-} from '~/lib/payment-receipt-import-csv'
+	classifyInstallmentCsvImportRows,
+	makeInstallmentImportKey,
+} from '~/lib/installment-import-csv'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
 	isPreAuthOverCapacity,
@@ -80,7 +81,7 @@ import { getApplicationDocuments } from '~/server/queries'
 import {
 	applyApplicationDocumentDecisionsSchema,
 	confirmHrDeductionsBulkSchema,
-	confirmPaymentReceiptsBulkSchema,
+	confirmInstallmentsBulkSchema,
 	preAuthorizeApplicationSchema,
 	updateApplicationStatusSchema,
 } from '~/server/schemas'
@@ -1097,7 +1098,7 @@ export async function disburseApplication(payload: {
 type PaymentWithContext = {
 	paymentId: number
 	hrConfirmedAt: Date | null
-	paymentsConfirmedAt: Date | null
+	installmentConfirmedAt: Date | null
 	creditId: number
 	companyId: number
 	dueDate: Date
@@ -1111,7 +1112,7 @@ async function fetchPaymentsWithContext(
 		.select({
 			paymentId: creditPayments.id,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
-			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
 			creditId: creditPayments.creditId,
 			companyId: applications.companyId,
 			dueDate: creditPayments.dueDate,
@@ -1125,7 +1126,7 @@ async function fetchPaymentsWithContext(
 	return rows.map((r) => ({
 		paymentId: r.paymentId,
 		hrConfirmedAt: r.hrConfirmedAt,
-		paymentsConfirmedAt: r.paymentsConfirmedAt,
+		installmentConfirmedAt: r.installmentConfirmedAt,
 		creditId: r.creditId,
 		companyId: r.companyId,
 		dueDate: r.dueDate,
@@ -1135,20 +1136,20 @@ async function fetchPaymentsWithContext(
 	}))
 }
 
-function canConfirmPaymentReceiptWithinPeriod(
+function canConfirmInstallmentWithinPeriod(
 	payment: Pick<
 		PaymentWithContext,
 		| 'hrConfirmedAt'
-		| 'paymentsConfirmedAt'
+		| 'installmentConfirmedAt'
 		| 'dueDate'
 		| 'employeeSalaryFrequency'
 	>,
 	today: Date,
 ): boolean {
-	return canConfirmReceiptForCreditDetailRow(
+	return canConfirmInstallmentForCreditDetailRow(
 		{
 			hrConfirmedAt: payment.hrConfirmedAt,
-			paymentsConfirmedAt: payment.paymentsConfirmedAt,
+			installmentConfirmedAt: payment.installmentConfirmedAt,
 			dueDate: payment.dueDate,
 			employeeSalaryFrequency: payment.employeeSalaryFrequency,
 		},
@@ -1165,12 +1166,12 @@ async function settleCreditsIfFullyConfirmed(
 		const remaining = await db
 			.select({
 				hrConfirmedAt: creditPayments.hrConfirmedAt,
-				paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+				installmentConfirmedAt: creditPayments.installmentConfirmedAt,
 			})
 			.from(creditPayments)
 			.where(eq(creditPayments.creditId, creditId))
 
-		if (allPaymentsFullyConfirmed(remaining)) {
+		if (allInstallmentsFullyConfirmed(remaining)) {
 			await db
 				.update(credits)
 				.set({ status: 'settled', updatedAt: now })
@@ -1200,15 +1201,15 @@ export async function confirmHrDeduction(
 	const payment = rows[0]
 
 	if (!payment) {
-		return { error: ValidationCode.PAYMENT_NOT_FOUND }
+		return { error: ValidationCode.CREDIT_PAYMENT_NOT_FOUND }
 	}
 
 	if (!ability.can('confirmHrDeduction', toCreditPaymentSubject(payment))) {
-		return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
+		return { error: ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN }
 	}
 
 	if (!canHrConfirm(payment)) {
-		return { error: ValidationCode.PAYMENT_ALREADY_CONFIRMED }
+		return { error: ValidationCode.CREDIT_PAYMENT_ALREADY_CONFIRMED }
 	}
 
 	const now = new Date()
@@ -1222,7 +1223,7 @@ export async function confirmHrDeduction(
 
 	revalidatePath('/equipo/deductions')
 	revalidatePath('/equipo/deductions/overdue')
-	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/installments')
 	revalidatePath('/equipo/credits')
 	revalidatePath('/cuenta/credits')
 	return {}
@@ -1234,7 +1235,7 @@ export async function confirmHrDeductions(
 	const parsed = confirmHrDeductionsBulkSchema.safeParse({ paymentIds })
 	if (!parsed.success) {
 		const first = parsed.error.issues[0]
-		return { error: first?.message ?? ValidationCode.PAYMENT_BULK_EMPTY }
+		return { error: first?.message ?? ValidationCode.CREDIT_PAYMENT_BULK_EMPTY }
 	}
 
 	const { ability } = await getAbility()
@@ -1243,18 +1244,18 @@ export async function confirmHrDeductions(
 	const rows = await fetchPaymentsWithContext(parsed.data.paymentIds)
 
 	if (rows.length === 0) {
-		return { error: ValidationCode.PAYMENT_NOT_FOUND }
+		return { error: ValidationCode.CREDIT_PAYMENT_NOT_FOUND }
 	}
 
 	for (const payment of rows) {
 		if (!ability.can('confirmHrDeduction', toCreditPaymentSubject(payment))) {
-			return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
+			return { error: ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN }
 		}
 	}
 
 	const toConfirm = rows.filter((r) => canHrConfirm(r))
 	if (toConfirm.length === 0) {
-		return { error: ValidationCode.PAYMENT_ALREADY_CONFIRMED }
+		return { error: ValidationCode.CREDIT_PAYMENT_ALREADY_CONFIRMED }
 	}
 
 	const now = new Date()
@@ -1273,7 +1274,7 @@ export async function confirmHrDeductions(
 
 	revalidatePath('/equipo/deductions')
 	revalidatePath('/equipo/deductions/overdue')
-	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/installments')
 	revalidatePath('/equipo/credits')
 	revalidatePath('/cuenta/credits')
 	return {}
@@ -1479,7 +1480,7 @@ export async function validateDeductionsCsv(
 	}
 }
 
-export type ValidatePaymentReceiptsCsvResult = {
+export type ValidateInstallmentsCsvResult = {
 	matchedPaymentIds: number[]
 	matchedRows: Array<{ payrollNumber: string; amount: string; dueDate: string }>
 	errors: ValidateDeductionsCsvErrorRow[]
@@ -1487,10 +1488,10 @@ export type ValidatePaymentReceiptsCsvResult = {
 	parseStats: CsvImportParseStats
 }
 
-export async function validatePaymentReceiptsCsv(
+export async function validateInstallmentsCsv(
 	csvContent: string,
 	companyId: number,
-): Promise<ValidatePaymentReceiptsCsvResult> {
+): Promise<ValidateInstallmentsCsvResult> {
 	const errorRows: ValidateDeductionsCsvErrorRow[] = []
 	type ParsedRow = {
 		payrollNumber: string
@@ -1587,7 +1588,7 @@ export async function validatePaymentReceiptsCsv(
 			amount: creditPayments.amount,
 			dueDate: creditPayments.dueDate,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
-			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
 		})
 		.from(creditPayments)
 		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
@@ -1600,12 +1601,12 @@ export async function validatePaymentReceiptsCsv(
 			paymentId: number
 			companyId: number
 			hrConfirmedAt: Date | null
-			paymentsConfirmedAt: Date | null
+			installmentConfirmedAt: Date | null
 		}
 	>()
 	for (const row of candidateRows) {
 		if (!row.payrollNumber) continue
-		const key = makePaymentReceiptImportKey(
+		const key = makeInstallmentImportKey(
 			row.payrollNumber,
 			row.amount,
 			row.dueDate.toISOString().slice(0, 10),
@@ -1614,14 +1615,14 @@ export async function validatePaymentReceiptsCsv(
 			paymentId: row.paymentId,
 			companyId: row.companyId,
 			hrConfirmedAt: row.hrConfirmedAt,
-			paymentsConfirmedAt: row.paymentsConfirmedAt,
+			installmentConfirmedAt: row.installmentConfirmedAt,
 		})
 	}
 
-	const classified = classifyPaymentReceiptCsvImportRows(
+	const classified = classifyInstallmentCsvImportRows(
 		validRows,
 		candidateByKey,
-		(c) => ability.can('confirmPaymentReceipt', toCreditPaymentSubject(c)),
+		(c) => ability.can('confirmInstallment', toCreditPaymentSubject(c)),
 	)
 
 	return {
@@ -1650,14 +1651,14 @@ export async function confirmHrDeductionsFromCsv(
 	}
 
 	const { rows: csvRows, errors: parseErrors } =
-		parseCsvPaymentConfirmations(csvContent)
+		parseCsvInstallmentConfirmations(csvContent)
 
 	if (parseErrors.length > 0) {
-		return { ...empty, error: ValidationCode.PAYMENT_CSV_PARSE_ERROR }
+		return { ...empty, error: ValidationCode.CREDIT_PAYMENT_CSV_PARSE_ERROR }
 	}
 
 	if (csvRows.length === 0) {
-		return { ...empty, error: ValidationCode.PAYMENT_CSV_NO_MATCHES }
+		return { ...empty, error: ValidationCode.CREDIT_PAYMENT_CSV_NO_MATCHES }
 	}
 
 	const { ability, assignedCompanyIds, isAdmin } = await getAbility()
@@ -1668,7 +1669,7 @@ export async function confirmHrDeductionsFromCsv(
 		.select({
 			paymentId: creditPayments.id,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
-			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
 			creditId: creditPayments.creditId,
 			companyId: applications.companyId,
 			payrollNumber: applications.payrollNumber,
@@ -1710,7 +1711,11 @@ export async function confirmHrDeductionsFromCsv(
 	const alreadyConfirmed = authorized.filter((r) => !canHrConfirm(r)).length
 
 	if (toConfirm.length === 0 && alreadyConfirmed === 0) {
-		return { ...empty, unmatched, error: ValidationCode.PAYMENT_CSV_NO_MATCHES }
+		return {
+			...empty,
+			unmatched,
+			error: ValidationCode.CREDIT_PAYMENT_CSV_NO_MATCHES,
+		}
 	}
 
 	const now = new Date()
@@ -1730,7 +1735,7 @@ export async function confirmHrDeductionsFromCsv(
 	}
 
 	revalidatePath('/equipo/deductions')
-	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/installments')
 	revalidatePath('/cuenta/credits')
 
 	return {
@@ -1740,7 +1745,7 @@ export async function confirmHrDeductionsFromCsv(
 	}
 }
 
-export async function confirmPaymentReceipt(
+export async function confirmInstallment(
 	paymentId: number,
 ): Promise<{ error?: string }> {
 	const { ability } = await getAbility()
@@ -1750,49 +1755,63 @@ export async function confirmPaymentReceipt(
 	const payment = rows[0]
 
 	if (!payment) {
-		return { error: ValidationCode.PAYMENT_NOT_FOUND }
+		return { error: ValidationCode.CREDIT_PAYMENT_NOT_FOUND }
 	}
 
-	if (!ability.can('confirmPaymentReceipt', toCreditPaymentSubject(payment))) {
-		return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
+	if (!ability.can('confirmInstallment', toCreditPaymentSubject(payment))) {
+		return { error: ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN }
 	}
 
-	if (!canConfirmReceipt(payment)) {
+	if (!canConfirmInstallment(payment)) {
 		return payment.hrConfirmedAt === null
-			? { error: ValidationCode.PAYMENT_NOT_HR_CONFIRMED }
-			: { error: ValidationCode.PAYMENT_ALREADY_RECEIVED }
+			? { error: ValidationCode.CREDIT_PAYMENT_NOT_HR_CONFIRMED }
+			: { error: ValidationCode.CREDIT_PAYMENT_ALREADY_INSTALLMENT_CONFIRMED }
 	}
 
 	const today = new Date()
-	if (!canConfirmPaymentReceiptWithinPeriod(payment, today)) {
-		return { error: ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE }
+	const installmentOverdue = isInstallmentOverdueFromDb(
+		{
+			hrConfirmedAt: payment.hrConfirmedAt,
+			installmentConfirmedAt: payment.installmentConfirmedAt,
+			dueDate: payment.dueDate,
+		},
+		today,
+	)
+	if (
+		!installmentOverdue &&
+		!canConfirmInstallmentWithinPeriod(payment, today)
+	) {
+		return {
+			error: ValidationCode.CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE,
+		}
 	}
 
 	const now = new Date()
 	await db
 		.update(creditPayments)
 		.set({
-			paymentsConfirmedAt: now,
-			paymentsConfirmedByUserId: user.id,
+			installmentConfirmedAt: now,
+			installmentConfirmedByUserId: user.id,
 		})
 		.where(eq(creditPayments.id, paymentId))
 
 	await settleCreditsIfFullyConfirmed([payment.creditId], now)
 
-	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/installments')
+	revalidatePath('/equipo/installments/overdue')
 	revalidatePath('/equipo/credits')
 	revalidatePath(`/equipo/credits/${payment.creditId}`)
 	revalidatePath('/cuenta/credits')
 	return {}
 }
 
-export async function confirmPaymentReceipts(
+export async function confirmInstallments(
 	paymentIds: number[],
 ): Promise<{ error?: string }> {
-	const parsed = confirmPaymentReceiptsBulkSchema.safeParse({ paymentIds })
+	const parsed = confirmInstallmentsBulkSchema.safeParse({ paymentIds })
 	if (!parsed.success) {
 		const first = parsed.error.issues[0]
-		return { error: first?.message ?? ValidationCode.PAYMENT_BULK_EMPTY }
+		return { error: first?.message ?? ValidationCode.CREDIT_PAYMENT_BULK_EMPTY }
 	}
 
 	const { ability } = await getAbility()
@@ -1802,33 +1821,42 @@ export async function confirmPaymentReceipts(
 	const rows = await fetchPaymentsWithContext(uniquePaymentIds)
 
 	if (rows.length !== uniquePaymentIds.length) {
-		return { error: ValidationCode.PAYMENT_NOT_FOUND }
+		return { error: ValidationCode.CREDIT_PAYMENT_NOT_FOUND }
 	}
 
 	for (const payment of rows) {
-		if (
-			!ability.can('confirmPaymentReceipt', toCreditPaymentSubject(payment))
-		) {
-			return { error: ValidationCode.PAYMENT_CONFIRM_FORBIDDEN }
+		if (!ability.can('confirmInstallment', toCreditPaymentSubject(payment))) {
+			return { error: ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN }
 		}
 	}
 
 	for (const payment of rows) {
-		if (!canConfirmReceipt(payment)) {
+		if (!canConfirmInstallment(payment)) {
 			return {
 				error:
 					payment.hrConfirmedAt === null
-						? ValidationCode.PAYMENT_NOT_HR_CONFIRMED
-						: ValidationCode.PAYMENT_ALREADY_RECEIVED,
+						? ValidationCode.CREDIT_PAYMENT_NOT_HR_CONFIRMED
+						: ValidationCode.CREDIT_PAYMENT_ALREADY_INSTALLMENT_CONFIRMED,
 			}
 		}
 	}
 
 	const today = new Date()
 	for (const payment of rows) {
-		if (!canConfirmPaymentReceiptWithinPeriod(payment, today)) {
+		const installmentOverdue = isInstallmentOverdueFromDb(
+			{
+				hrConfirmedAt: payment.hrConfirmedAt,
+				installmentConfirmedAt: payment.installmentConfirmedAt,
+				dueDate: payment.dueDate,
+			},
+			today,
+		)
+		if (
+			!installmentOverdue &&
+			!canConfirmInstallmentWithinPeriod(payment, today)
+		) {
 			return {
-				error: `${ValidationCode.PAYMENT_RECEIPT_PERIOD_NOT_ELIGIBLE}:${payment.paymentId}`,
+				error: `${ValidationCode.CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE}:${payment.paymentId}`,
 			}
 		}
 	}
@@ -1837,8 +1865,8 @@ export async function confirmPaymentReceipts(
 	await db
 		.update(creditPayments)
 		.set({
-			paymentsConfirmedAt: now,
-			paymentsConfirmedByUserId: user.id,
+			installmentConfirmedAt: now,
+			installmentConfirmedByUserId: user.id,
 		})
 		.where(
 			inArray(
@@ -1850,7 +1878,8 @@ export async function confirmPaymentReceipts(
 	const uniqueCreditIds = [...new Set(rows.map((r) => r.creditId))]
 	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
 
-	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/installments')
+	revalidatePath('/equipo/installments/overdue')
 	revalidatePath('/equipo/credits')
 	for (const creditId of uniqueCreditIds) {
 		revalidatePath(`/equipo/credits/${creditId}`)
@@ -1859,7 +1888,7 @@ export async function confirmPaymentReceipts(
 	return {}
 }
 
-export type ConfirmPaymentReceiptsFromCsvResult = {
+export type ConfirmInstallmentsFromCsvResult = {
 	confirmed: number
 	alreadyReceived: number
 	notHrConfirmed: number
@@ -1868,10 +1897,10 @@ export type ConfirmPaymentReceiptsFromCsvResult = {
 	error?: string
 }
 
-export async function confirmPaymentReceiptsFromCsv(
+export async function confirmInstallmentsFromCsv(
 	csvContent: string,
-): Promise<ConfirmPaymentReceiptsFromCsvResult> {
-	const empty: ConfirmPaymentReceiptsFromCsvResult = {
+): Promise<ConfirmInstallmentsFromCsvResult> {
+	const empty: ConfirmInstallmentsFromCsvResult = {
 		confirmed: 0,
 		alreadyReceived: 0,
 		notHrConfirmed: 0,
@@ -1880,14 +1909,14 @@ export async function confirmPaymentReceiptsFromCsv(
 	}
 
 	const { rows: csvRows, errors: parseErrors } =
-		parseCsvPaymentConfirmations(csvContent)
+		parseCsvInstallmentConfirmations(csvContent)
 
 	if (parseErrors.length > 0) {
-		return { ...empty, error: ValidationCode.PAYMENT_CSV_PARSE_ERROR }
+		return { ...empty, error: ValidationCode.CREDIT_PAYMENT_CSV_PARSE_ERROR }
 	}
 
 	if (csvRows.length === 0) {
-		return { ...empty, error: ValidationCode.PAYMENT_CSV_NO_MATCHES }
+		return { ...empty, error: ValidationCode.CREDIT_PAYMENT_CSV_NO_MATCHES }
 	}
 
 	const { ability, assignedCompanyIds, isAdmin } = await getAbility()
@@ -1897,7 +1926,7 @@ export async function confirmPaymentReceiptsFromCsv(
 		.select({
 			paymentId: creditPayments.id,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
-			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
 			creditId: creditPayments.creditId,
 			companyId: applications.companyId,
 			payrollNumber: applications.payrollNumber,
@@ -1934,16 +1963,25 @@ export async function confirmPaymentReceiptsFromCsv(
 	const unmatched = csvRows.length - matched.length
 
 	const authorized = matched.filter((row) =>
-		ability.can('confirmPaymentReceipt', toCreditPaymentSubject(row)),
+		ability.can('confirmInstallment', toCreditPaymentSubject(row)),
 	)
 
 	const todayCsv = new Date()
 	const toConfirm = authorized.filter((r) => {
-		if (!canConfirmReceipt(r)) return false
-		return canConfirmPaymentReceiptWithinPeriod(
+		if (!canConfirmInstallment(r)) return false
+		const installmentOverdue = isInstallmentOverdueFromDb(
 			{
 				hrConfirmedAt: r.hrConfirmedAt,
-				paymentsConfirmedAt: r.paymentsConfirmedAt,
+				installmentConfirmedAt: r.installmentConfirmedAt,
+				dueDate: r.dueDate,
+			},
+			todayCsv,
+		)
+		if (installmentOverdue) return true
+		return canConfirmInstallmentWithinPeriod(
+			{
+				hrConfirmedAt: r.hrConfirmedAt,
+				installmentConfirmedAt: r.installmentConfirmedAt,
 				dueDate: r.dueDate,
 				employeeSalaryFrequency: employeeSalaryFrequencyFromDb(
 					r.companySalaryFrequency,
@@ -1953,14 +1991,18 @@ export async function confirmPaymentReceiptsFromCsv(
 		)
 	})
 	const alreadyReceived = authorized.filter(
-		(r) => r.paymentsConfirmedAt !== null,
+		(r) => r.installmentConfirmedAt !== null,
 	).length
 	const notHrConfirmed = authorized.filter(
 		(r) => r.hrConfirmedAt === null,
 	).length
 
 	if (toConfirm.length === 0 && alreadyReceived === 0 && notHrConfirmed === 0) {
-		return { ...empty, unmatched, error: ValidationCode.PAYMENT_CSV_NO_MATCHES }
+		return {
+			...empty,
+			unmatched,
+			error: ValidationCode.CREDIT_PAYMENT_CSV_NO_MATCHES,
+		}
 	}
 
 	const now = new Date()
@@ -1968,8 +2010,8 @@ export async function confirmPaymentReceiptsFromCsv(
 		await db
 			.update(creditPayments)
 			.set({
-				paymentsConfirmedAt: now,
-				paymentsConfirmedByUserId: user.id,
+				installmentConfirmedAt: now,
+				installmentConfirmedByUserId: user.id,
 			})
 			.where(
 				inArray(
@@ -1985,7 +2027,8 @@ export async function confirmPaymentReceiptsFromCsv(
 		now,
 	)
 
-	revalidatePath('/equipo/payments')
+	revalidatePath('/equipo/installments')
+	revalidatePath('/equipo/installments/overdue')
 	revalidatePath('/cuenta/credits')
 
 	return {

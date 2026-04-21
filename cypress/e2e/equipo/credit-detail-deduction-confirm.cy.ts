@@ -5,8 +5,8 @@ import type {
 import { creditDetailStatesHrAgent } from './credit-detail-states.fixtures'
 import {
 	hrAgentDeductions,
+	installmentsAgentDeductions,
 	nonHrAgentDeductions,
-	paymentsAgentDeductions,
 } from './deductions-queue.fixtures'
 
 describe('HR credit detail — deduction confirmation', () => {
@@ -158,7 +158,7 @@ describe('Equipo credits list', () => {
 
 	describe('non-HR agent (payments) can also see the credits list', () => {
 		beforeEach(() => {
-			cy.login(paymentsAgentDeductions.email)
+			cy.login(installmentsAgentDeductions.email)
 			cy.then(() => {
 				cy.setCookie('selected_company_id', String(seed.companyId))
 			})

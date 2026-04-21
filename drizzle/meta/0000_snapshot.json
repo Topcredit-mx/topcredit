@@ -1,5 +1,5 @@
 {
-	"id": "028ce0cb-b7fa-4f8e-a6b2-5e8e6d9cce05",
+	"id": "177e08c2-577e-4818-9244-43f84e428d75",
 	"prevId": "00000000-0000-0000-0000-000000000000",
 	"version": "7",
 	"dialect": "postgresql",
@@ -318,6 +318,30 @@
 					"primaryKey": false,
 					"notNull": false
 				},
+				"transfer_reference": {
+					"name": "transfer_reference",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"receipt_storage_key": {
+					"name": "receipt_storage_key",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"receipt_file_name": {
+					"name": "receipt_file_name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"first_discount_date": {
+					"name": "first_discount_date",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": false
+				},
 				"created_at": {
 					"name": "created_at",
 					"type": "timestamp with time zone",
@@ -445,6 +469,191 @@
 					"name": "companies_domain_unique",
 					"nullsNotDistinct": false,
 					"columns": ["domain"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.credit_payments": {
+			"name": "credit_payments",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "serial",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"credit_id": {
+					"name": "credit_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"due_date": {
+					"name": "due_date",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"amount": {
+					"name": "amount",
+					"type": "numeric(12, 2)",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"hr_confirmed_at": {
+					"name": "hr_confirmed_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"confirmed_by_user_id": {
+					"name": "confirmed_by_user_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"installment_confirmed_at": {
+					"name": "installment_confirmed_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"installment_confirmed_by_user_id": {
+					"name": "installment_confirmed_by_user_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"credit_payments_credit_id_credits_id_fk": {
+					"name": "credit_payments_credit_id_credits_id_fk",
+					"tableFrom": "credit_payments",
+					"tableTo": "credits",
+					"columnsFrom": ["credit_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				},
+				"credit_payments_confirmed_by_user_id_users_id_fk": {
+					"name": "credit_payments_confirmed_by_user_id_users_id_fk",
+					"tableFrom": "credit_payments",
+					"tableTo": "users",
+					"columnsFrom": ["confirmed_by_user_id"],
+					"columnsTo": ["id"],
+					"onDelete": "set null",
+					"onUpdate": "no action"
+				},
+				"credit_payments_installment_confirmed_by_user_id_users_id_fk": {
+					"name": "credit_payments_installment_confirmed_by_user_id_users_id_fk",
+					"tableFrom": "credit_payments",
+					"tableTo": "users",
+					"columnsFrom": ["installment_confirmed_by_user_id"],
+					"columnsTo": ["id"],
+					"onDelete": "set null",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.credits": {
+			"name": "credits",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "serial",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"application_id": {
+					"name": "application_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"status": {
+					"name": "status",
+					"type": "credit_status",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"disbursement_date": {
+					"name": "disbursement_date",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"transfer_amount": {
+					"name": "transfer_amount",
+					"type": "numeric(12, 2)",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"disbursed_by_user_id": {
+					"name": "disbursed_by_user_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"credits_application_id_applications_id_fk": {
+					"name": "credits_application_id_applications_id_fk",
+					"tableFrom": "credits",
+					"tableTo": "applications",
+					"columnsFrom": ["application_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				},
+				"credits_disbursed_by_user_id_users_id_fk": {
+					"name": "credits_disbursed_by_user_id_users_id_fk",
+					"tableFrom": "credits",
+					"tableTo": "users",
+					"columnsFrom": ["disbursed_by_user_id"],
+					"columnsTo": ["id"],
+					"onDelete": "set null",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"credits_application_id_unique": {
+					"name": "credits_application_id_unique",
+					"nullsNotDistinct": false,
+					"columns": ["application_id"]
 				}
 			},
 			"policies": {},
@@ -876,8 +1085,14 @@
 				"pre-authorized",
 				"awaiting-authorization",
 				"authorized",
+				"disbursed",
 				"denied"
 			]
+		},
+		"public.credit_status": {
+			"name": "credit_status",
+			"schema": "public",
+			"values": ["dispersed", "settled"]
 		},
 		"public.document_status": {
 			"name": "document_status",
@@ -915,6 +1130,9 @@
 				"requests",
 				"pre-authorizations",
 				"authorizations",
+				"hr",
+				"dispersions",
+				"installments",
 				"admin"
 			]
 		}

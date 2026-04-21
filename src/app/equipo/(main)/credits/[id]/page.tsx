@@ -41,11 +41,11 @@ export default async function EquipoCreditDetailPage({
 				'confirmHrDeduction',
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
-	const canConfirmPaymentReceipt =
+	const canConfirmInstallment =
 		isAdmin ||
 		(firstCompanyId !== undefined &&
 			ability.can(
-				'confirmPaymentReceipt',
+				'confirmInstallment',
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
 
@@ -76,7 +76,7 @@ export default async function EquipoCreditDetailPage({
 		)
 	}
 
-	const [credit, payments, company] = await Promise.all([
+	const [credit, creditPayments, company] = await Promise.all([
 		getCreditDetailForEquipo(creditId, selectedCompanyId),
 		getCreditPaymentsForEquipo(creditId, selectedCompanyId),
 		getCompanyById(selectedCompanyId),
@@ -191,11 +191,11 @@ export default async function EquipoCreditDetailPage({
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="px-0">
-					{payments.length > 0 ? (
+					{creditPayments.length > 0 ? (
 						<CreditPaymentsTable
-							payments={payments}
+							creditPayments={creditPayments}
 							canConfirmHrDeduction={canConfirmHrDeduction}
-							canConfirmPaymentReceipt={canConfirmPaymentReceipt}
+							canConfirmInstallment={canConfirmInstallment}
 							employeeSalaryFrequency={company?.employeeSalaryFrequency}
 						/>
 					) : (

@@ -1077,7 +1077,7 @@ type CreditPaymentRow = {
 	dueDate: Date
 	amount: string
 	hrConfirmedAt: Date | null
-	paymentsConfirmedAt: Date | null
+	installmentConfirmedAt: Date | null
 }
 
 export async function getCreditPaymentsByCreditId(
@@ -1097,7 +1097,7 @@ export async function getCreditPaymentsByCreditId(
 			dueDate: creditPayments.dueDate,
 			amount: creditPayments.amount,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
-			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
 		})
 		.from(creditPayments)
 		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
@@ -1187,7 +1187,7 @@ export type CreditPaymentRowForEquipo = {
 	dueDate: Date
 	amount: string
 	hrConfirmedAt: Date | null
-	paymentsConfirmedAt: Date | null
+	installmentConfirmedAt: Date | null
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 }
 
@@ -1201,7 +1201,7 @@ export async function getCreditPaymentsForEquipo(
 			dueDate: creditPayments.dueDate,
 			amount: creditPayments.amount,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
-			paymentsConfirmedAt: creditPayments.paymentsConfirmedAt,
+			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
 			companySalaryFrequency: companies.employeeSalaryFrequency,
 		})
 		.from(creditPayments)
@@ -1220,14 +1220,14 @@ export async function getCreditPaymentsForEquipo(
 		dueDate: r.dueDate,
 		amount: r.amount,
 		hrConfirmedAt: r.hrConfirmedAt,
-		paymentsConfirmedAt: r.paymentsConfirmedAt,
+		installmentConfirmedAt: r.installmentConfirmedAt,
 		employeeSalaryFrequency: employeeSalaryFrequencyFromDb(
 			r.companySalaryFrequency,
 		),
 	}))
 }
 
-// ---- Installments queue (shared by /equipo/deductions and /equipo/payments) ----
+// ---- Installments queue (shared by /equipo/deductions and /equipo/installments) ----
 
 export type InstallmentForQueue = {
 	id: number
@@ -1235,7 +1235,7 @@ export type InstallmentForQueue = {
 	dueDate: string
 	amount: string
 	hrConfirmedAt: string | null
-	paymentsConfirmedAt: string | null
+	installmentConfirmedAt: string | null
 	employeeName: string
 	payrollNumber: string | null
 	companyName: string
@@ -1246,7 +1246,7 @@ export type InstallmentForQueue = {
 
 export async function getInstallmentsForQueue(params: {
 	scope: CompanyScope
-	queue: 'deductions' | 'payments'
+	queue: 'deductions' | 'installments'
 	upcomingDeductionDate?: string
 }): Promise<InstallmentForQueue[]> {
 	const { scope, queue, upcomingDeductionDate } = params
@@ -1268,11 +1268,11 @@ export async function getInstallmentsForQueue(params: {
 	}
 
 	// deductions: earliest installment where HR has not yet confirmed
-	// payments: earliest installment still awaiting Payments receipt (HR may or may not have confirmed yet)
+	// installments: earliest installment still awaiting installment confirmation on the Instalaciones side (RH may or may not have confirmed yet)
 	const statusCondition: SQL =
 		queue === 'deductions'
 			? sql`cp.hr_confirmed_at IS NULL`
-			: sql`cp.payments_confirmed_at IS NULL`
+			: sql`cp.installment_confirmed_at IS NULL`
 
 	// When an upcoming deduction date is provided (deductions queue with company
 	// selected), filter to installments that fall within the current pay period
@@ -1290,6 +1290,17 @@ export async function getInstallmentsForQueue(params: {
 				)`
 			: sql``
 
+	const installmentsExcludeOverdue: SQL =
+		queue === 'installments'
+			? sql`AND NOT (
+				(cp.due_date)::date < CURRENT_DATE
+				AND (
+					cp.hr_confirmed_at IS NULL
+					OR cp.installment_confirmed_at IS NULL
+				)
+			)`
+			: sql``
+
 	// DISTINCT ON (credit_id) returns one row per credit — the earliest due date
 	// that still needs action. The ORDER BY must begin with the DISTINCT ON column.
 	const rows = await db.execute(sql`
@@ -1299,7 +1310,7 @@ export async function getInstallmentsForQueue(params: {
 			cp.due_date,
 			cp.amount,
 			cp.hr_confirmed_at,
-			cp.payments_confirmed_at,
+			cp.installment_confirmed_at,
 			u.name AS employee_name,
 			a.payroll_number,
 			co.name AS company_name,
@@ -1310,7 +1321,7 @@ export async function getInstallmentsForQueue(params: {
 		INNER JOIN applications a ON cr.application_id = a.id
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
-		WHERE ${companyCondition} AND ${statusCondition} ${dateCondition}
+		WHERE ${companyCondition} AND ${statusCondition} ${dateCondition} ${installmentsExcludeOverdue}
 		ORDER BY cp.credit_id, cp.due_date ASC
 	`)
 
@@ -1340,11 +1351,11 @@ export async function getInstallmentsForQueue(params: {
 					: r.hr_confirmed_at != null
 						? String(r.hr_confirmed_at)
 						: null,
-			paymentsConfirmedAt:
-				r.payments_confirmed_at instanceof Date
-					? r.payments_confirmed_at.toISOString()
-					: r.payments_confirmed_at != null
-						? String(r.payments_confirmed_at)
+			installmentConfirmedAt:
+				r.installment_confirmed_at instanceof Date
+					? r.installment_confirmed_at.toISOString()
+					: r.installment_confirmed_at != null
+						? String(r.installment_confirmed_at)
 						: null,
 			employeeName: String(r.employee_name),
 			payrollNumber: r.payroll_number != null ? String(r.payroll_number) : null,
@@ -1352,6 +1363,105 @@ export async function getInstallmentsForQueue(params: {
 			companyId: Number(r.company_id),
 			employeeSalaryFrequency,
 			nextDeductionDate,
+		}
+	})
+}
+
+export type OverdueInstallment = InstallmentForQueue & {
+	blockingParty: 'hr' | 'installments'
+}
+
+export async function getOverdueInstallments(params: {
+	scope: CompanyScope
+}): Promise<OverdueInstallment[]> {
+	const { scope } = params
+	const { ability } = await getAbility()
+
+	let companyCondition: SQL
+	if (scope.type === 'single') {
+		requireAbility(ability, 'read', subject('Company', { id: scope.companyId }))
+		companyCondition = sql`a.company_id = ${scope.companyId}`
+	} else if (scope.type === 'multi') {
+		if (scope.companyIds.length === 0) return []
+		const firstId = scope.companyIds[0]
+		if (firstId === undefined) return []
+		requireAbility(ability, 'read', subject('Company', { id: firstId }))
+		companyCondition = sql`a.company_id = ANY(${scope.companyIds})`
+	} else {
+		requireAbility(ability, 'read', 'Admin')
+		companyCondition = sql`1=1`
+	}
+
+	const rows = await db.execute(sql`
+		SELECT
+			cp.id,
+			cp.credit_id,
+			cp.due_date,
+			cp.amount,
+			cp.hr_confirmed_at,
+			cp.installment_confirmed_at,
+			u.name AS employee_name,
+			a.payroll_number,
+			co.name AS company_name,
+			a.company_id,
+			co.employee_salary_frequency AS company_salary_frequency,
+			CASE WHEN cp.hr_confirmed_at IS NULL THEN 'hr' ELSE 'installments' END AS blocking_party
+		FROM credit_payments cp
+		INNER JOIN credits cr ON cp.credit_id = cr.id
+		INNER JOIN applications a ON cr.application_id = a.id
+		INNER JOIN users u ON a.applicant_id = u.id
+		INNER JOIN companies co ON a.company_id = co.id
+		WHERE ${companyCondition}
+		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND (
+				cp.hr_confirmed_at IS NULL
+				OR cp.installment_confirmed_at IS NULL
+			)
+		ORDER BY cp.due_date ASC, cp.id ASC
+	`)
+
+	const today = new Date()
+	return rows.rows.map((row) => {
+		const r = row
+		const employeeSalaryFrequency = employeeSalaryFrequencyFromDb(
+			r.company_salary_frequency,
+		)
+		const nextDeductionDate = getUpcomingDeductionDate(
+			employeeSalaryFrequency,
+			today,
+		)
+			.toISOString()
+			.slice(0, 10)
+		const blockingRaw = String(r.blocking_party)
+		const blockingParty: 'hr' | 'installments' =
+			blockingRaw === 'hr' ? 'hr' : 'installments'
+		return {
+			id: Number(r.id),
+			creditId: Number(r.credit_id),
+			dueDate:
+				r.due_date instanceof Date
+					? r.due_date.toISOString()
+					: String(r.due_date),
+			amount: String(r.amount),
+			hrConfirmedAt:
+				r.hr_confirmed_at instanceof Date
+					? r.hr_confirmed_at.toISOString()
+					: r.hr_confirmed_at != null
+						? String(r.hr_confirmed_at)
+						: null,
+			installmentConfirmedAt:
+				r.installment_confirmed_at instanceof Date
+					? r.installment_confirmed_at.toISOString()
+					: r.installment_confirmed_at != null
+						? String(r.installment_confirmed_at)
+						: null,
+			employeeName: String(r.employee_name),
+			payrollNumber: r.payroll_number != null ? String(r.payroll_number) : null,
+			companyName: String(r.company_name),
+			companyId: Number(r.company_id),
+			employeeSalaryFrequency,
+			nextDeductionDate,
+			blockingParty,
 		}
 	})
 }
@@ -1518,6 +1628,25 @@ export async function getOverdueDeductionsCount(
 		WHERE a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
 		  AND cp.due_date < CURRENT_DATE
+	`)
+	const row = result.rows[0]
+	return row ? Number(row.count) : 0
+}
+
+export async function getOverdueInstallmentsCount(
+	companyId: number,
+): Promise<number> {
+	const result = await db.execute(sql`
+		SELECT COUNT(*)::int AS count
+		FROM credit_payments cp
+		INNER JOIN credits cr ON cp.credit_id = cr.id
+		INNER JOIN applications a ON cr.application_id = a.id
+		WHERE a.company_id = ${companyId}
+		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND (
+				cp.hr_confirmed_at IS NULL
+				OR cp.installment_confirmed_at IS NULL
+			)
 	`)
 	const row = result.rows[0]
 	return row ? Number(row.count) : 0
@@ -1706,23 +1835,23 @@ export async function getDeductionConfirmationHistory(
 	})
 }
 
-// ---- Payment receipt confirmation history ----
+// ---- Installment confirmation history (installments role) ----
 
-export type PaymentReceiptConfirmationHistoryItem = {
+export type InstallmentConfirmationHistoryItem = {
 	id: number
 	amount: string
 	dueDate: string
-	paymentsConfirmedAt: string
+	installmentConfirmedAt: string
 	confirmedOnTime: boolean
 	applicationId: number
 	employeeName: string
 	confirmedByUser: { id: number; name: string | null; email: string } | null
 }
 
-export async function getPaymentReceiptConfirmationHistory(
+export async function getInstallmentConfirmationHistory(
 	scope: CompanyScope,
 	limit?: number,
-): Promise<PaymentReceiptConfirmationHistoryItem[]> {
+): Promise<InstallmentConfirmationHistoryItem[]> {
 	const { ability } = await getAbility()
 
 	let companyCondition: SQL
@@ -1747,8 +1876,8 @@ export async function getPaymentReceiptConfirmationHistory(
 			cp.id,
 			cp.amount,
 			cp.due_date,
-			cp.payments_confirmed_at,
-			cp.payments_confirmed_at <= cp.due_date AS confirmed_on_time,
+			cp.installment_confirmed_at,
+			cp.installment_confirmed_at <= cp.due_date AS confirmed_on_time,
 			a.id AS application_id,
 			u_employee.name AS employee_name,
 			u_confirmer.id AS confirmer_id,
@@ -1758,25 +1887,25 @@ export async function getPaymentReceiptConfirmationHistory(
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
 		INNER JOIN users u_employee ON a.applicant_id = u_employee.id
-		LEFT JOIN users u_confirmer ON cp.payments_confirmed_by_user_id = u_confirmer.id
-		WHERE cp.payments_confirmed_at IS NOT NULL AND ${companyCondition}
-		ORDER BY cp.payments_confirmed_at DESC, cp.id DESC
+		LEFT JOIN users u_confirmer ON cp.installment_confirmed_by_user_id = u_confirmer.id
+		WHERE cp.installment_confirmed_at IS NOT NULL AND ${companyCondition}
+		ORDER BY cp.installment_confirmed_at DESC, cp.id DESC
 		${limitClause}
 	`)
 
 	return rows.rows.map((row) => {
 		const r = row
-		const paymentsConfirmedAt =
-			r.payments_confirmed_at instanceof Date
-				? r.payments_confirmed_at.toISOString()
-				: String(r.payments_confirmed_at)
+		const installmentConfirmedAt =
+			r.installment_confirmed_at instanceof Date
+				? r.installment_confirmed_at.toISOString()
+				: String(r.installment_confirmed_at)
 		const dueDate =
 			r.due_date instanceof Date ? r.due_date.toISOString() : String(r.due_date)
 		return {
 			id: Number(r.id),
 			amount: String(r.amount),
 			dueDate,
-			paymentsConfirmedAt,
+			installmentConfirmedAt,
 			confirmedOnTime: Boolean(r.confirmed_on_time),
 			applicationId: Number(r.application_id),
 			employeeName: String(r.employee_name),
