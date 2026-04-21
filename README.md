@@ -83,7 +83,8 @@ Configure these **repository secrets** (testing environment):
 
 | Secret | Purpose |
 |--------|---------|
-| `SORRY_CYPRESS_DIRECTOR_URL` | Director base URL (passed as `CYPRESS_API_URL`, include trailing slash if your Director expects it) |
+| `CURRENTS_API_URL` | Director base URL (preferred; passed to `cy2` as `CYPRESS_API_URL`) |
+| `SORRY_CYPRESS_DIRECTOR_URL` | Fallback if `CURRENTS_API_URL` is unset (same value) |
 | `CYPRESS_RECORD_KEY` | Record key (must match Director `ALLOWED_KEYS` if keys are restricted) |
 
 `projectId` in `cypress.config.ts` (`qv8a5k`) is what Sorry Cypress uses for the dashboard.

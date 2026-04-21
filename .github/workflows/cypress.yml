@@ -91,7 +91,7 @@ jobs:
         env:
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
-          CYPRESS_API_URL: ${{ secrets.SORRY_CYPRESS_DIRECTOR_URL }}
+          CYPRESS_API_URL: ${{ secrets.CURRENTS_API_URL || secrets.SORRY_CYPRESS_DIRECTOR_URL }}
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_NO_WARNINGS: 1
