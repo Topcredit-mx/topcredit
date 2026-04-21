@@ -26,6 +26,44 @@ describe('Installments overdue page', () => {
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 
+		it('shows three installments overview cards above the overdue table', () => {
+			cy.visit('/equipo/installments/overdue')
+			cy.contains('h2', /resumen de instalaciones/i).should('be.visible')
+			cy.contains(/total cobrado \(7 días\)/i).should('be.visible')
+			cy.contains(/instalaciones cobradas \(7 días\)/i).should('be.visible')
+			cy.contains(/antigüedad de la instalación pendiente más antigua/i).should(
+				'be.visible',
+			)
+			cy.get('table').should('be.visible')
+			cy.contains('h2', /resumen de instalaciones/i).then(($h) => {
+				cy.get('table').then(($table) => {
+					const headingBottom = $h[0]?.getBoundingClientRect().bottom ?? 0
+					const tableTop = $table[0]?.getBoundingClientRect().top ?? 0
+					expect(headingBottom).to.be.at.most(tableTop + 2)
+				})
+			})
+		})
+
+		it('shows weekly comparison labels on the overdue page overview cards', () => {
+			cy.visit('/equipo/installments/overdue')
+			cy.get('main').within(() => {
+				cy.contains(/total cobrado \(7 días\)/i)
+					.closest('[data-slot="card"]')
+					.within(() => {
+						cy.contains(/vs semana anterior/i).should('be.visible')
+					})
+			})
+		})
+
+		it('shows oldest pending age in days when overdue rows exist', () => {
+			cy.visit('/equipo/installments/overdue')
+			cy.contains(/antigüedad de la instalación pendiente más antigua/i)
+				.closest('[data-slot="card"]')
+				.within(() => {
+					cy.contains(/\d+ días/i).should('be.visible')
+				})
+		})
+
 		it('shows overdue rows with amount, overdue start, and who is blocking', () => {
 			cy.visit('/equipo/installments/overdue')
 			cy.contains('h1', /instalaciones atrasadas/i).should('be.visible')

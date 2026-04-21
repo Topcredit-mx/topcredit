@@ -9,12 +9,16 @@ import {
 	getCompanyById,
 	getInstallmentConfirmationHistory,
 	getInstallmentsForQueue,
+	getOldestPendingPaymentAgeDays,
+	getPaymentsCollectedAmountSummary,
+	getPaymentsCollectedCountSummary,
 } from '~/server/queries'
 import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
 import { InstallmentHistoryPreview } from './installment-history-preview'
+import { InstallmentsOverview } from './installments-overview'
 import { InstallmentsQueueTable } from './installments-queue-table'
 
 export default async function InstallmentsPage() {
@@ -70,16 +74,33 @@ export default async function InstallmentsPage() {
 		? nextDeductionDate.toISOString().slice(0, 10)
 		: undefined
 
-	const [installments, historyItems] = await Promise.all([
+	const [
+		installments,
+		historyItems,
+		collectedAmount,
+		collectedCount,
+		oldestPending,
+	] = await Promise.all([
 		getInstallmentsForQueue({
 			scope,
 			queue: 'installments',
 		}),
 		getInstallmentConfirmationHistory(scope, 10),
+		getPaymentsCollectedAmountSummary(scope),
+		getPaymentsCollectedCountSummary(scope),
+		getOldestPendingPaymentAgeDays(scope, 'installments-queue'),
 	])
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
+			<InstallmentsOverview
+				totalCollectedAmount={collectedAmount.totalAmount}
+				amountChangePercent={collectedAmount.changePercent}
+				collectedInstallmentsCount={collectedCount.totalPayments}
+				countChangePercent={collectedCount.changePercent}
+				oldestPendingDays={oldestPending.oldestPendingDays}
+				pendingAgeApplicable
+			/>
 			{installments.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">{t('installments-empty')}</p>

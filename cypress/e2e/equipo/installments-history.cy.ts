@@ -121,6 +121,41 @@ describe('Installments confirmation history', () => {
 			cy.contains(seed.applicant1Name).should('be.visible')
 			cy.contains(seed.applicant2Name).should('be.visible')
 		})
+
+		it('shows three installments overview cards on the full history page', () => {
+			cy.visit('/equipo/installments/history')
+			cy.contains('h2', /resumen de instalaciones/i).should('be.visible')
+			cy.contains(/total cobrado \(7 días\)/i).should('be.visible')
+			cy.contains(/instalaciones cobradas \(7 días\)/i).should('be.visible')
+			cy.contains(/antigüedad de la instalación pendiente más antigua/i).should(
+				'be.visible',
+			)
+		})
+
+		it('shows weekly comparison on collected metrics on the full history page', () => {
+			cy.visit('/equipo/installments/history')
+			cy.get('main').within(() => {
+				cy.contains(/total cobrado \(7 días\)/i)
+					.closest('[data-slot="card"]')
+					.within(() => {
+						cy.contains(/vs semana anterior/i).should('be.visible')
+					})
+				cy.contains(/instalaciones cobradas \(7 días\)/i)
+					.closest('[data-slot="card"]')
+					.within(() => {
+						cy.contains(/vs semana anterior/i).should('be.visible')
+					})
+			})
+		})
+
+		it('shows an em dash for oldest pending on the history-only screen', () => {
+			cy.visit('/equipo/installments/history')
+			cy.contains(/antigüedad de la instalación pendiente más antigua/i)
+				.closest('[data-slot="card"]')
+				.within(() => {
+					cy.contains('—').should('be.visible')
+				})
+		})
 	})
 
 	describe('Agent without installments role cannot access installments history', () => {
