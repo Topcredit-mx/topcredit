@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        containers: [1]
+        containers: [1, 2, 3, 4]
     # BLOB_READ_WRITE_TOKEN is required for application document upload E2E tests; the suite will fail without it.
     env:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
@@ -80,17 +80,22 @@ jobs:
       - name: Wait for app
         run: pnpm dlx wait-on http://localhost:3000 --timeout 120000 --strict
 
-      - name: Cypress run
-        uses: cypress-io/github-action@v7
-        with:
-          browser: electron
-          record: true
-          parallel: true
-          group: 'Electron'
+      - name: Cypress run (Sorry Cypress via cypress-cloud)
+        run: |
+          pnpm exec cypress-cloud \
+            --browser electron \
+            --parallel \
+            --record \
+            --cloud-config-file currents.config.cjs \
+            --group e2e \
+            --ci-build-id "${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --key "${CURRENTS_RECORD_KEY}"
         env:
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          CURRENTS_API_URL: ${{ secrets.SORRY_CYPRESS_DIRECTOR_URL }}
+          CURRENTS_RECORD_KEY: ${{ secrets.CURRENTS_RECORD_KEY }}
+          CURRENTS_PROJECT_ID: qv8a5k
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_NO_WARNINGS: 1
           TERM: xterm
