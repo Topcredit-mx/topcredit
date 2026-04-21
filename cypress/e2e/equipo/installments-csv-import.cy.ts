@@ -65,7 +65,7 @@ describe('Installments queue CSV import', () => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'recepciones.csv',
+					fileName: 'instalaciones.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
@@ -98,14 +98,14 @@ describe('Installments queue CSV import', () => {
 
 		const csvContent = [
 			'payroll_number,amount,date',
-			'PAYMENTS002,not-a-number,2026-01-31',
+			'INST002,not-a-number,2026-01-31',
 		].join('\n')
 
 		cy.get('[role="dialog"]').within(() => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'recepciones-error.csv',
+					fileName: 'instalaciones-error.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
@@ -122,7 +122,7 @@ describe('Installments queue CSV import', () => {
 			cy.get('table tbody tr')
 				.first()
 				.within(() => {
-					cy.contains('PAYMENTS002').should('exist')
+					cy.contains('INST002').should('exist')
 					cy.contains('not-a-number').should('exist')
 				})
 		})
@@ -146,7 +146,7 @@ describe('Installments queue CSV import', () => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'recepciones-nomatch.csv',
+					fileName: 'instalaciones-nomatch.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
@@ -167,7 +167,7 @@ describe('Installments queue CSV import', () => {
 		})
 	})
 
-	it('shows warning when CSV row is already receipt-confirmed', () => {
+	it('shows warning when CSV row is already installment-confirmed', () => {
 		cy.visit('/equipo/installments')
 		cy.get('table').should('be.visible')
 
@@ -187,7 +187,7 @@ describe('Installments queue CSV import', () => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'recepciones-dup.csv',
+					fileName: 'instalaciones-dup.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
@@ -224,7 +224,7 @@ describe('Installments queue CSV import', () => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'recepciones-sin-rh.csv',
+					fileName: 'instalaciones-sin-rh.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
@@ -262,7 +262,7 @@ describe('Installments queue CSV import', () => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'recepciones-mixed.csv',
+					fileName: 'instalaciones-mixed.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },
@@ -309,7 +309,7 @@ describe('Installments queue CSV import', () => {
 			cy.get('input[type="file"]').selectFile(
 				{
 					contents: Cypress.Buffer.from(csvContent),
-					fileName: 'recepciones-all-three.csv',
+					fileName: 'instalaciones-all-three.csv',
 					mimeType: 'text/csv',
 				},
 				{ force: true },

@@ -1,29 +1,29 @@
-import type { SeedCreditDetailCollectionReceiptResult } from '~/cypress/tasks'
+import type { SeedCreditDetailInstallmentScheduleResult } from '~/cypress/tasks'
 import {
-	creditDetailCollectionHrOnlyAgent,
-	creditDetailCollectionInstallmentsAgent,
-} from './credit-detail-collection.fixtures'
+	creditDetailHrOnlyAgent,
+	creditDetailInstallmentsAgent,
+} from './credit-detail-installment-schedule.fixtures'
 
 describe('Credit detail — confirm installment from schedule', () => {
-	let seed: SeedCreditDetailCollectionReceiptResult
+	let seed: SeedCreditDetailInstallmentScheduleResult
 
 	before(() => {
-		cy.task('cleanupCreditDetailCollectionReceipt')
-		cy.task<SeedCreditDetailCollectionReceiptResult>(
-			'seedCreditDetailCollectionReceipt',
+		cy.task('cleanupCreditDetailInstallmentSchedule')
+		cy.task<SeedCreditDetailInstallmentScheduleResult>(
+			'seedCreditDetailInstallmentSchedule',
 		).then((result) => {
 			seed = result
 		})
 	})
 
 	after(() => {
-		cy.task('cleanupCreditDetailCollectionReceipt')
+		cy.task('cleanupCreditDetailInstallmentSchedule')
 	})
 
 	describe('Installments agent with company selected', () => {
 		beforeEach(() => {
 			cy.clock(new Date('2023-01-05').getTime())
-			cy.login(creditDetailCollectionInstallmentsAgent.email)
+			cy.login(creditDetailInstallmentsAgent.email)
 			cy.then(() => {
 				cy.setCookie('selected_company_id', String(seed.companyId))
 			})
@@ -91,7 +91,7 @@ describe('Credit detail — confirm installment from schedule', () => {
 	describe('HR-only agent cannot confirm installment from credit detail', () => {
 		beforeEach(() => {
 			cy.clock(new Date('2023-01-05').getTime())
-			cy.login(creditDetailCollectionHrOnlyAgent.email)
+			cy.login(creditDetailHrOnlyAgent.email)
 			cy.then(() => {
 				cy.setCookie('selected_company_id', String(seed.companyId))
 			})

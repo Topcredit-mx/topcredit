@@ -25,13 +25,13 @@ describe('Installments queue', () => {
 		cy.task('cleanupInstallmentsQueue')
 	})
 
-	describe('Payments agent views installments queue', () => {
+	describe('Installments agent views installments queue', () => {
 		beforeEach(() => {
 			cy.login(installmentAgentQueue.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
 		})
 
-		it('shows payments queue page with table', () => {
+		it('shows installments queue page with table', () => {
 			cy.visit('/equipo/installments')
 			cy.get('main').should('be.visible')
 			cy.get('table').should('be.visible')
@@ -120,12 +120,12 @@ describe('Installments queue', () => {
 			cy.get(
 				'[aria-labelledby="installments-history-preview-heading"] ol li',
 			).should('have.length', 2)
-			cy.contains('tr', 'PAYMENTS002')
+			cy.contains('tr', 'INST002')
 				.scrollIntoView()
 				.within(() => {
 					cy.get('button[role="checkbox"]').should('not.be.disabled').click()
 				})
-			cy.contains('tr', 'PAYMENTS003')
+			cy.contains('tr', 'INST003')
 				.scrollIntoView()
 				.within(() => {
 					cy.get('button[role="checkbox"]').should('not.be.disabled').click()
@@ -143,7 +143,7 @@ describe('Installments queue', () => {
 		})
 	})
 
-	describe('Payments agent with no company selected', () => {
+	describe('Installments agent with no company selected', () => {
 		beforeEach(() => {
 			cy.login(installmentAgentQueue.email)
 			cy.clearCookie('selected_company_id')
@@ -223,7 +223,7 @@ describe('Installments queue', () => {
 		})
 	})
 
-	describe('Non-Payments agent cannot access installments queue', () => {
+	describe('Agent without installments role cannot access installments queue', () => {
 		beforeEach(() => {
 			cy.login(nonInstallmentsAgentQueue.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))

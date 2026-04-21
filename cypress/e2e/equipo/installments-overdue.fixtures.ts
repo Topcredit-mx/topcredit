@@ -1,44 +1,44 @@
 export const installmentsOverdueAgent = {
-	name: 'Payments Overdue Receipt Agent',
-	email: 'payments.overdue.receipt@paymentsoverduereceipt.com',
+	name: 'Installments Overdue Agent',
+	email: 'installments.overdue@installmentsoverdue.e2e',
 	roles: ['agent', 'installments'] as const,
 }
 
-export const hrOverdueReceiptAgent = {
-	name: 'HR Overdue Receipt Agent',
-	email: 'hr.overdue.receipt@paymentsoverduereceipt.com',
+export const hrOverdueInstallmentsAgent = {
+	name: 'HR Overdue Installments Agent',
+	email: 'hr.overdue@installmentsoverdue.e2e',
 	roles: ['agent', 'hr'] as const,
 }
 
 export const nonInstallmentsOverdueAgent = {
-	name: 'Authz Overdue Receipt Agent',
-	email: 'authz.overdue.receipt@paymentsoverduereceipt.com',
+	name: 'Authz Overdue Installments Agent',
+	email: 'authz.overdue@installmentsoverdue.e2e',
 	roles: ['agent', 'authorizations'] as const,
 }
 
-export const applicantOverdueReceipt = {
-	name: 'Applicant Overdue Receipt',
-	email: 'applicant.overdue.receipt@paymentsoverduereceipt.com',
+export const applicantOverdueInstallmentsBlocked = {
+	name: 'Applicant Overdue Installments Blocked',
+	email: 'applicant.overdue@installmentsoverdue.e2e',
 	roles: ['applicant'] as const,
 }
 
-export const applicantOverdueReceiptHrPending = {
+export const applicantOverdueHrPending = {
 	name: 'Applicant Overdue HR Pending',
-	email: 'applicant.overdue.hr@paymentsoverduereceipt.com',
+	email: 'applicant.overdue.hr@installmentsoverdue.e2e',
 	roles: ['applicant'] as const,
 }
 
 export const allInstallmentsOverdueUsers = [
 	installmentsOverdueAgent,
-	hrOverdueReceiptAgent,
+	hrOverdueInstallmentsAgent,
 	nonInstallmentsOverdueAgent,
-	applicantOverdueReceipt,
-	applicantOverdueReceiptHrPending,
+	applicantOverdueInstallmentsBlocked,
+	applicantOverdueHrPending,
 ]
 
 export const installmentsOverdueCompany = {
-	name: 'Payments Overdue Receipt E2E Company',
-	domain: 'paymentsoverduereceipt.com',
+	name: 'Installments Overdue E2E Company',
+	domain: 'installmentsoverdue.e2e',
 	rate: '0.0250',
 	employeeSalaryFrequency: 'monthly' as const,
 	active: true,

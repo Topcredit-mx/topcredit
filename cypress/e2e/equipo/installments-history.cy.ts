@@ -20,7 +20,7 @@ describe('Installments confirmation history', () => {
 		cy.task('cleanupInstallmentsQueue')
 	})
 
-	describe('Payments agent views installment history on the installments page', () => {
+	describe('Installments agent views installment history on the installments page', () => {
 		beforeEach(() => {
 			cy.login(installmentAgentQueue.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
@@ -90,10 +90,10 @@ describe('Installments confirmation history', () => {
 			cy.get('[aria-labelledby="installments-history-preview-heading"]').within(
 				() => {
 					cy.get(
-						`a[href="/equipo/applications/${seed.onTimeReceiptApplicationId}"]`,
+						`a[href="/equipo/applications/${seed.onTimeInstallmentApplicationId}"]`,
 					).should('be.visible')
 					cy.get(
-						`a[href="/equipo/applications/${seed.lateReceiptApplicationId}"]`,
+						`a[href="/equipo/applications/${seed.lateInstallmentApplicationId}"]`,
 					).should('be.visible')
 				},
 			)
@@ -107,7 +107,7 @@ describe('Installments confirmation history', () => {
 		})
 	})
 
-	describe('Payments agent views the full installments history page', () => {
+	describe('Installments agent views the full installments history page', () => {
 		beforeEach(() => {
 			cy.login(installmentAgentQueue.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
@@ -123,7 +123,7 @@ describe('Installments confirmation history', () => {
 		})
 	})
 
-	describe('Non-payments agent cannot access installments history', () => {
+	describe('Agent without installments role cannot access installments history', () => {
 		beforeEach(() => {
 			cy.login(nonInstallmentsAgentQueue.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))

@@ -20,7 +20,7 @@ describe('Installments overdue page', () => {
 		cy.task('cleanupInstallmentsOverdue')
 	})
 
-	describe('Payments agent uses the overdue installments page', () => {
+	describe('Installments agent uses the overdue installments page', () => {
 		beforeEach(() => {
 			cy.login(installmentsOverdueAgent.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
@@ -38,7 +38,7 @@ describe('Installments overdue page', () => {
 				cy.get('table thead').contains('th', label).scrollIntoView()
 				cy.get('table thead').contains('th', label).should('exist')
 			}
-			cy.contains('tr', seed.payrollPaymentsBlocked)
+			cy.contains('tr', seed.payrollInstallmentsBlocked)
 				.scrollIntoView()
 				.within(() => {
 					cy.root().contains('Pagos').should('exist')
@@ -53,7 +53,7 @@ describe('Installments overdue page', () => {
 		it('does not list overdue rows on the main installments queue', () => {
 			cy.visit('/equipo/installments')
 			cy.get('main').should('be.visible')
-			cy.contains(seed.applicantPaymentsBlockedName).should('not.exist')
+			cy.contains(seed.applicantInstallmentsBlockedName).should('not.exist')
 			cy.contains(seed.applicantHrBlockedName).should('not.exist')
 		})
 
@@ -78,11 +78,11 @@ describe('Installments overdue page', () => {
 				seed.totalOverdueRowCount - seed.installmentsBulkConfirmableCount,
 			)
 			cy.contains('tr', seed.payrollHrBlocked).should('be.visible')
-			cy.contains('tr', seed.payrollPaymentsBlocked).should('not.exist')
+			cy.contains('tr', seed.payrollInstallmentsBlocked).should('not.exist')
 		})
 	})
 
-	describe('Non-Payments agent cannot open the overdue installments page', () => {
+	describe('Agent without installments role cannot open the overdue installments page', () => {
 		beforeEach(() => {
 			cy.login(nonInstallmentsOverdueAgent.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))

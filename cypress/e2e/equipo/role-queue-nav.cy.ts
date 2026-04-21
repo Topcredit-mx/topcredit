@@ -142,7 +142,7 @@ describe('Role-based queue navigation', () => {
 		})
 	})
 
-	describe('Payments agent', () => {
+	describe('Installments agent', () => {
 		beforeEach(() => {
 			cy.login(installmentAgent.email)
 			cy.setCookie('selected_company_id', String(seed.companyId))
