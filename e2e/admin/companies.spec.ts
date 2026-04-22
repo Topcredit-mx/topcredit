@@ -208,7 +208,9 @@ test.describe('Admin Companies List', () => {
 			await expect(link).toBeVisible()
 			await expect(link).toHaveAttribute('href', '/equipo/companies/new')
 			await page.goto('/equipo/companies/new')
-			await expect(page.getByText(/crear empresa/i)).toBeVisible()
+			await expect(
+				page.getByRole('button', { name: /crear empresa/i }),
+			).toBeVisible()
 		})
 
 		test('creates a new company with all fields', async ({ page }) => {

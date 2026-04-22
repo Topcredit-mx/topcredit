@@ -29,6 +29,8 @@ registerDbSpecGuards()
 
 const SAMPLE_WEBP = join(process.cwd(), 'e2e/fixtures/sample-document.webp')
 
+const cuentaMain = (page: Page) => page.getByRole('main')
+
 function postToApplicationUrl(id: number): RegExp {
 	return new RegExp(`/cuenta/applications/${id}(?:/|$)`)
 }
@@ -82,9 +84,11 @@ test.describe('Cuenta applications', () => {
 				page.getByRole('heading', { name: /nueva solicitud de crédito/i }),
 			).toBeVisible()
 			await expect(
-				page.getByText(
-					/completa la información|información personal y financiera|salario|rfc|clabe/i,
-				),
+				cuentaMain(page)
+					.getByText(
+						/completa la información|información personal y financiera|salario|rfc|clabe/i,
+					)
+					.first(),
 			).toBeVisible()
 		})
 
@@ -106,7 +110,9 @@ test.describe('Cuenta applications', () => {
 				page.getByRole('heading', { name: /nueva solicitud de crédito/i }),
 			).toHaveCount(0)
 			await expect(
-				page.getByText(/solicitar ahora|preaprobado|puntuación crediticia/i),
+				page
+					.getByRole('link', { name: /solicitar ahora|preaprobado/i })
+					.first(),
 			).toBeVisible()
 		})
 	})
@@ -178,9 +184,11 @@ test.describe('Cuenta applications', () => {
 				page.getByRole('heading', { name: /nueva solicitud de crédito/i }),
 			).toBeVisible()
 			await expect(
-				page.getByText(
-					/completa la información|información personal y financiera|salario|rfc|clabe/i,
-				),
+				cuentaMain(page)
+					.getByText(
+						/completa la información|información personal y financiera|salario|rfc|clabe/i,
+					)
+					.first(),
 			).toBeVisible()
 		})
 	})
@@ -198,9 +206,11 @@ test.describe('Cuenta applications', () => {
 				page.getByRole('heading', { name: /nueva solicitud de crédito/i }),
 			).toBeVisible()
 			await expect(
-				page.getByText(
-					/completa la información|información personal y financiera|salario|rfc|clabe/i,
-				),
+				cuentaMain(page)
+					.getByText(
+						/completa la información|información personal y financiera|salario|rfc|clabe/i,
+					)
+					.first(),
 			).toBeVisible()
 		})
 	})
@@ -273,7 +283,9 @@ test.describe('Cuenta applications', () => {
 			await expect(
 				page.getByRole('heading', { name: /nueva solicitud de crédito/i }),
 			).toBeVisible()
-			await expect(page.getByText('El valor es requerido')).toBeVisible()
+			await expect(
+				cuentaMain(page).getByText('El valor es requerido').first(),
+			).toBeVisible()
 		})
 
 		test('submitting with invalid RFC date/check digit and CLABE checksum shows errors', async ({
@@ -302,9 +314,15 @@ test.describe('Cuenta applications', () => {
 			await expect(
 				page.getByRole('heading', { name: /nueva solicitud de crédito/i }),
 			).toBeVisible()
-			await expect(page.getByText(/RFC no es válido/i)).toBeVisible()
-			await expect(page.getByText(/CLABE no es válida/i)).toBeVisible()
-			await expect(page.getByText(/código postal.*5/i)).toBeVisible()
+			await expect(
+				cuentaMain(page).getByText(/RFC no es válido/i),
+			).toBeVisible()
+			await expect(
+				cuentaMain(page).getByText(/CLABE no es válida/i),
+			).toBeVisible()
+			await expect(
+				cuentaMain(page).getByText(/código postal.*5/i),
+			).toBeVisible()
 		})
 	})
 
@@ -321,7 +339,7 @@ test.describe('Cuenta applications', () => {
 			await loginPage(page, applicantB.email)
 			await page.goto('/cuenta/applications')
 			await expect(
-				page.getByText(
+				cuentaMain(page).getByText(
 					/no tienes solicitudes|no hay solicitudes|solicitudes de crédito/i,
 				),
 			).toBeVisible()
@@ -337,7 +355,9 @@ test.describe('Cuenta applications', () => {
 			await loginPage(page, applicantWithCompany.email)
 			await page.goto('/cuenta/applications')
 			await expect(
-				page.getByText(/no tienes solicitudes|no hay solicitudes|solicitudes/i),
+				cuentaMain(page)
+					.getByText(/no tienes solicitudes|no hay solicitudes|solicitudes/i)
+					.first(),
 			).toBeVisible()
 		})
 
@@ -368,13 +388,19 @@ test.describe('Cuenta applications', () => {
 				page.getByRole('heading', { name: /documentos requeridos/i, level: 2 }),
 			).toBeVisible()
 			await expect(
-				page.getByText(/Identificación oficial.*INE o pasaporte/i),
+				cuentaMain(page)
+					.getByText(/Identificación oficial.*INE o pasaporte/i)
+					.first(),
 			).toBeVisible()
 			await expect(
-				page.getByText(/Comprobante de domicilio.*no mayor a 3 meses/i),
+				cuentaMain(page)
+					.getByText(/Comprobante de domicilio.*no mayor a 3 meses/i)
+					.first(),
 			).toBeVisible()
 			await expect(
-				page.getByText(/Estado de cuenta bancario.*no mayor a 3 meses/i),
+				cuentaMain(page)
+					.getByText(/Estado de cuenta bancario.*no mayor a 3 meses/i)
+					.first(),
 			).toBeVisible()
 
 			await page.locator('input[name="salaryAtApplication"]').fill('100000')
@@ -413,9 +439,17 @@ test.describe('Cuenta applications', () => {
 			await expect(
 				page.getByRole('heading', { name: /mis solicitudes/i }),
 			).toBeVisible()
-			await expect(page.locator('main')).toBeVisible()
-			await expect(page.getByText(/nueva solicitud/i)).toBeVisible()
-			await expect(page.getByText(/por definir/i)).toBeVisible()
+			await expect(cuentaMain(page)).toBeVisible()
+			await expect(
+				cuentaMain(page)
+					.getByText(/nueva solicitud/i)
+					.first(),
+			).toBeVisible()
+			await expect(
+				cuentaMain(page)
+					.getByText(/por definir/i)
+					.first(),
+			).toBeVisible()
 		})
 
 		test('shows validation errors when required documents are missing', async ({
@@ -496,35 +530,42 @@ test.describe('Cuenta applications', () => {
 		test('shows applicant sidebar navigation on cuenta home', async ({
 			page,
 		}) => {
+			const nav = page.getByRole('navigation', {
+				name: 'Navegación principal del portal',
+			})
 			await page.goto('/cuenta')
+			await expect(nav).toBeVisible()
+			await expect(nav.locator('a[href="/cuenta"]')).toBeVisible()
 			await expect(
-				page.getByRole('navigation', {
-					name: 'Navegación principal del portal',
-				}),
+				nav.locator('a[href="/cuenta/applications/new"]'),
 			).toBeVisible()
-			await expect(page.locator('a[href="/cuenta"]')).toBeVisible()
-			await expect(
-				page.locator('a[href="/cuenta/applications/new"]'),
-			).toBeVisible()
-			await expect(page.locator('a[href="/cuenta/applications"]')).toBeVisible()
-			await expect(page.locator('a[href="/cuenta/credits"]')).toBeVisible()
-			await expect(page.locator('a[href="/cuenta/support"]')).toBeVisible()
+			await expect(nav.locator('a[href="/cuenta/applications"]')).toBeVisible()
+			await expect(nav.locator('a[href="/cuenta/credits"]')).toBeVisible()
+			await expect(nav.locator('a[href="/cuenta/support"]')).toBeVisible()
 		})
 
 		test('applicant can open Mis créditos placeholder page', async ({
 			page,
 		}) => {
 			await page.goto('/cuenta/credits')
-			await expect(page.getByText(/mis créditos/i)).toBeVisible()
 			await expect(
-				page.getByText(/sin créditos todavía|formalizado/i),
+				cuentaMain(page)
+					.getByText(/mis créditos/i)
+					.first(),
+			).toBeVisible()
+			await expect(
+				cuentaMain(page)
+					.getByText(/sin créditos todavía|formalizado/i)
+					.first(),
 			).toBeVisible()
 		})
 
 		test('applicant can open Soporte (chat preview UI)', async ({ page }) => {
 			await page.goto('/cuenta/support')
-			await expect(page.getByText(/asistente topcredit/i)).toBeVisible()
-			await expect(page.getByText(/preguntas frecuentes/i)).toBeVisible()
+			await expect(page.getByText(/asistente topcredit/i).first()).toBeVisible()
+			await expect(
+				page.getByText(/preguntas frecuentes/i).first(),
+			).toBeVisible()
 		})
 
 		test('Solicitar Ahora link targets new application page', async ({
@@ -540,9 +581,11 @@ test.describe('Cuenta applications', () => {
 				page.getByRole('heading', { name: /nueva solicitud de crédito/i }),
 			).toBeVisible()
 			await expect(
-				page.getByText(
-					/completa la información|información personal y financiera|salario|rfc|clabe/i,
-				),
+				cuentaMain(page)
+					.getByText(
+						/completa la información|información personal y financiera|salario|rfc|clabe/i,
+					)
+					.first(),
 			).toBeVisible()
 		})
 
@@ -566,8 +609,8 @@ test.describe('Cuenta applications', () => {
 			})
 			const detailPath = `/cuenta/applications/${app.id}`
 			await page.goto('/cuenta/applications')
-			await expect(page.locator('main')).toBeVisible()
-			const rowLink = page.locator(`a[href="${detailPath}"]`)
+			await expect(cuentaMain(page)).toBeVisible()
+			const rowLink = cuentaMain(page).locator(`a[href="${detailPath}"]`)
 			await rowLink.scrollIntoViewIfNeeded()
 			await expect(rowLink).toBeVisible()
 			await page.goto(detailPath)
@@ -703,16 +746,32 @@ test.describe('Cuenta applications', () => {
 					.locator('[role="status"]')
 					.filter({ hasText: /documentación inválida/i }),
 			).toBeVisible()
-			await expect(page.getByText(/documentación inválida/i)).toBeVisible()
+			await expect(
+				cuentaMain(page)
+					.getByText(/documentación inválida/i)
+					.first(),
+			).toBeVisible()
 
 			const historyHeading = page.getByRole('heading', {
 				name: /historial de estado/i,
 			})
 			await expect(historyHeading).toBeVisible()
 
-			await expect(page.getByText(/motivo de rechazo/i)).toBeVisible()
-			await expect(page.getByText(/firma incompleta/i)).toBeVisible()
-			await expect(page.getByText(/recibo ilegible/i)).toBeVisible()
+			await expect(
+				cuentaMain(page)
+					.getByText(/motivo de rechazo/i)
+					.first(),
+			).toBeVisible()
+			await expect(
+				cuentaMain(page)
+					.getByText(/firma incompleta/i)
+					.first(),
+			).toBeVisible()
+			await expect(
+				cuentaMain(page)
+					.getByText(/recibo ilegible/i)
+					.first(),
+			).toBeVisible()
 
 			const historySection = historyHeading.locator(
 				'xpath=ancestor::section[1]',
@@ -731,9 +790,19 @@ test.describe('Cuenta applications', () => {
 			await upload1
 
 			await page.goto(`/cuenta/applications/${app.id}`)
-			await expect(page.getByText(/documentación inválida/i)).toBeVisible()
-			await expect(page.getByText('auth-rejected.pdf')).toHaveCount(0)
-			await expect(page.getByText(/recibo ilegible/i)).toBeVisible()
+			await expect(
+				cuentaMain(page)
+					.getByText(/documentación inválida/i)
+					.first(),
+			).toBeVisible()
+			await expect(cuentaMain(page).getByText('auth-rejected.pdf')).toHaveCount(
+				0,
+			)
+			await expect(
+				cuentaMain(page)
+					.getByText(/recibo ilegible/i)
+					.first(),
+			).toBeVisible()
 
 			const upload2 = waitForPostToCuentaApplications(page)
 			await page
@@ -745,9 +814,14 @@ test.describe('Cuenta applications', () => {
 
 			await page.goto(`/cuenta/applications/${app.id}`)
 			await expect(
-				page.locator('[role="status"]').filter({ hasText: /pendiente/i }),
+				cuentaMain(page)
+					.locator('[role="status"]')
+					.filter({ hasText: /pendiente/i })
+					.first(),
 			).toBeVisible()
-			await expect(page.getByText(/motivo de rechazo:/i)).toHaveCount(0)
+			await expect(
+				cuentaMain(page).getByText(/motivo de rechazo:/i),
+			).toHaveCount(0)
 
 			const historyHeading2 = page.getByRole('heading', {
 				name: /historial de estado/i,
@@ -789,9 +863,17 @@ test.describe('Cuenta applications', () => {
 			await uploadPromise
 
 			await page.goto(`/cuenta/applications/${app.id}`)
-			await expect(page.getByText(/pendiente/i)).toBeVisible()
-			await expect(page.getByText('sample-document.webp')).toBeVisible()
-			await expect(page.getByText(/estado de cuenta bancario/i)).toBeVisible()
+			await expect(
+				cuentaMain(page)
+					.getByText(/pendiente/i)
+					.first(),
+			).toBeVisible()
+			await expect(
+				cuentaMain(page).getByText('sample-document.webp'),
+			).toBeVisible()
+			await expect(
+				cuentaMain(page).getByText(/estado de cuenta bancario/i),
+			).toBeVisible()
 
 			const href = await page
 				.locator('a[href*="/api/application-documents/"]')
@@ -949,7 +1031,11 @@ test.describe('Cuenta applications', () => {
 					.locator('[role="status"]')
 					.filter({ hasText: /en revisión de autorización/i }),
 			).toBeVisible()
-			await expect(page.getByText(/En revisión de autorización/i)).toBeVisible()
+			await expect(
+				cuentaMain(page)
+					.getByText(/En revisión de autorización/i)
+					.first(),
+			).toBeVisible()
 			await page.goto(`/cuenta/applications/${app.id}/pre-authorized`)
 			await expect(page.getByRole('button', { name: /^Enviar$/i })).toHaveCount(
 				0,
@@ -1191,7 +1277,10 @@ test.describe('Cuenta applications', () => {
 				page.getByRole('heading', { name: /resumen de tu solicitud/i }),
 			).toBeVisible()
 			await expect(
-				page.locator('[role="status"]').filter({ hasText: /dispersado/i }),
+				cuentaMain(page)
+					.locator('[role="status"]')
+					.filter({ hasText: /dispersado/i })
+					.first(),
 			).toBeVisible()
 			await expect(
 				page.getByRole('heading', {
@@ -1222,9 +1311,7 @@ test.describe('Cuenta applications', () => {
 			const res = await page.goto(`/cuenta/applications/${app.id}`)
 			expect(res?.status()).toBeGreaterThanOrEqual(400)
 			await expect(
-				page.getByText(
-					/404|not found|página no encontrada|could not be found/i,
-				),
+				page.getByRole('heading', { name: 'Página no encontrada' }),
 			).toBeVisible()
 		})
 
@@ -1233,16 +1320,12 @@ test.describe('Cuenta applications', () => {
 			const res0 = await page.goto('/cuenta/applications/0')
 			expect(res0?.status()).toBeGreaterThanOrEqual(400)
 			await expect(
-				page.getByText(
-					/404|not found|página no encontrada|could not be found/i,
-				),
+				page.getByRole('heading', { name: 'Página no encontrada' }),
 			).toBeVisible()
 			const resFoo = await page.goto('/cuenta/applications/foo')
 			expect(resFoo?.status()).toBeGreaterThanOrEqual(400)
 			await expect(
-				page.getByText(
-					/404|not found|página no encontrada|could not be found/i,
-				),
+				page.getByRole('heading', { name: 'Página no encontrada' }),
 			).toBeVisible()
 		})
 	})

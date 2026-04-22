@@ -61,7 +61,7 @@ test('shows TOTP / two-factor section', async ({ page }) => {
 	await loginPage(page, applicantUser.email)
 	await page.goto(applicantSettingsSecurity)
 	await expect(
-		page.getByText(/autenticación de dos factores|2FA|TOTP/i),
+		page.getByText('Autenticación de Dos Factores', { exact: true }),
 	).toBeVisible()
 })
 
@@ -92,7 +92,7 @@ test('shows unverified state and warning for unverified user', async ({
 	})
 	await loginPage(page, applicantUser.email)
 	await page.goto(applicantSettingsSecurity)
-	await expect(page.getByText('No verificado')).toBeVisible()
+	await expect(page.getByText('No verificado', { exact: true })).toBeVisible()
 	await expect(page.getByText('Acción requerida')).toBeVisible()
 })
 

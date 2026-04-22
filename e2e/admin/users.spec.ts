@@ -78,18 +78,24 @@ test.describe('Admin Users', () => {
 		})
 
 		test('displays users table with correct columns', async ({ page }) => {
-			await expect(page.locator('th', { hasText: /nombre/i })).toBeAttached()
-			await expect(page.locator('th', { hasText: /email/i })).toBeAttached()
+			const th = (rx: RegExp) =>
+				page.locator('table thead th').filter({ hasText: rx }).first()
+			await expect(th(/nombre/i)).toBeAttached()
+			await expect(th(/email/i)).toBeAttached()
+			await expect(th(/solicitudes/i)).toBeAttached()
 			await expect(
-				page.locator('th', { hasText: /solicitudes/i }),
+				page
+					.locator('table thead th')
+					.filter({ hasText: /^Preautorizaciones$/ })
+					.first(),
 			).toBeAttached()
 			await expect(
-				page.locator('th', { hasText: /preautorizaciones/i }),
+				page
+					.locator('table thead th')
+					.filter({ hasText: /^Autorizaciones$/ })
+					.first(),
 			).toBeAttached()
-			await expect(
-				page.locator('th', { hasText: /autorizaciones/i }),
-			).toBeAttached()
-			await expect(page.locator('th', { hasText: /admin/i })).toBeAttached()
+			await expect(th(/admin/i)).toBeAttached()
 			await expect(
 				page.locator('th', { hasText: /fecha de creación/i }),
 			).toBeAttached()
@@ -268,8 +274,9 @@ test.describe('Admin Users', () => {
 				.getByRole('button', { name: 'Sí, eliminar mi rol de admin' })
 				.click()
 
-			await expect(page.getByText('403')).toBeVisible()
-			await expect(page.getByText('No Autorizado')).toBeVisible()
+			await expect(
+				page.getByRole('heading', { name: '403 - No Autorizado' }),
+			).toBeVisible()
 
 			await assignRole({ email: adminUser.email, role: 'admin' })
 		})
@@ -369,7 +376,9 @@ test.describe('Admin Users', () => {
 
 			const dialog = page.getByRole('dialog')
 			for (const company of companyList) {
-				await expect(dialog.getByText(company.name)).toBeVisible()
+				await expect(
+					dialog.getByText(company.name, { exact: true }).first(),
+				).toBeVisible()
 			}
 		})
 
@@ -529,10 +538,19 @@ test.describe('Admin Users', () => {
 				companyDomain: companies.acme.domain,
 			})
 
-			await page.route('**/equipo/users**', (route) => route.abort())
-
 			await page.goto('/equipo/users')
 			await expect(page.locator('table')).toBeVisible()
+			const row = findTableRow(page, agentOnlyUser.name)
+			await expect(row.getByText(companies.acme.name)).toBeAttached()
+
+			// Server Actions: POST with Next-Action header. Avoid blocking RSC/GET fetches.
+			await page.route('**/*', (route) => {
+				const r = route.request()
+				if (r.method() !== 'POST' || r.headerValue('next-action') == null) {
+					return route.continue()
+				}
+				return route.abort()
+			})
 
 			await openCompanyAssignmentsDialog(page)
 
@@ -545,8 +563,11 @@ test.describe('Admin Users', () => {
 				page.locator('[data-sonner-toast][data-type="error"]'),
 			).toBeAttached()
 
-			const row = findTableRow(page, agentOnlyUser.name)
-			await expect(row.getByText(companies.acme.name)).toBeAttached()
+			// Stale table row from before the dialog; reload to assert server state unchanged.
+			await page.reload()
+			await expect(page.locator('table')).toBeVisible()
+			const rowAfter = findTableRow(page, agentOnlyUser.name)
+			await expect(rowAfter.getByText(companies.acme.name)).toBeAttached()
 
 			await deleteUserCompanyAssignmentsByEmail([agentOnlyUser.email])
 		})

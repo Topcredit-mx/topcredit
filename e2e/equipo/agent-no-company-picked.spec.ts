@@ -22,8 +22,8 @@ test.describe('Agent with no company picked', () => {
 	})
 
 	test.beforeEach(async ({ page }) => {
-		await loginPage(page, agentEmail)
 		await page.context().clearCookies()
+		await loginPage(page, agentEmail)
 		await page.goto('/equipo')
 	})
 

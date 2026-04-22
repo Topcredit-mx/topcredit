@@ -181,7 +181,7 @@ test.describe('Email verification (cuenta / equipo)', () => {
 		})
 		await loginPage(page, applicantUser.email)
 		await page.goto('/cuenta')
-		await expect(page.getByRole('alert')).toBeVisible()
+		await expect(page.getByText(/Verifica tu correo en/i)).toBeVisible()
 	})
 
 	test('applicant cuenta: verified user does not see verification warning', async ({
@@ -195,7 +195,7 @@ test.describe('Email verification (cuenta / equipo)', () => {
 		})
 		await loginPage(page, applicantUser.email)
 		await page.goto('/cuenta')
-		await expect(page.getByRole('alert')).toHaveCount(0)
+		await expect(page.getByText(/Verifica tu correo en/i)).toHaveCount(0)
 	})
 
 	test('agent app: unverified user sees verification warning in sidebar', async ({
@@ -209,7 +209,7 @@ test.describe('Email verification (cuenta / equipo)', () => {
 		})
 		await loginPage(page, agentUser.email)
 		await page.goto('/equipo')
-		await expect(page.getByRole('alert')).toBeVisible()
+		await expect(page.getByText('Correo no verificado.')).toBeVisible()
 	})
 
 	test('agent app: verified user does not see verification warning', async ({
@@ -223,6 +223,6 @@ test.describe('Email verification (cuenta / equipo)', () => {
 		})
 		await loginPage(page, agentUser.email)
 		await page.goto('/equipo')
-		await expect(page.getByRole('alert')).toHaveCount(0)
+		await expect(page.getByText('Correo no verificado.')).toHaveCount(0)
 	})
 })

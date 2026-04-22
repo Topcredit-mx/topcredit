@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 import type { SeedCuentaCreditsResult } from '~/e2e/server/tasks'
 import {
 	cleanupCuentaCredits,
@@ -10,6 +10,8 @@ import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import { creditsApplicant, creditsOtherApplicant } from './credits.fixtures'
 
 registerDbSpecGuards()
+
+const cuentaContent = (page: Page) => page.getByRole('main')
 
 test.describe('Applicant views active credits', () => {
 	let seedResult: SeedCuentaCreditsResult
@@ -34,8 +36,14 @@ test.describe('Applicant views active credits', () => {
 		await expect(
 			page.getByRole('heading', { name: /mis créditos/i }),
 		).toBeVisible()
-		await expect(page.getByText('$50,000.00')).toBeVisible()
-		await expect(page.getByText(/dispersado/i)).toBeVisible()
+		await expect(
+			cuentaContent(page).getByText('$50,000.00').first(),
+		).toBeVisible()
+		await expect(
+			cuentaContent(page)
+				.getByText(/dispersado/i)
+				.first(),
+		).toBeVisible()
 	})
 
 	test('shows credit detail with amount, term, rate, and dates', async ({
@@ -57,18 +65,19 @@ test.describe('Applicant views active credits', () => {
 		await h1.scrollIntoViewIfNeeded()
 		await expect(h1).toBeVisible()
 
-		await expect(page.getByText('$50,000.00')).toBeVisible()
-		await expect(page.getByText('12 meses')).toBeVisible()
-		await expect(page.getByText('2.50%')).toBeVisible()
-		await expect(page.getByText(/dispersado/i)).toBeVisible()
-		await expect(page.getByText(/calendario de pagos/i)).toBeVisible()
+		const main = cuentaContent(page)
+		await expect(main.getByText('$50,000.00').first()).toBeVisible()
+		await expect(main.getByText('12 meses')).toBeVisible()
+		await expect(main.getByText('2.50%')).toBeVisible()
+		await expect(main.getByText(/dispersado/i).first()).toBeVisible()
+		await expect(main.getByText(/calendario de pagos/i)).toBeVisible()
 	})
 
 	test('shows 404 for non-existent credit', async ({ page }) => {
 		const res = await page.goto('/cuenta/credits/999999')
 		expect(res?.status()).toBeGreaterThanOrEqual(400)
 		await expect(
-			page.getByText(/404|not found|página no encontrada|could not be found/i),
+			page.getByRole('heading', { name: 'Página no encontrada' }),
 		).toBeVisible()
 	})
 
@@ -79,7 +88,7 @@ test.describe('Applicant views active credits', () => {
 		const res = await page.goto(`/cuenta/credits/${seedResult.creditId}`)
 		expect(res?.status()).toBeGreaterThanOrEqual(400)
 		await expect(
-			page.getByText(/404|not found|página no encontrada|could not be found/i),
+			page.getByRole('heading', { name: 'Página no encontrada' }),
 		).toBeVisible()
 	})
 

@@ -42,12 +42,16 @@ test.describe('HR deduction confirmation history', () => {
 
 		test('shows confirmed deductions in the history list', async ({ page }) => {
 			await page.goto('/equipo/deductions')
-			await expect(page.getByText(seed.confirmedApplicantName)).toBeVisible()
+			await expect(
+				page.getByRole('main').getByText(seed.confirmedApplicantName).first(),
+			).toBeVisible()
 		})
 
 		test('shows who confirmed each deduction', async ({ page }) => {
 			await page.goto('/equipo/deductions')
-			await expect(page.getByText(seed.confirmedByName)).toBeVisible()
+			await expect(
+				page.getByRole('main').getByText(seed.confirmedByName).first(),
+			).toBeVisible()
 		})
 
 		test('shows the on-time badge for a deduction confirmed before its due date', async ({
@@ -71,12 +75,14 @@ test.describe('HR deduction confirmation history', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/deductions')
-			const main = page.locator('main')
+			const main = page.getByRole('main')
 			const confirmedLi = main
 				.getByText(seed.confirmedApplicantName)
+				.first()
 				.locator('xpath=ancestor::li[1]')
 			const lateLi = main
 				.getByText(seed.lateConfirmedApplicantName)
+				.first()
 				.locator('xpath=ancestor::li[1]')
 			const confirmedIndex = await confirmedLi.evaluate((el: HTMLElement) => {
 				const li = el.closest('li')
@@ -136,9 +142,14 @@ test.describe('HR deduction confirmation history', () => {
 					.getByRole('navigation', { name: 'Breadcrumb' })
 					.getByText(/historial/i),
 			).toBeVisible()
-			await expect(page.getByText(seed.confirmedApplicantName)).toBeVisible()
 			await expect(
-				page.getByText(seed.lateConfirmedApplicantName),
+				page.getByRole('main').getByText(seed.confirmedApplicantName).first(),
+			).toBeVisible()
+			await expect(
+				page
+					.getByRole('main')
+					.getByText(seed.lateConfirmedApplicantName)
+					.first(),
 			).toBeVisible()
 		})
 

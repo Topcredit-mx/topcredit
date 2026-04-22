@@ -19,27 +19,32 @@ test.describe('Equipo admin overview', () => {
 	})
 
 	test.beforeEach(async ({ page }) => {
-		await loginPage(page, adminEmail)
 		await page.context().clearCookies()
+		await loginPage(page, adminEmail)
 		await page.goto('/equipo')
 	})
 
 	test('shows overview when admin has no company selected', async ({
 		page,
 	}) => {
-		await expect(page.getByText('Vista general')).toBeVisible()
+		await expect(
+			page.getByRole('main').getByText('Vista general').first(),
+		).toBeVisible()
 	})
 
 	test('shows aggregated data across all companies', async ({ page }) => {
-		await expect(page.getByText('Empresas')).toBeVisible()
-		await expect(page.getByText('Usuarios')).toBeVisible()
-		await expect(page.locator('main').locator('text=/[0-9]+/')).toBeVisible()
+		const main = page.getByRole('main')
+		await expect(main.getByText('Empresas').first()).toBeVisible()
+		await expect(main.getByText('Usuarios').first()).toBeVisible()
+		await expect(main.locator('text=/[0-9]+/').first()).toBeVisible()
 	})
 
 	test('overview is default for admin with no company selected', async ({
 		page,
 	}) => {
-		await expect(page.getByText('Vista general')).toBeVisible()
+		await expect(
+			page.getByRole('main').getByText('Vista general').first(),
+		).toBeVisible()
 		await expect(page.getByText('Selecciona una empresa')).toHaveCount(0)
 	})
 })

@@ -55,7 +55,7 @@ test.describe('Role-based queue navigation', () => {
 			page,
 		}) => {
 			const nav = navScope(page)
-			const link = nav.getByRole('link', { name: 'Solicitudes' })
+			const link = nav.getByRole('link', { name: 'Solicitudes', exact: true })
 			await expect(link).toBeVisible()
 			await expect(link).toHaveAttribute(
 				'href',
@@ -67,8 +67,12 @@ test.describe('Role-based queue navigation', () => {
 			page,
 		}) => {
 			const nav = navScope(page)
-			await expect(nav.getByText('Pre-autorizaciones')).toHaveCount(0)
-			await expect(nav.getByText('Autorizaciones')).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Pre-autorizaciones', exact: true }),
+			).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Autorizaciones', exact: true }),
+			).toHaveCount(0)
 		})
 	})
 
@@ -81,7 +85,10 @@ test.describe('Role-based queue navigation', () => {
 			page,
 		}) => {
 			const nav = navScope(page)
-			const link = nav.getByRole('link', { name: 'Pre-autorizaciones' })
+			const link = nav.getByRole('link', {
+				name: 'Pre-autorizaciones',
+				exact: true,
+			})
 			await expect(link).toBeVisible()
 			await expect(link).toHaveAttribute(
 				'href',
@@ -93,8 +100,12 @@ test.describe('Role-based queue navigation', () => {
 			page,
 		}) => {
 			const nav = navScope(page)
-			await expect(nav.getByText('Solicitudes')).toHaveCount(0)
-			await expect(nav.getByText('Autorizaciones')).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Solicitudes', exact: true }),
+			).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Autorizaciones', exact: true }),
+			).toHaveCount(0)
 		})
 	})
 
@@ -107,7 +118,10 @@ test.describe('Role-based queue navigation', () => {
 			page,
 		}) => {
 			const nav = navScope(page)
-			const link = nav.getByRole('link', { name: 'Autorizaciones' })
+			const link = nav.getByRole('link', {
+				name: 'Autorizaciones',
+				exact: true,
+			})
 			await expect(link).toBeVisible()
 			await expect(link).toHaveAttribute(
 				'href',
@@ -119,8 +133,12 @@ test.describe('Role-based queue navigation', () => {
 			page,
 		}) => {
 			const nav = navScope(page)
-			await expect(nav.getByText('Solicitudes')).toHaveCount(0)
-			await expect(nav.getByText('Pre-autorizaciones')).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Solicitudes', exact: true }),
+			).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Pre-autorizaciones', exact: true }),
+			).toHaveCount(0)
 		})
 	})
 
@@ -156,10 +174,14 @@ test.describe('Role-based queue navigation', () => {
 		}) => {
 			const nav = navScope(page)
 			await expect(
-				nav.locator('a').filter({ hasText: /^Solicitudes$/ }),
+				nav.getByRole('link', { name: 'Solicitudes', exact: true }),
 			).toHaveCount(0)
-			await expect(nav.getByText('Pre-autorizaciones')).toHaveCount(0)
-			await expect(nav.getByText('Autorizaciones')).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Pre-autorizaciones', exact: true }),
+			).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Autorizaciones', exact: true }),
+			).toHaveCount(0)
 		})
 	})
 
@@ -182,11 +204,21 @@ test.describe('Role-based queue navigation', () => {
 			page,
 		}) => {
 			const nav = navScope(page)
-			await expect(nav.getByText('Solicitudes RH')).toHaveCount(0)
-			await expect(nav.getByText('Deducciones')).toHaveCount(0)
-			await expect(nav.getByText('Solicitudes')).toHaveCount(0)
-			await expect(nav.getByText('Pre-autorizaciones')).toHaveCount(0)
-			await expect(nav.getByText('Autorizaciones')).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Solicitudes RH' }),
+			).toHaveCount(0)
+			await expect(nav.getByRole('link', { name: 'Deducciones' })).toHaveCount(
+				0,
+			)
+			await expect(
+				nav.getByRole('link', { name: 'Solicitudes', exact: true }),
+			).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Pre-autorizaciones', exact: true }),
+			).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Autorizaciones', exact: true }),
+			).toHaveCount(0)
 		})
 	})
 
@@ -199,13 +231,16 @@ test.describe('Role-based queue navigation', () => {
 			page,
 		}) => {
 			const nav = navScope(page)
-			const sol = nav.getByRole('link', { name: 'Solicitudes' })
+			const sol = nav.getByRole('link', { name: 'Solicitudes', exact: true })
 			await expect(sol).toBeVisible()
 			await expect(sol).toHaveAttribute(
 				'href',
 				'/equipo/applications?status=pending',
 			)
-			const authz = nav.getByRole('link', { name: 'Autorizaciones' })
+			const authz = nav.getByRole('link', {
+				name: 'Autorizaciones',
+				exact: true,
+			})
 			await expect(authz).toBeVisible()
 			await expect(authz).toHaveAttribute(
 				'href',
@@ -215,7 +250,9 @@ test.describe('Role-based queue navigation', () => {
 
 		test('does not see Pre-autorizaciones nav link', async ({ page }) => {
 			const nav = navScope(page)
-			await expect(nav.getByText('Pre-autorizaciones')).toHaveCount(0)
+			await expect(
+				nav.getByRole('link', { name: 'Pre-autorizaciones', exact: true }),
+			).toHaveCount(0)
 		})
 	})
 })

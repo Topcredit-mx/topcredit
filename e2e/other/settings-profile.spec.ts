@@ -47,7 +47,9 @@ test('shows profile content when authenticated (applicant shell)', async ({
 		page.locator('p', { hasText: applicantUser.email }),
 	).toBeVisible()
 	await expect(page.getByText('Roles asignados')).toBeVisible()
-	await expect(page.getByText('Solicitante')).toBeVisible()
+	await expect(
+		page.getByText('Solicitante', { exact: true }).first(),
+	).toBeVisible()
 })
 
 test('shows user name on profile', async ({ page }) => {

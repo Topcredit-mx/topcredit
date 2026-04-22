@@ -16,9 +16,19 @@ export async function selectRadix(
 			.first()
 			.click()
 	} else {
-		const label = page.locator('label', {
-			hasText: new RegExp(labelText, 'i'),
-		})
+		const main = page.getByRole('main')
+		const label =
+			(await main.count()) > 0
+				? main
+						.locator('label', {
+							hasText: new RegExp(labelText, 'i'),
+						})
+						.first()
+				: page
+						.locator('label', {
+							hasText: new RegExp(labelText, 'i'),
+						})
+						.first()
 		const htmlFor = await label.getAttribute('for')
 		if (!htmlFor) {
 			throw new Error('label must have htmlFor')

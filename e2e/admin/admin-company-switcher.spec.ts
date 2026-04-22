@@ -22,8 +22,8 @@ test.describe('Admin company switcher', () => {
 	})
 
 	test.beforeEach(async ({ page }) => {
-		await loginPage(page, adminEmail)
 		await page.context().clearCookies()
+		await loginPage(page, adminEmail)
 		await page.goto('/equipo')
 	})
 
@@ -89,7 +89,9 @@ test.describe('Admin company switcher', () => {
 		await expect(page.locator('#company-switcher-trigger')).toContainText(
 			'Vista general',
 		)
-		await expect(page.getByText('Vista general')).toBeVisible()
-		await expect(page.locator('main').getByText('Empresas')).toBeVisible()
+		await expect(
+			page.getByRole('main').getByText('Vista general').first(),
+		).toBeVisible()
+		await expect(page.getByRole('main').getByText('Empresas')).toBeVisible()
 	})
 })
