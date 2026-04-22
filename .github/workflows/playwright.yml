@@ -1,0 +1,193 @@
+name: Playwright Tests
+
+'on':
+  push:
+
+# Test job: read. Deploy job: needs Pages + OIDC.
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+  id-token: write
+  pages: write
+
+concurrency:
+  group: playwright-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: testing
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+      PW_WORKERS: 2
+      PW_BLOB_REPORT: "true"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Extract short commit hash
+        id: short-sha
+        run: echo "short_sha=$(echo "$GITHUB_SHA" | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      - name: Create Neon branch (one per Playwright shard)
+        id: create-branch
+        uses: neondatabase/create-branch-action@v6.3.0
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: test-${{ steps.short-sha.outputs.short_sha }}-${{ matrix.shard }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch_type: schema-only
+
+      - name: Generate E2E OTP code
+        id: e2e-otp
+        run: echo "code=$(shuf -i 100000-999999 -n 1)" >> "$GITHUB_OUTPUT"
+
+      - name: Start app (next dev)
+        run: pnpm dev &
+        env:
+          E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+
+      - name: Wait for app
+        run: pnpm dlx wait-on http://127.0.0.1:3000 --timeout 120000 --strict
+
+      - name: Run Playwright tests
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/3
+        env:
+          E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+          NODE_NO_WARNINGS: "1"
+          TERM: xterm
+
+      - name: Prefix blob zips (avoid merge name collisions)
+        if: always()
+        run: |
+          shopt -s nullglob
+          for f in blob-report/*.zip; do
+            mv "$f" "blob-report/shard-${{ matrix.shard }}-$(basename "$f")"
+          done
+
+      - name: Upload blob report (for HTML + Pages)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-shard-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload test-results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_id }}-${{ matrix.shard }}
+          path: test-results/
+          retention-days: 14
+
+      - name: Delete neon branch
+        if: always()
+        uses: neondatabase/delete-branch-action@v3.2.0
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: test-${{ steps.short-sha.outputs.short_sha }}-${{ matrix.shard }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+  deploy-playwright-report:
+    name: Deploy report to GitHub Pages
+    needs: test
+    if: always() && !cancelled() && (needs.test.result == 'success' || needs.test.result == 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download all shard blob reports
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded-blob-reports
+          pattern: blob-report-shard-*
+          merge-multiple: true
+
+      - name: Merge report to HTML
+        id: merge
+        run: |
+          rm -rf blob-report
+          mkdir -p blob-report
+          n=$(find downloaded-blob-reports -name '*.zip' -type f 2>/dev/null | wc -l | tr -d ' ')
+          if [ "$n" = "0" ]; then
+            echo "no_blobs=1" >> "$GITHUB_OUTPUT"
+            echo "No blob zips; skipping merge."
+            exit 0
+          fi
+          find downloaded-blob-reports -name '*.zip' -type f -exec cp -t blob-report/ {} +
+          pnpm exec playwright merge-reports blob-report --reporter=html
+          echo "no_blobs=0" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Pages artifact
+        if: steps.merge.outputs.no_blobs == '0'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playwright-report
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        if: steps.merge.outputs.no_blobs == '0'
+        uses: actions/deploy-pages@v4
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Playwright HTML report" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.merge.outputs.no_blobs }}" = "1" ] || [ -z "${{ steps.merge.outputs.no_blobs }}" ]; then
+            echo "No report to publish (no blob zips from the test run)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Published: **${{ steps.deploy.outputs.page_url }}**" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "This page updates on each push. Failures and passes both appear in the report." >> "$GITHUB_STEP_SUMMARY"
+          fi

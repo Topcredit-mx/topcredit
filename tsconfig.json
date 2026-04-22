@@ -29,7 +29,8 @@
 		"baseUrl": ".",
 		"paths": {
 			"~/*": ["./src/*"],
-			"~/cypress/*": ["./cypress/*"]
+			"~/e2e/*": ["./e2e/*"],
+			"~/scripts/*": ["./scripts/*"]
 		}
 	},
 	"include": [
