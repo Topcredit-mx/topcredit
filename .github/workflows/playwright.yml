@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2]
     env:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
@@ -84,7 +84,7 @@ jobs:
         run: pnpm dlx wait-on http://127.0.0.1:3000 --timeout 120000 --strict
 
       - name: Run Playwright tests
-        run: pnpm exec playwright test --shard=${{ matrix.shard }}/3
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/2
         env:
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}

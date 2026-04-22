@@ -3,7 +3,7 @@
 [![Cypress Tests](https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/detailed/zco6oy/main&style=flat&logo=cypress)](https://cloud.cypress.io/projects/zco6oy/runs)
 
 **Latest E2E (Playwright) HTML report (GitHub Pages):** [topcredit-mx.github.io/topcredit](https://topcredit-mx.github.io/topcredit/)  
-Updates after each push when CI publishes a merged report (combined 3-shard run).
+Updates after each push when CI publishes a merged report (combined 2-shard run).
 
 > Plataforma de créditos empresariales para empleados de empresas afiliadas
 
@@ -80,7 +80,7 @@ Playwright in GitHub Actions creates **one temporary branch per matrix shard** (
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | Type Check | Every push | `pnpm typecheck` |
-| Playwright Tests | Every push | E2E in **3 parallel jobs**; each job uses a **dedicated Neon branch**, then the branches are deleted. Blob reports are merged and deployed to the **static report URL** above. |
+| Playwright Tests | Every push | E2E in **2 parallel jobs**; each job uses a **dedicated Neon branch**, then the branches are deleted. Blob reports are merged and deployed to the **static report URL** above. |
 | Prod DB | Push to `main` when `drizzle/**` or `src/server/db/schema.ts` change | Runs in `production` env: generate, fail on uncommitted migration drift, then `db:migrate`. Needs `DATABASE_URL` in production environment secrets. |
 
 ## Project structure
