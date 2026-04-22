@@ -63,7 +63,7 @@ jobs:
 
       - name: Create Neon branch (one per Playwright shard)
         id: create-branch
-        uses: neondatabase/create-branch-action@v6.3.0
+        uses: neondatabase/create-branch-action@6.3.1
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch_name: test-${{ steps.short-sha.outputs.short_sha }}-${{ matrix.shard }}
@@ -118,7 +118,7 @@ jobs:
 
       - name: Delete neon branch
         if: always()
-        uses: neondatabase/delete-branch-action@v3.2.0
+        uses: neondatabase/delete-branch-action@v3.2.1
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch: test-${{ steps.short-sha.outputs.short_sha }}-${{ matrix.shard }}

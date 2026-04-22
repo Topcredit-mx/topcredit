@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Delete Neon Branch
-        uses: neondatabase/delete-branch-action@v3.2.0
+        uses: neondatabase/delete-branch-action@v3.2.1
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch: preview/${{ github.event.ref }}

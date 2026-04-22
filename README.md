@@ -71,6 +71,10 @@ Copy `.env.example` to `.env` and set:
 | `pnpm test:e2e` | Run Playwright E2E |
 | `pnpm test:e2e:ui` | Playwright UI mode |
 
+## CI E2E (Neon)
+
+Playwright in GitHub Actions creates **one temporary branch per matrix shard** (see `.github/workflows/playwright.yml`) and deletes it after the job. The Neon [create-branch-action](https://github.com/neondatabase/create-branch-action) is on the latest 6.3.x release. If branch creation returns **HTTP 422**, the project is often over a **Free-plan limit** (for example **storage**), not the branch *count*—check Neon's **Project settings → Usage** and clear old `test-*` branches or reduce `main` size, or upgrade. The UI can still show e.g. **3 / 10** branches while storage is over quota.
+
 ## CI/CD
 
 | Workflow | Trigger | What it does |
