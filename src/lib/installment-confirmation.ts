@@ -1,4 +1,4 @@
-import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
+import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 
 export type CreditPaymentTimestamps = {
 	hrConfirmedAt: Date | null
@@ -15,16 +15,6 @@ export function canConfirmInstallment(p: CreditPaymentTimestamps): boolean {
 	return p.hrConfirmedAt !== null && p.installmentConfirmedAt === null
 }
 
-export function isWithinUpcomingDeductionPeriodForInstallment(
-	dueDate: Date,
-	upcomingDeductionDate: Date,
-): boolean {
-	return (
-		dueDate.toISOString().slice(0, 10) <=
-		upcomingDeductionDate.toISOString().slice(0, 10)
-	)
-}
-
 export type InstallmentEligibilityInput = CreditPaymentTimestamps & {
 	dueDate: Date
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
@@ -35,8 +25,11 @@ export function canConfirmInstallmentForCreditDetailRow(
 	today: Date,
 ): boolean {
 	if (!canConfirmInstallment(p)) return false
-	const upcoming = getUpcomingDeductionDate(p.employeeSalaryFrequency, today)
-	return isWithinUpcomingDeductionPeriodForInstallment(p.dueDate, upcoming)
+	const upcomingYmd = getUpcomingDeductionDateYmd(
+		p.employeeSalaryFrequency,
+		today,
+	)
+	return p.dueDate.toISOString().slice(0, 10) <= upcomingYmd
 }
 
 export type InstallmentQueueTimestamps = {

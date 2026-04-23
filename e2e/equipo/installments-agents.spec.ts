@@ -109,7 +109,7 @@ test.describe('Installments queue', () => {
 			await expect(card.getByText(/0 días/i).first()).toBeVisible()
 		})
 
-		test('shows employee, amount, due date, next deduction, HR status, and installment confirmation status columns', async ({
+		test('shows employee, amount, due date, and unified workflow status column', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/installments')
@@ -118,9 +118,7 @@ test.describe('Installments queue', () => {
 				/empleado/i,
 				/monto/i,
 				/fecha de pago/i,
-				/próxima deducción/i,
-				/deducción rh/i,
-				/estado de instalación/i,
+				/^estado$/i,
 			] as const) {
 				const th = mainDataTable(page)
 					.locator('thead th')
@@ -150,27 +148,33 @@ test.describe('Installments queue', () => {
 			await expect(main.getByText(/mensual/i).first()).toBeVisible()
 		})
 
-		test('shows awaiting HR state when the front installment is still pending HR', async ({
+		test('shows RH Pendiente when the front installment is still pending HR', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/installments')
-			const tr = page.locator('tr', { hasText: seed.applicant1Name })
-			await expect(tr.first()).toContainText('En espera de RH')
+			const tr = page
+				.locator('tr')
+				.filter({ has: page.getByText(seed.applicant1Name, { exact: true }) })
+			await expect(tr.first()).toContainText(/RH Pendiente/i)
 		})
 
-		test('shows confirm installment only for rows where HR already confirmed the installment', async ({
+		test('allows selecting only rows where HR already confirmed the installment', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/installments')
-			const t1 = page.locator('tr', { hasText: seed.applicant1Name })
+			const t1 = page
+				.locator('tr')
+				.filter({ has: page.getByText(seed.applicant1Name, { exact: true }) })
 			await expect(
-				t1.first().getByRole('button', { name: /confirmar instalaci/i }),
-			).toHaveCount(0)
-			const t2 = page.locator('tr', { hasText: seed.applicant2Name })
+				t1.first().getByRole('checkbox', { name: /seleccionar fila/i }),
+			).toBeDisabled()
+			const t2 = page
+				.locator('tr')
+				.filter({ has: page.getByText(seed.applicant2Name, { exact: true }) })
 			await t2.first().scrollIntoViewIfNeeded()
 			await expect(
-				t2.first().getByRole('button', { name: /confirmar instalaci/i }),
-			).toBeVisible()
+				t2.first().getByRole('checkbox', { name: /seleccionar fila/i }),
+			).toBeEnabled()
 		})
 
 		test('shows both applicant names in the table', async ({ page }) => {
@@ -200,7 +204,9 @@ test.describe('Installments queue', () => {
 		}) => {
 			await page.goto('/equipo/installments')
 			await expect(mainDataTable(page)).toBeVisible()
-			const t1 = page.locator('tr', { hasText: seed.applicant1Name })
+			const t1 = page
+				.locator('tr')
+				.filter({ has: page.getByText(seed.applicant1Name, { exact: true }) })
 			await t1.first().scrollIntoViewIfNeeded()
 			await expect(t1.first().locator('button[role="checkbox"]')).toBeDisabled()
 		})
@@ -233,9 +239,8 @@ test.describe('Installments queue', () => {
 			await expect(
 				page.getByText(/2 instalaciones confirmadas/i).first(),
 			).toBeVisible()
-			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(
-				seed.expectedRowCount,
-			)
+			// Other credits’ next installments are due after the current pay period.
+			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(1)
 			await expect(
 				mainDataTable(page).getByText(seed.applicant1Name, { exact: true }),
 			).toBeVisible()
@@ -316,6 +321,9 @@ test.describe('Installments queue', () => {
 			await page
 				.getByRole('button', { name: /confirmar 20 instalaciones/i })
 				.click()
+			const settleDialog = page.getByRole('alertdialog')
+			await expect(settleDialog).toBeVisible()
+			await settleDialog.getByRole('button', { name: /^Confirmar$/i }).click()
 			await expect(
 				page.getByText(/20 instalaciones confirmadas/i).first(),
 			).toBeVisible()

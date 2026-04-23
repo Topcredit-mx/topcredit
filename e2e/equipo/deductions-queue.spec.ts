@@ -35,7 +35,7 @@ test.describe('HR deductions queue', () => {
 			await expect(mainDataTable(page)).toBeVisible()
 		})
 
-		test('shows employee, amount, HR status, and installment status columns but not a per-row due date column', async ({
+		test('shows employee, amount, unified Estado column but not a per-row due date column', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/deductions')
@@ -48,10 +48,7 @@ test.describe('HR deductions queue', () => {
 				thead.getByRole('columnheader', { name: /monto/i }),
 			).toBeVisible()
 			await expect(
-				thead.getByRole('columnheader', { name: /deducción rh/i }),
-			).toBeVisible()
-			await expect(
-				thead.getByRole('columnheader', { name: /instalación/i }),
+				thead.getByRole('columnheader', { name: /^estado$/i }),
 			).toBeVisible()
 			await expect(
 				thead.getByRole('columnheader', { name: /fecha de pago/i }),

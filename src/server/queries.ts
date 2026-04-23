@@ -14,7 +14,7 @@ import {
 	sql,
 } from 'drizzle-orm'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
-import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
+import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -999,6 +999,11 @@ export type CreditListItem = {
 	disbursementDate: Date
 	transferAmount: string
 	createdAt: Date
+	paymentTotal: number
+	paymentConfirmed: number
+	nextDueDate: Date | null
+	nextAmount: string | null
+	outstandingAmount: string | null
 }
 
 export async function getCreditsByApplicantId(
@@ -1025,7 +1030,83 @@ export async function getCreditsByApplicantId(
 		.where(eq(applications.applicantId, userId))
 		.orderBy(desc(credits.createdAt))
 
-	return rows
+	if (rows.length === 0) {
+		return []
+	}
+
+	const creditIds = rows.map((r) => r.id)
+
+	const [aggRows, pendingOrdered] = await Promise.all([
+		db
+			.select({
+				creditId: creditPayments.creditId,
+				total: sql<number>`cast(count(*) as int)`.mapWith(Number),
+				confirmed:
+					sql<number>`cast(count(*) filter (where ${creditPayments.installmentConfirmedAt} is not null) as int)`.mapWith(
+						Number,
+					),
+				outstanding: sql<string>`coalesce(sum(${creditPayments.amount}) filter (where ${creditPayments.installmentConfirmedAt} is null), 0)::text`,
+			})
+			.from(creditPayments)
+			.where(inArray(creditPayments.creditId, creditIds))
+			.groupBy(creditPayments.creditId),
+		db
+			.select({
+				creditId: creditPayments.creditId,
+				dueDate: creditPayments.dueDate,
+				amount: creditPayments.amount,
+			})
+			.from(creditPayments)
+			.where(
+				and(
+					inArray(creditPayments.creditId, creditIds),
+					isNull(creditPayments.installmentConfirmedAt),
+				),
+			)
+			.orderBy(asc(creditPayments.creditId), asc(creditPayments.dueDate)),
+	])
+
+	const aggById = new Map(
+		aggRows.map((r) => [
+			r.creditId,
+			{
+				total: r.total,
+				confirmed: r.confirmed,
+				outstanding: r.outstanding,
+			},
+		]),
+	)
+
+	const nextById = new Map<number, { dueDate: Date; amount: string }>()
+	for (const p of pendingOrdered) {
+		if (!nextById.has(p.creditId)) {
+			nextById.set(p.creditId, { dueDate: p.dueDate, amount: p.amount })
+		}
+	}
+
+	const merged: CreditListItem[] = rows.map((r) => {
+		const agg = aggById.get(r.id)
+		const next = nextById.get(r.id)
+		const outstandingRaw = agg?.outstanding ?? '0'
+		const outstandingNum = Number(outstandingRaw)
+		return {
+			...r,
+			paymentTotal: agg?.total ?? 0,
+			paymentConfirmed: agg?.confirmed ?? 0,
+			nextDueDate: next?.dueDate ?? null,
+			nextAmount: next?.amount ?? null,
+			outstandingAmount: outstandingNum > 0 ? outstandingRaw : null,
+		}
+	})
+
+	merged.sort((a, b) => {
+		if (a.status !== b.status) {
+			return a.status === 'dispersed' ? -1 : 1
+		}
+		return b.createdAt.getTime() - a.createdAt.getTime()
+	})
+
+	return merged
 }
 
 export type CreditDetail = {
@@ -1038,6 +1119,8 @@ export type CreditDetail = {
 	rate: string
 	durationType: 'monthly' | 'bi-monthly'
 	duration: number
+	transferReference: string | null
+	receiptFileName: string | null
 }
 
 export async function getCreditDetailByApplicantId(
@@ -1062,6 +1145,8 @@ export async function getCreditDetailByApplicantId(
 			rate: companies.rate,
 			durationType: terms.durationType,
 			duration: terms.duration,
+			transferReference: applications.transferReference,
+			receiptFileName: applications.receiptFileName,
 		})
 		.from(credits)
 		.innerJoin(applications, eq(credits.applicationId, applications.id))
@@ -1228,6 +1313,19 @@ export async function getCreditPaymentsForEquipo(
 	}))
 }
 
+/** Payments due on or before this payroll date, excluding credits with overdue HR gaps. */
+function payPeriodWindowCondition(upcomingDeductionDate: string): SQL {
+	return sql`
+				AND (cp.due_date)::date >= CURRENT_DATE
+				AND (cp.due_date)::date <= (${upcomingDeductionDate})::date
+				AND NOT EXISTS (
+					SELECT 1 FROM credit_payments cp2
+					WHERE cp2.credit_id = cp.credit_id
+					  AND cp2.hr_confirmed_at IS NULL
+					  AND (cp2.due_date)::date < CURRENT_DATE
+				)`
+}
+
 // ---- Installments queue (shared by /equipo/deductions and /equipo/installments) ----
 
 export type InstallmentForQueue = {
@@ -1243,6 +1341,12 @@ export type InstallmentForQueue = {
 	companyId: number
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 	nextDeductionDate: string
+	/** True when this payment is the only row on its credit still missing installment confirmation. */
+	isFinalInstallmentConfirm: boolean
+	/** 1-based index of this payment in the credit schedule (by due date, then id). */
+	installmentPosition: number
+	/** Total scheduled payments on this credit. */
+	installmentTotal: number
 }
 
 export async function getInstallmentsForQueue(params: {
@@ -1275,20 +1379,16 @@ export async function getInstallmentsForQueue(params: {
 			? sql`cp.hr_confirmed_at IS NULL`
 			: sql`cp.installment_confirmed_at IS NULL`
 
-	// When an upcoming deduction date is provided (deductions queue with company
-	// selected), filter to installments that fall within the current pay period
-	// and exclude any credit that has an overdue unconfirmed installment.
+	// When an upcoming deduction date is provided, filter to payments due in the
+	// current pay period (same window as the header’s “próxima deducción”) and
+	// exclude credits with an overdue HR-unconfirmed installment.
+	const usePayPeriodWindow =
+		upcomingDeductionDate !== undefined &&
+		(queue === 'deductions' || queue === 'installments')
+
 	const dateCondition: SQL =
-		queue === 'deductions' && upcomingDeductionDate !== undefined
-			? sql`
-				AND (cp.due_date)::date >= CURRENT_DATE
-				AND (cp.due_date)::date <= (${upcomingDeductionDate})::date
-				AND NOT EXISTS (
-					SELECT 1 FROM credit_payments cp2
-					WHERE cp2.credit_id = cp.credit_id
-					  AND cp2.hr_confirmed_at IS NULL
-					  AND (cp2.due_date)::date < CURRENT_DATE
-				)`
+		usePayPeriodWindow && upcomingDeductionDate !== undefined
+			? payPeriodWindowCondition(upcomingDeductionDate)
 			: sql``
 
 	const installmentsExcludeOverdue: SQL =
@@ -1316,7 +1416,27 @@ export async function getInstallmentsForQueue(params: {
 			a.payroll_number,
 			co.name AS company_name,
 			a.company_id,
-			co.employee_salary_frequency AS company_salary_frequency
+			co.employee_salary_frequency AS company_salary_frequency,
+			(
+				SELECT COUNT(*) = 1
+				FROM credit_payments cp3
+				WHERE cp3.credit_id = cp.credit_id
+					AND cp3.installment_confirmed_at IS NULL
+			) AS is_final_installment_confirm,
+			(
+				SELECT COUNT(*)::int
+				FROM credit_payments cp_tot
+				WHERE cp_tot.credit_id = cp.credit_id
+			) AS installment_total,
+			(
+				SELECT COUNT(*)::int
+				FROM credit_payments cp_ord
+				WHERE cp_ord.credit_id = cp.credit_id
+					AND (
+						cp_ord.due_date < cp.due_date
+						OR (cp_ord.due_date = cp.due_date AND cp_ord.id <= cp.id)
+					)
+			) AS installment_position
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
@@ -1332,12 +1452,19 @@ export async function getInstallmentsForQueue(params: {
 		const employeeSalaryFrequency = employeeSalaryFrequencyFromDb(
 			r.company_salary_frequency,
 		)
-		const nextDeductionDate = getUpcomingDeductionDate(
+		const nextDeductionDate = getUpcomingDeductionDateYmd(
 			employeeSalaryFrequency,
 			today,
 		)
-			.toISOString()
-			.slice(0, 10)
+		const rawFinal = r.is_final_installment_confirm
+		const isFinalInstallmentConfirm =
+			rawFinal === true ||
+			rawFinal === 't' ||
+			rawFinal === 1 ||
+			rawFinal === '1'
+		const installmentTotal = Number(r.installment_total ?? 0)
+		const installmentPosition = Number(r.installment_position ?? 0)
+
 		return {
 			id: Number(r.id),
 			creditId: Number(r.credit_id),
@@ -1364,6 +1491,9 @@ export async function getInstallmentsForQueue(params: {
 			companyId: Number(r.company_id),
 			employeeSalaryFrequency,
 			nextDeductionDate,
+			isFinalInstallmentConfirm,
+			installmentTotal,
+			installmentPosition,
 		}
 	})
 }
@@ -1406,7 +1536,27 @@ export async function getOverdueInstallments(params: {
 			co.name AS company_name,
 			a.company_id,
 			co.employee_salary_frequency AS company_salary_frequency,
-			CASE WHEN cp.hr_confirmed_at IS NULL THEN 'hr' ELSE 'installments' END AS blocking_party
+			CASE WHEN cp.hr_confirmed_at IS NULL THEN 'hr' ELSE 'installments' END AS blocking_party,
+			(
+				SELECT COUNT(*) = 1
+				FROM credit_payments cp3
+				WHERE cp3.credit_id = cp.credit_id
+					AND cp3.installment_confirmed_at IS NULL
+			) AS is_final_installment_confirm,
+			(
+				SELECT COUNT(*)::int
+				FROM credit_payments cp_tot
+				WHERE cp_tot.credit_id = cp.credit_id
+			) AS installment_total,
+			(
+				SELECT COUNT(*)::int
+				FROM credit_payments cp_ord
+				WHERE cp_ord.credit_id = cp.credit_id
+					AND (
+						cp_ord.due_date < cp.due_date
+						OR (cp_ord.due_date = cp.due_date AND cp_ord.id <= cp.id)
+					)
+			) AS installment_position
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
@@ -1427,15 +1577,21 @@ export async function getOverdueInstallments(params: {
 		const employeeSalaryFrequency = employeeSalaryFrequencyFromDb(
 			r.company_salary_frequency,
 		)
-		const nextDeductionDate = getUpcomingDeductionDate(
+		const nextDeductionDate = getUpcomingDeductionDateYmd(
 			employeeSalaryFrequency,
 			today,
 		)
-			.toISOString()
-			.slice(0, 10)
 		const blockingRaw = String(r.blocking_party)
 		const blockingParty: 'hr' | 'installments' =
 			blockingRaw === 'hr' ? 'hr' : 'installments'
+		const rawFinal = r.is_final_installment_confirm
+		const isFinalInstallmentConfirm =
+			rawFinal === true ||
+			rawFinal === 't' ||
+			rawFinal === 1 ||
+			rawFinal === '1'
+		const installmentTotal = Number(r.installment_total ?? 0)
+		const installmentPosition = Number(r.installment_position ?? 0)
 		return {
 			id: Number(r.id),
 			creditId: Number(r.credit_id),
@@ -1462,6 +1618,9 @@ export async function getOverdueInstallments(params: {
 			companyId: Number(r.company_id),
 			employeeSalaryFrequency,
 			nextDeductionDate,
+			isFinalInstallmentConfirm,
+			installmentTotal,
+			installmentPosition,
 			blockingParty,
 		}
 	})
@@ -1677,15 +1836,7 @@ export async function getOldestPendingPaymentAgeDays(
 	if (screen === 'installments-queue') {
 		const dateCondition: SQL =
 			upcomingDeductionDate !== undefined
-				? sql`
-				AND (cp.due_date)::date >= CURRENT_DATE
-				AND (cp.due_date)::date <= (${upcomingDeductionDate})::date
-				AND NOT EXISTS (
-					SELECT 1 FROM credit_payments cp2
-					WHERE cp2.credit_id = cp.credit_id
-					  AND cp2.hr_confirmed_at IS NULL
-					  AND (cp2.due_date)::date < CURRENT_DATE
-				)`
+				? payPeriodWindowCondition(upcomingDeductionDate)
 				: sql``
 
 		pendingCondition = sql`

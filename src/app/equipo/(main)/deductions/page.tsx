@@ -2,7 +2,7 @@ import { Building2 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
-import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
+import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
@@ -62,12 +62,8 @@ export default async function DeductionsPage() {
 		getCompanyById(selectedCompanyId),
 	])
 
-	const nextDeductionDate = company
-		? getUpcomingDeductionDate(company.employeeSalaryFrequency, new Date())
-		: undefined
-
-	const nextDeductionDateStr = nextDeductionDate
-		? nextDeductionDate.toISOString().slice(0, 10)
+	const nextDeductionDateStr = company
+		? getUpcomingDeductionDateYmd(company.employeeSalaryFrequency, new Date())
 		: undefined
 
 	const [installmentsFiltered, historyItems] = await Promise.all([
@@ -102,8 +98,6 @@ export default async function DeductionsPage() {
 					description={t('deductions-history-description')}
 					emptyMessage={t('deductions-history-empty')}
 					confirmedByLabel={t('deductions-history-confirmed-by')}
-					onTimeLabel={t('deductions-history-on-time')}
-					lateLabel={t('deductions-history-late')}
 					viewAllHref="/equipo/deductions/history"
 					viewAllLabel={t('deductions-history-view-all')}
 				/>

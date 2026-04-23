@@ -78,6 +78,14 @@ import {
 	creditDetailStatesHrAgent,
 } from '~/e2e/equipo/credit-detail-states.fixtures'
 import {
+	allCreditFinalInstallmentSettleUsers,
+	creditFinalInstallmentSettleApplicant,
+	creditFinalInstallmentSettleCompany,
+	creditFinalInstallmentSettleHrAgent,
+	creditFinalInstallmentSettleInstallmentsAgent,
+	creditPartialScheduleApplicant,
+} from '~/e2e/equipo/credit-final-installment-settles.fixtures'
+import {
 	allDeductionUsers,
 	applicantDeductions,
 	applicantDeductions2,
@@ -2471,7 +2479,10 @@ export type SeedCuentaCreditsResult = {
 	applicationId: number
 	creditAmount: string
 	creditId: number | null
+	settledCreditId: number | null
+	settledCreditAmount: string | null
 	confirmedPaymentRowIndex: number
+	processingPaymentRowIndex: number
 	pendingPaymentRowIndex: number
 }
 
@@ -2561,6 +2572,8 @@ async function seedCuentaCreditsBase(
 			salaryFrequency: creditsCompany.employeeSalaryFrequency,
 			status,
 			firstDiscountDate: new Date(now.getTime() + 30 * 24 * 60 * 60_000),
+			transferReference: withCredit ? 'REF-DISPersed-SEED' : null,
+			receiptFileName: withCredit ? 'recibo-dispersado.pdf' : null,
 		})
 		.returning()
 	if (!app) throw new Error('Seed Credits: application not created')
@@ -2580,6 +2593,8 @@ async function seedCuentaCreditsBase(
 	)
 
 	let creditId: number | null = null
+	let settledCreditId: number | null = null
+	const settledCreditAmount = '30000.00'
 	if (withCredit) {
 		const [credit] = await db
 			.insert(credits)
@@ -2603,17 +2618,88 @@ async function seedCuentaCreditsBase(
 			firstDiscountDate,
 		})
 
-		// Rows 0–1: Fully confirmed in order (shows "Confirmado" to applicant)
-		// Rows 2–11: Pending (shows "Pendiente" to applicant)
+		// Rows 0–1: Fully confirmed ("Confirmado")
+		// Row 2: HR confirmed only ("En proceso" to applicant)
+		// Rows 3–11: Pending
 		await db.insert(creditPayments).values(
 			schedule.map((entry, index) => ({
 				creditId: credit.id,
 				dueDate: entry.dueDate,
 				amount: entry.amount,
 				hrConfirmedAt:
-					index <= 1 ? new Date(now.getTime() - 10 * 24 * 60 * 60_000) : null,
+					index <= 2 ? new Date(now.getTime() - 10 * 24 * 60 * 60_000) : null,
 				installmentConfirmedAt:
 					index <= 1 ? new Date(now.getTime() - 5 * 24 * 60 * 60_000) : null,
+			})),
+		)
+
+		const settledStatus = 'disbursed' as const
+		const [appSettled] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantUser.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: settledCreditAmount,
+				salaryAtApplication: '40000',
+				salaryFrequency: creditsCompany.employeeSalaryFrequency,
+				status: settledStatus,
+				firstDiscountDate: new Date(now.getTime() - 60 * 24 * 60 * 60_000),
+				transferReference: 'REF-SETTLED-SEED',
+				receiptFileName: 'comprobante-settled.pdf',
+			})
+			.returning()
+		if (!appSettled)
+			throw new Error('Seed Credits: settled application not created')
+
+		const settledTimeline = createOrderedSeedStatusHistory({
+			finalStatus: settledStatus,
+			defaultActorUserId: applicantUser.id,
+		})
+		const settledBaseTime = new Date(now.getTime() - 120 * 60 * 60_000)
+		await db.insert(applicationStatusHistory).values(
+			settledTimeline.map((entry, index) => ({
+				applicationId: appSettled.id,
+				status: entry.status,
+				setByUserId: entry.setByUserId,
+				createdAt: new Date(settledBaseTime.getTime() + index * 60_000),
+			})),
+		)
+
+		const settledDisbursement = new Date(now.getTime() - 90 * 24 * 60 * 60_000)
+		const [creditSettled] = await db
+			.insert(credits)
+			.values({
+				applicationId: appSettled.id,
+				status: 'settled',
+				disbursementDate: settledDisbursement,
+				transferAmount: settledCreditAmount,
+				disbursedByUserId: applicantUser.id,
+			})
+			.returning()
+		if (!creditSettled)
+			throw new Error('Seed Credits: settled credit not created')
+		settledCreditId = creditSettled.id
+
+		const settledFirstDiscount = new Date(
+			settledDisbursement.getTime() + 30 * 24 * 60 * 60_000,
+		)
+		const scheduleSettled = generatePaymentSchedule({
+			loanPrincipal: Number(settledCreditAmount),
+			rate: Number(creditsCompany.rate),
+			totalPayments: 12,
+			frequency: 'monthly',
+			firstDiscountDate: settledFirstDiscount,
+		})
+
+		const confirmTs = new Date(now.getTime() - 20 * 24 * 60 * 60_000)
+		await db.insert(creditPayments).values(
+			scheduleSettled.map((entry) => ({
+				creditId: creditSettled.id,
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+				hrConfirmedAt: confirmTs,
+				installmentConfirmedAt: confirmTs,
 			})),
 		)
 	}
@@ -2623,8 +2709,11 @@ async function seedCuentaCreditsBase(
 		applicationId: app.id,
 		creditAmount,
 		creditId,
+		settledCreditId,
+		settledCreditAmount: withCredit ? settledCreditAmount : null,
 		confirmedPaymentRowIndex: 0,
-		pendingPaymentRowIndex: 2,
+		processingPaymentRowIndex: 2,
+		pendingPaymentRowIndex: 3,
 	}
 }
 
@@ -3303,6 +3392,11 @@ export const seedInstallmentsQueue =
 		const applicant1 = findUser('applicant@installmentsqueue.e2e')
 		const applicant2 = findUser('applicant2@installmentsqueue.e2e')
 		const firstDiscountDate = endOfCurrentMonthUTC(now)
+		// Credit 1: schedule must place the HR-pending installment in the *current* pay
+		// period (same cutoff as getInstallmentsForQueue + upcomingDeductionDate).
+		const firstDiscountDateCredit1 = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0),
+		)
 		const creditAmount1 = '40000.00'
 		const creditAmount2 = '30000.00'
 
@@ -3317,7 +3411,7 @@ export const seedInstallmentsQueue =
 				salaryAtApplication: '30000',
 				salaryFrequency: installmentsQueueCompany.employeeSalaryFrequency,
 				status: 'disbursed' as const,
-				firstDiscountDate,
+				firstDiscountDate: firstDiscountDateCredit1,
 				payrollNumber: 'INST001',
 			})
 			.returning()
@@ -3381,7 +3475,7 @@ export const seedInstallmentsQueue =
 			rate: Number(installmentsQueueCompany.rate),
 			totalPayments: 2,
 			frequency: installmentsQueueCompany.employeeSalaryFrequency,
-			firstDiscountDate,
+			firstDiscountDate: firstDiscountDateCredit1,
 		})
 		await db.insert(creditPayments).values(
 			schedule1.map((entry, index) => {
@@ -4419,6 +4513,509 @@ export const cleanupCreditDetailInstallmentSchedule = async () => {
 	await db
 		.delete(companies)
 		.where(eq(companies.domain, creditDetailInstallmentScheduleCompany.domain))
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
+	return null
+}
+
+export type SeedCreditFinalInstallmentSettlesResult = {
+	companyId: number
+	creditId: number
+	lastScheduleRowIndex: number
+}
+
+export const seedCreditFinalInstallmentSettles =
+	async (): Promise<SeedCreditFinalInstallmentSettlesResult> => {
+		const db = getDb(process.env.DATABASE_URL || '')
+		const now = new Date()
+
+		await Promise.all(
+			allCreditFinalInstallmentSettleUsers.map((u) =>
+				db.delete(users).where(eq(users.email, u.email)),
+			),
+		)
+		await db
+			.delete(companies)
+			.where(eq(companies.domain, creditFinalInstallmentSettleCompany.domain))
+
+		const [[company], createdUsers] = await Promise.all([
+			db
+				.insert(companies)
+				.values({
+					name: creditFinalInstallmentSettleCompany.name,
+					domain: creditFinalInstallmentSettleCompany.domain,
+					rate: creditFinalInstallmentSettleCompany.rate,
+					employeeSalaryFrequency:
+						creditFinalInstallmentSettleCompany.employeeSalaryFrequency,
+					active: creditFinalInstallmentSettleCompany.active,
+				})
+				.returning(),
+			db
+				.insert(users)
+				.values(
+					allCreditFinalInstallmentSettleUsers.map((u) => ({
+						email: u.email,
+						name: u.name,
+						emailVerified: now,
+					})),
+				)
+				.returning(),
+		])
+
+		if (!company) {
+			throw new Error('Seed CreditFinalInstallmentSettles: company not created')
+		}
+
+		const findUser = (email: string) => {
+			const u = createdUsers.find((r) => r.email === email)
+			if (!u) {
+				throw new Error(
+					`Seed CreditFinalInstallmentSettles: user ${email} not found`,
+				)
+			}
+			return u
+		}
+
+		const hrAgent = findUser(creditFinalInstallmentSettleHrAgent.email)
+		const installmentAgent = findUser(
+			creditFinalInstallmentSettleInstallmentsAgent.email,
+		)
+		const applicant = findUser(creditFinalInstallmentSettleApplicant.email)
+
+		const [term] = await db
+			.insert(terms)
+			.values({ durationType: 'monthly', duration: 3 })
+			.returning()
+		if (!term) {
+			throw new Error('Seed CreditFinalInstallmentSettles: term not created')
+		}
+
+		const [offering] = await db
+			.insert(termOfferings)
+			.values({ termId: term.id, companyId: company.id })
+			.returning()
+		if (!offering) {
+			throw new Error(
+				'Seed CreditFinalInstallmentSettles: offering not created',
+			)
+		}
+
+		await Promise.all(
+			createdUsers.flatMap((u) => {
+				const fixture = allCreditFinalInstallmentSettleUsers.find(
+					(f) => f.email === u.email,
+				)
+				if (!fixture) {
+					throw new Error(
+						`Seed CreditFinalInstallmentSettles: fixture not found for ${u.email}`,
+					)
+				}
+				return [
+					db
+						.insert(userRoles)
+						.values(fixture.roles.map((role) => ({ userId: u.id, role }))),
+					...(new Set<string>(fixture.roles).has('agent')
+						? [
+								db
+									.insert(userCompanies)
+									.values({ userId: u.id, companyId: company.id }),
+							]
+						: []),
+				]
+			}),
+		)
+
+		// Use dates relative to seed time so the final payment stays in the *upcoming*
+		// installments queue: SQL uses CURRENT_DATE, which ignores Playwright's clock.
+		const dayMs = 86_400_000
+		const todayUtc = Date.UTC(
+			now.getUTCFullYear(),
+			now.getUTCMonth(),
+			now.getUTCDate(),
+		)
+		const row0Date = new Date(todayUtc - 90 * dayMs)
+		const row1Date = new Date(todayUtc - 60 * dayMs)
+		// Last day of current UTC month: matches `getUpcomingDeductionDate('monthly', now)` so
+		// the credit-detail confirm button is eligible, and `due_date >= CURRENT_DATE` keeps the
+		// row in the upcoming installments queue (not overdue).
+		const row2Date = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
+		)
+
+		const [app] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicant.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: '50000.00',
+				salaryAtApplication: '40000',
+				salaryFrequency:
+					creditFinalInstallmentSettleCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate: row2Date,
+			})
+			.returning()
+		if (!app) {
+			throw new Error(
+				'Seed CreditFinalInstallmentSettles: application not created',
+			)
+		}
+
+		await db.insert(applicationStatusHistory).values(
+			createOrderedSeedStatusHistory({
+				finalStatus: 'disbursed',
+				defaultActorUserId: applicant.id,
+			}).map((entry, index) => ({
+				applicationId: app.id,
+				status: entry.status,
+				setByUserId: entry.setByUserId,
+				createdAt: new Date(now.getTime() - (6 - index) * 60_000),
+			})),
+		)
+
+		const [credit] = await db
+			.insert(credits)
+			.values({
+				applicationId: app.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: '50000.00',
+				disbursedByUserId: applicant.id,
+			})
+			.returning()
+		if (!credit) {
+			throw new Error('Seed CreditFinalInstallmentSettles: credit not created')
+		}
+
+		const hrAt = (d: Date) => new Date(d.getTime() + 24 * 60 * 60_000)
+
+		await db.insert(creditPayments).values([
+			{
+				creditId: credit.id,
+				dueDate: row0Date,
+				amount: '16666.67',
+				hrConfirmedAt: hrAt(row0Date),
+				hrConfirmedByUserId: hrAgent.id,
+				installmentConfirmedAt: hrAt(row0Date),
+				installmentConfirmedByUserId: installmentAgent.id,
+			},
+			{
+				creditId: credit.id,
+				dueDate: row1Date,
+				amount: '16666.67',
+				hrConfirmedAt: hrAt(row1Date),
+				hrConfirmedByUserId: hrAgent.id,
+				installmentConfirmedAt: hrAt(row1Date),
+				installmentConfirmedByUserId: installmentAgent.id,
+			},
+			{
+				creditId: credit.id,
+				dueDate: row2Date,
+				amount: '16666.66',
+				hrConfirmedAt: hrAt(row2Date),
+				hrConfirmedByUserId: hrAgent.id,
+			},
+		])
+
+		return {
+			companyId: company.id,
+			creditId: credit.id,
+			lastScheduleRowIndex: 2,
+		}
+	}
+
+export type SeedInstallmentsQueueMixedSettlementAndPartialResult = {
+	companyId: number
+	creditSettlingId: number
+	creditPartialId: number
+}
+
+/** One credit whose queue row is the last installment; one credit whose queue row is mid-schedule. */
+export const seedInstallmentsQueueMixedSettlementAndPartial =
+	async (): Promise<SeedInstallmentsQueueMixedSettlementAndPartialResult> => {
+		const db = getDb(process.env.DATABASE_URL || '')
+		const now = new Date()
+
+		await Promise.all(
+			allCreditFinalInstallmentSettleUsers.map((u) =>
+				db.delete(users).where(eq(users.email, u.email)),
+			),
+		)
+		await db
+			.delete(companies)
+			.where(eq(companies.domain, creditFinalInstallmentSettleCompany.domain))
+
+		const [[company], createdUsers] = await Promise.all([
+			db
+				.insert(companies)
+				.values({
+					name: creditFinalInstallmentSettleCompany.name,
+					domain: creditFinalInstallmentSettleCompany.domain,
+					rate: creditFinalInstallmentSettleCompany.rate,
+					employeeSalaryFrequency:
+						creditFinalInstallmentSettleCompany.employeeSalaryFrequency,
+					active: creditFinalInstallmentSettleCompany.active,
+				})
+				.returning(),
+			db
+				.insert(users)
+				.values(
+					allCreditFinalInstallmentSettleUsers.map((u) => ({
+						email: u.email,
+						name: u.name,
+						emailVerified: now,
+					})),
+				)
+				.returning(),
+		])
+
+		if (!company) {
+			throw new Error('Seed InstallmentsQueueMixed: company not created')
+		}
+
+		const findUser = (email: string) => {
+			const u = createdUsers.find((r) => r.email === email)
+			if (!u) {
+				throw new Error(`Seed InstallmentsQueueMixed: user ${email} not found`)
+			}
+			return u
+		}
+
+		const hrAgent = findUser(creditFinalInstallmentSettleHrAgent.email)
+		const installmentAgent = findUser(
+			creditFinalInstallmentSettleInstallmentsAgent.email,
+		)
+		const applicantFinal = findUser(creditFinalInstallmentSettleApplicant.email)
+		const applicantPartial = findUser(creditPartialScheduleApplicant.email)
+
+		const [term] = await db
+			.insert(terms)
+			.values({ durationType: 'monthly', duration: 3 })
+			.returning()
+		if (!term) {
+			throw new Error('Seed InstallmentsQueueMixed: term not created')
+		}
+
+		const [offering] = await db
+			.insert(termOfferings)
+			.values({ termId: term.id, companyId: company.id })
+			.returning()
+		if (!offering) {
+			throw new Error('Seed InstallmentsQueueMixed: offering not created')
+		}
+
+		await Promise.all(
+			createdUsers.flatMap((u) => {
+				const fixture = allCreditFinalInstallmentSettleUsers.find(
+					(f) => f.email === u.email,
+				)
+				if (!fixture) {
+					throw new Error(
+						`Seed InstallmentsQueueMixed: fixture not found for ${u.email}`,
+					)
+				}
+				return [
+					db
+						.insert(userRoles)
+						.values(fixture.roles.map((role) => ({ userId: u.id, role }))),
+					...(new Set<string>(fixture.roles).has('agent')
+						? [
+								db
+									.insert(userCompanies)
+									.values({ userId: u.id, companyId: company.id }),
+							]
+						: []),
+				]
+			}),
+		)
+
+		const dayMs = 86_400_000
+		const todayUtc = Date.UTC(
+			now.getUTCFullYear(),
+			now.getUTCMonth(),
+			now.getUTCDate(),
+		)
+		const row0Date = new Date(todayUtc - 90 * dayMs)
+		const row1Date = new Date(todayUtc - 60 * dayMs)
+		const dueThisMonthEnd = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
+		)
+		const dueNextMonthEnd = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 0),
+		)
+
+		const hrAt = (d: Date) => new Date(d.getTime() + 24 * 60 * 60_000)
+
+		const [appFinal] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantFinal.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: '50000.00',
+				salaryAtApplication: '40000',
+				salaryFrequency:
+					creditFinalInstallmentSettleCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate: dueThisMonthEnd,
+			})
+			.returning()
+		if (!appFinal) {
+			throw new Error(
+				'Seed InstallmentsQueueMixed: final application not created',
+			)
+		}
+
+		await db.insert(applicationStatusHistory).values(
+			createOrderedSeedStatusHistory({
+				finalStatus: 'disbursed',
+				defaultActorUserId: applicantFinal.id,
+			}).map((entry, index) => ({
+				applicationId: appFinal.id,
+				status: entry.status,
+				setByUserId: entry.setByUserId,
+				createdAt: new Date(now.getTime() - (12 - index) * 60_000),
+			})),
+		)
+
+		const [creditFinal] = await db
+			.insert(credits)
+			.values({
+				applicationId: appFinal.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: '50000.00',
+				disbursedByUserId: applicantFinal.id,
+			})
+			.returning()
+		if (!creditFinal) {
+			throw new Error('Seed InstallmentsQueueMixed: final credit not created')
+		}
+
+		await db.insert(creditPayments).values([
+			{
+				creditId: creditFinal.id,
+				dueDate: row0Date,
+				amount: '16666.67',
+				hrConfirmedAt: hrAt(row0Date),
+				hrConfirmedByUserId: hrAgent.id,
+				installmentConfirmedAt: hrAt(row0Date),
+				installmentConfirmedByUserId: installmentAgent.id,
+			},
+			{
+				creditId: creditFinal.id,
+				dueDate: row1Date,
+				amount: '16666.67',
+				hrConfirmedAt: hrAt(row1Date),
+				hrConfirmedByUserId: hrAgent.id,
+				installmentConfirmedAt: hrAt(row1Date),
+				installmentConfirmedByUserId: installmentAgent.id,
+			},
+			{
+				creditId: creditFinal.id,
+				dueDate: dueThisMonthEnd,
+				amount: '16666.66',
+				hrConfirmedAt: hrAt(dueThisMonthEnd),
+				hrConfirmedByUserId: hrAgent.id,
+			},
+		])
+
+		const [appPartial] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantPartial.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: '50000.00',
+				salaryAtApplication: '40000',
+				salaryFrequency:
+					creditFinalInstallmentSettleCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate: dueThisMonthEnd,
+			})
+			.returning()
+		if (!appPartial) {
+			throw new Error(
+				'Seed InstallmentsQueueMixed: partial application not created',
+			)
+		}
+
+		await db.insert(applicationStatusHistory).values(
+			createOrderedSeedStatusHistory({
+				finalStatus: 'disbursed',
+				defaultActorUserId: applicantPartial.id,
+			}).map((entry, index) => ({
+				applicationId: appPartial.id,
+				status: entry.status,
+				setByUserId: entry.setByUserId,
+				createdAt: new Date(now.getTime() - (6 - index) * 60_000),
+			})),
+		)
+
+		const [creditPartial] = await db
+			.insert(credits)
+			.values({
+				applicationId: appPartial.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: '50000.00',
+				disbursedByUserId: applicantPartial.id,
+			})
+			.returning()
+		if (!creditPartial) {
+			throw new Error('Seed InstallmentsQueueMixed: partial credit not created')
+		}
+
+		await db.insert(creditPayments).values([
+			{
+				creditId: creditPartial.id,
+				dueDate: row0Date,
+				amount: '16666.67',
+				hrConfirmedAt: hrAt(row0Date),
+				hrConfirmedByUserId: hrAgent.id,
+				installmentConfirmedAt: hrAt(row0Date),
+				installmentConfirmedByUserId: installmentAgent.id,
+			},
+			{
+				creditId: creditPartial.id,
+				dueDate: dueThisMonthEnd,
+				amount: '16666.67',
+				hrConfirmedAt: hrAt(dueThisMonthEnd),
+				hrConfirmedByUserId: hrAgent.id,
+			},
+			{
+				creditId: creditPartial.id,
+				dueDate: dueNextMonthEnd,
+				amount: '16666.66',
+			},
+		])
+
+		return {
+			companyId: company.id,
+			creditSettlingId: creditFinal.id,
+			creditPartialId: creditPartial.id,
+		}
+	}
+
+export const cleanupCreditFinalInstallmentSettles = async () => {
+	const db = getDb(process.env.DATABASE_URL || '')
+	await Promise.all(
+		allCreditFinalInstallmentSettleUsers.map((u) =>
+			db.delete(users).where(eq(users.email, u.email)),
+		),
+	)
+	await db
+		.delete(companies)
+		.where(eq(companies.domain, creditFinalInstallmentSettleCompany.domain))
 	await db
 		.delete(terms)
 		.where(

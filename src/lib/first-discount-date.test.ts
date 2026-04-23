@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import {
 	getUpcomingDeductionDate,
+	getUpcomingDeductionDateYmd,
 	getValidFirstDiscountDates,
 	isValidFirstDiscountDate,
 } from '~/lib/first-discount-date'
@@ -79,6 +80,16 @@ describe('getUpcomingDeductionDate', () => {
 			const result = getUpcomingDeductionDate('monthly', today)
 			assert.deepEqual(result, utc(2026, 11, 31)) // Dec 31
 		})
+	})
+})
+
+describe('getUpcomingDeductionDateYmd', () => {
+	test('matches UTC calendar slice of getUpcomingDeductionDate', () => {
+		const today = utc(2026, 2, 5) // March 5
+		assert.equal(
+			getUpcomingDeductionDateYmd('monthly', today),
+			getUpcomingDeductionDate('monthly', today).toISOString().slice(0, 10),
+		)
 	})
 })
 

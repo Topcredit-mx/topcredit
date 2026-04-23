@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useTransition } from 'react'
 import { toast } from 'sonner'
+import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
+import { resolveOverdueInstallmentWorkflowStatus } from '~/lib/equipo-workflow-status'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { OverdueInstallment } from '~/server/queries'
@@ -128,20 +130,19 @@ export function useOverdueInstallmentsColumns(): ColumnDef<OverdueInstallment>[]
 			),
 		},
 		{
-			id: 'blockingParty',
+			id: 'workflowStatus',
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('installments-overdue-col-blocking')}
+					title={t('equipo-col-workflow-status')}
 				/>
 			),
-			cell: ({ row }) => (
-				<div className="text-muted-foreground text-sm">
-					{row.original.blockingParty === 'hr'
-						? t('installments-overdue-blocking-hr')
-						: t('installments-overdue-blocking-installments')}
-				</div>
-			),
+			cell: ({ row }) => {
+				const { tone, messageKey } = resolveOverdueInstallmentWorkflowStatus(
+					row.original.blockingParty,
+				)
+				return <WorkflowStatusBadge tone={tone} messageKey={messageKey} />
+			},
 			enableSorting: false,
 		},
 		{

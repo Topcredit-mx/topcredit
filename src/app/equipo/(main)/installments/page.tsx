@@ -2,7 +2,7 @@ import { Building2 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
-import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
+import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
@@ -67,11 +67,8 @@ export default async function InstallmentsPage() {
 		getCompanyById(selectedCompanyId),
 	])
 
-	const nextDeductionDate = company
-		? getUpcomingDeductionDate(company.employeeSalaryFrequency, new Date())
-		: undefined
-	const nextDeductionDateStr = nextDeductionDate
-		? nextDeductionDate.toISOString().slice(0, 10)
+	const nextDeductionDateStr = company
+		? getUpcomingDeductionDateYmd(company.employeeSalaryFrequency, new Date())
 		: undefined
 
 	const [
@@ -84,11 +81,16 @@ export default async function InstallmentsPage() {
 		getInstallmentsForQueue({
 			scope,
 			queue: 'installments',
+			upcomingDeductionDate: nextDeductionDateStr,
 		}),
 		getInstallmentConfirmationHistory(scope, 10),
 		getPaymentsCollectedAmountSummary(scope),
 		getPaymentsCollectedCountSummary(scope),
-		getOldestPendingPaymentAgeDays(scope, 'installments-queue'),
+		getOldestPendingPaymentAgeDays(
+			scope,
+			'installments-queue',
+			nextDeductionDateStr,
+		),
 	])
 
 	return (
@@ -122,8 +124,6 @@ export default async function InstallmentsPage() {
 					description={t('installments-history-preview-description')}
 					emptyMessage={t('installments-history-preview-empty')}
 					confirmedByLabel={t('installments-history-confirmed-by')}
-					onTimeLabel={t('installments-history-on-time')}
-					lateLabel={t('installments-history-late')}
 					viewAllHref="/equipo/installments/history"
 					viewAllLabel={t('installments-history-view-all')}
 				/>

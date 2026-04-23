@@ -85,7 +85,7 @@ test.describe('Credit detail — confirm installment from schedule', () => {
 			await expect(
 				r1After.getByRole('button', { name: /confirmar instalación/i }),
 			).toHaveCount(0)
-			await expect(r1After.getByText(/cobrado/i).first()).toBeVisible()
+			await expect(r1After.getByText(/confirmado/i).first()).toBeVisible()
 		})
 	})
 

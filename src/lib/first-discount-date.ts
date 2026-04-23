@@ -31,6 +31,14 @@ export function getUpcomingDeductionDate(
 	return lastDayOfMonthUTC(year, month)
 }
 
+/** Calendar date (YYYY-MM-DD) for the upcoming payroll deduction, UTC. */
+export function getUpcomingDeductionDateYmd(
+	frequency: SalaryFrequency,
+	today: Date,
+): string {
+	return getUpcomingDeductionDate(frequency, today).toISOString().slice(0, 10)
+}
+
 export function getValidFirstDiscountDates(
 	frequency: SalaryFrequency,
 	today: Date,

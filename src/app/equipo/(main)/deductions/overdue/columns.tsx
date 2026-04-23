@@ -3,9 +3,11 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
+import { resolveOverdueDeductionWorkflowStatus } from '~/lib/equipo-workflow-status'
 import { formatCurrencyMxn } from '~/lib/utils'
 import type { OverdueDeduction } from '~/server/queries'
 
@@ -70,6 +72,20 @@ export function useOverdueDeductionsColumns(
 					<FormattedDate value={row.getValue('dueDate')} format="date" />
 				</div>
 			),
+		},
+		{
+			id: 'workflowStatus',
+			header: ({ column }) => (
+				<DataTableColumnHeader
+					column={column}
+					title={t('equipo-col-workflow-status')}
+				/>
+			),
+			cell: () => {
+				const { tone, messageKey } = resolveOverdueDeductionWorkflowStatus()
+				return <WorkflowStatusBadge tone={tone} messageKey={messageKey} />
+			},
+			enableSorting: false,
 		},
 		{
 			id: 'actions',

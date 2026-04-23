@@ -37,13 +37,30 @@ test.describe('Applicant views active credits', () => {
 			page.getByRole('heading', { name: /mis créditos/i }),
 		).toBeVisible()
 		await expect(
-			cuentaContent(page).getByText('$50,000.00').first(),
+			page.getByRole('heading', { name: /créditos en curso/i }),
 		).toBeVisible()
 		await expect(
-			cuentaContent(page)
-				.getByText(/dispersado/i)
-				.first(),
+			page.getByRole('heading', { name: /créditos liquidados/i }),
 		).toBeVisible()
+		const main = cuentaContent(page)
+		await expect(main.getByText('$50,000.00').first()).toBeVisible()
+		await expect(main.getByText('$30,000.00').first()).toBeVisible()
+
+		const activeTable = main
+			.locator('section')
+			.filter({
+				has: page.getByRole('heading', { name: /créditos en curso/i }),
+			})
+			.locator('table')
+		const completedTable = main
+			.locator('section')
+			.filter({
+				has: page.getByRole('heading', { name: /créditos liquidados/i }),
+			})
+			.locator('table')
+
+		await expect(activeTable.getByText(/^Dispersado$/i)).toBeVisible()
+		await expect(completedTable.getByText(/^Liquidado$/i)).toBeVisible()
 	})
 
 	test('shows credit detail with amount, term, rate, and dates', async ({
@@ -71,6 +88,23 @@ test.describe('Applicant views active credits', () => {
 		await expect(main.getByText('2.50%')).toBeVisible()
 		await expect(main.getByText(/dispersado/i).first()).toBeVisible()
 		await expect(main.getByText(/calendario de pagos/i)).toBeVisible()
+		await expect(main.getByText('REF-DISPersed-SEED')).toBeVisible()
+		await expect(main.getByText('recibo-dispersado.pdf')).toBeVisible()
+	})
+
+	test('shows settled credit detail with liquidado status', async ({
+		page,
+	}) => {
+		const settledId = seedResult.settledCreditId
+		expect(settledId).not.toBeNull()
+		await page.goto(`/cuenta/credits/${settledId}`)
+		const main = cuentaContent(page)
+		await expect(
+			page.getByRole('heading', { name: /detalle de tu crédito/i }),
+		).toBeVisible()
+		await expect(main.getByText('$30,000.00').first()).toBeVisible()
+		await expect(main.getByText(/liquidado/i).first()).toBeVisible()
+		await expect(main.getByText('REF-SETTLED-SEED')).toBeVisible()
 	})
 
 	test('shows 404 for non-existent credit', async ({ page }) => {
@@ -165,6 +199,21 @@ test.describe('Applicant views active credits', () => {
 		const row = table.locator('tbody tr').nth(seedResult.pendingPaymentRowIndex)
 		await row.scrollIntoViewIfNeeded()
 		await expect(row.getByText(/pendiente/i)).toBeVisible()
+	})
+
+	test('shows HR-only confirmed payment as En proceso to the applicant', async ({
+		page,
+	}) => {
+		await page.goto(`/cuenta/credits/${seedResult.creditId}`)
+		const scheduleCard = page.locator('[data-slot="card"]').filter({
+			has: page.getByRole('heading', { name: /calendario de pagos/i }),
+		})
+		const table = scheduleCard.locator('table')
+		const row = table
+			.locator('tbody tr')
+			.nth(seedResult.processingPaymentRowIndex)
+		await row.scrollIntoViewIfNeeded()
+		await expect(row.getByText(/en proceso/i)).toBeVisible()
 	})
 
 	test('shows empty state when applicant has no credits', async ({ page }) => {

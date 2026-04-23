@@ -4,6 +4,7 @@ import {
 	CalendarClock,
 	CalendarDays,
 	Percent,
+	Receipt,
 } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
@@ -59,8 +60,9 @@ export default async function CuentaCreditDetailPage({
 		notFound()
 	}
 
-	const [t, payments] = await Promise.all([
+	const [t, tApp, payments] = await Promise.all([
 		getTranslations('cuenta.credits'),
+		getTranslations('cuenta.applications'),
 		getCreditPaymentsByCreditId(creditId, user.id),
 	])
 
@@ -82,9 +84,13 @@ export default async function CuentaCreditDetailPage({
 					</p>
 					{/* biome-ignore lint/a11y/useSemanticElements: live region for credit status */}
 					<div role="status" className="inline-flex shrink-0">
-						<Badge className="border-transparent bg-emerald-600 text-white">
-							{t('status-dispersed')}
-						</Badge>
+						{credit.status === 'settled' ? (
+							<Badge variant="secondary">{t('status-settled')}</Badge>
+						) : (
+							<Badge className="border-transparent bg-emerald-600 text-white">
+								{t('status-dispersed')}
+							</Badge>
+						)}
 					</div>
 				</div>
 
@@ -147,59 +153,89 @@ export default async function CuentaCreditDetailPage({
 				</dl>
 			</SectionCard>
 
+			{credit.transferReference != null || credit.receiptFileName != null ? (
+				<SectionCard
+					className="mt-8"
+					icon={Receipt}
+					title={tApp('disburse-readonly-title')}
+				>
+					<dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+						{credit.transferReference != null ? (
+							<DetailField label={tApp('disburse-readonly-transfer-reference')}>
+								{credit.transferReference}
+							</DetailField>
+						) : null}
+						{credit.receiptFileName != null ? (
+							<DetailField label={tApp('disburse-readonly-receipt')}>
+								{credit.receiptFileName}
+							</DetailField>
+						) : null}
+					</dl>
+				</SectionCard>
+			) : null}
+
 			<SectionCard
 				className="mt-8"
 				icon={Building2}
 				title={t('detail-payment-schedule-title')}
 			>
 				{payments.length > 0 ? (
-					<table className="w-full">
-						<thead>
-							<tr className="border-slate-100 border-b bg-slate-50/80 text-left text-[11px] text-slate-500 uppercase tracking-wide">
-								<th className="px-5 py-3 font-semibold" scope="col">
-									{t('schedule-th-number')}
-								</th>
-								<th className="px-5 py-3 font-semibold" scope="col">
-									{t('schedule-th-due-date')}
-								</th>
-								<th className="px-5 py-3 font-semibold" scope="col">
-									{t('schedule-th-amount')}
-								</th>
-								<th className="px-5 py-3 font-semibold" scope="col">
-									{t('schedule-th-status')}
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{payments.map((payment, index) => (
-								<tr key={payment.id} className="border-slate-100 border-b">
-									<td className="px-5 py-3.5 text-slate-800 text-sm">
-										{index + 1}
-									</td>
-									<td className="px-5 py-3.5 text-slate-800 text-sm">
-										<FormattedDate
-											value={payment.dueDate.toISOString()}
-											format="date"
-										/>
-									</td>
-									<td className="px-5 py-3.5 text-slate-800 text-sm">
-										{formatCurrencyMxn(payment.amount)}
-									</td>
-									<td className="px-5 py-3.5 text-sm">
-										{payment.installmentConfirmedAt !== null ? (
-											<Badge variant="default">
-												{t('payment-status-confirmed')}
-											</Badge>
-										) : (
-											<Badge variant="secondary">
-												{t('payment-status-pending')}
-											</Badge>
-										)}
-									</td>
+					<div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:overflow-visible sm:px-0">
+						<table className="w-full min-w-[36rem]">
+							<thead>
+								<tr className="border-slate-100 border-b bg-slate-50/80 text-left text-[11px] text-slate-500 uppercase tracking-wide">
+									<th className="px-5 py-3 font-semibold" scope="col">
+										{t('schedule-th-number')}
+									</th>
+									<th className="px-5 py-3 font-semibold" scope="col">
+										{t('schedule-th-due-date')}
+									</th>
+									<th className="px-5 py-3 font-semibold" scope="col">
+										{t('schedule-th-amount')}
+									</th>
+									<th className="px-5 py-3 font-semibold" scope="col">
+										{t('schedule-th-status')}
+									</th>
 								</tr>
-							))}
-						</tbody>
-					</table>
+							</thead>
+							<tbody>
+								{payments.map((payment, index) => (
+									<tr key={payment.id} className="border-slate-100 border-b">
+										<td className="px-5 py-3.5 text-slate-800 text-sm">
+											{index + 1}
+										</td>
+										<td className="px-5 py-3.5 text-slate-800 text-sm">
+											<FormattedDate
+												value={payment.dueDate.toISOString()}
+												format="date"
+											/>
+										</td>
+										<td className="px-5 py-3.5 text-slate-800 text-sm">
+											{formatCurrencyMxn(payment.amount)}
+										</td>
+										<td className="px-5 py-3.5 text-sm">
+											{payment.installmentConfirmedAt !== null ? (
+												<Badge variant="default">
+													{t('payment-status-confirmed')}
+												</Badge>
+											) : payment.hrConfirmedAt !== null ? (
+												<Badge
+													variant="outline"
+													className="border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-50"
+												>
+													{t('payment-status-processing')}
+												</Badge>
+											) : (
+												<Badge variant="secondary">
+													{t('payment-status-pending')}
+												</Badge>
+											)}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
 				) : (
 					<p className="text-slate-600 text-sm">
 						{t('detail-payment-schedule-placeholder')}

@@ -3,8 +3,9 @@
 import { Download, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { FinalInstallmentConfirmDialog } from '~/components/equipo/final-installment-confirm-dialog'
 import { Button } from '~/components/ui/button'
 import { useDataTable } from '~/components/ui/data-table'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
@@ -31,8 +32,13 @@ export function BulkConfirmInstallmentsBar({
 	const selectedRows = table.getFilteredSelectedRowModel().rows
 	const count = selectedRows.length
 
-	function handleConfirm() {
-		const paymentIds = selectedRows.map((row) => row.original.id)
+	const [finalDialogOpen, setFinalDialogOpen] = useState(false)
+	/** All selected queue rows; confirmation runs on every id here. */
+	const [pendingBulkAllSelected, setPendingBulkAllSelected] = useState<
+		InstallmentForQueue[] | null
+	>(null)
+
+	function runBulkConfirm(paymentIds: number[]) {
 		startConfirmTransition(async () => {
 			const res = await confirmInstallmentsAction(paymentIds)
 			if (res?.error != null) {
@@ -46,9 +52,25 @@ export function BulkConfirmInstallmentsBar({
 							}),
 				)
 				table.resetRowSelection()
+				setFinalDialogOpen(false)
+				setPendingBulkAllSelected(null)
 				router.refresh()
 			}
 		})
+	}
+
+	function handleConfirm() {
+		const selected = selectedRows.map((row) => row.original)
+		const paymentIds = selected.map((r) => r.id)
+		const willSettleCredits = selected.filter(
+			(r) => r.isFinalInstallmentConfirm,
+		)
+		if (willSettleCredits.length > 0) {
+			setPendingBulkAllSelected(selected)
+			setFinalDialogOpen(true)
+			return
+		}
+		runBulkConfirm(paymentIds)
 	}
 
 	function handleExportCsv() {
@@ -80,6 +102,33 @@ export function BulkConfirmInstallmentsBar({
 
 	return (
 		<div className="flex min-w-0 flex-wrap items-center justify-end gap-2 py-2">
+			<FinalInstallmentConfirmDialog
+				open={finalDialogOpen}
+				onOpenChange={(open) => {
+					setFinalDialogOpen(open)
+					if (!open) {
+						setPendingBulkAllSelected(null)
+					}
+				}}
+				rows={(pendingBulkAllSelected ?? [])
+					.filter((r) => r.isFinalInstallmentConfirm)
+					.map((r) => ({
+						id: r.id,
+						rowLabel: r.employeeName,
+						dueDateIso: r.dueDate.slice(0, 10),
+						amount: r.amount,
+					}))}
+				firstColumnHeaderKey="installments-col-employee"
+				dialogContext="queue-bulk"
+				queueBulkTotalSelectedCredits={pendingBulkAllSelected?.length}
+				onConfirm={() => {
+					if (pendingBulkAllSelected == null) {
+						return
+					}
+					runBulkConfirm(pendingBulkAllSelected.map((r) => r.id))
+				}}
+				isPending={isConfirmPending}
+			/>
 			{count > 0 ? (
 				<Button
 					type="button"
