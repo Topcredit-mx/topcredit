@@ -35,7 +35,7 @@ test.describe('Pre-authorizations agents', () => {
 		await setSelectedCompanyId(page, seed.companyId)
 	})
 
-	test('disables pre-autorizar when amount exceeds borrowing capacity', async ({
+	test('disables pre-authorizar when amount exceeds borrowing capacity', async ({
 		page,
 	}) => {
 		await page.goto(`/equipo/applications/${seed.preAuthApplicationId}`)
