@@ -3480,6 +3480,9 @@ export const seedInstallmentsQueue =
 		await db.insert(creditPayments).values(
 			schedule1.map((entry, index) => {
 				if (index === 0) {
+					const dueY = entry.dueDate.getUTCFullYear()
+					const dueM = entry.dueDate.getUTCMonth()
+					const dueD = entry.dueDate.getUTCDate()
 					return {
 						creditId: credit1.id,
 						dueDate: entry.dueDate,
@@ -3487,7 +3490,7 @@ export const seedInstallmentsQueue =
 						hrConfirmedAt: new Date(now.getTime() - 10 * 24 * 60 * 60_000),
 						hrConfirmedByUserId: hrQueueAgent.id,
 						installmentConfirmedAt: new Date(
-							now.getTime() - 9 * 24 * 60 * 60_000,
+							Date.UTC(dueY, dueM, dueD, 12, 0, 0),
 						),
 						installmentConfirmedByUserId: installmentQueueAgent.id,
 					}

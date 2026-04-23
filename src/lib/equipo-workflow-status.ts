@@ -84,8 +84,8 @@ export function resolveCreditDetailCombinedStatus(params: {
 	const delayed = params.todayYmd !== undefined && dueYmd < params.todayYmd
 	if (delayed) {
 		return {
-			tone: 'amber_dark',
-			messageKey: 'equipo-workflow-status-installment-delayed',
+			tone: 'green',
+			messageKey: 'equipo-workflow-status-confirmed',
 		}
 	}
 	return {
