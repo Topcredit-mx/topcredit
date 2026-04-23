@@ -2,6 +2,9 @@
 
 [![Cypress Tests](https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/detailed/zco6oy/main&style=flat&logo=cypress)](https://cloud.cypress.io/projects/zco6oy/runs)
 
+**Latest E2E (Playwright) HTML report (GitHub Pages):** [topcredit-mx.github.io/topcredit](https://topcredit-mx.github.io/topcredit/)  
+Updates after each push when CI publishes a merged report (combined 2-shard run).
+
 > Plataforma de créditos empresariales para empleados de empresas afiliadas
 
 ## Overview
@@ -22,7 +25,7 @@ The intended end-to-end flow is documented in `docs/app-flow-proposal.md`.
 - Inngest (queued jobs)
 - Resend (email), Vercel (deploy)
 - Biome (lint/format)
-- Cypress E2E
+- Playwright E2E
 
 ## Getting started
 
@@ -46,8 +49,8 @@ Copy `.env.example` to `.env` and set:
 | `AUTH_URL` | App URL (`http://localhost:3000` in dev) |
 | `EMAIL_FROM` | Sender address for Resend |
 | `RESEND_API_KEY` | Resend API key |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for application document storage. **Required for Cypress E2E** (document upload tests). |
-| `E2E_OTP_CODE` | **Required for Cypress E2E**. Fixed 6-digit OTP; when set the app runs in E2E mode (fixed OTP, emails skipped). |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for application document storage. **Required for Playwright E2E** (document upload tests). |
+| `E2E_OTP_CODE` | **Required for Playwright E2E** locally. Fixed 6-digit OTP; when set the app runs in E2E mode (fixed OTP, emails skipped). |
 | `INNGEST_EVENT_KEY` | (Optional) [Inngest](https://www.inngest.com) event key for queuing operations (e.g. email sends in production). |
 
 ## Scripts
@@ -65,15 +68,19 @@ Copy `.env.example` to `.env` and set:
 | `pnpm db:studio` | Open Drizzle Studio |
 | `pnpm typecheck` | Run TypeScript check |
 | `pnpm check` | Run Biome lint |
-| `pnpm cy:open` | Open Cypress UI |
-| `pnpm cy:run` | Run Cypress E2E headless |
+| `pnpm test:e2e` | Run Playwright E2E |
+| `pnpm test:e2e:ui` | Playwright UI mode |
+
+## CI E2E (Neon)
+
+Playwright in GitHub Actions creates **one temporary branch per matrix shard** (see `.github/workflows/playwright.yml`) and deletes it after the job. The Neon [create-branch-action](https://github.com/neondatabase/create-branch-action) is on the latest 6.3.x release. If branch creation returns **HTTP 422**, the project is often over a **Free-plan limit** (for example **storage**), not the branch *count*—check Neon's **Project settings → Usage** and clear old `test-*` branches or reduce `main` size, or upgrade. The UI can still show e.g. **3 / 10** branches while storage is over quota.
 
 ## CI/CD
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | Type Check | Every push | `pnpm typecheck` |
-| Cypress Tests | Every push | E2E tests (Neon branch per run, then teardown) |
+| Playwright Tests | Every push | E2E in **2 parallel jobs**; each job uses a **dedicated Neon branch**, then the branches are deleted. Blob reports are merged and deployed to the **static report URL** above. |
 | Prod DB | Push to `main` when `drizzle/**` or `src/server/db/schema.ts` change | Runs in `production` env: generate, fail on uncommitted migration drift, then `db:migrate`. Needs `DATABASE_URL` in production environment secrets. |
 
 ## Project structure
