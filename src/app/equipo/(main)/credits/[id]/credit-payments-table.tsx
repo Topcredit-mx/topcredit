@@ -8,7 +8,10 @@ import { FinalInstallmentConfirmDialog } from '~/components/equipo/final-install
 import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
-import { resolveCreditDetailCombinedStatus } from '~/lib/equipo-workflow-status'
+import {
+	resolveCreditDetailCollectionStatus,
+	resolveCreditDetailDeductionStatus,
+} from '~/lib/equipo-workflow-status'
 import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import {
 	canConfirmInstallmentForCreditDetailRow,
@@ -214,7 +217,10 @@ export function CreditPaymentsTable({
 							{t('credit-detail-col-amount')}
 						</th>
 						<th className="px-5 py-3 font-semibold" scope="col">
-							{t('equipo-col-workflow-status')}
+							{t('credit-detail-col-hr-status')}
+						</th>
+						<th className="px-5 py-3 font-semibold" scope="col">
+							{t('credit-detail-col-installment-status')}
 						</th>
 						<th className="px-5 py-3" scope="col" />
 					</tr>
@@ -235,7 +241,12 @@ export function CreditPaymentsTable({
 							creditPayment,
 							todayDate,
 						)
-						const workflow = resolveCreditDetailCombinedStatus({
+						const deduction = resolveCreditDetailDeductionStatus({
+							hrConfirmedAt: creditPayment.hrConfirmedAt,
+							dueDate: creditPayment.dueDate,
+							todayYmd: today,
+						})
+						const collection = resolveCreditDetailCollectionStatus({
 							hrConfirmedAt: creditPayment.hrConfirmedAt,
 							installmentConfirmedAt: creditPayment.installmentConfirmedAt,
 							dueDate: creditPayment.dueDate,
@@ -257,8 +268,14 @@ export function CreditPaymentsTable({
 								</td>
 								<td className="px-5 py-3.5 text-sm">
 									<WorkflowStatusBadge
-										tone={workflow.tone}
-										messageKey={workflow.messageKey}
+										tone={deduction.tone}
+										messageKey={deduction.messageKey}
+									/>
+								</td>
+								<td className="px-5 py-3.5 text-sm">
+									<WorkflowStatusBadge
+										tone={collection.tone}
+										messageKey={collection.messageKey}
 									/>
 								</td>
 								<td className="px-5 py-3.5">

@@ -52,7 +52,7 @@ test.describe('Credit detail — confirm installment from schedule', () => {
 			).toHaveCount(0)
 
 			const r1 = mainDataTable(page).locator('tbody tr').nth(1)
-			await expect(r1.getByText(/atrasado/i).first()).toBeVisible()
+			await expect(r1.getByText(/cobro atrasado/i).first()).toBeVisible()
 			await expect(
 				r1.getByRole('button', { name: /confirmar instalación/i }),
 			).toBeVisible()
@@ -85,7 +85,10 @@ test.describe('Credit detail — confirm installment from schedule', () => {
 			await expect(
 				r1After.getByRole('button', { name: /confirmar instalación/i }),
 			).toHaveCount(0)
-			await expect(r1After.getByText(/confirmado/i).first()).toBeVisible()
+			await expect(
+				r1After.getByText(/deducción confirmada/i).first(),
+			).toBeVisible()
+			await expect(r1After.getByText(/^Confirmado$/i).first()).toBeVisible()
 		})
 	})
 

@@ -66,7 +66,10 @@ test.describe('Credit auto-settles when last installment is confirmed', () => {
 		await expect(
 			lastRowAfter.getByRole('button', { name: /confirmar instalación/i }),
 		).toHaveCount(0)
-		await expect(lastRowAfter.getByText(/confirmado/i).first()).toBeVisible()
+		await expect(
+			lastRowAfter.getByText(/deducción confirmada/i).first(),
+		).toBeVisible()
+		await expect(lastRowAfter.getByText(/^Confirmado$/i).first()).toBeVisible()
 
 		await expect(main.getByText(/^Liquidado$/i)).toBeVisible({
 			timeout: 15_000,

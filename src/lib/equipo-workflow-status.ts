@@ -16,6 +16,8 @@ export type EquipoWorkflowMessageKey =
 	| 'equipo-workflow-status-overdue-deduction'
 	| 'equipo-workflow-history-on-time'
 	| 'equipo-workflow-history-late'
+	| 'equipo-credit-detail-deduction-confirmed'
+	| 'equipo-credit-detail-collection-awaiting-deduction'
 
 export const workflowToneClassName: Record<WorkflowTone, string> = {
 	green: 'bg-green-100 text-green-800',
@@ -54,19 +56,11 @@ export function resolveQueueWorkflowStatus(params: {
 	}
 }
 
-/** Detalle crédito: una sola pastilla; prioriza atraso RH, luego cobro retrasado, etc. */
-export function resolveCreditDetailCombinedStatus(params: {
+export function resolveCreditDetailDeductionStatus(params: {
 	hrConfirmedAt: Date | null
-	installmentConfirmedAt: Date | null
 	dueDate: Date
 	todayYmd: string | undefined
 }): WorkflowStatusResolution {
-	if (params.installmentConfirmedAt !== null) {
-		return {
-			tone: 'green',
-			messageKey: 'equipo-workflow-status-confirmed',
-		}
-	}
 	const dueYmd = params.dueDate.toISOString().slice(0, 10)
 	if (params.hrConfirmedAt === null) {
 		const overdue = params.todayYmd !== undefined && dueYmd < params.todayYmd
@@ -81,11 +75,36 @@ export function resolveCreditDetailCombinedStatus(params: {
 			messageKey: 'equipo-workflow-status-rh-pending-detail',
 		}
 	}
-	const delayed = params.todayYmd !== undefined && dueYmd < params.todayYmd
-	if (delayed) {
+	return {
+		tone: 'green',
+		messageKey: 'equipo-credit-detail-deduction-confirmed',
+	}
+}
+
+export function resolveCreditDetailCollectionStatus(params: {
+	hrConfirmedAt: Date | null
+	installmentConfirmedAt: Date | null
+	dueDate: Date
+	todayYmd: string | undefined
+}): WorkflowStatusResolution {
+	if (params.installmentConfirmedAt !== null) {
 		return {
 			tone: 'green',
 			messageKey: 'equipo-workflow-status-confirmed',
+		}
+	}
+	if (params.hrConfirmedAt === null) {
+		return {
+			tone: 'gray',
+			messageKey: 'equipo-credit-detail-collection-awaiting-deduction',
+		}
+	}
+	const dueYmd = params.dueDate.toISOString().slice(0, 10)
+	const delayed = params.todayYmd !== undefined && dueYmd < params.todayYmd
+	if (delayed) {
+		return {
+			tone: 'amber_dark',
+			messageKey: 'equipo-workflow-status-installment-delayed',
 		}
 	}
 	return {
