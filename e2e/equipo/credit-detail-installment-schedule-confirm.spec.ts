@@ -52,7 +52,7 @@ test.describe('Credit detail — confirm installment from schedule', () => {
 			).toHaveCount(0)
 
 			const r1 = mainDataTable(page).locator('tbody tr').nth(1)
-			await expect(r1.getByText(/cobro atrasado/i).first()).toBeVisible()
+			await expect(r1.getByText(/instalación atrasada/i).first()).toBeVisible()
 			await expect(
 				r1.getByRole('button', { name: /confirmar instalación/i }),
 			).toBeVisible()

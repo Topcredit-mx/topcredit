@@ -224,7 +224,7 @@ test.describe('Credit detail — confirm button visibility by payment state', ()
 		const r0 = mainDataTable(page).locator('tbody tr').nth(0)
 		await expect(r0.getByRole('button', { name: /confirmar/i })).toHaveCount(0)
 		await expect(r0.getByText(/deducción confirmada/i).first()).toBeVisible()
-		await expect(r0.getByText(/cobro atrasado/i).first()).toBeVisible()
+		await expect(r0.getByText(/instalación atrasada/i).first()).toBeVisible()
 
 		const r1 = mainDataTable(page).locator('tbody tr').nth(1)
 		await expect(r1.getByText(/atrasado/i).first()).toBeVisible()
