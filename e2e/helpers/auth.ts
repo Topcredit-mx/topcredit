@@ -33,3 +33,23 @@ export async function loginPage(page: Page, email: string): Promise<void> {
 		},
 	])
 }
+
+export async function setSelectedCompanyId(
+	page: Page,
+	companyId: number,
+): Promise<void> {
+	await page.context().addCookies([
+		{
+			name: 'selected_company_id',
+			value: String(companyId),
+			domain: 'localhost',
+			path: '/',
+		},
+	])
+}
+
+export async function clearSelectedCompanyIdCookie(page: Page): Promise<void> {
+	await page
+		.context()
+		.clearCookies({ name: 'selected_company_id', domain: 'localhost' })
+}

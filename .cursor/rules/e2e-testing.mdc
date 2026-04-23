@@ -47,6 +47,11 @@ Prefer: **visible text** (`getByText`), **roles** (`getByRole`), **accessible na
 - Put **setup in `test.beforeEach`** where appropriate. **`registerDbSpecGuards()`** runs `assertE2eDatabaseEmpty` before/after each spec file when `DATABASE_URL` is set (`e2e/helpers/spec-hooks.ts`).
 - **DB leak checks:** same as Cypress: empty DB guard around each spec file when `DATABASE_URL` is set.
 
+## Database (local / `DATABASE_URL`)
+
+- When `DATABASE_URL` is set, **`e2e/global-setup.ts` runs `pnpm db:nuke:migrate` before the suite** (then `assertE2eDatabaseEmpty`), so the DB is always migrated and empty at the start of a Playwright run. Do not rely on `pnpm db:seed` for E2E; spec data comes from `~/e2e/server/tasks`, like Cypress. For a manual database reset without Playwright, use **`pnpm db:nuke:migrate`**.
+- CI: each job uses a fresh Neon database; the same global setup runs there too.
+
 ---
 
 ## Auth

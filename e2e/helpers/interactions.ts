@@ -1,5 +1,15 @@
 import type { Locator, Page } from '@playwright/test'
 
+/**
+ * Many equipo (and other app) pages render more than one `<table>` inside `main`
+ * (e.g. a compact summary + the main data grid). E2E assertions on `table` must
+ * not use a bare `page.locator("table")` (Playwright strict mode). The primary
+ * data grid in these flows is the last `table` in `main`.
+ */
+export function mainDataTable(page: Page): Locator {
+	return page.getByRole('main').getByRole('table').last()
+}
+
 export async function selectRadix(
 	page: Page,
 	selector: string,
@@ -42,7 +52,7 @@ export async function selectRadix(
 }
 
 export function findTableRow(page: Page, cellText: string): Locator {
-	return page
-		.locator('table tr')
+	return mainDataTable(page)
+		.getByRole('row')
 		.filter({ has: page.getByRole('cell', { name: cellText }) })
 }
