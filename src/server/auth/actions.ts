@@ -213,7 +213,7 @@ export async function verifyTotpSetup(
 		where: eq(users.email, email),
 	})
 
-	if (!user || !user.totpSecret) {
+	if (!user?.totpSecret) {
 		throw new Error('TOTP setup not initiated')
 	}
 
@@ -250,7 +250,7 @@ export async function verifyTotpLogin(
 		where: eq(users.email, email),
 	})
 
-	if (!user || !user.totpSecret || !user.totpEnabled) {
+	if (!user?.totpSecret || !user.totpEnabled) {
 		throw new Error('TOTP not enabled for this user')
 	}
 
@@ -278,7 +278,7 @@ export async function verifyBackupCodeLogin(
 		where: eq(users.email, email),
 	})
 
-	if (!user || !user.totpEnabled || !user.totpBackupCodes) {
+	if (!user?.totpEnabled || !user.totpBackupCodes) {
 		throw new Error('TOTP not enabled or no backup codes available')
 	}
 

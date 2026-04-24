@@ -120,7 +120,6 @@ export default async function CuentaPreAuthorizedOfferPage({
 						<p className="m-0 min-w-0 truncate font-semibold text-[11px] text-white/80 uppercase leading-none tracking-wide">
 							{t('pre-authorized-offer-summary-label')}
 						</p>
-						{/* biome-ignore lint/a11y/useSemanticElements: live region for application status */}
 						<div role="status" className="inline-flex max-w-44 shrink-0">
 							<Badge
 								className={cn(

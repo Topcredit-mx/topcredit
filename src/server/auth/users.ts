@@ -103,7 +103,7 @@ export async function generateNewBackupCodes(email: string) {
 		where: eq(users.email, email),
 	})
 
-	if (!user || !user.totpEnabled) {
+	if (!user?.totpEnabled) {
 		throw new Error('TOTP not enabled for this user')
 	}
 

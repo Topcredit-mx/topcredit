@@ -170,7 +170,6 @@ export default async function CuentaApplicationDetailPage({
 							/>
 						</span>
 					</div>
-					{/* biome-ignore lint/a11y/useSemanticElements: live region for application status */}
 					<div role="status" className="inline-flex shrink-0">
 						<Badge
 							className={getApplicationStatusBadgeClass(
