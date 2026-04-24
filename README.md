@@ -80,7 +80,7 @@ Playwright in GitHub Actions creates **one temporary branch per matrix shard** (
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | CI | Every push | Typecheck, Biome, unit tests |
-| E2E | Every push | Playwright in **2 shards**; each uses a **Neon test branch**, removed after the run (**E2E cleanup**). Blob reports merge to the **static report URL** above. |
+| E2E | Every push | Playwright in **2 shards**; each uses a **Neon test branch**, deleted by that shard’s job when it finishes (including cancel). Blob reports merge to the **static report URL** above. |
 | Production | Push to `main` when `drizzle/**` or `src/server/db/schema.ts` change | Runs in `production` env: generate, fail on uncommitted migration drift, then `db:migrate`. Needs `DATABASE_URL` in production environment secrets. |
 
 ## Project structure
