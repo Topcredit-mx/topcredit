@@ -3274,6 +3274,8 @@ function endOfCurrentMonthUTC(now: Date): Date {
 export type SeedInstallmentsQueueResult = {
 	companyId: number
 	expectedRowCount: number
+	/** Queue rows after confirming the first CSV-matched installment (credit may leave the pay-period window). */
+	expectedRowCountAfterConfirmingFirstCsvMatch: number
 	applicant1Name: string
 	applicant2Name: string
 	/** Application id for on-time installment confirmation (credit1 / applicant1). */
@@ -3591,6 +3593,7 @@ export const seedInstallmentsQueue =
 		return {
 			companyId: company.id,
 			expectedRowCount: 3,
+			expectedRowCountAfterConfirmingFirstCsvMatch: 2,
 			applicant1Name: applicant1.name,
 			applicant2Name: applicant2.name,
 			onTimeInstallmentApplicationId: app1.id,

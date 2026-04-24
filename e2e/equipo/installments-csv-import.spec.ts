@@ -57,7 +57,7 @@ test.describe('Installments queue CSV import', () => {
 		await expect(page.getByRole('dialog')).toHaveCount(0)
 	})
 
-	test('uploads valid CSV, shows preview, confirms, shows success toast (one row per credit unchanged)', async ({
+	test('uploads valid CSV, shows preview, confirms, shows success toast and updated queue', async ({
 		page,
 	}) => {
 		await page.goto('/equipo/installments')
@@ -87,7 +87,7 @@ test.describe('Installments queue CSV import', () => {
 		).toBeVisible()
 		await expect(page.getByRole('dialog')).toHaveCount(0)
 		await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(
-			seed.expectedRowCount,
+			seed.expectedRowCountAfterConfirmingFirstCsvMatch,
 		)
 	})
 
@@ -241,7 +241,7 @@ test.describe('Installments queue CSV import', () => {
 		).toBeVisible()
 		await expect(page.getByRole('dialog')).toHaveCount(0)
 		await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(
-			seed.expectedRowCount,
+			seed.expectedRowCountAfterConfirmingFirstCsvMatch,
 		)
 	})
 
@@ -287,7 +287,7 @@ test.describe('Installments queue CSV import', () => {
 		).toBeVisible()
 		await expect(page.getByRole('dialog')).toHaveCount(0)
 		await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(
-			seed.expectedRowCount,
+			seed.expectedRowCountAfterConfirmingFirstCsvMatch,
 		)
 	})
 })
