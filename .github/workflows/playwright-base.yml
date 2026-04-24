@@ -33,7 +33,7 @@ jobs:
 
       - name: Create Neon branch (one per Playwright shard)
         id: create-branch
-        uses: neondatabase/create-branch-action@v6.4.0
+        uses: neondatabase/create-branch-action@6.3.1
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch_name: test-${{ steps.sha.outputs.short_sha }}-${{ matrix.shard }}
@@ -170,6 +170,7 @@ jobs:
           name: test-results-${{ github.run_id }}-${{ matrix.shard }}
           path: test-results/
           retention-days: 14
+          if-no-files-found: ignore
 
   playwright-report-gate:
     name: Report gate
