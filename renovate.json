@@ -16,7 +16,8 @@
 	"separateMinorPatch": true,
 	"lockFileMaintenance": {
 		"enabled": true,
-		"schedule": ["before 6am on monday"]
+		"schedule": ["before 6am on monday"],
+		"automerge": true
 	},
 	"customManagers": [
 		{
@@ -35,7 +36,8 @@
 			"matchManagers": ["npm", "custom.regex"],
 			"matchUpdateTypes": ["minor"],
 			"groupName": "npm dependencies (minor)",
-			"groupSlug": "npm-minor"
+			"groupSlug": "npm-minor",
+			"automerge": true
 		},
 		{
 			"matchManagers": ["npm", "custom.regex"],
