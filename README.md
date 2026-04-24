@@ -73,14 +73,14 @@ Copy `.env.example` to `.env` and set:
 
 ## CI E2E (Neon)
 
-Playwright E2E uses GitHub Environment **`testing`** for **non-`main` pushes** and **`staging`** after workflow **Production** (DB migrate on `main`) completes **successfully**—same job layout, different Neon credentials per env. **Neon branches** matrix creates shards; **Chromium** loads each DB URL from an artifact; **Purge Neon** runs with `always()` (see `.github/workflows/playwright.yml`). Configure **`staging`** with the same secret **names** as **`testing`**. The Neon [create-branch-action](https://github.com/neondatabase/create-branch-action) is on the latest 6.3.x release. If branch creation returns **HTTP 422**, the project is often over a **Free-plan limit** (for example **storage**), not the branch *count*—check Neon's **Project settings → Usage** and clear old `test-*` branches or reduce `main` size, or upgrade. The UI can still show e.g. **3 / 10** branches while storage is over quota.
+Playwright E2E uses **`testing`** on **non-`main` pushes** and **`staging`** when **Production** (DB migrate on `main`) **dispatches** this workflow with the migrated **commit SHA**—same jobs, different Neon credentials per env. **Neon branches** matrix creates shards; **Chromium** loads each DB URL from an artifact; **Purge Neon** runs with `always()` (see `.github/workflows/playwright.yml`). Configure **`staging`** with the same secret **names** as **`testing`**. The Neon [create-branch-action](https://github.com/neondatabase/create-branch-action) is on the latest 6.3.x release. If branch creation returns **HTTP 422**, the project is often over a **Free-plan limit** (for example **storage**), not the branch *count*—check Neon's **Project settings → Usage** and clear old `test-*` branches or reduce `main` size, or upgrade. The UI can still show e.g. **3 / 10** branches while storage is over quota.
 
 ## CI/CD
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | CI | Every push | Typecheck, Biome, unit tests |
-| E2E | Push to non-`main`, or **`main` after Production succeeds** | **`testing`** env on branches; **`staging`** env on `main` (post-migrate). **Neon branches** → **Chromium** (2 shards) → **Purge Neon**. Blob reports → **static report URL** above. |
+| E2E | Push to non-`main`, or **workflow dispatch from Production** after migrate | **`testing`** on branches; **`staging`** when Production dispatches with `head_sha`. **Neon branches** → **Chromium** → **Purge Neon**. Blob reports → **static report URL** above. |
 | Production | Push to `main` when `drizzle/**` or `src/server/db/schema.ts` change | Runs in `production` env: generate, fail on uncommitted migration drift, then `db:migrate`. Needs `DATABASE_URL` in production environment secrets. |
 
 ## Project structure

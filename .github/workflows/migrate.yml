@@ -45,3 +45,22 @@ jobs:
         run: pnpm db:migrate:if-pending
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  trigger-e2e:
+    needs: migrate
+    if: success()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch E2E
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'playwright.yml',
+              ref: 'main',
+              inputs: { head_sha: context.sha },
+            })
