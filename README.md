@@ -73,15 +73,18 @@ Copy `.env.example` to `.env` and set:
 
 ## CI E2E (Neon)
 
-Playwright E2E uses **`testing`** on **non-`main` pushes** and **`staging`** when **Production** (DB migrate on `main`) **dispatches** this workflow with the migrated **commit SHA**—same jobs, different Neon credentials per env. **Neon branches** matrix creates shards; **Chromium** loads each DB URL from an artifact; **Purge Neon** runs with `always()` (see `.github/workflows/playwright.yml`). Configure **`staging`** with the same secret **names** as **`testing`**. The Neon [create-branch-action](https://github.com/neondatabase/create-branch-action) is on the latest 6.3.x release. If branch creation returns **HTTP 422**, the project is often over a **Free-plan limit** (for example **storage**), not the branch *count*—check Neon's **Project settings → Usage** and clear old `test-*` branches or reduce `main` size, or upgrade. The UI can still show e.g. **3 / 10** branches while storage is over quota.
+Playwright is split into **[`.github/workflows/playwright-main.yml`](.github/workflows/playwright-main.yml)** (**`E2E (main)`**, push to `main`, GitHub Environment **`staging`**) and **[`.github/workflows/playwright-dev.yml`](.github/workflows/playwright-dev.yml)** (**`E2E (dev)`**, push to other branches, **`testing`**). Shared jobs live in **[`playwright-base.yml`](.github/workflows/playwright-base.yml)** (`workflow_call`). On **`main`**, **[`playwright-main.yml`](.github/workflows/playwright-main.yml)** runs a **`wait-production-migrate`** job first that polls until **Production** ([`migrate.yml`](.github/workflows/migrate.yml)) has **completed successfully** for the **same commit SHA**, then calls the base workflow—no workflow dispatch. **Neon branches** matrix → **Chromium** (artifact DB URL per shard) → **Purge Neon** with `always()`. Configure **`staging`** with the same secret **names** as **`testing`**. **Concurrency:** dev runs use **`cancel-in-progress: true`** (new pushes supersede); **`main`** uses **`cancel-in-progress: false`** (runs queue). The Neon [create-branch-action](https://github.com/neondatabase/create-branch-action) is on the latest 6.3.x release. If branch creation returns **HTTP 422**, the project is often over a **Free-plan limit** (for example **storage**), not the branch *count*—check Neon's **Project settings → Usage** and clear old `test-*` branches or reduce `main` size, or upgrade. The UI can still show e.g. **3 / 10** branches while storage is over quota.
+
+If branch protection uses required status checks, register the workflow display names **`E2E (main)`** and **`E2E (dev)`** (from each file’s top-level `name:`).
 
 ## CI/CD
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | CI | Every push | Typecheck, Biome, unit tests |
-| E2E | Push to non-`main`, or **workflow dispatch from Production** after migrate | **`testing`** on branches; **`staging`** when Production dispatches with `head_sha`. **Neon branches** → **Chromium** → **Purge Neon**. Blob reports → **static report URL** above. |
-| Production | Push to `main` when `drizzle/**` or `src/server/db/schema.ts` change | Runs in `production` env: generate, fail on uncommitted migration drift, then `db:migrate`. Needs `DATABASE_URL` in production environment secrets. |
+| E2E (dev) | Push to branches other than `main` | GitHub **`testing`** env; reusable base; **Neon branches** → **Chromium** → **Purge Neon**; blob reports → **static report URL** above. |
+| E2E (main) | Push to `main` | **`wait-production-migrate`** job, then **`staging`** + reusable base; same Neon/Chromium/purge/report flow. |
+| Production | Push to `main` | Runs in `production` env: generate, fail on uncommitted migration drift, then `db:migrate`. Needs `DATABASE_URL` in production environment secrets. |
 
 ## Project structure
 

@@ -1,13 +1,9 @@
-name: E2E
+name: E2E base
 
 'on':
-  push:
-    branches-ignore:
-      - main
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      head_sha:
-        description: Full commit SHA (passed by Production after migrate)
+      secrets_environment:
         required: true
         type: string
 
@@ -21,28 +17,21 @@ permissions:
   id-token: write
   pages: write
 
-concurrency:
-  group: playwright-neon-${{ github.repository }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
 jobs:
   e2e-context:
     name: E2E context
-    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     outputs:
       short_sha: ${{ steps.sha.outputs.short_sha }}
     steps:
       - id: sha
-        env:
-          HEAD_SHA: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.head_sha || github.sha }}
-        run: echo "short_sha=$(echo "$HEAD_SHA" | cut -c1-7)" >> "$GITHUB_OUTPUT"
+        run: echo "short_sha=$(echo '${{ github.sha }}' | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
   neon-create-branches:
     name: Neon branches
     needs: e2e-context
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'workflow_dispatch' && 'staging' || 'testing' }}
+    environment: ${{ inputs.secrets_environment }}
     strategy:
       fail-fast: false
       matrix:
@@ -50,7 +39,7 @@ jobs:
     steps:
       - name: Create Neon branch (one per Playwright shard)
         id: create-branch
-        uses: neondatabase/create-branch-action@v6.4.0
+        uses: neondatabase/create-branch-action@6.3.1
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch_name: test-${{ needs.e2e-context.outputs.short_sha }}-${{ matrix.shard }}
@@ -66,7 +55,7 @@ jobs:
           printf '%s' "${DB_URL}" > database_url.txt
 
       - name: Upload Neon DB URL for this shard
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v5
         with:
           name: e2e-neon-db-url-${{ matrix.shard }}
           path: database_url.txt
@@ -77,7 +66,7 @@ jobs:
     needs:
       - neon-create-branches
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'workflow_dispatch' && 'staging' || 'testing' }}
+    environment: ${{ inputs.secrets_environment }}
     strategy:
       fail-fast: false
       matrix:
@@ -94,10 +83,10 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.head_sha || github.sha }}
+          ref: ${{ github.sha }}
 
       - name: Download Neon connection string
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v5
         with:
           name: e2e-neon-db-url-${{ matrix.shard }}
           path: neon-db
@@ -109,7 +98,7 @@ jobs:
           cat neon-db/database_url.txt >> "$GITHUB_ENV"
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -157,7 +146,7 @@ jobs:
 
       - name: Upload E2E completion marker
         if: always() && (steps.playwright.outcome == 'success' || steps.playwright.outcome == 'failure')
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v5
         with:
           name: e2e-completed-shard-${{ matrix.shard }}
           path: e2e-completed-shard-${{ matrix.shard }}.txt
@@ -173,7 +162,7 @@ jobs:
 
       - name: Upload blob report (for HTML + Pages)
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v5
         with:
           name: blob-report-shard-${{ matrix.shard }}
           path: blob-report/
@@ -182,7 +171,7 @@ jobs:
 
       - name: Upload test-results
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v5
         with:
           name: test-results-${{ github.run_id }}-${{ matrix.shard }}
           path: test-results/
@@ -198,7 +187,7 @@ jobs:
     steps:
       - name: Download E2E completion markers
         continue-on-error: true
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v5
         with:
           path: e2e-gate
           pattern: e2e-completed-shard-*
@@ -233,10 +222,10 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.head_sha || github.sha }}
+          ref: ${{ github.sha }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -250,7 +239,7 @@ jobs:
       - name: Download all shard blob reports
         if: always()
         continue-on-error: true
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v5
         with:
           path: downloaded-blob-reports
           pattern: blob-report-shard-*
@@ -273,14 +262,14 @@ jobs:
 
       - name: Upload Pages artifact
         if: steps.merge.outputs.no_blobs == '0'
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@v3
         with:
           path: playwright-report
 
       - name: Deploy to GitHub Pages
         id: deploy
         if: steps.merge.outputs.no_blobs == '0'
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
 
       - name: Job summary
         if: always()
@@ -301,7 +290,7 @@ jobs:
       - e2e-context
     if: always()
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'workflow_dispatch' && 'staging' || 'testing' }}
+    environment: ${{ inputs.secrets_environment }}
     strategy:
       fail-fast: false
       matrix:
@@ -313,7 +302,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 1
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.head_sha || github.sha }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v6
         with:

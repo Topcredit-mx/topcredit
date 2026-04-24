@@ -1,0 +1,26 @@
+name: E2E (dev)
+
+'on':
+  push:
+    branches-ignore: [main]
+
+concurrency:
+  group: playwright-dev-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLAYWRIGHT_SHARD_COUNT: 2
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+  id-token: write
+  pages: write
+
+jobs:
+  e2e:
+    uses: ./.github/workflows/playwright-base.yml
+    secrets: inherit
+    with:
+      secrets_environment: testing
