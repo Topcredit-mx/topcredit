@@ -11,9 +11,12 @@ permissions:
   id-token: write
   pages: write
 
+# One Playwright workflow at a time for this repo (any branch/PR). Each run uses
+# exactly 2 Neon branches (matrix shards). A repo-wide group — not keyed by ref —
+# prevents two pushes (e.g. main + a PR) from running together and needing 4 branches.
 concurrency:
-  group: playwright-${{ github.ref }}
-  cancel-in-progress: true
+  group: playwright-neon-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
   test:
