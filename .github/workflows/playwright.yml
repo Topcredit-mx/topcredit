@@ -30,6 +30,7 @@ jobs:
         run: echo "short_sha=$(echo "${{ github.sha }}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
   test:
+    name: Playwright E2E
     needs: playwright-neon-context
     runs-on: ubuntu-latest
     environment: testing
