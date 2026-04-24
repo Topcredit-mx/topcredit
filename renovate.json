@@ -18,15 +18,27 @@
 		"enabled": true,
 		"schedule": ["before 6am on monday"]
 	},
+	"customManagers": [
+		{
+			"customType": "regex",
+			"description": "Keep biome.json $schema on the same version as @biomejs/biome",
+			"managerFilePatterns": ["/(^|/)biome\\.json$/"],
+			"matchStrings": [
+				"\"\\$schema\"\\s*:\\s*\"https://biomejs\\.dev/schemas/(?<currentValue>[^/\"]+)/schema\\.json\""
+			],
+			"datasourceTemplate": "npm",
+			"depNameTemplate": "@biomejs/biome"
+		}
+	],
 	"packageRules": [
 		{
-			"matchManagers": ["npm"],
+			"matchManagers": ["npm", "custom.regex"],
 			"matchUpdateTypes": ["minor"],
 			"groupName": "npm dependencies (minor)",
 			"groupSlug": "npm-minor"
 		},
 		{
-			"matchManagers": ["npm"],
+			"matchManagers": ["npm", "custom.regex"],
 			"matchUpdateTypes": ["patch"],
 			"groupName": "npm dependencies (patch)",
 			"groupSlug": "npm-patch",
