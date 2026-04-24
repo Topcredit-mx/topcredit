@@ -53,164 +53,129 @@ export function AgentSidebar({
 	overdueInstallmentsCount = 0,
 }: AgentSidebarProps) {
 	const t = useTranslations('equipo')
-	const isAdmin = user.roles?.includes('admin')
+	const isAdmin = user.roles?.includes('admin') ?? false
 	const disableNav = !isAdmin && companies.length === 0
 
 	const roles = user.roles ?? []
+	const canAccess = (role: string) => isAdmin || roles.includes(role)
 
-	const navigationItems: NavItem[] = isAdmin
-		? [
-				{ title: t('nav-home'), url: '/equipo', icon: Home },
-				{ title: t('nav-users'), url: '/equipo/users', icon: Users },
-				{
-					title: t('nav-companies'),
-					url: '/equipo/companies',
-					icon: Building2,
-				},
-				{
-					title: t('nav-data'),
-					url: '/equipo/data',
-					icon: FileText,
-					items: [
-						{ title: t('nav-requests'), url: '/equipo/applications' },
-						{ title: t('nav-credits'), url: '/equipo/credits' },
-					],
-				},
-				{
-					title: t('nav-installments'),
-					url: '/equipo/installments',
-					icon: CreditCard,
-					items: [
-						{
-							title: t('nav-installments-next-cutoff'),
-							url: '/equipo/installments',
-							icon: CalendarClock,
-							exact: true,
-						},
-						{
-							title: t('nav-installments-history'),
-							url: '/equipo/installments/history',
-							icon: History,
-						},
-						{
-							title: t('nav-installments-overdue'),
-							url: '/equipo/installments/overdue',
-							icon: TriangleAlert,
-							badge:
-								overdueInstallmentsCount > 0
-									? overdueInstallmentsCount
-									: undefined,
-						},
-					],
-				},
-			]
-		: [
-				{ title: t('nav-home'), url: '/equipo', icon: Home },
-				{ title: t('nav-credits'), url: '/equipo/credits', icon: CreditCard },
-				...(roles.includes('requests')
-					? [
+	const navigationItems: NavItem[] = [
+		{ title: t('nav-home'), url: '/equipo', icon: Home },
+		...(isAdmin
+			? [
+					{ title: t('nav-users'), url: '/equipo/users', icon: Users },
+					{
+						title: t('nav-companies'),
+						url: '/equipo/companies',
+						icon: Building2,
+					},
+				]
+			: []),
+		{ title: t('nav-credits'), url: '/equipo/credits', icon: CreditCard },
+		...(canAccess('requests')
+			? [
+					{
+						title: t('nav-requests'),
+						url: '/equipo/applications?status=pending',
+						icon: FileText,
+					},
+				]
+			: []),
+		...(canAccess('pre-authorizations')
+			? [
+					{
+						title: t('nav-pre-authorizations'),
+						url: '/equipo/applications?status=approved',
+						icon: CheckSquare,
+					},
+				]
+			: []),
+		...(canAccess('authorizations')
+			? [
+					{
+						title: t('nav-authorizations'),
+						url: '/equipo/applications?status=awaiting-authorization',
+						icon: ShieldCheck,
+					},
+				]
+			: []),
+		...(canAccess('hr')
+			? [
+					{
+						title: t('nav-hr'),
+						url: '/equipo/applications?status=authorized&hrPending=true',
+						icon: UserCheck,
+					},
+					{
+						title: t('nav-hr-deductions'),
+						url: '/equipo/deductions',
+						icon: Wallet,
+						items: [
 							{
-								title: t('nav-requests'),
-								url: '/equipo/applications?status=pending',
-								icon: FileText,
-							},
-						]
-					: []),
-				...(roles.includes('pre-authorizations')
-					? [
-							{
-								title: t('nav-pre-authorizations'),
-								url: '/equipo/applications?status=approved',
-								icon: CheckSquare,
-							},
-						]
-					: []),
-				...(roles.includes('authorizations')
-					? [
-							{
-								title: t('nav-authorizations'),
-								url: '/equipo/applications?status=awaiting-authorization',
-								icon: ShieldCheck,
-							},
-						]
-					: []),
-				...(roles.includes('hr')
-					? [
-							{
-								title: t('nav-hr'),
-								url: '/equipo/applications?status=authorized&hrPending=true',
-								icon: UserCheck,
-							},
-							{
-								title: t('nav-hr-deductions'),
+								title: t('nav-deductions-next-cutoff'),
 								url: '/equipo/deductions',
-								icon: Wallet,
-								items: [
-									{
-										title: t('nav-deductions-next-cutoff'),
-										url: '/equipo/deductions',
-										icon: CalendarClock,
-										exact: true,
-									},
-									{
-										title: t('nav-deductions-history'),
-										url: '/equipo/deductions/history',
-										icon: History,
-									},
-									{
-										title: t('nav-deductions-overdue'),
-										url: '/equipo/deductions/overdue',
-										icon: TriangleAlert,
-										badge:
-											overdueDeductionsCount > 0
-												? overdueDeductionsCount
-												: undefined,
-									},
-								],
+								icon: CalendarClock,
+								exact: true,
 							},
-						]
-					: []),
-				...(roles.includes('installments')
-					? [
 							{
-								title: t('nav-installments'),
+								title: t('nav-deductions-history'),
+								url: '/equipo/deductions/history',
+								icon: History,
+							},
+							{
+								title: t('nav-deductions-overdue'),
+								url: '/equipo/deductions/overdue',
+								icon: TriangleAlert,
+								badge:
+									overdueDeductionsCount > 0
+										? overdueDeductionsCount
+										: undefined,
+							},
+						],
+					},
+				]
+			: []),
+		...(canAccess('installments')
+			? [
+					{
+						title: t('nav-installments'),
+						url: '/equipo/installments',
+						icon: Banknote,
+						items: [
+							{
+								title: t('nav-installments-next-cutoff'),
 								url: '/equipo/installments',
-								icon: Banknote,
-								items: [
-									{
-										title: t('nav-installments-next-cutoff'),
-										url: '/equipo/installments',
-										icon: CalendarClock,
-										exact: true,
-									},
-									{
-										title: t('nav-installments-history'),
-										url: '/equipo/installments/history',
-										icon: History,
-									},
-									{
-										title: t('nav-installments-overdue'),
-										url: '/equipo/installments/overdue',
-										icon: TriangleAlert,
-										badge:
-											overdueInstallmentsCount > 0
-												? overdueInstallmentsCount
-												: undefined,
-									},
-								],
+								icon: CalendarClock,
+								exact: true,
 							},
-						]
-					: []),
-				...(roles.includes('dispersions')
-					? [
 							{
-								title: t('nav-dispersions'),
-								url: '/equipo/applications?status=authorized&disbursementPending=true',
-								icon: Banknote,
+								title: t('nav-installments-history'),
+								url: '/equipo/installments/history',
+								icon: History,
 							},
-						]
-					: []),
-			]
+							{
+								title: t('nav-installments-overdue'),
+								url: '/equipo/installments/overdue',
+								icon: TriangleAlert,
+								badge:
+									overdueInstallmentsCount > 0
+										? overdueInstallmentsCount
+										: undefined,
+							},
+						],
+					},
+				]
+			: []),
+		...(canAccess('dispersions')
+			? [
+					{
+						title: t('nav-dispersions'),
+						url: '/equipo/applications?status=authorized&disbursementPending=true',
+						icon: Banknote,
+					},
+				]
+			: []),
+	]
 
 	return (
 		<Sidebar collapsible="icon">

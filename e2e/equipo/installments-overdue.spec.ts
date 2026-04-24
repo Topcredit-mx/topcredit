@@ -92,7 +92,7 @@ test.describe('Installments overdue page', () => {
 			await expect(card.getByText(/\d+ días/i).first()).toBeVisible()
 		})
 
-		test('shows overdue rows with amount, overdue start, and unified Estado', async ({
+		test('shows overdue credit rows with totals, count, oldest date, and unified Estado', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/installments/overdue')
@@ -102,7 +102,12 @@ test.describe('Installments overdue page', () => {
 			const table = mainDataTable(page)
 			await expect(table).toBeVisible()
 			await table.scrollIntoViewIfNeeded()
-			for (const label of [/^estado$/i, /monto adeudado/i, /atrasado desde/i]) {
+			for (const label of [
+				/^estado$/i,
+				/total atrasado/i,
+				/cuotas atrasadas/i,
+				/atraso más antiguo/i,
+			]) {
 				const th = mainDataTable(page)
 					.locator('thead th')
 					.filter({ hasText: label })
@@ -149,10 +154,12 @@ test.describe('Installments overdue page', () => {
 				`confirmar ${seed.installmentsBulkConfirmableCount} instalaciones`,
 				'i',
 			)
-			await page.getByRole('button', { name: confirmRe }).click()
-			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(
-				seed.totalOverdueRowCount - seed.installmentsBulkConfirmableCount,
-			)
+			await page.getByRole('button', { name: confirmRe }).first().click()
+			const dialog = page.getByRole('dialog')
+			await expect(dialog).toBeVisible()
+			await dialog.getByRole('button', { name: confirmRe }).click()
+			await expect(page.getByRole('dialog')).toHaveCount(0)
+			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(1)
 			await expect(
 				mainDataTable(page)
 					.getByText(seed.payrollHrBlocked, { exact: true })

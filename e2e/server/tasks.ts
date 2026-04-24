@@ -3071,7 +3071,7 @@ export const seedDeductionsQueue = async (
 		])
 	}
 
-	// Credit 6: credit with 2 overdue installments — used to test the multi-select dialog.
+	// Credit 6: credit with 2 overdue installments — used to test bulk-confirm of multiple payments.
 	if (withMultipleOverdue) {
 		const pastDate2 = new Date(
 			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, 28),
@@ -3862,8 +3862,7 @@ export const seedInstallmentsOverdue =
 			applicantHrBlockedName: applicantHrPending.name ?? '',
 			payrollInstallmentsBlocked: 'OVERDUE-INST-01',
 			payrollHrBlocked: 'OVERDUE-HR-01',
-			totalOverdueRowCount:
-				scheduleInstallmentsBlocked.length + scheduleHr.length,
+			totalOverdueRowCount: 2,
 			installmentsBulkConfirmableCount: scheduleInstallmentsBlocked.length,
 		}
 	}

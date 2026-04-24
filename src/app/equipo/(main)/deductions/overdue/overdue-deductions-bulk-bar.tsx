@@ -8,17 +8,17 @@ import { PickOverduePaymentsDialog } from '~/components/equipo/pick-overdue-paym
 import { Button } from '~/components/ui/button'
 import { useDataTable } from '~/components/ui/data-table'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
-import type { OverdueInstallmentByCredit } from '~/server/queries'
-import { confirmInstallmentsAction } from '../actions'
+import type { OverdueDeductionByCredit } from '~/server/queries'
+import { confirmOverdueDeductionsAction } from './actions'
 
-export function OverdueInstallmentsBulkBar() {
+export function OverdueDeductionsBulkBar() {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
 	const [isConfirmPending, startConfirmTransition] = useTransition()
 	const [dialogOpen, setDialogOpen] = useState(false)
 
-	const { table } = useDataTable<OverdueInstallmentByCredit>()
+	const { table } = useDataTable<OverdueDeductionByCredit>()
 	const selectedRows = table.getFilteredSelectedRowModel().rows
 	const groups = selectedRows.map((r) => ({
 		creditId: r.original.creditId,
@@ -36,15 +36,15 @@ export function OverdueInstallmentsBulkBar() {
 	function runConfirm(ids: number[]) {
 		if (ids.length === 0) return
 		startConfirmTransition(async () => {
-			const res = await confirmInstallmentsAction(ids)
+			const res = await confirmOverdueDeductionsAction(ids)
 			if (res?.error != null) {
 				toast.error(resolveError(res.error))
 			} else {
 				const n = ids.length
 				toast.success(
 					n === 1
-						? t('installments-bulk-confirm-success-one')
-						: t('installments-bulk-confirm-success-many', { count: n }),
+						? t('deductions-bulk-confirm-success-one')
+						: t('deductions-bulk-confirm-success-many', { count: n }),
 				)
 				setDialogOpen(false)
 				table.resetRowSelection()
@@ -64,14 +64,14 @@ export function OverdueInstallmentsBulkBar() {
 
 	const confirmLabel =
 		count === 1
-			? t('installments-bulk-confirm-one')
-			: t('installments-bulk-confirm-many', { count })
+			? t('deductions-bulk-confirm-one')
+			: t('deductions-bulk-confirm-many', { count })
 
 	return (
 		<>
 			<PickOverduePaymentsDialog
 				groups={groups}
-				variant="installments"
+				variant="deductions"
 				isPending={isConfirmPending}
 				open={dialogOpen}
 				onOpenChange={setDialogOpen}

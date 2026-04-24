@@ -55,16 +55,21 @@ test.describe('HR overdue deductions list', () => {
 			).toHaveCount(0)
 		})
 
-		test('shows amount and overdue-since columns', async ({ page }) => {
+		test('shows total, count, and oldest-overdue columns like installments overdue', async ({
+			page,
+		}) => {
 			await page.goto('/equipo/deductions/overdue')
 			await expect(mainDataTable(page)).toBeVisible()
-			const thead = mainDataTable(page).locator('thead')
-			await expect(
-				thead.getByRole('columnheader', { name: /monto/i }),
-			).toBeVisible()
-			await expect(
-				thead.getByRole('columnheader', { name: /atrasado desde/i }),
-			).toBeVisible()
+			for (const label of [
+				/total atrasado/i,
+				/cuotas atrasadas/i,
+				/atraso más antiguo/i,
+			]) {
+				const th = mainDataTable(page)
+					.locator('thead th')
+					.filter({ hasText: label })
+				await expect(th.first()).toBeVisible()
+			}
 		})
 
 		test('shows a back link to the deductions page', async ({ page }) => {
@@ -141,7 +146,7 @@ test.describe('HR overdue deductions list', () => {
 			await expect(overview.getByText(/día/i).first()).toBeVisible()
 		})
 
-		test('confirms a single overdue deduction and removes it from the list', async ({
+		test('bulk-confirms a single-credit row and removes it from the list', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/deductions/overdue')
@@ -151,7 +156,8 @@ test.describe('HR overdue deductions list', () => {
 			).toBeVisible()
 			const row = findTableRow(page, seed.overdueApplicantName)
 			await row.scrollIntoViewIfNeeded()
-			await row.getByRole('button', { name: /registrar/i }).click()
+			await row.getByRole('checkbox', { name: /seleccionar fila/i }).click()
+			await page.getByRole('button', { name: /confirmar 1 deducción/i }).click()
 			await expect(mainDataTable(page)).toBeVisible()
 			await expect(
 				page.getByText(seed.overdueApplicantName, { exact: true }),
@@ -223,57 +229,36 @@ test.describe('HR overdue deductions — multiple overdue installments per credi
 		await cleanupDeductionsQueue()
 	})
 
-	test('shows a confirm dialog when a credit has more than one overdue deduction', async ({
+	test('aggregates two overdue payments into one table row with count 2', async ({
 		page,
 	}) => {
 		const name = seed.multiOverdueApplicantName ?? ''
 		await page.goto('/equipo/deductions/overdue')
 		await expect(mainDataTable(page)).toBeVisible()
 		const row = findTableRow(page, name)
-		await row.getByRole('button', { name: /registrar/i }).click()
-		const dialog = page.getByRole('dialog')
-		await expect(dialog).toBeVisible()
-		await expect(dialog.getByText(name).first()).toBeVisible()
-		await expect(dialog.getByRole('checkbox')).toHaveCount(2)
+		await expect(row.getByText('2', { exact: true }).first()).toBeVisible()
 	})
 
-	test('confirms all overdue deductions from the dialog and removes the credit from the list', async ({
+	test('bulk-confirms both overdue payments for a credit in one action and removes the row', async ({
 		page,
 	}) => {
 		const name = seed.multiOverdueApplicantName ?? ''
 		await page.goto('/equipo/deductions/overdue')
 		await expect(mainDataTable(page)).toBeVisible()
 		const row = findTableRow(page, name)
-		await row.getByRole('button', { name: /registrar/i }).click()
+		await row.scrollIntoViewIfNeeded()
+		await row.getByRole('checkbox', { name: /seleccionar fila/i }).click()
+		await page
+			.getByRole('button', { name: /confirmar 2 deducciones/i })
+			.first()
+			.click()
 		const dialog = page.getByRole('dialog')
 		await expect(dialog).toBeVisible()
-		await expect(dialog.getByRole('checkbox')).toHaveCount(2)
 		await dialog
-			.getByRole('button', { name: /registrar seleccionadas/i })
+			.getByRole('button', { name: /confirmar 2 deducciones/i })
 			.click()
 		await expect(page.getByRole('dialog')).toHaveCount(0)
 		await expect(mainDataTable(page)).toBeVisible()
 		await expect(page.getByText(name, { exact: true })).toHaveCount(0)
-	})
-
-	test('keeps the credit in the list when only one of multiple overdue deductions is confirmed', async ({
-		page,
-	}) => {
-		const name = seed.multiOverdueApplicantName ?? ''
-		await page.goto('/equipo/deductions/overdue')
-		await expect(mainDataTable(page)).toBeVisible()
-		const row = findTableRow(page, name)
-		await row.getByRole('button', { name: /registrar/i }).click()
-		const dialog = page.getByRole('dialog')
-		await expect(dialog).toBeVisible()
-		const boxes = dialog.getByRole('checkbox')
-		await expect(boxes).toHaveCount(2)
-		await boxes.nth(1).click()
-		await dialog
-			.getByRole('button', { name: /registrar seleccionadas/i })
-			.click()
-		await expect(page.getByRole('dialog')).toHaveCount(0)
-		await expect(mainDataTable(page)).toBeVisible()
-		await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
 	})
 })
