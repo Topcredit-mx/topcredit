@@ -1,0 +1,55 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": [
+		"config:recommended",
+		":semanticCommits",
+		":separateMultipleMajorReleases"
+	],
+	"schedule": ["before 6am on monday"],
+	"timezone": "America/New_York",
+	"labels": ["dependencies"],
+	"prConcurrentLimit": 10,
+	"prHourlyLimit": 0,
+	"rangeStrategy": "bump",
+	"automergeStrategy": "squash",
+	"minimumReleaseAge": "3 days",
+	"separateMinorPatch": true,
+	"lockFileMaintenance": {
+		"enabled": true,
+		"schedule": ["before 6am on monday"]
+	},
+	"packageRules": [
+		{
+			"matchManagers": ["npm"],
+			"matchUpdateTypes": ["minor"],
+			"groupName": "npm dependencies (minor)",
+			"groupSlug": "npm-minor"
+		},
+		{
+			"matchManagers": ["npm"],
+			"matchUpdateTypes": ["patch"],
+			"groupName": "npm dependencies (patch)",
+			"groupSlug": "npm-patch",
+			"schedule": ["at any time"],
+			"automerge": true
+		},
+		{
+			"matchManagers": ["github-actions"],
+			"groupName": "GitHub Actions",
+			"automerge": true
+		},
+		{
+			"matchManagers": ["npm"],
+			"matchDepTypes": ["packageManager"],
+			"groupName": "Corepack pnpm pin",
+			"automerge": true
+		}
+	],
+	"vulnerabilityAlerts": {
+		"labels": ["security"],
+		"schedule": ["at any time"],
+		"rangeStrategy": "bump",
+		"automerge": true,
+		"minimumReleaseAge": "0 days"
+	}
+}
