@@ -19,7 +19,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  playwright-neon-context:
+    name: E2E Neon branch naming
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.sha.outputs.short_sha }}
+    steps:
+      - name: Short commit SHA (7 chars, shared by create + delete)
+        id: sha
+        run: echo "short_sha=$(echo "${{ github.sha }}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
   test:
+    needs: playwright-neon-context
     runs-on: ubuntu-latest
     environment: testing
     strategy:
@@ -62,16 +73,12 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Extract short commit hash
-        id: short-sha
-        run: echo "short_sha=$(echo "$GITHUB_SHA" | cut -c1-7)" >> "$GITHUB_OUTPUT"
-
       - name: Create Neon branch (one per Playwright shard)
         id: create-branch
         uses: neondatabase/create-branch-action@6.3.1
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch_name: test-${{ steps.short-sha.outputs.short_sha }}-${{ matrix.shard }}
+          branch_name: test-${{ needs.playwright-neon-context.outputs.short_sha }}-${{ matrix.shard }}
           api_key: ${{ secrets.NEON_API_KEY }}
           branch_type: schema-only
 
@@ -121,12 +128,27 @@ jobs:
           path: test-results/
           retention-days: 14
 
-      - name: Delete neon branch
-        if: always()
+  # Separate job (not a step on matrix shards): when a shard is cancelled, later
+  # steps on that runner may never run. needs: test + if: always() still schedules
+  # after the matrix finishes, including cancelled/failed shards.
+  neon-cleanup:
+    name: Delete Neon test branches
+    needs:
+      - test
+      - playwright-neon-context
+    if: always()
+    runs-on: ubuntu-latest
+    environment: testing
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - name: Delete Neon branch (shard ${{ matrix.shard }})
         uses: neondatabase/delete-branch-action@v3.2.1
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch: test-${{ steps.short-sha.outputs.short_sha }}-${{ matrix.shard }}
+          branch: test-${{ needs.playwright-neon-context.outputs.short_sha }}-${{ matrix.shard }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
   deploy-playwright-report:
