@@ -1,5 +1,6 @@
 # Runs after every Playwright Tests workflow finishes (success, failure, or cancelled).
 # In-workflow jobs are often skipped on cancel; this reliably deletes test-* branches.
+# Keep PLAYWRIGHT_SHARD_COUNT in sync with playwright.yml test.strategy.matrix.shard.
 name: Playwright Neon cleanup
 
 on:
@@ -10,24 +11,31 @@ on:
 permissions:
   contents: read
 
+env:
+  PLAYWRIGHT_SHARD_COUNT: 2
+
 jobs:
   delete-neon-branches:
     runs-on: ubuntu-latest
     environment: testing
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2]
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
     steps:
-      - name: Short SHA (same as Playwright create-branch names)
-        id: meta
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: ".node-version"
+
+      - name: Delete Neon test branches
         run: |
           short=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
-          echo "short_sha=$short" >> "$GITHUB_OUTPUT"
-
-      - name: Delete Neon test branch (shard ${{ matrix.shard }})
-        uses: neondatabase/delete-branch-action@v3.2.1
-        with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch: test-${{ steps.meta.outputs.short_sha }}-${{ matrix.shard }}
-          api_key: ${{ secrets.NEON_API_KEY }}
+          npm i -g neonctl@v2
+          for shard in $(seq 1 "${PLAYWRIGHT_SHARD_COUNT}"); do
+            branch="test-${short}-${shard}"
+            echo "Deleting ${branch}..."
+            neonctl branches delete "${branch}" --project-id "${NEON_PROJECT_ID}" || true
+          done
