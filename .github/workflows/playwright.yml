@@ -14,8 +14,8 @@ permissions:
   pages: write
 
 concurrency:
-  group: playwright-neon-${{ github.repository }}
-  cancel-in-progress: true
+  group: playwright-neon-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   neon-create-branches:
