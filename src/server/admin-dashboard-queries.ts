@@ -1,14 +1,12 @@
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { db } from '~/server/db'
 import {
 	APPLICATION_STATUS_VALUES,
 	type ApplicationStatus,
-	applicationStatusHistory,
 	applications,
 	companies,
 	credits,
-	users,
 } from '~/server/db/schema'
 import {
 	type AdminOverviewStats,
@@ -184,63 +182,72 @@ async function loadGlobalOverdueHrDeductionsCount(): Promise<number> {
 	return Number(row.count)
 }
 
+function mapStatusHistoryRow(
+	row: Record<string, unknown>,
+): AdminDashboardActivityItem {
+	const createdRaw = row.created_at
+	const createdAt =
+		createdRaw instanceof Date
+			? createdRaw
+			: new Date(createdRaw != null ? String(createdRaw) : 0)
+	return {
+		id: Number(row.id),
+		applicationId: Number(row.application_id),
+		companyId: Number(row.company_id),
+		companyName: String(row.company_name ?? ''),
+		status: row.status as ApplicationStatus,
+		createdAt,
+		actorName: row.actor_name != null ? String(row.actor_name) : null,
+		actorEmail: row.actor_email != null ? String(row.actor_email) : null,
+	}
+}
+
+/**
+ * One row per application: the most recent status history entry, then the top
+ * `limit` of those by recency. Without this, the list repeats the same
+ * solicitud for each past transition (e.g. authorized + disbursed).
+ */
 async function loadRecentActivity(
 	companyId?: number,
 	limit = 20,
 ): Promise<AdminDashboardActivityItem[]> {
-	const selectBlock = {
-		id: applicationStatusHistory.id,
-		applicationId: applicationStatusHistory.applicationId,
-		companyId: applications.companyId,
-		companyName: companies.name,
-		status: applicationStatusHistory.status,
-		createdAt: applicationStatusHistory.createdAt,
-		actorName: users.name,
-		actorEmail: users.email,
-	}
+	const innerFilter =
+		companyId === undefined ? sql`` : sql`WHERE a2.company_id = ${companyId}`
 
-	const rows =
-		companyId === undefined
-			? await db
-					.select(selectBlock)
-					.from(applicationStatusHistory)
-					.innerJoin(
-						applications,
-						eq(applicationStatusHistory.applicationId, applications.id),
-					)
-					.innerJoin(companies, eq(applications.companyId, companies.id))
-					.leftJoin(users, eq(applicationStatusHistory.setByUserId, users.id))
-					.orderBy(
-						desc(applicationStatusHistory.createdAt),
-						desc(applicationStatusHistory.id),
-					)
-					.limit(limit)
-			: await db
-					.select(selectBlock)
-					.from(applicationStatusHistory)
-					.innerJoin(
-						applications,
-						eq(applicationStatusHistory.applicationId, applications.id),
-					)
-					.innerJoin(companies, eq(applications.companyId, companies.id))
-					.leftJoin(users, eq(applicationStatusHistory.setByUserId, users.id))
-					.where(eq(applications.companyId, companyId))
-					.orderBy(
-						desc(applicationStatusHistory.createdAt),
-						desc(applicationStatusHistory.id),
-					)
-					.limit(limit)
+	const result = await db.execute(
+		sql`
+		SELECT
+			ash.id,
+			ash.application_id,
+			a.company_id,
+			c.name AS company_name,
+			ash.status,
+			ash.created_at,
+			u.name AS actor_name,
+			u.email AS actor_email
+		FROM (
+			SELECT DISTINCT ON (ash2.application_id)
+				ash2.id,
+				ash2.application_id,
+				ash2.status,
+				ash2.set_by_user_id,
+				ash2.created_at
+			FROM application_status_history AS ash2
+			INNER JOIN applications AS a2 ON ash2.application_id = a2.id
+			${innerFilter}
+			ORDER BY ash2.application_id, ash2.created_at DESC, ash2.id DESC
+		) AS ash
+		INNER JOIN applications AS a ON ash.application_id = a.id
+		INNER JOIN companies AS c ON a.company_id = c.id
+		LEFT JOIN users AS u ON ash.set_by_user_id = u.id
+		ORDER BY ash.created_at DESC, ash.id DESC
+		LIMIT ${limit}
+		`,
+	)
 
-	return rows.map((r) => ({
-		id: r.id,
-		applicationId: r.applicationId,
-		companyId: r.companyId,
-		companyName: r.companyName,
-		status: r.status,
-		createdAt: r.createdAt,
-		actorName: r.actorName,
-		actorEmail: r.actorEmail,
-	}))
+	return result.rows.map((row) =>
+		mapStatusHistoryRow(row as Record<string, unknown>),
+	)
 }
 
 export async function getAdminGlobalDashboard(): Promise<AdminDashboardData> {

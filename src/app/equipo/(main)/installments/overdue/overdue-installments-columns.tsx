@@ -2,54 +2,16 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useTransition } from 'react'
-import { toast } from 'sonner'
 import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
 import { FormattedDate } from '~/components/formatted-date'
-import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
 import { resolveOverdueInstallmentWorkflowStatus } from '~/lib/equipo-workflow-status'
 import { formatCurrencyMxn } from '~/lib/utils'
-import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
-import type { OverdueInstallment } from '~/server/queries'
-import { confirmInstallmentAction } from '../actions'
+import type { OverdueInstallmentByCredit } from '~/server/queries'
 
-function OverdueInstallmentActionsCell({ row }: { row: OverdueInstallment }) {
-	const t = useTranslations('equipo')
-	const resolveError = useResolveValidationError()
-	const router = useRouter()
-	const [isPending, startTransition] = useTransition()
-
-	if (row.blockingParty !== 'installments') {
-		return <span className="text-muted-foreground text-sm">—</span>
-	}
-
-	return (
-		<Button
-			size="sm"
-			variant="outline"
-			disabled={isPending}
-			onClick={() => {
-				startTransition(async () => {
-					const res = await confirmInstallmentAction(row.id)
-					if (res?.error != null) {
-						toast.error(resolveError(res.error))
-					} else {
-						toast.success(t('installments-confirm-success'))
-						router.refresh()
-					}
-				})
-			}}
-		>
-			{t('installments-confirm')}
-		</Button>
-	)
-}
-
-export function useOverdueInstallmentsColumns(): ColumnDef<OverdueInstallment>[] {
+export function useOverdueInstallmentsColumns(): ColumnDef<OverdueInstallmentByCredit>[] {
 	const t = useTranslations('equipo')
 
 	return [
@@ -101,7 +63,7 @@ export function useOverdueInstallmentsColumns(): ColumnDef<OverdueInstallment>[]
 				return (
 					<div>
 						<Link
-							href={`/equipo/credits/${creditId}`}
+							href={`/equipo/credits/${String(creditId)}`}
 							className="font-medium hover:underline"
 						>
 							{row.getValue('employeeName')}
@@ -146,43 +108,49 @@ export function useOverdueInstallmentsColumns(): ColumnDef<OverdueInstallment>[]
 			enableSorting: false,
 		},
 		{
-			accessorKey: 'amount',
+			accessorKey: 'totalOverdueAmount',
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('installments-overdue-col-amount-due')}
+					title={t('installments-overdue-col-total-overdue')}
 				/>
 			),
 			cell: ({ row }) => (
 				<div className="font-medium">
-					{formatCurrencyMxn(row.getValue('amount'))}
+					{formatCurrencyMxn(row.getValue('totalOverdueAmount'))}
 				</div>
 			),
 		},
 		{
-			accessorKey: 'dueDate',
+			accessorKey: 'overduePaymentCount',
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('installments-overdue-col-overdue-since')}
+					title={t('installments-overdue-col-overdue-count')}
+				/>
+			),
+			cell: ({ row }) => (
+				<div className="text-muted-foreground text-sm tabular-nums">
+					{row.getValue('overduePaymentCount')}
+				</div>
+			),
+		},
+		{
+			accessorKey: 'oldestOverdueDueDate',
+			header: ({ column }) => (
+				<DataTableColumnHeader
+					column={column}
+					title={t('installments-overdue-col-oldest-overdue')}
 				/>
 			),
 			cell: ({ row }) => (
 				<div className="text-muted-foreground text-sm">
-					<FormattedDate value={row.getValue('dueDate')} format="date" />
+					<FormattedDate
+						value={row.getValue('oldestOverdueDueDate')}
+						format="date"
+					/>
 				</div>
 			),
-		},
-		{
-			id: 'actions',
-			header: ({ column }) => (
-				<DataTableColumnHeader
-					column={column}
-					title={t('installments-col-actions')}
-				/>
-			),
-			cell: ({ row }) => <OverdueInstallmentActionsCell row={row.original} />,
-			enableSorting: false,
 		},
 	]
 }

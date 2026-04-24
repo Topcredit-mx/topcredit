@@ -5,15 +5,14 @@ import {
 	DataTableContent,
 	DataTablePagination,
 } from '~/components/ui/data-table'
-import { canConfirmInstallmentInQueue } from '~/lib/installment-confirmation'
-import type { OverdueInstallment } from '~/server/queries'
+import type { OverdueInstallmentByCredit } from '~/server/queries'
 import { OverdueInstallmentsBulkBar } from './overdue-installments-bulk-bar'
 import { useOverdueInstallmentsColumns } from './overdue-installments-columns'
 
 export function OverdueInstallmentsTable({
 	installments,
 }: {
-	installments: OverdueInstallment[]
+	installments: OverdueInstallmentByCredit[]
 }) {
 	const columns = useOverdueInstallmentsColumns()
 
@@ -24,8 +23,7 @@ export function OverdueInstallmentsTable({
 				data={installments}
 				schema="installments-overdue"
 				enableRowSelection={(row) =>
-					row.original.blockingParty === 'installments' &&
-					canConfirmInstallmentInQueue(row.original)
+					row.original.confirmableOverduePaymentIds.length > 0
 				}
 			>
 				<div className="flex min-w-0 justify-end">

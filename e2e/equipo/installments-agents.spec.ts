@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 import type {
 	SeedInstallmentsQueueResult,
 	SeedInstallmentsQueueTwentyPendingResult,
@@ -22,6 +22,14 @@ import {
 	nonInstallmentsAgentQueue,
 } from './installments-agents.fixtures'
 import { installmentsBulkAgent } from './installments-bulk-queue.fixtures'
+
+function installmentsQueueEmployeeLink(page: Page, displayName: string) {
+	return page.getByRole('link', {
+		name: new RegExp(
+			`^${displayName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} - `,
+		),
+	})
+}
 
 registerDbSpecGuards()
 
@@ -109,7 +117,7 @@ test.describe('Installments queue', () => {
 			await expect(card.getByText(/0 días/i).first()).toBeVisible()
 		})
 
-		test('shows employee, amount, due date, and unified workflow status column', async ({
+		test('shows employee, amount, progress, and unified workflow status column', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/installments')
@@ -117,7 +125,7 @@ test.describe('Installments queue', () => {
 			for (const label of [
 				/empleado/i,
 				/monto/i,
-				/fecha de pago/i,
+				/cuota/i,
 				/^estado$/i,
 			] as const) {
 				const th = mainDataTable(page)
@@ -152,9 +160,9 @@ test.describe('Installments queue', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/installments')
-			const tr = page
-				.locator('tr')
-				.filter({ has: page.getByText(seed.applicant1Name, { exact: true }) })
+			const tr = page.locator('tr').filter({
+				has: installmentsQueueEmployeeLink(page, seed.applicant1Name),
+			})
 			await expect(tr.first()).toContainText(/RH Pendiente/i)
 		})
 
@@ -162,15 +170,15 @@ test.describe('Installments queue', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/installments')
-			const t1 = page
-				.locator('tr')
-				.filter({ has: page.getByText(seed.applicant1Name, { exact: true }) })
+			const t1 = page.locator('tr').filter({
+				has: installmentsQueueEmployeeLink(page, seed.applicant1Name),
+			})
 			await expect(
 				t1.first().getByRole('checkbox', { name: /seleccionar fila/i }),
 			).toBeDisabled()
-			const t2 = page
-				.locator('tr')
-				.filter({ has: page.getByText(seed.applicant2Name, { exact: true }) })
+			const t2 = page.locator('tr').filter({
+				has: installmentsQueueEmployeeLink(page, seed.applicant2Name),
+			})
 			await t2.first().scrollIntoViewIfNeeded()
 			await expect(
 				t2.first().getByRole('checkbox', { name: /seleccionar fila/i }),
@@ -181,10 +189,10 @@ test.describe('Installments queue', () => {
 			await page.goto('/equipo/installments')
 			await expect(mainDataTable(page)).toBeVisible()
 			await expect(
-				page.getByText(seed.applicant1Name, { exact: true }).first(),
+				installmentsQueueEmployeeLink(page, seed.applicant1Name).first(),
 			).toBeVisible()
 			await expect(
-				page.getByText(seed.applicant2Name, { exact: true }).first(),
+				installmentsQueueEmployeeLink(page, seed.applicant2Name).first(),
 			).toBeVisible()
 		})
 
@@ -204,9 +212,9 @@ test.describe('Installments queue', () => {
 		}) => {
 			await page.goto('/equipo/installments')
 			await expect(mainDataTable(page)).toBeVisible()
-			const t1 = page
-				.locator('tr')
-				.filter({ has: page.getByText(seed.applicant1Name, { exact: true }) })
+			const t1 = page.locator('tr').filter({
+				has: installmentsQueueEmployeeLink(page, seed.applicant1Name),
+			})
 			await t1.first().scrollIntoViewIfNeeded()
 			await expect(t1.first().locator('button[role="checkbox"]')).toBeDisabled()
 		})
@@ -242,7 +250,7 @@ test.describe('Installments queue', () => {
 			// Other credits’ next installments are due after the current pay period.
 			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(1)
 			await expect(
-				mainDataTable(page).getByText(seed.applicant1Name, { exact: true }),
+				installmentsQueueEmployeeLink(page, seed.applicant1Name).first(),
 			).toBeVisible()
 			await expect(
 				page.locator(

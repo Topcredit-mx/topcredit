@@ -1498,13 +1498,73 @@ export async function getInstallmentsForQueue(params: {
 	})
 }
 
-export type OverdueInstallment = InstallmentForQueue & {
+export type OverduePaymentLine = {
+	id: number
+	dueDate: string
+	amount: string
+}
+
+export type OverdueInstallmentByCredit = {
+	/** `creditId` for DataTable row identity. */
+	id: number
+	creditId: number
+	employeeName: string
+	payrollNumber: string | null
+	companyName: string
+	companyId: number
+	totalOverdueAmount: string
+	overduePaymentCount: number
+	oldestOverdueDueDate: string
 	blockingParty: 'hr' | 'installments'
+	confirmableOverduePaymentIds: number[]
+	/** Lines match `confirmableOverduePaymentIds` (Instalaciones: solo cuotas listas para confirmar). */
+	confirmableOverduePayments: OverduePaymentLine[]
+}
+
+function _parseIntArrayFromDb(value: unknown): number[] {
+	if (value == null) return []
+	if (Array.isArray(value)) {
+		return value.map((v) => Number(v))
+	}
+	if (typeof value === 'string') {
+		const trimmed = value.replace(/[{}]/g, '').trim()
+		if (trimmed.length === 0) return []
+		return trimmed.split(',').map((s) => Number(s.trim()))
+	}
+	return []
+}
+
+function parseOverduePaymentLinesFromDb(value: unknown): OverduePaymentLine[] {
+	if (value == null) return []
+	let raw: unknown
+	if (typeof value === 'string') {
+		try {
+			raw = JSON.parse(value) as unknown
+		} catch {
+			return []
+		}
+	} else {
+		raw = value
+	}
+	if (!Array.isArray(raw)) return []
+	const lines: OverduePaymentLine[] = []
+	for (const o of raw) {
+		if (o == null || typeof o !== 'object') continue
+		const r = o as Record<string, unknown>
+		const due = r.dueDate
+		const dueDate = due instanceof Date ? due.toISOString() : String(due ?? '')
+		lines.push({
+			id: Number(r.id),
+			dueDate,
+			amount: String(r.amount ?? ''),
+		})
+	}
+	return lines
 }
 
 export async function getOverdueInstallments(params: {
 	scope: CompanyScope
-}): Promise<OverdueInstallment[]> {
+}): Promise<OverdueInstallmentByCredit[]> {
 	const { scope } = params
 	const { ability } = await getAbility()
 
@@ -1525,38 +1585,29 @@ export async function getOverdueInstallments(params: {
 
 	const rows = await db.execute(sql`
 		SELECT
-			cp.id,
 			cp.credit_id,
-			cp.due_date,
-			cp.amount,
-			cp.hr_confirmed_at,
-			cp.installment_confirmed_at,
-			u.name AS employee_name,
-			a.payroll_number,
-			co.name AS company_name,
-			a.company_id,
-			co.employee_salary_frequency AS company_salary_frequency,
-			CASE WHEN cp.hr_confirmed_at IS NULL THEN 'hr' ELSE 'installments' END AS blocking_party,
-			(
-				SELECT COUNT(*) = 1
-				FROM credit_payments cp3
-				WHERE cp3.credit_id = cp.credit_id
-					AND cp3.installment_confirmed_at IS NULL
-			) AS is_final_installment_confirm,
-			(
-				SELECT COUNT(*)::int
-				FROM credit_payments cp_tot
-				WHERE cp_tot.credit_id = cp.credit_id
-			) AS installment_total,
-			(
-				SELECT COUNT(*)::int
-				FROM credit_payments cp_ord
-				WHERE cp_ord.credit_id = cp.credit_id
-					AND (
-						cp_ord.due_date < cp.due_date
-						OR (cp_ord.due_date = cp.due_date AND cp_ord.id <= cp.id)
-					)
-			) AS installment_position
+			MAX(u.name) AS employee_name,
+			MAX(a.payroll_number) AS payroll_number,
+			MAX(co.name) AS company_name,
+			MAX(a.company_id) AS company_id,
+			SUM(cp.amount)::text AS total_overdue_amount,
+			COUNT(*)::int AS overdue_payment_count,
+			MIN(cp.due_date) AS oldest_overdue_due_date,
+			BOOL_OR(cp.hr_confirmed_at IS NULL) AS any_hr_pending,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', cp.id,
+						'amount', cp.amount::text,
+						'dueDate', cp.due_date::text
+					) ORDER BY cp.due_date ASC, cp.id ASC
+				) FILTER (
+					WHERE
+						cp.hr_confirmed_at IS NOT NULL
+						AND cp.installment_confirmed_at IS NULL
+				),
+				'[]'::json
+			) AS confirmable_payments
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
@@ -1568,60 +1619,38 @@ export async function getOverdueInstallments(params: {
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
 			)
-		ORDER BY cp.due_date ASC, cp.id ASC
+		GROUP BY cp.credit_id
+		ORDER BY MIN(cp.due_date) ASC, cp.credit_id ASC
 	`)
 
-	const today = new Date()
 	return rows.rows.map((row) => {
 		const r = row
-		const employeeSalaryFrequency = employeeSalaryFrequencyFromDb(
-			r.company_salary_frequency,
+		const anyHrPending =
+			r.any_hr_pending === true ||
+			r.any_hr_pending === 't' ||
+			r.any_hr_pending === 1
+		const oldest = r.oldest_overdue_due_date
+		const oldestOverdueDueDate =
+			oldest instanceof Date ? oldest.toISOString() : String(oldest ?? '')
+		const creditId = Number(r.credit_id)
+		const confirmableOverduePayments = parseOverduePaymentLinesFromDb(
+			(r as { confirmable_payments: unknown }).confirmable_payments,
 		)
-		const nextDeductionDate = getUpcomingDeductionDateYmd(
-			employeeSalaryFrequency,
-			today,
-		)
-		const blockingRaw = String(r.blocking_party)
-		const blockingParty: 'hr' | 'installments' =
-			blockingRaw === 'hr' ? 'hr' : 'installments'
-		const rawFinal = r.is_final_installment_confirm
-		const isFinalInstallmentConfirm =
-			rawFinal === true ||
-			rawFinal === 't' ||
-			rawFinal === 1 ||
-			rawFinal === '1'
-		const installmentTotal = Number(r.installment_total ?? 0)
-		const installmentPosition = Number(r.installment_position ?? 0)
 		return {
-			id: Number(r.id),
-			creditId: Number(r.credit_id),
-			dueDate:
-				r.due_date instanceof Date
-					? r.due_date.toISOString()
-					: String(r.due_date),
-			amount: String(r.amount),
-			hrConfirmedAt:
-				r.hr_confirmed_at instanceof Date
-					? r.hr_confirmed_at.toISOString()
-					: r.hr_confirmed_at != null
-						? String(r.hr_confirmed_at)
-						: null,
-			installmentConfirmedAt:
-				r.installment_confirmed_at instanceof Date
-					? r.installment_confirmed_at.toISOString()
-					: r.installment_confirmed_at != null
-						? String(r.installment_confirmed_at)
-						: null,
+			id: creditId,
+			creditId,
 			employeeName: String(r.employee_name),
 			payrollNumber: r.payroll_number != null ? String(r.payroll_number) : null,
 			companyName: String(r.company_name),
 			companyId: Number(r.company_id),
-			employeeSalaryFrequency,
-			nextDeductionDate,
-			isFinalInstallmentConfirm,
-			installmentTotal,
-			installmentPosition,
-			blockingParty,
+			totalOverdueAmount: String(r.total_overdue_amount),
+			overduePaymentCount: Number(r.overdue_payment_count),
+			oldestOverdueDueDate,
+			blockingParty: anyHrPending ? 'hr' : 'installments',
+			confirmableOverduePayments,
+			confirmableOverduePaymentIds: confirmableOverduePayments.map(
+				(line) => line.id,
+			),
 		}
 	})
 }
@@ -2078,35 +2107,48 @@ export async function getOverdueInstallmentsCount(
 
 // ---- Overdue deductions ----
 
-export type OverdueDeduction = {
+export type OverdueDeductionByCredit = {
+	/** `creditId` for DataTable row identity. */
 	id: number
 	creditId: number
-	dueDate: string
-	amount: string
 	employeeName: string
 	payrollNumber: string | null
 	companyName: string
 	companyId: number
-	overdueCount: number
+	totalOverdueAmount: string
+	overduePaymentCount: number
+	oldestOverdueDueDate: string
+	confirmableOverduePaymentIds: number[]
+	/** Lines match `confirmableOverduePaymentIds`. */
+	confirmableOverduePayments: OverduePaymentLine[]
 }
 
 export async function getOverdueDeductions(
 	companyId: number,
-): Promise<OverdueDeduction[]> {
+): Promise<OverdueDeductionByCredit[]> {
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
 	const rows = await db.execute(sql`
-		SELECT DISTINCT ON (cp.credit_id)
-			cp.id,
+		SELECT
 			cp.credit_id,
-			cp.due_date,
-			cp.amount,
-			u.name AS employee_name,
-			a.payroll_number,
-			co.name AS company_name,
-			a.company_id,
-			COUNT(*) OVER (PARTITION BY cp.credit_id) AS overdue_count
+			MAX(u.name) AS employee_name,
+			MAX(a.payroll_number) AS payroll_number,
+			MAX(co.name) AS company_name,
+			MAX(a.company_id) AS company_id,
+			SUM(cp.amount)::text AS total_overdue_amount,
+			COUNT(*)::int AS overdue_payment_count,
+			MIN(cp.due_date) AS oldest_overdue_due_date,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', cp.id,
+						'amount', cp.amount::text,
+						'dueDate', cp.due_date::text
+					) ORDER BY cp.due_date ASC, cp.id ASC
+				),
+				'[]'::json
+			) AS payment_lines
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
@@ -2114,25 +2156,36 @@ export async function getOverdueDeductions(
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND cp.due_date < CURRENT_DATE
-		ORDER BY cp.credit_id, cp.due_date ASC
+		  AND (cp.due_date)::date < CURRENT_DATE
+		GROUP BY cp.credit_id
+		ORDER BY MIN(cp.due_date) ASC, cp.credit_id ASC
 	`)
 
-	return rows.rows.map((row) => ({
-		id: Number(row.id),
-		creditId: Number(row.credit_id),
-		dueDate:
-			row.due_date instanceof Date
-				? row.due_date.toISOString()
-				: String(row.due_date),
-		amount: String(row.amount),
-		employeeName: String(row.employee_name),
-		payrollNumber:
-			row.payroll_number != null ? String(row.payroll_number) : null,
-		companyName: String(row.company_name),
-		companyId: Number(row.company_id),
-		overdueCount: Number(row.overdue_count),
-	}))
+	return rows.rows.map((row) => {
+		const r = row
+		const oldest = r.oldest_overdue_due_date
+		const oldestOverdueDueDate =
+			oldest instanceof Date ? oldest.toISOString() : String(oldest ?? '')
+		const creditId = Number(r.credit_id)
+		const confirmableOverduePayments = parseOverduePaymentLinesFromDb(
+			(r as { payment_lines: unknown }).payment_lines,
+		)
+		return {
+			id: creditId,
+			creditId,
+			employeeName: String(r.employee_name),
+			payrollNumber: r.payroll_number != null ? String(r.payroll_number) : null,
+			companyName: String(r.company_name),
+			companyId: Number(r.company_id),
+			totalOverdueAmount: String(r.total_overdue_amount),
+			overduePaymentCount: Number(r.overdue_payment_count),
+			oldestOverdueDueDate,
+			confirmableOverduePayments,
+			confirmableOverduePaymentIds: confirmableOverduePayments.map(
+				(line) => line.id,
+			),
+		}
+	})
 }
 
 export type OverdueDeductionInstallment = {

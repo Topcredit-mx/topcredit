@@ -4,7 +4,6 @@ import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
-import { FormattedDate } from '~/components/formatted-date'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
 import { resolveQueueWorkflowStatus } from '~/lib/equipo-workflow-status'
@@ -58,15 +57,14 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 				/>
 			),
 			cell: ({ row }) => {
-				const payrollNumber = row.original.payrollNumber
-				const creditId = row.original.creditId
+				const { payrollNumber, creditId, employeeName } = row.original
 				return (
 					<div>
 						<Link
-							href={`/equipo/credits/${creditId}`}
+							href={`/equipo/credits/${String(creditId)}`}
 							className="font-medium hover:underline"
 						>
-							{row.getValue('employeeName')}
+							{employeeName} - {String(creditId)}
 						</Link>
 						{payrollNumber ? (
 							<div className="text-muted-foreground text-xs">
@@ -120,20 +118,6 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 			cell: ({ row }) => (
 				<div className="font-medium">
 					{formatCurrencyMxn(row.getValue('amount'))}
-				</div>
-			),
-		},
-		{
-			accessorKey: 'dueDate',
-			header: ({ column }) => (
-				<DataTableColumnHeader
-					column={column}
-					title={t('installments-col-due-date')}
-				/>
-			),
-			cell: ({ row }) => (
-				<div className="text-muted-foreground text-sm">
-					<FormattedDate value={row.getValue('dueDate')} />
 				</div>
 			),
 		},
