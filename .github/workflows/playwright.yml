@@ -96,12 +96,25 @@ jobs:
         run: pnpm dlx wait-on http://127.0.0.1:3000 --timeout 120000 --strict
 
       - name: Run Playwright tests
+        id: playwright
         run: pnpm exec playwright test --shard=${{ matrix.shard }}/2
         env:
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
           NODE_NO_WARNINGS: "1"
           TERM: xterm
+
+      - name: Write E2E completion marker (shard ran Playwright to completion)
+        if: always() && (steps.playwright.outcome == 'success' || steps.playwright.outcome == 'failure')
+        run: echo ok > e2e-shard-complete.txt
+
+      - name: Upload E2E completion marker
+        if: always() && (steps.playwright.outcome == 'success' || steps.playwright.outcome == 'failure')
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-completed-shard-${{ matrix.shard }}
+          path: e2e-shard-complete.txt
+          retention-days: 2
 
       - name: Prefix blob zips (avoid merge name collisions)
         if: always()
@@ -151,10 +164,43 @@ jobs:
           branch: test-${{ needs.playwright-neon-context.outputs.short_sha }}-${{ matrix.shard }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
+  playwright-report-gate:
+    name: Gate Pages deploy (both shards finished Playwright)
+    needs: test
+    if: ${{ !cancelled() && (needs.test.result == 'success' || needs.test.result == 'failure') }}
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+    steps:
+      - name: Download E2E completion markers
+        continue-on-error: true
+        uses: actions/download-artifact@v5
+        with:
+          path: e2e-gate
+          pattern: e2e-completed-shard-*
+          merge-multiple: true
+
+      - name: Require both shards ran Playwright (not cancelled / not failed before tests)
+        id: check
+        run: |
+          set -euo pipefail
+          if [ ! -d e2e-gate ]; then
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          n=$(find e2e-gate -type f | wc -l | tr -d ' ')
+          if [ "$n" -eq 2 ]; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy-playwright-report:
     name: Deploy report to GitHub Pages
-    needs: test
-    if: always() && !cancelled() && (needs.test.result == 'success' || needs.test.result == 'failure')
+    needs:
+      - test
+      - playwright-report-gate
+    if: ${{ !cancelled() && needs.playwright-report-gate.outputs.should_deploy == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
