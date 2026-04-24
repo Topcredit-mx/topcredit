@@ -1,6 +1,10 @@
 'use server'
 
-import { confirmHrDeduction, confirmInstallment } from '~/server/mutations'
+import {
+	confirmHrDeduction,
+	confirmInstallment,
+	confirmInstallments,
+} from '~/server/mutations'
 
 export type ConfirmDeductionFromCreditState = {
 	error?: string
@@ -26,6 +30,16 @@ export async function confirmInstallmentFromCreditAction(
 	paymentId: number,
 ): Promise<ConfirmInstallmentFromCreditState> {
 	const result = await confirmInstallment(paymentId)
+	if (result.error != null) {
+		return { error: result.error }
+	}
+	return { confirmed: true }
+}
+
+export async function confirmInstallmentsFromCreditAction(
+	paymentIds: number[],
+): Promise<ConfirmInstallmentFromCreditState> {
+	const result = await confirmInstallments(paymentIds)
 	if (result.error != null) {
 		return { error: result.error }
 	}

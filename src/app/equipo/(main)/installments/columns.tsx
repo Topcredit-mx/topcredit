@@ -2,108 +2,14 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useTransition } from 'react'
-import { toast } from 'sonner'
+import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
 import { FormattedDate } from '~/components/formatted-date'
-import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
-import { canConfirmInstallmentInQueue } from '~/lib/installment-confirmation'
+import { resolveQueueWorkflowStatus } from '~/lib/equipo-workflow-status'
 import { formatCurrencyMxn } from '~/lib/utils'
-import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { InstallmentForQueue } from '~/server/queries'
-import { confirmInstallmentAction } from './actions'
-
-function HrStatusCell({
-	hrConfirmedAt,
-	pendingLabel,
-	confirmedLabel,
-}: {
-	hrConfirmedAt: string | null
-	pendingLabel: string
-	confirmedLabel: string
-}) {
-	if (hrConfirmedAt === null) {
-		return (
-			<span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800 text-xs">
-				{pendingLabel}
-			</span>
-		)
-	}
-	return (
-		<span className="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800 text-xs">
-			{confirmedLabel}
-		</span>
-	)
-}
-
-function InstallmentConfirmationStatusCell({
-	hrConfirmedAt,
-	installmentConfirmedAt,
-	pendingLabel,
-	confirmedLabel,
-	awaitingHrLabel,
-}: {
-	hrConfirmedAt: string | null
-	installmentConfirmedAt: string | null
-	pendingLabel: string
-	confirmedLabel: string
-	awaitingHrLabel: string
-}) {
-	if (installmentConfirmedAt !== null) {
-		return (
-			<span className="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800 text-xs">
-				{confirmedLabel}
-			</span>
-		)
-	}
-	if (hrConfirmedAt !== null) {
-		return (
-			<span className="rounded-full bg-blue-100 px-2 py-0.5 font-medium text-blue-800 text-xs">
-				{pendingLabel}
-			</span>
-		)
-	}
-	return (
-		<span className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-600 text-xs">
-			{awaitingHrLabel}
-		</span>
-	)
-}
-
-function InstallmentConfirmActionsCell({ row }: { row: InstallmentForQueue }) {
-	const t = useTranslations('equipo')
-	const resolveError = useResolveValidationError()
-	const router = useRouter()
-	const [isPending, startTransition] = useTransition()
-
-	if (!canConfirmInstallmentInQueue(row)) {
-		return <span className="text-muted-foreground text-sm">—</span>
-	}
-
-	return (
-		<Button
-			size="sm"
-			variant="outline"
-			disabled={isPending}
-			onClick={() => {
-				startTransition(async () => {
-					const res = await confirmInstallmentAction(row.id)
-					if (res?.error != null) {
-						toast.error(resolveError(res.error))
-					} else {
-						toast.success(t('installments-confirm-success'))
-						router.refresh()
-					}
-				})
-			}}
-		>
-			{t('installments-confirm')}
-		</Button>
-	)
-}
 
 export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] {
 	const t = useTranslations('equipo')
@@ -172,6 +78,24 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 			},
 		},
 		{
+			id: 'installmentProgress',
+			header: ({ column }) => (
+				<DataTableColumnHeader
+					column={column}
+					title={t('installments-col-schedule-progress')}
+				/>
+			),
+			cell: ({ row }) => (
+				<div className="text-muted-foreground text-sm tabular-nums">
+					{t('installments-col-schedule-progress-value', {
+						position: row.original.installmentPosition,
+						total: row.original.installmentTotal,
+					})}
+				</div>
+			),
+			enableSorting: false,
+		},
+		{
 			accessorKey: 'companyName',
 			header: ({ column }) => (
 				<DataTableColumnHeader
@@ -214,62 +138,20 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 			),
 		},
 		{
-			accessorKey: 'nextDeductionDate',
+			id: 'workflowStatus',
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
-					title={t('installments-col-next-deduction')}
+					title={t('equipo-col-workflow-status')}
 				/>
 			),
-			cell: ({ row }) => (
-				<div className="text-muted-foreground text-sm">
-					<FormattedDate value={row.getValue('nextDeductionDate')} />
-				</div>
-			),
-		},
-		{
-			accessorKey: 'hrConfirmedAt',
-			header: ({ column }) => (
-				<DataTableColumnHeader
-					column={column}
-					title={t('installments-col-hr-status')}
-				/>
-			),
-			cell: ({ row }) => (
-				<HrStatusCell
-					hrConfirmedAt={row.getValue('hrConfirmedAt')}
-					pendingLabel={t('installments-status-pending')}
-					confirmedLabel={t('installments-status-confirmed')}
-				/>
-			),
-		},
-		{
-			id: 'installmentConfirmationStatus',
-			header: ({ column }) => (
-				<DataTableColumnHeader
-					column={column}
-					title={t('installments-col-installment-status')}
-				/>
-			),
-			cell: ({ row }) => (
-				<InstallmentConfirmationStatusCell
-					hrConfirmedAt={row.original.hrConfirmedAt}
-					installmentConfirmedAt={row.original.installmentConfirmedAt}
-					pendingLabel={t('installments-status-pending')}
-					confirmedLabel={t('installments-status-confirmed')}
-					awaitingHrLabel={t('installments-status-awaiting-hr')}
-				/>
-			),
-		},
-		{
-			id: 'actions',
-			header: ({ column }) => (
-				<DataTableColumnHeader
-					column={column}
-					title={t('installments-col-actions')}
-				/>
-			),
-			cell: ({ row }) => <InstallmentConfirmActionsCell row={row.original} />,
+			cell: ({ row }) => {
+				const { tone, messageKey } = resolveQueueWorkflowStatus({
+					hrConfirmedAt: row.original.hrConfirmedAt,
+					installmentConfirmedAt: row.original.installmentConfirmedAt,
+				})
+				return <WorkflowStatusBadge tone={tone} messageKey={messageKey} />
+			},
 			enableSorting: false,
 		},
 	]

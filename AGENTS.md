@@ -16,6 +16,10 @@ Defaults for how agents write and test code in this repository.
 
 - Keep solutions simple. Prefer code that is easy to read and maintain.
 
+## Plans
+
+- Plans must be **concise**: state the outcome, a short bullet list of file-level actions, and how to verify. Avoid long narrative, repeated context, and diagrams unless they save real ambiguity.
+
 ## Comments
 
 - Do **not** add comments on functions (including JSDoc / docstrings) unless strictly necessary.

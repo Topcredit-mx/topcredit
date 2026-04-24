@@ -3,8 +3,10 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
 import { FormattedDate } from '~/components/formatted-date'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
+import { historyTimingStatus } from '~/lib/equipo-workflow-status'
 import { formatCurrencyMxn } from '~/lib/utils'
 import type { InstallmentConfirmationHistoryItem } from '~/server/queries'
 
@@ -83,16 +85,10 @@ export function useInstallmentHistoryColumns(): ColumnDef<InstallmentConfirmatio
 				/>
 			),
 			cell: ({ row }) => {
-				const onTime = row.getValue<boolean>('confirmedOnTime')
-				return onTime ? (
-					<span className="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800 text-xs">
-						{t('installments-history-on-time')}
-					</span>
-				) : (
-					<span className="rounded-full bg-red-100 px-2 py-0.5 font-medium text-red-800 text-xs">
-						{t('installments-history-late')}
-					</span>
+				const { tone, messageKey } = historyTimingStatus(
+					row.getValue<boolean>('confirmedOnTime'),
 				)
+				return <WorkflowStatusBadge tone={tone} messageKey={messageKey} />
 			},
 		},
 	]

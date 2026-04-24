@@ -92,7 +92,7 @@ test.describe('Installments overdue page', () => {
 			await expect(card.getByText(/\d+ días/i).first()).toBeVisible()
 		})
 
-		test('shows overdue rows with amount, overdue start, and who is blocking', async ({
+		test('shows overdue rows with amount, overdue start, and unified Estado', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/installments/overdue')
@@ -102,11 +102,7 @@ test.describe('Installments overdue page', () => {
 			const table = mainDataTable(page)
 			await expect(table).toBeVisible()
 			await table.scrollIntoViewIfNeeded()
-			for (const label of [
-				/pendiente por/i,
-				/monto adeudado/i,
-				/atrasado desde/i,
-			]) {
+			for (const label of [/^estado$/i, /monto adeudado/i, /atrasado desde/i]) {
 				const th = mainDataTable(page)
 					.locator('thead th')
 					.filter({ hasText: label })
@@ -117,10 +113,12 @@ test.describe('Installments overdue page', () => {
 				hasText: seed.payrollInstallmentsBlocked,
 			})
 			await trInst.first().scrollIntoViewIfNeeded()
-			await expect(trInst.first().getByText(/instalaciones/i)).toBeVisible()
+			await expect(
+				trInst.first().getByText(/instalación pendiente/i),
+			).toBeVisible()
 			const trRh = page.locator('tr', { hasText: seed.payrollHrBlocked })
 			await trRh.first().scrollIntoViewIfNeeded()
-			await expect(trRh.first().getByText('RH', { exact: true })).toBeVisible()
+			await expect(trRh.first().getByText(/RH Pendiente/i)).toBeVisible()
 		})
 
 		test('does not list overdue rows on the main installments queue', async ({

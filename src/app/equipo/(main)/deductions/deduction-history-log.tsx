@@ -1,8 +1,11 @@
+'use client'
+
 import { History } from 'lucide-react'
 import Link from 'next/link'
+import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
 import { FormattedDate } from '~/components/formatted-date'
-import { Badge } from '~/components/ui/badge'
 import { SectionTitleRow } from '~/components/ui/section-card'
+import { historyTimingStatus } from '~/lib/equipo-workflow-status'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import type { DeductionConfirmationHistoryItem } from '~/server/queries'
 
@@ -12,8 +15,6 @@ export function DeductionHistoryLog({
 	description,
 	emptyMessage,
 	confirmedByLabel,
-	onTimeLabel,
-	lateLabel,
 	viewAllHref,
 	viewAllLabel,
 }: {
@@ -22,8 +23,6 @@ export function DeductionHistoryLog({
 	description: string
 	emptyMessage: string
 	confirmedByLabel: string
-	onTimeLabel: string
-	lateLabel: string
 	viewAllHref?: string
 	viewAllLabel?: string
 }) {
@@ -46,6 +45,7 @@ export function DeductionHistoryLog({
 								item.confirmedByUser?.name ??
 								item.confirmedByUser?.email ??
 								null
+							const timing = historyTimingStatus(item.confirmedOnTime)
 
 							return (
 								<li key={item.id} className="flex items-stretch gap-3">
@@ -80,14 +80,10 @@ export function DeductionHistoryLog({
 														{confirmedByLabel}: {actorLabel}
 													</span>
 												)}
-												<Badge
-													variant={
-														item.confirmedOnTime ? 'secondary' : 'destructive'
-													}
-													className="text-xs"
-												>
-													{item.confirmedOnTime ? onTimeLabel : lateLabel}
-												</Badge>
+												<WorkflowStatusBadge
+													tone={timing.tone}
+													messageKey={timing.messageKey}
+												/>
 											</div>
 											<span className="text-slate-500 text-xs">
 												<FormattedDate

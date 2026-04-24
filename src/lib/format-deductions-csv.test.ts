@@ -19,6 +19,9 @@ function makeInstallment(
 		companyId: 5,
 		employeeSalaryFrequency: 'monthly',
 		nextDeductionDate: '2026-04-30',
+		isFinalInstallmentConfirm: false,
+		installmentPosition: 1,
+		installmentTotal: 6,
 		...overrides,
 	}
 }

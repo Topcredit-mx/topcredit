@@ -1,5 +1,6 @@
 'use server'
 
+import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import { formatPendingInstallmentsCsv } from '~/lib/format-pending-installments-csv'
 import {
 	canConfirmInstallmentInQueue,
@@ -12,7 +13,7 @@ import {
 	type ValidateInstallmentsCsvResult,
 	validateInstallmentsCsv,
 } from '~/server/mutations'
-import { getInstallmentsForQueue } from '~/server/queries'
+import { getCompanyById, getInstallmentsForQueue } from '~/server/queries'
 import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
@@ -113,10 +114,21 @@ export async function exportPendingInstallmentsCsvAction(): Promise<
 		return { error: 'no-company-selected' }
 	}
 
+	const company = await getCompanyById(selectedCompanyId)
+	if (company === null) {
+		return { error: 'company-not-found' }
+	}
+
+	const upcomingDeductionDate = getUpcomingDeductionDateYmd(
+		company.employeeSalaryFrequency,
+		new Date(),
+	)
+
 	const scope = await getEffectiveCompanyScope()
 	const installments = await getInstallmentsForQueue({
 		scope,
 		queue: 'installments',
+		upcomingDeductionDate,
 	})
 	const today = new Date()
 	const pendingRows = installments.filter(
