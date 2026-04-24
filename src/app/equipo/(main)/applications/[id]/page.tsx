@@ -137,7 +137,6 @@ export default async function AppApplicationDetailPage({
 					<FileText className="size-3.5" aria-hidden />
 					{t('applications-detail-status')}
 				</span>
-				{/* biome-ignore lint/a11y/useSemanticElements: live region for application status; <output> is for form results */}
 				<div role="status" className="inline-flex shrink-0">
 					<Badge variant={statusBadgeVariant(application.status)}>
 						{t(EQUIPO_APPLICATION_STATUS_KEYS[application.status])}

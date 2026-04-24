@@ -30,6 +30,8 @@ const testimonials = [
 	},
 ]
 
+const RATING_STAR_SLOTS = [1, 2, 3, 4, 5] as const
+
 export function TestimonialsSection() {
 	return (
 		<section className="border-slate-100 border-t bg-white py-16 sm:py-24">
@@ -56,12 +58,14 @@ export function TestimonialsSection() {
 								<Quote className="size-8 text-brand/80" aria-hidden />
 
 								<div className="mt-4 flex">
-									{[...Array(testimonial.rating)].map((_, i) => (
-										<Star
-											key={`star-${testimonial.name}-${i}`}
-											className="size-5 fill-amber-400 text-amber-400"
-										/>
-									))}
+									{RATING_STAR_SLOTS.slice(0, testimonial.rating).map(
+										(slot) => (
+											<Star
+												key={`star-${testimonial.name}-${slot}`}
+												className="size-5 fill-amber-400 text-amber-400"
+											/>
+										),
+									)}
 								</div>
 
 								<blockquote className="mt-4 text-slate-700 leading-relaxed">

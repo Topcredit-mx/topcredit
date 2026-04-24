@@ -82,7 +82,6 @@ export default async function CuentaCreditDetailPage({
 					<p className="font-semibold text-[11px] text-slate-500 uppercase tracking-wide">
 						{t('detail-status')}
 					</p>
-					{/* biome-ignore lint/a11y/useSemanticElements: live region for credit status */}
 					<div role="status" className="inline-flex shrink-0">
 						{credit.status === 'settled' ? (
 							<Badge variant="secondary">{t('status-settled')}</Badge>
