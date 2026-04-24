@@ -3,7 +3,8 @@ name: E2E base
 'on':
   workflow_call:
     inputs:
-      secrets_environment:
+      neon_secrets_environment:
+        description: GitHub Environment for Neon API keys (staging on main, testing on branches)
         required: true
         type: string
 
@@ -31,7 +32,7 @@ jobs:
     name: Neon branches
     needs: e2e-context
     runs-on: ubuntu-latest
-    environment: ${{ inputs.secrets_environment }}
+    environment: ${{ inputs.neon_secrets_environment }}
     strategy:
       fail-fast: false
       matrix:
@@ -66,7 +67,7 @@ jobs:
     needs:
       - neon-create-branches
     runs-on: ubuntu-latest
-    environment: ${{ inputs.secrets_environment }}
+    environment: testing
     strategy:
       fail-fast: false
       matrix:
@@ -290,7 +291,7 @@ jobs:
       - e2e-context
     if: always()
     runs-on: ubuntu-latest
-    environment: ${{ inputs.secrets_environment }}
+    environment: ${{ inputs.neon_secrets_environment }}
     strategy:
       fail-fast: false
       matrix:

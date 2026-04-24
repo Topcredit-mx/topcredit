@@ -75,4 +75,4 @@ jobs:
     uses: ./.github/workflows/playwright-base.yml
     secrets: inherit
     with:
-      secrets_environment: staging
+      neon_secrets_environment: staging
