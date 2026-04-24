@@ -2,6 +2,11 @@ name: E2E
 
 'on':
   push:
+    branches-ignore:
+      - main
+  workflow_run:
+    workflows: [Production]
+    types: [completed]
 
 env:
   PLAYWRIGHT_SHARD_COUNT: 2
@@ -14,28 +19,38 @@ permissions:
   pages: write
 
 concurrency:
-  group: playwright-neon-${{ github.repository }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: playwright-neon-${{ github.repository }}-${{ github.event_name == 'workflow_run' && format('refs/heads/{0}', github.event.workflow_run.head_branch) || github.ref }}
+  cancel-in-progress: ${{ (github.event_name == 'workflow_run' && format('refs/heads/{0}', github.event.workflow_run.head_branch) || github.ref) != 'refs/heads/main' }}
 
 jobs:
+  e2e-context:
+    name: E2E context
+    if: github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.sha.outputs.short_sha }}
+    steps:
+      - id: sha
+        env:
+          HEAD_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+        run: echo "short_sha=$(echo "$HEAD_SHA" | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
   neon-create-branches:
     name: Neon branches
+    needs: e2e-context
     runs-on: ubuntu-latest
-    environment: testing
+    environment: ${{ github.event_name == 'workflow_run' && 'staging' || 'testing' }}
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2]
     steps:
-      - id: short_sha
-        run: echo "short_sha=$(echo "${{ github.sha }}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
-
       - name: Create Neon branch (one per Playwright shard)
         id: create-branch
         uses: neondatabase/create-branch-action@6.3.1
         with:
           project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch_name: test-${{ steps.short_sha.outputs.short_sha }}-${{ matrix.shard }}
+          branch_name: test-${{ needs.e2e-context.outputs.short_sha }}-${{ matrix.shard }}
           api_key: ${{ secrets.NEON_API_KEY }}
           branch_type: schema-only
 
@@ -59,7 +74,7 @@ jobs:
     needs:
       - neon-create-branches
     runs-on: ubuntu-latest
-    environment: testing
+    environment: ${{ github.event_name == 'workflow_run' && 'staging' || 'testing' }}
     strategy:
       fail-fast: false
       matrix:
@@ -76,6 +91,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Download Neon connection string
         uses: actions/download-artifact@v5
@@ -214,6 +230,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
@@ -278,9 +295,10 @@ jobs:
     name: Purge Neon shard
     needs:
       - test
+      - e2e-context
     if: always()
     runs-on: ubuntu-latest
-    environment: testing
+    environment: ${{ github.event_name == 'workflow_run' && 'staging' || 'testing' }}
     strategy:
       fail-fast: false
       matrix:
@@ -292,9 +310,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 1
-
-      - id: short_sha
-        run: echo "short_sha=$(echo "${{ github.sha }}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v6
         with:
@@ -302,7 +318,7 @@ jobs:
 
       - name: Delete Neon test branch
         run: |
-          branch="test-${{ steps.short_sha.outputs.short_sha }}-${{ matrix.shard }}"
+          branch="test-${{ needs.e2e-context.outputs.short_sha }}-${{ matrix.shard }}"
           npm i -g neonctl@v2
           echo "Deleting ${branch}..."
           neonctl branches delete "${branch}" --project-id "${NEON_PROJECT_ID}" || true
