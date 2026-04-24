@@ -1,0 +1,33 @@
+# Runs after every Playwright Tests workflow finishes (success, failure, or cancelled).
+# In-workflow jobs are often skipped on cancel; this reliably deletes test-* branches.
+name: Playwright Neon cleanup
+
+on:
+  workflow_run:
+    workflows: [Playwright Tests]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  delete-neon-branches:
+    runs-on: ubuntu-latest
+    environment: testing
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - name: Short SHA (same as Playwright create-branch names)
+        id: meta
+        run: |
+          short=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
+          echo "short_sha=$short" >> "$GITHUB_OUTPUT"
+
+      - name: Delete Neon test branch (shard ${{ matrix.shard }})
+        uses: neondatabase/delete-branch-action@v3.2.1
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: test-${{ steps.meta.outputs.short_sha }}-${{ matrix.shard }}
+          api_key: ${{ secrets.NEON_API_KEY }}

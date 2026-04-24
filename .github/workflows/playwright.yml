@@ -11,12 +11,12 @@ permissions:
   id-token: write
   pages: write
 
-# One Playwright workflow at a time for this repo (any branch/PR). Each run uses
-# exactly 2 Neon branches (matrix shards). A repo-wide group — not keyed by ref —
-# prevents two pushes (e.g. main + a PR) from running together and needing 4 branches.
+# One Playwright workflow at a time repo-wide (max 2 Neon branches per run). New
+# pushes cancel the in-flight run so CI reflects the latest commit. Neon branches are
+# always deleted by workflow "Playwright Neon cleanup" (workflow_run: completed).
 concurrency:
   group: playwright-neon-${{ github.repository }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   playwright-neon-context:
@@ -141,29 +141,6 @@ jobs:
           name: test-results-${{ github.run_id }}-${{ matrix.shard }}
           path: test-results/
           retention-days: 14
-
-  # Separate job (not a step on matrix shards): when a shard is cancelled, later
-  # steps on that runner may never run. needs: test + if: always() still schedules
-  # after the matrix finishes, including cancelled/failed shards.
-  neon-cleanup:
-    name: Delete Neon test branches
-    needs:
-      - test
-      - playwright-neon-context
-    if: always()
-    runs-on: ubuntu-latest
-    environment: testing
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2]
-    steps:
-      - name: Delete Neon branch (shard ${{ matrix.shard }})
-        uses: neondatabase/delete-branch-action@v3.2.1
-        with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch: test-${{ needs.playwright-neon-context.outputs.short_sha }}-${{ matrix.shard }}
-          api_key: ${{ secrets.NEON_API_KEY }}
 
   playwright-report-gate:
     name: Gate Pages deploy (both shards finished Playwright)
