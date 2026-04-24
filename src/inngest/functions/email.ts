@@ -1,9 +1,18 @@
-import { inngest } from '~/inngest/client'
+import {
+	emailApplicationDocumentsRejectedEvent,
+	emailApplicationStatusEvent,
+	emailApplicationSubmittedEvent,
+	emailOtpEvent,
+	inngest,
+} from '~/inngest/client'
 import { sendEmailFromEventData } from '~/server/email'
 
 export const sendApplicationSubmittedEmail = inngest.createFunction(
-	{ id: 'email-application-submitted', retries: 2 },
-	{ event: 'email/application.submitted' },
+	{
+		id: 'email-application-submitted',
+		retries: 2,
+		triggers: [emailApplicationSubmittedEvent],
+	},
 	async ({ event }) => {
 		await sendEmailFromEventData({
 			type: 'application-submitted',
@@ -15,8 +24,11 @@ export const sendApplicationSubmittedEmail = inngest.createFunction(
 )
 
 export const sendApplicationStatusEmail = inngest.createFunction(
-	{ id: 'email-application-status', retries: 2 },
-	{ event: 'email/application.status' },
+	{
+		id: 'email-application-status',
+		retries: 2,
+		triggers: [emailApplicationStatusEvent],
+	},
 	async ({ event }) => {
 		await sendEmailFromEventData({
 			type: 'application-status',
@@ -30,8 +42,11 @@ export const sendApplicationStatusEmail = inngest.createFunction(
 )
 
 export const sendApplicationDocumentsRejectedEmail = inngest.createFunction(
-	{ id: 'email-application-documents-rejected', retries: 2 },
-	{ event: 'email/application.documentsRejected' },
+	{
+		id: 'email-application-documents-rejected',
+		retries: 2,
+		triggers: [emailApplicationDocumentsRejectedEvent],
+	},
 	async ({ event }) => {
 		await sendEmailFromEventData({
 			type: 'application-documents-rejected',
@@ -42,8 +57,11 @@ export const sendApplicationDocumentsRejectedEmail = inngest.createFunction(
 )
 
 export const sendOtpEmail = inngest.createFunction(
-	{ id: 'email-otp', retries: 2 },
-	{ event: 'email/otp' },
+	{
+		id: 'email-otp',
+		retries: 2,
+		triggers: [emailOtpEvent],
+	},
 	async ({ event }) => {
 		await sendEmailFromEventData({
 			type: 'otp',

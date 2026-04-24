@@ -4,7 +4,12 @@ import { ApplicationSubmittedTemplate } from '~/components/email/application-sub
 import { DocumentsRejectedTemplate } from '~/components/email/documents-rejected-template'
 import { OTPTemplate } from '~/components/email/otp-template'
 import { env } from '~/env'
-import type { EmailEventPayload } from '~/inngest/client'
+import {
+	emailApplicationDocumentsRejectedEvent,
+	emailApplicationStatusEvent,
+	emailApplicationSubmittedEvent,
+	emailOtpEvent,
+} from '~/inngest/client'
 import { partitionRejectedDocumentsForEmail } from '~/lib/application-documents-rejected-email'
 import { isNotifyStatus } from '~/lib/application-rules'
 import type { EmailMessageKey, EmailT } from '~/lib/email-i18n'
@@ -268,55 +273,49 @@ async function sendEmailEvent(data: EmailEventData): Promise<void> {
 		return
 	}
 	const { inngest } = await import('~/inngest/client')
-	let event: EmailEventPayload
 	switch (data.type) {
 		case 'application-submitted':
-			event = {
-				name: 'email/application.submitted',
-				data: {
+			await inngest.send(
+				emailApplicationSubmittedEvent.create({
 					email: data.email,
 					creditAmountFormatted: data.creditAmountFormatted,
 					termLabel: data.termLabel,
-				},
-			}
+				}),
+			)
 			break
 		case 'application-status':
-			event = {
-				name: 'email/application.status',
-				data: {
+			await inngest.send(
+				emailApplicationStatusEvent.create({
 					email: data.email,
 					status: data.status,
 					creditAmountFormatted: data.creditAmountFormatted,
 					termLabel: data.termLabel,
 					reason: data.reason ?? null,
-				},
-			}
+				}),
+			)
 			break
 		case 'otp':
-			event = {
-				name: 'email/otp',
-				data: {
+			await inngest.send(
+				emailOtpEvent.create({
 					email: data.email,
 					code: data.code,
 					ipAddress: data.ipAddress,
-				},
-			}
+				}),
+			)
 			break
 		case 'application-documents-rejected':
-			event = {
-				name: 'email/application.documentsRejected',
-				data: {
+			await inngest.send(
+				emailApplicationDocumentsRejectedEvent.create({
 					email: data.email,
 					items: data.items,
-				},
-			}
+				}),
+			)
 			break
 		default: {
 			const _: never = data
 			throw new Error(`Unknown email event type: ${JSON.stringify(data)}`)
 		}
 	}
-	await inngest.send(event)
 }
 
 export async function sendApplicationDocumentsRejectedEvent(
