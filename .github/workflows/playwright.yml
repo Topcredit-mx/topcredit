@@ -134,14 +134,14 @@ jobs:
 
       - name: Write E2E completion marker (shard ran Playwright to completion)
         if: always() && (steps.playwright.outcome == 'success' || steps.playwright.outcome == 'failure')
-        run: echo ok > e2e-shard-complete.txt
+        run: echo ok > "e2e-completed-shard-${{ matrix.shard }}.txt"
 
       - name: Upload E2E completion marker
         if: always() && (steps.playwright.outcome == 'success' || steps.playwright.outcome == 'failure')
         uses: actions/upload-artifact@v5
         with:
           name: e2e-completed-shard-${{ matrix.shard }}
-          path: e2e-shard-complete.txt
+          path: e2e-completed-shard-${{ matrix.shard }}.txt
           retention-days: 2
 
       - name: Prefix blob zips (avoid merge name collisions)
