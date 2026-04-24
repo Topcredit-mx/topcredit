@@ -73,14 +73,14 @@ Copy `.env.example` to `.env` and set:
 
 ## CI E2E (Neon)
 
-Playwright in GitHub Actions creates **one temporary branch per matrix shard** (see `.github/workflows/playwright.yml`) and deletes it after the job. The Neon [create-branch-action](https://github.com/neondatabase/create-branch-action) is on the latest 6.3.x release. If branch creation returns **HTTP 422**, the project is often over a **Free-plan limit** (for example **storage**), not the branch *count*—check Neon's **Project settings → Usage** and clear old `test-*` branches or reduce `main` size, or upgrade. The UI can still show e.g. **3 / 10** branches while storage is over quota.
+Playwright in GitHub Actions uses a **Neon branches** matrix job (one temporary branch per shard), then **Chromium** shards load each connection string from an artifact; **Purge Neon shard** runs after tests (`always()`) to delete each branch (see `.github/workflows/playwright.yml`). The Neon [create-branch-action](https://github.com/neondatabase/create-branch-action) is on the latest 6.3.x release. If branch creation returns **HTTP 422**, the project is often over a **Free-plan limit** (for example **storage**), not the branch *count*—check Neon's **Project settings → Usage** and clear old `test-*` branches or reduce `main` size, or upgrade. The UI can still show e.g. **3 / 10** branches while storage is over quota.
 
 ## CI/CD
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | CI | Every push | Typecheck, Biome, unit tests |
-| E2E | Every push | Playwright in **2 shards**; each uses a **Neon test branch**, deleted by that shard’s job when it finishes (including cancel). Blob reports merge to the **static report URL** above. |
+| E2E | Every push | **Neon branches** matrix creates DBs; **Chromium** matrix runs Playwright (2 shards); **Purge Neon** deletes branches after Chromium. Blob reports merge to the **static report URL** above. |
 | Production | Push to `main` when `drizzle/**` or `src/server/db/schema.ts` change | Runs in `production` env: generate, fail on uncommitted migration drift, then `db:migrate`. Needs `DATABASE_URL` in production environment secrets. |
 
 ## Project structure

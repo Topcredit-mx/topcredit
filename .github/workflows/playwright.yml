@@ -3,7 +3,9 @@ name: E2E
 'on':
   push:
 
-# Test job: read. Deploy job: needs Pages + OIDC.
+env:
+  PLAYWRIGHT_SHARD_COUNT: 2
+
 permissions:
   contents: read
   pull-requests: read
@@ -11,9 +13,6 @@ permissions:
   id-token: write
   pages: write
 
-# One Playwright workflow at a time repo-wide (max 2 Neon branches per run). New
-# pushes cancel the in-flight run so CI reflects the latest commit. Each Chromium
-# matrix job deletes its own Neon test-* branch in a final always() step.
 concurrency:
   group: playwright-neon-${{ github.repository }}
   cancel-in-progress: true
@@ -29,9 +28,45 @@ jobs:
         id: sha
         run: echo "short_sha=$(echo "${{ github.sha }}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
+  neon-create-branches:
+    name: Neon branches
+    needs: playwright-neon-context
+    runs-on: ubuntu-latest
+    environment: testing
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - name: Create Neon branch (one per Playwright shard)
+        id: create-branch
+        uses: neondatabase/create-branch-action@6.3.1
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: test-${{ needs.playwright-neon-context.outputs.short_sha }}-${{ matrix.shard }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch_type: schema-only
+
+      - name: Package connection string for Chromium
+        env:
+          DB_URL: ${{ steps.create-branch.outputs.db_url }}
+        run: |
+          set -euo pipefail
+          test -n "${DB_URL}"
+          printf '%s' "${DB_URL}" > database_url.txt
+
+      - name: Upload Neon DB URL for this shard
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-neon-db-url-${{ matrix.shard }}
+          path: database_url.txt
+          retention-days: 2
+
   test:
     name: Chromium
-    needs: playwright-neon-context
+    needs:
+      - playwright-neon-context
+      - neon-create-branches
     runs-on: ubuntu-latest
     environment: testing
     strategy:
@@ -50,6 +85,18 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
+
+      - name: Download Neon connection string
+        uses: actions/download-artifact@v5
+        with:
+          name: e2e-neon-db-url-${{ matrix.shard }}
+          path: neon-db
+
+      - name: Load DATABASE_URL
+        run: |
+          set -euo pipefail
+          printf 'DATABASE_URL=' >> "$GITHUB_ENV"
+          cat neon-db/database_url.txt >> "$GITHUB_ENV"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
@@ -74,15 +121,6 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Create Neon branch (one per Playwright shard)
-        id: create-branch
-        uses: neondatabase/create-branch-action@6.3.1
-        with:
-          project_id: ${{ secrets.NEON_PROJECT_ID }}
-          branch_name: test-${{ needs.playwright-neon-context.outputs.short_sha }}-${{ matrix.shard }}
-          api_key: ${{ secrets.NEON_API_KEY }}
-          branch_type: schema-only
-
       - name: Generate E2E OTP code
         id: e2e-otp
         run: echo "code=$(shuf -i 100000-999999 -n 1)" >> "$GITHUB_OUTPUT"
@@ -91,17 +129,15 @@ jobs:
         run: pnpm dev &
         env:
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
-          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
 
       - name: Wait for app
         run: pnpm dlx wait-on http://127.0.0.1:3000 --timeout 120000 --strict
 
       - name: Run Playwright tests
         id: playwright
-        run: pnpm exec playwright test --shard=${{ matrix.shard }}/2
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/${{ env.PLAYWRIGHT_SHARD_COUNT }}
         env:
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
-          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
           NODE_NO_WARNINGS: "1"
           TERM: xterm
 
@@ -142,17 +178,6 @@ jobs:
           path: test-results/
           retention-days: 14
 
-      - name: Delete Neon test branch (this shard only)
-        if: always()
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
-        run: |
-          branch="test-${{ needs.playwright-neon-context.outputs.short_sha }}-${{ matrix.shard }}"
-          npm i -g neonctl@v2
-          echo "Deleting ${branch}..."
-          neonctl branches delete "${branch}" --project-id "${NEON_PROJECT_ID}" || true
-
   playwright-report-gate:
     name: Report gate
     needs: test
@@ -169,8 +194,10 @@ jobs:
           pattern: e2e-completed-shard-*
           merge-multiple: true
 
-      - name: Require both shards ran Playwright (not cancelled / not failed before tests)
+      - name: Require all shards ran Playwright (not cancelled / not failed before tests)
         id: check
+        env:
+          EXPECT_SHARDS: ${{ env.PLAYWRIGHT_SHARD_COUNT }}
         run: |
           set -euo pipefail
           if [ ! -d e2e-gate ]; then
@@ -178,7 +205,7 @@ jobs:
             exit 0
           fi
           n=$(find e2e-gate -type f | wc -l | tr -d ' ')
-          if [ "$n" -eq 2 ]; then
+          if [ "$n" -eq "${EXPECT_SHARDS}" ]; then
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
           else
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
@@ -255,3 +282,30 @@ jobs:
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "This page updates on each push. Failures and passes both appear in the report." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+  neon-delete-branches:
+    name: Purge Neon shard
+    needs:
+      - test
+      - playwright-neon-context
+    if: always()
+    runs-on: ubuntu-latest
+    environment: testing
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: ".node-version"
+
+      - name: Delete Neon test branch
+        run: |
+          branch="test-${{ needs.playwright-neon-context.outputs.short_sha }}-${{ matrix.shard }}"
+          npm i -g neonctl@v2
+          echo "Deleting ${branch}..."
+          neonctl branches delete "${branch}" --project-id "${NEON_PROJECT_ID}" || true
