@@ -1,11 +1,11 @@
-# Runs after every Playwright Tests workflow finishes (success, failure, or cancelled).
+# Runs after every E2E workflow finishes (success, failure, or cancelled).
 # In-workflow jobs are often skipped on cancel; this reliably deletes test-* branches.
 # Keep PLAYWRIGHT_SHARD_COUNT in sync with playwright.yml test.strategy.matrix.shard.
-name: Playwright Neon cleanup
+name: E2E cleanup
 
 on:
   workflow_run:
-    workflows: [Playwright Tests]
+    workflows: [E2E]
     types: [completed]
 
 permissions:
@@ -16,6 +16,7 @@ env:
 
 jobs:
   delete-neon-branches:
+    name: Purge test branches
     runs-on: ubuntu-latest
     environment: testing
     env:

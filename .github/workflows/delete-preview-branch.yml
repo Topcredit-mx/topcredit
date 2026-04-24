@@ -1,10 +1,11 @@
-name: Delete Vercel Preview Neon Branches on Branch Delete
+name: Preview
 
 on:
-  delete:  
+  delete:
 
 jobs:
   delete-neon-branch:
+    name: Drop Neon branch
     environment: preview
     runs-on: ubuntu-latest
     steps:

@@ -1,4 +1,4 @@
-name: Database Migration
+name: Production
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   migrate:
-    name: Prod DB
+    name: DB migrate
     runs-on: ubuntu-latest
     environment: production
     steps:

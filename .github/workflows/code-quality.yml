@@ -1,10 +1,10 @@
-name: Type Check, Lint & Unit Tests
+name: CI
 
 on: [push]
 
 jobs:
   type-check:
-    name: Type check, lint & unit tests
+    name: Verify
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

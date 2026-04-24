@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: E2E
 
 'on':
   push:
@@ -13,14 +13,14 @@ permissions:
 
 # One Playwright workflow at a time repo-wide (max 2 Neon branches per run). New
 # pushes cancel the in-flight run so CI reflects the latest commit. Neon branches are
-# always deleted by workflow "Playwright Neon cleanup" (workflow_run: completed).
+# always deleted by workflow "E2E cleanup" (workflow_run: completed).
 concurrency:
   group: playwright-neon-${{ github.repository }}
   cancel-in-progress: true
 
 jobs:
   playwright-neon-context:
-    name: E2E Neon branch naming
+    name: Branch setup
     runs-on: ubuntu-latest
     outputs:
       short_sha: ${{ steps.sha.outputs.short_sha }}
@@ -30,7 +30,7 @@ jobs:
         run: echo "short_sha=$(echo "${{ github.sha }}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
   test:
-    name: Playwright E2E
+    name: Chromium
     needs: playwright-neon-context
     runs-on: ubuntu-latest
     environment: testing
@@ -143,7 +143,7 @@ jobs:
           retention-days: 14
 
   playwright-report-gate:
-    name: Gate Pages deploy (both shards finished Playwright)
+    name: Report gate
     needs: test
     if: ${{ !cancelled() && (needs.test.result == 'success' || needs.test.result == 'failure') }}
     runs-on: ubuntu-latest
@@ -174,7 +174,7 @@ jobs:
           fi
 
   deploy-playwright-report:
-    name: Deploy report to GitHub Pages
+    name: Pages
     needs:
       - test
       - playwright-report-gate
