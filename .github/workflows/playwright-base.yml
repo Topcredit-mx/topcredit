@@ -173,7 +173,7 @@ jobs:
           if-no-files-found: ignore
 
   playwright-report-gate:
-    name: Check full E2E run
+    name: OK to publish report
     needs: test
     if: ${{ !cancelled() && (needs.test.result == 'success' || needs.test.result == 'failure') }}
     runs-on: ubuntu-latest
