@@ -1,5 +1,6 @@
 import {
 	AlertCircle,
+	ArrowUpRight,
 	Banknote,
 	CalendarClock,
 	Clock,
@@ -150,17 +151,31 @@ export default async function CuentaApplicationDetailPage({
 			) : null}
 
 			{application.creditId != null ? (
-				<div className="mb-4">
-					<Button
-						asChild
-						variant="link"
-						className="h-auto p-0 font-medium text-base text-brand"
-					>
-						<Link href={`/cuenta/credits/${application.creditId}`}>
+				<Link
+					href={`/cuenta/credits/${application.creditId}`}
+					aria-label={t('link-to-related-credit')}
+					className={cn(
+						shell.elevatedCard,
+						'group mb-6 flex items-center gap-4 p-4 transition',
+						'hover:border-brand/25 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand focus-visible:outline-offset-2',
+					)}
+				>
+					<div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand/12 to-brand/5 text-brand">
+						<Banknote className="size-6" strokeWidth={1.75} aria-hidden />
+					</div>
+					<div className="min-w-0 flex-1 text-left">
+						<p className="font-semibold text-slate-900 text-sm">
 							{t('link-to-related-credit')}
-						</Link>
-					</Button>
-				</div>
+						</p>
+						<p className="mt-0.5 text-slate-500 text-sm leading-relaxed">
+							{t('link-to-related-credit-description')}
+						</p>
+					</div>
+					<ArrowUpRight
+						className="size-5 shrink-0 text-slate-400 transition group-hover:text-brand"
+						aria-hidden
+					/>
+				</Link>
 			) : null}
 
 			<div className={cn(shell.elevatedCard, 'overflow-hidden')}>
