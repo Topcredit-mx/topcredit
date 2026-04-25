@@ -3173,12 +3173,17 @@ export const seedDeductionsQueue = async (
 
 	if (!credit4) throw new Error('Seed Deductions: credit 4 not created')
 
+	// On-time history row: due must be after confirmation in America/Mexico_City
+	// calendar. Using nextDeductionDate as due + hr at now-2m can mark the row
+	// late on month-end (UTC end-of-month vs CDMX). Due = now + 10y keeps "a tiempo" stable.
+	const credit4HistoryDue = new Date(now)
+	credit4HistoryDue.setUTCFullYear(credit4HistoryDue.getUTCFullYear() + 10)
 	// credit4 confirmed recently (more recent than credit5) → appears first in history
 	const credit4ConfirmedAt = new Date(now.getTime() - 2 * 60_000)
 	await db.insert(creditPayments).values([
 		{
 			creditId: credit4.id,
-			dueDate: nextDeductionDate,
+			dueDate: credit4HistoryDue,
 			amount: '15375.00',
 			hrConfirmedAt: credit4ConfirmedAt,
 			hrConfirmedByUserId: hrAgent.id,
