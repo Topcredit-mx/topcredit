@@ -206,7 +206,7 @@ jobs:
           fi
 
   deploy-playwright-report:
-    name: Playwright test report (HTML)
+    name: Upload Test Report
     needs:
       - test
       - playwright-report-gate
