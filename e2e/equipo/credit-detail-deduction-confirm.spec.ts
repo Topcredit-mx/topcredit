@@ -208,6 +208,19 @@ test.describe('Equipo credits list', () => {
 			await expect(
 				table.getByRole('columnheader', { name: /estado/i }),
 			).toBeVisible()
+			for (const rx of [
+				/empleado/i,
+				/monto/i,
+				/fecha de dispersión/i,
+				/estado/i,
+			]) {
+				await expect(
+					table
+						.getByRole('columnheader', { name: rx })
+						.locator('svg[aria-hidden="true"]')
+						.first(),
+				).toBeVisible()
+			}
 		})
 
 		test('shows credits for the selected company', async ({ page }) => {

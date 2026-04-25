@@ -92,20 +92,40 @@ test.describe('Admin Users', () => {
 			).toBeAttached()
 			await expect(th(/solicitudes/i)).toBeAttached()
 			await expect(
-				page
-					.locator('table thead th')
-					.filter({ hasText: /^Preautorizaciones$/ })
+				th(/solicitudes/i)
+					.locator('svg[aria-hidden="true"]')
 					.first(),
 			).toBeAttached()
+			const preauthTh = page
+				.locator('table thead th')
+				.filter({ hasText: /^Preautorizaciones$/ })
+				.first()
+			await expect(preauthTh).toBeAttached()
 			await expect(
-				page
-					.locator('table thead th')
-					.filter({ hasText: /^Autorizaciones$/ })
-					.first(),
+				preauthTh.locator('svg[aria-hidden="true"]').first(),
+			).toBeAttached()
+			const authTh = page
+				.locator('table thead th')
+				.filter({ hasText: /^Autorizaciones$/ })
+				.first()
+			await expect(authTh).toBeAttached()
+			await expect(
+				authTh.locator('svg[aria-hidden="true"]').first(),
 			).toBeAttached()
 			await expect(th(/admin/i)).toBeAttached()
 			await expect(
-				page.locator('th', { hasText: /fecha de creación/i }),
+				th(/admin/i).locator('svg[aria-hidden="true"]').first(),
+			).toBeAttached()
+			await expect(
+				page
+					.locator('th', { hasText: /empresas/i })
+					.locator('svg[aria-hidden="true"]')
+					.first(),
+			).toBeAttached()
+			const createdTh = page.locator('th', { hasText: /fecha de creación/i })
+			await expect(createdTh).toBeAttached()
+			await expect(
+				createdTh.locator('svg[aria-hidden="true"]').first(),
 			).toBeAttached()
 			await expect(
 				page
