@@ -1,4 +1,4 @@
-name: E2E (dev)
+name: E2E
 
 'on':
   push:
@@ -19,7 +19,7 @@ permissions:
   pages: write
 
 jobs:
-  e2e:
+  Playwright:
     uses: ./.github/workflows/playwright-base.yml
     secrets: inherit
     with:

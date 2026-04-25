@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   neon-create-branches:
-    name: Neon branches
+    name: Create DB Branch
     runs-on: ubuntu-latest
     environment: ${{ inputs.neon_secrets_environment }}
     strategy:
@@ -173,7 +173,7 @@ jobs:
           if-no-files-found: ignore
 
   playwright-report-gate:
-    name: Report gate
+    name: OK to publish report
     needs: test
     if: ${{ !cancelled() && (needs.test.result == 'success' || needs.test.result == 'failure') }}
     runs-on: ubuntu-latest
@@ -206,7 +206,7 @@ jobs:
           fi
 
   deploy-playwright-report:
-    name: Pages
+    name: Upload Test Report
     needs:
       - test
       - playwright-report-gate
@@ -279,7 +279,7 @@ jobs:
           fi
 
   neon-delete-branches:
-    name: Purge Neon shard
+    name: Delete DB Branch
     needs:
       - test
     if: always()

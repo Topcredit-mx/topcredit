@@ -1,4 +1,4 @@
-name: E2E (main)
+name: E2E
 
 'on':
   push:
@@ -70,7 +70,7 @@ jobs:
 
             core.setFailed('Timed out waiting for Production migrate');
 
-  e2e:
+  Playwright:
     needs: wait-production-migrate
     uses: ./.github/workflows/playwright-base.yml
     secrets: inherit
