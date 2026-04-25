@@ -1,3 +1,5 @@
+import { calendarYmdInMexicoCity } from '~/lib/calendar-date-tz'
+
 export type WorkflowTone =
 	| 'green'
 	| 'blue'
@@ -41,8 +43,18 @@ export type WorkflowStatusResolution = {
 export type CreditDetailStatusContext =
 	| { kind: 'none' }
 	| { kind: 'due'; dateIso: string }
-	| { kind: 'hrConfirmed'; dateIso: string }
-	| { kind: 'installmentConfirmed'; dateIso: string }
+	| {
+			kind: 'hrConfirmed'
+			dateIso: string
+			confirmedLate: boolean
+			confirmedAtIso: string
+	  }
+	| {
+			kind: 'installmentConfirmed'
+			dateIso: string
+			confirmedLate: boolean
+			confirmedAtIso: string
+	  }
 
 export type CreditDetailPaymentStatus = WorkflowStatusResolution & {
 	context: CreditDetailStatusContext
@@ -75,6 +87,10 @@ function dateOnlyIso(d: Date): string {
 	return d.toISOString().slice(0, 10)
 }
 
+function isCalendarDayAfter(confirmYmd: string, dueYmd: string): boolean {
+	return confirmYmd > dueYmd
+}
+
 export function resolveCreditDetailDeductionStatus(params: {
 	hrConfirmedAt: Date | null
 	dueDate: Date
@@ -96,12 +112,18 @@ export function resolveCreditDetailDeductionStatus(params: {
 			context: { kind: 'due', dateIso: dueYmd },
 		}
 	}
+	const dueScheduleYmd = dateOnlyIso(params.dueDate)
+	const confirmedYmdMx = calendarYmdInMexicoCity(params.hrConfirmedAt)
+	const confirmedLate = isCalendarDayAfter(confirmedYmdMx, dueScheduleYmd)
+	const confirmedYmd = dateOnlyIso(params.hrConfirmedAt)
 	return {
-		tone: 'green',
+		tone: confirmedLate ? 'amber' : 'green',
 		messageKey: 'equipo-credit-detail-deduction-confirmed',
 		context: {
 			kind: 'hrConfirmed',
-			dateIso: dateOnlyIso(params.hrConfirmedAt),
+			dateIso: confirmedYmd,
+			confirmedLate,
+			confirmedAtIso: params.hrConfirmedAt.toISOString(),
 		},
 	}
 }
@@ -113,12 +135,20 @@ export function resolveCreditDetailCollectionStatus(params: {
 	todayYmd: string | undefined
 }): CreditDetailPaymentStatus {
 	if (params.installmentConfirmedAt !== null) {
+		const dueScheduleYmd = dateOnlyIso(params.dueDate)
+		const confirmedYmdMx = calendarYmdInMexicoCity(
+			params.installmentConfirmedAt,
+		)
+		const confirmedLate = isCalendarDayAfter(confirmedYmdMx, dueScheduleYmd)
+		const confirmedYmd = dateOnlyIso(params.installmentConfirmedAt)
 		return {
-			tone: 'green',
+			tone: confirmedLate ? 'amber' : 'green',
 			messageKey: 'equipo-credit-detail-collection-confirmed',
 			context: {
 				kind: 'installmentConfirmed',
-				dateIso: dateOnlyIso(params.installmentConfirmedAt),
+				dateIso: confirmedYmd,
+				confirmedLate,
+				confirmedAtIso: params.installmentConfirmedAt.toISOString(),
 			},
 		}
 	}

@@ -274,30 +274,35 @@ test.describe('Credit detail — confirm button visibility by payment state', ()
 		page,
 	}) => {
 		await page.goto(`/equipo/credits/${seed.creditId}`)
-		await expect(mainDataTable(page)).toBeVisible()
+		const table = mainDataTable(page)
+		await expect(table).toBeVisible()
+		await expect(
+			table.getByRole('columnheader', { name: /fecha programada/i }),
+		).toBeVisible()
 
-		const r0 = mainDataTable(page).locator('tbody tr').nth(0)
+		const r0 = table.locator('tbody tr').nth(0)
 		const r0Deduction = r0.locator('td').nth(3)
 		const r0Installment = r0.locator('td').nth(4)
 		await expect(r0Deduction.getByText(/deducción confirmada/i)).toBeVisible()
-		await expect(r0Deduction.getByText(/deducción registrada/i)).toBeVisible()
+		await expect(r0Deduction.getByText(/deducción registrada/i)).toHaveCount(0)
+		await expect(r0Deduction.getByText(/\d{1,2}:\d{2}/)).toBeVisible()
 		await expect(r0Installment.getByText(/instalación atrasada/i)).toBeVisible()
-		await expect(r0Installment.getByText(/fecha de pago/i)).toBeVisible()
+		await expect(r0Installment.getByText(/fecha de pago/i)).toHaveCount(0)
 
-		const r1 = mainDataTable(page).locator('tbody tr').nth(1)
+		const r1 = table.locator('tbody tr').nth(1)
 		const r1Deduction = r1.locator('td').nth(3)
 		const r1Installment = r1.locator('td').nth(4)
 		await expect(r1Deduction.getByText(/deducción atrasada/i)).toBeVisible()
-		await expect(r1Deduction.getByText(/fecha de pago/i)).toBeVisible()
+		await expect(r1Deduction.getByText(/fecha de pago/i)).toHaveCount(0)
 		await expect(
 			r1Installment.getByText(/en espera de deducción/i),
 		).toBeVisible()
 
-		const r2 = mainDataTable(page).locator('tbody tr').nth(2)
+		const r2 = table.locator('tbody tr').nth(2)
 		const r2Deduction = r2.locator('td').nth(3)
 		const r2Installment = r2.locator('td').nth(4)
 		await expect(r2Deduction.getByText(/deducción pendiente/i)).toBeVisible()
-		await expect(r2Deduction.getByText(/fecha de pago/i)).toBeVisible()
+		await expect(r2Deduction.getByText(/fecha de pago/i)).toHaveCount(0)
 		await expect(
 			r2Installment.getByText(/en espera de deducción/i),
 		).toBeVisible()

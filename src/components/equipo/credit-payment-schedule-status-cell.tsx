@@ -1,7 +1,12 @@
 'use client'
 
-import { AlertCircle, CheckCircle2, Clock } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import {
+	AlertCircle,
+	AlertTriangle,
+	CheckCircle2,
+	Clock,
+	Hourglass,
+} from 'lucide-react'
 import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
 import { FormattedDate } from '~/components/formatted-date'
 import type {
@@ -9,21 +14,6 @@ import type {
 	EquipoWorkflowMessageKey,
 	WorkflowTone,
 } from '~/lib/equipo-workflow-status'
-
-function statusDateCaptionKey(
-	context: CreditDetailStatusContext,
-):
-	| 'credit-detail-status-caption-due'
-	| 'credit-detail-status-caption-deduction'
-	| 'credit-detail-status-caption-installment' {
-	if (context.kind === 'due') {
-		return 'credit-detail-status-caption-due'
-	}
-	if (context.kind === 'hrConfirmed') {
-		return 'credit-detail-status-caption-deduction'
-	}
-	return 'credit-detail-status-caption-installment'
-}
 
 export function CreditPaymentScheduleStatusCell({
 	tone,
@@ -34,47 +24,68 @@ export function CreditPaymentScheduleStatusCell({
 	messageKey: EquipoWorkflowMessageKey
 	context: CreditDetailStatusContext
 }) {
-	const t = useTranslations('equipo')
-	const showSuccessIcon = tone === 'green'
-	const showWarningIcon =
-		tone === 'amber' || tone === 'amber_dark' || tone === 'blue'
+	const isDetailDeductionConfirmed =
+		messageKey === 'equipo-credit-detail-deduction-confirmed'
+	const isDetailInstallmentConfirmed =
+		messageKey === 'equipo-credit-detail-collection-confirmed'
+	const isOnTimeDetailConfirmed =
+		(isDetailDeductionConfirmed || isDetailInstallmentConfirmed) &&
+		tone === 'green'
+	const isLateDetailConfirmed =
+		(isDetailDeductionConfirmed || isDetailInstallmentConfirmed) &&
+		tone === 'amber'
 	const showAlertIcon = tone === 'red'
-	const captionKey =
-		context.kind === 'none' ? null : statusDateCaptionKey(context)
+	const showNonConfirmedWarningIcon =
+		(tone === 'amber' || tone === 'amber_dark' || tone === 'blue') &&
+		!isLateDetailConfirmed
 
 	return (
-		<div className="flex max-w-[14rem] flex-col gap-1">
-			<div className="flex items-start gap-1.5">
-				{showSuccessIcon ? (
+		<div className="flex min-w-0 max-w-[18rem] flex-col gap-1">
+			<div className="flex min-w-0 items-center gap-1.5">
+				{isOnTimeDetailConfirmed ? (
 					<CheckCircle2
-						className="mt-0.5 size-3.5 shrink-0 text-green-700"
+						className="size-3.5 shrink-0 self-center text-green-700"
 						aria-hidden
 					/>
 				) : null}
-				{showWarningIcon ? (
+				{isLateDetailConfirmed ? (
+					<AlertTriangle
+						className="size-3.5 shrink-0 self-center text-amber-800"
+						aria-hidden
+					/>
+				) : null}
+				{showNonConfirmedWarningIcon && tone === 'blue' ? (
+					<Hourglass
+						className="size-3.5 shrink-0 self-center text-blue-700"
+						aria-hidden
+					/>
+				) : null}
+				{showNonConfirmedWarningIcon && tone !== 'blue' ? (
 					<Clock
-						className={
-							tone === 'blue'
-								? 'mt-0.5 size-3.5 shrink-0 text-blue-700'
-								: 'mt-0.5 size-3.5 shrink-0 text-amber-800'
-						}
+						className="size-3.5 shrink-0 self-center text-amber-800"
 						aria-hidden
 					/>
 				) : null}
 				{showAlertIcon ? (
 					<AlertCircle
-						className="mt-0.5 size-3.5 shrink-0 text-red-700"
+						className="size-3.5 shrink-0 self-center text-red-700"
 						aria-hidden
 					/>
 				) : null}
-				<WorkflowStatusBadge tone={tone} messageKey={messageKey} />
+				<WorkflowStatusBadge
+					tone={tone}
+					messageKey={messageKey}
+					className="shrink-0 whitespace-nowrap"
+				/>
 			</div>
-			{captionKey !== null && context.kind !== 'none' ? (
-				<p className="pl-0 text-muted-foreground text-xs leading-snug">
-					<span className="font-medium text-foreground/80">
-						{t(captionKey)}:{' '}
-					</span>
-					<FormattedDate value={context.dateIso} format="date" />
+			{context.kind === 'hrConfirmed' ||
+			context.kind === 'installmentConfirmed' ? (
+				<p className="flex min-w-0 items-center gap-1 text-muted-foreground text-xs">
+					<Clock className="size-3 shrink-0" aria-hidden />
+					<FormattedDate
+						value={context.confirmedAtIso}
+						format="datetime-short"
+					/>
 				</p>
 			) : null}
 		</div>
