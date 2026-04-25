@@ -28,6 +28,7 @@
 	"dependencies": {
 		"@auth/drizzle-adapter": "^1.11.2",
 		"@casl/ability": "^6.8.1",
+		"@faker-js/faker": "^10.4.0",
 		"@neondatabase/serverless": "^1.1.0",
 		"@radix-ui/react-alert-dialog": "^1.1.15",
 		"@radix-ui/react-avatar": "^1.1.11",

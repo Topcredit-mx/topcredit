@@ -42,7 +42,6 @@ const {
 	termOfferings,
 	applications,
 	applicationStatusHistory,
-	applicationDocuments,
 	credits,
 } = schema
 
@@ -387,147 +386,6 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 		}
 	}
 
-	// Pending application documents (for testing document approve/reject)
-	const applicantId = userIdByEmail.get('sofia.estrada@grupoandares.com.mx')
-	if (applicantId != null) {
-		const pendingApp = await db.query.applications.findFirst({
-			where: and(
-				eq(applications.applicantId, applicantId),
-				eq(applications.status, 'pending'),
-				eq(applications.creditAmount, '5000.00'),
-			),
-			columns: { id: true },
-		})
-		if (pendingApp) {
-			const existingDocs = await db.query.applicationDocuments.findMany({
-				where: eq(applicationDocuments.applicationId, pendingApp.id),
-				columns: { documentType: true },
-			})
-			const existingTypes = new Set(existingDocs.map((d) => d.documentType))
-			const docsToAdd: Array<{
-				documentType: 'authorization' | 'contract' | 'payroll-receipt'
-				fileName: string
-				storageKey: string
-			}> = [
-				{
-					documentType: 'authorization',
-					fileName: 'seed-authorization.pdf',
-					storageKey: `application-documents/${pendingApp.id}/authorization/seed-authorization.pdf`,
-				},
-				{
-					documentType: 'contract',
-					fileName: 'seed-contract.pdf',
-					storageKey: `application-documents/${pendingApp.id}/contract/seed-contract.pdf`,
-				},
-			]
-			for (const doc of docsToAdd) {
-				if (existingTypes.has(doc.documentType)) continue
-				await db.insert(applicationDocuments).values({
-					applicationId: pendingApp.id,
-					documentType: doc.documentType,
-					status: 'pending',
-					fileName: doc.fileName,
-					storageKey: doc.storageKey,
-				})
-				existingTypes.add(doc.documentType)
-				console.log(
-					`  ✓ Created application document: ${doc.documentType} (application ${pendingApp.id})`,
-				)
-			}
-		}
-	}
-
-	const invalidDocsApplicantId = userIdByEmail.get(
-		'miguel.herrera@grupoandares.com.mx',
-	)
-	if (invalidDocsApplicantId != null) {
-		const invalidApp = await db.query.applications.findFirst({
-			where: and(
-				eq(applications.applicantId, invalidDocsApplicantId),
-				eq(applications.status, 'pending'),
-				eq(applications.creditAmount, '9500.00'),
-			),
-			columns: { id: true },
-		})
-		if (invalidApp) {
-			const existingInvalidDocs = await db.query.applicationDocuments.findMany({
-				where: eq(applicationDocuments.applicationId, invalidApp.id),
-				columns: { id: true },
-			})
-			if (existingInvalidDocs.length === 0) {
-				await db.insert(applicationDocuments).values({
-					applicationId: invalidApp.id,
-					documentType: 'authorization',
-					status: 'rejected',
-					fileName: 'seed-authorization-rejected.pdf',
-					storageKey: `application-documents/${invalidApp.id}/authorization/seed-authorization-rejected.pdf`,
-					rejectionReason:
-						'Documento ilegible (semilla de desarrollo). Sube una versión más clara.',
-				})
-				console.log(
-					`  ✓ Created rejected application document (pending application ${invalidApp.id})`,
-				)
-			}
-		}
-	}
-
-	// Pre-authorized package: payroll, contract, authorization (pendiente de autorización)
-	const preAuthApplicant = userIdByEmail.get(
-		'sofia.estrada@grupoandares.com.mx',
-	)
-	if (preAuthApplicant != null) {
-		const preApp = await db.query.applications.findFirst({
-			where: and(
-				eq(applications.applicantId, preAuthApplicant),
-				eq(applications.status, 'pre-authorized'),
-				eq(applications.creditAmount, '15000.00'),
-			),
-			columns: { id: true },
-		})
-		if (preApp) {
-			const preExisting = await db.query.applicationDocuments.findMany({
-				where: eq(applicationDocuments.applicationId, preApp.id),
-				columns: { documentType: true },
-			})
-			const have = new Set(preExisting.map((d) => d.documentType))
-			const packageDocs: Array<{
-				documentType: 'payroll-receipt' | 'contract' | 'authorization'
-				fileName: string
-				storageKey: string
-			}> = [
-				{
-					documentType: 'payroll-receipt',
-					fileName: 'comprobante-nomina-cargo.pdf',
-					storageKey: `application-documents/${preApp.id}/payroll-receipt/comprobante-nomina-cargo.pdf`,
-				},
-				{
-					documentType: 'contract',
-					fileName: 'contrato-cargo-firmado.pdf',
-					storageKey: `application-documents/${preApp.id}/contract/contrato-cargo-firmado.pdf`,
-				},
-				{
-					documentType: 'authorization',
-					fileName: 'autorizacion-descuento-cargo.pdf',
-					storageKey: `application-documents/${preApp.id}/authorization/autorizacion-descuento-cargo.pdf`,
-				},
-			]
-			for (const d of packageDocs) {
-				if (have.has(d.documentType)) continue
-				await db.insert(applicationDocuments).values({
-					applicationId: preApp.id,
-					documentType: d.documentType,
-					status: 'pending',
-					fileName: d.fileName,
-					storageKey: d.storageKey,
-				})
-				have.add(d.documentType)
-				console.log(
-					`  ✓ Pre-autorizado: documento ${d.documentType} (solicitud ${preApp.id})`,
-				)
-			}
-		}
-	}
-
 	// Assign companies to users that require them (e.g. requests); admin does not need assignments
 	for (const [userEmail, domains] of Object.entries(userCompanyAssignments)) {
 		const userId = userIdByEmail.get(userEmail)
@@ -591,11 +449,8 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 				where: eq(credits.applicationId, appRow.id),
 				columns: { id: true },
 			})
-			if (cRow && app.creditAmount === '38000.00') {
-				addLogSample('crédito disperso (fila cola deducciones)', cRow.id)
-			}
-			if (cRow && app.creditAmount === '24000.00') {
-				addLogSample('crédito liquidado (CVA, 6 meses)', cRow.id)
+			if (cRow) {
+				addLogSample(`crédito faker (${app.afterCreditInsert})`, cRow.id)
 			}
 		}
 	} else {
@@ -604,11 +459,9 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 
 	console.log(
 		'\n--- Referencia demo: cuentas (login) e IDs (ej. /equipo o /cuenta) ---\n' +
-			'  Aplicante principal: sofia.estrada@grupoandares.com.mx\n' +
-			'  Aplicante CVA: patricia.vega@cva-ingenieros.com.mx\n' +
-			'  Aplicante Luminor: daniel.rios@luminor-tech.com.mx\n' +
 			'  Colas RH / dispersión: andrea.lopez@, luis.torres@, elena.suarez@ topcredit.mx\n' +
 			'  En /equipo elige empresa: Grupo Andares, CVA o Luminor (header).\n' +
+			'  Aplicantes demo: generados con faker (es_MX) en cada corrida de seed.\n' +
 			'  Muestras de solicitud o crédito (IDs reales en esta base):\n',
 	)
 	if (logSampleIds.length > 0) {
