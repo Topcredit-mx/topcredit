@@ -14,7 +14,11 @@ describe('resolveCreditDetailDeductionStatus', () => {
 			dueDate: new Date(Date.UTC(2022, 11, 31)),
 			todayYmd,
 		})
-		assert.equal(got.messageKey, 'equipo-workflow-status-hr-overdue')
+		assert.equal(got.messageKey, 'equipo-credit-detail-deduction-overdue')
+		assert.deepEqual(got.context, {
+			kind: 'due',
+			dateIso: '2022-12-31',
+		})
 	})
 
 	test('RH pending when not confirmed and due not in the past', () => {
@@ -23,28 +27,40 @@ describe('resolveCreditDetailDeductionStatus', () => {
 			dueDate: new Date(Date.UTC(2023, 0, 31)),
 			todayYmd,
 		})
-		assert.equal(got.messageKey, 'equipo-workflow-status-rh-pending-detail')
+		assert.equal(got.messageKey, 'equipo-credit-detail-deduction-pending')
+		assert.deepEqual(got.context, {
+			kind: 'due',
+			dateIso: '2023-01-31',
+		})
 	})
 
 	test('deduction confirmed when RH confirmed', () => {
 		const got = resolveCreditDetailDeductionStatus({
-			hrConfirmedAt: new Date(Date.UTC(2022, 10, 31)),
+			hrConfirmedAt: new Date(Date.UTC(2022, 10, 30)),
 			dueDate: new Date(Date.UTC(2022, 10, 30)),
 			todayYmd,
 		})
 		assert.equal(got.messageKey, 'equipo-credit-detail-deduction-confirmed')
+		assert.deepEqual(got.context, {
+			kind: 'hrConfirmed',
+			dateIso: '2022-11-30',
+		})
 	})
 })
 
 describe('resolveCreditDetailCollectionStatus', () => {
 	test('confirmed when installment confirmed', () => {
 		const got = resolveCreditDetailCollectionStatus({
-			hrConfirmedAt: new Date(Date.UTC(2022, 10, 31)),
-			installmentConfirmedAt: new Date(Date.UTC(2022, 10, 31)),
+			hrConfirmedAt: new Date(Date.UTC(2022, 10, 30)),
+			installmentConfirmedAt: new Date(Date.UTC(2022, 10, 30)),
 			dueDate: new Date(Date.UTC(2022, 10, 30)),
 			todayYmd,
 		})
-		assert.equal(got.messageKey, 'equipo-workflow-status-confirmed')
+		assert.equal(got.messageKey, 'equipo-credit-detail-collection-confirmed')
+		assert.deepEqual(got.context, {
+			kind: 'installmentConfirmed',
+			dateIso: '2022-11-30',
+		})
 	})
 
 	test('awaiting deduction when RH not confirmed', () => {
@@ -58,6 +74,7 @@ describe('resolveCreditDetailCollectionStatus', () => {
 			got.messageKey,
 			'equipo-credit-detail-collection-awaiting-deduction',
 		)
+		assert.deepEqual(got.context, { kind: 'none' })
 	})
 
 	test('installment delayed when RH confirmed, past due, installment pending', () => {
@@ -67,7 +84,11 @@ describe('resolveCreditDetailCollectionStatus', () => {
 			dueDate: new Date(Date.UTC(2022, 10, 30)),
 			todayYmd,
 		})
-		assert.equal(got.messageKey, 'equipo-workflow-status-installment-delayed')
+		assert.equal(got.messageKey, 'equipo-credit-detail-collection-delayed')
+		assert.deepEqual(got.context, {
+			kind: 'due',
+			dateIso: '2022-11-30',
+		})
 	})
 
 	test('installment pending when RH confirmed, due not past', () => {
@@ -77,6 +98,10 @@ describe('resolveCreditDetailCollectionStatus', () => {
 			dueDate: new Date(Date.UTC(2023, 0, 31)),
 			todayYmd,
 		})
-		assert.equal(got.messageKey, 'equipo-workflow-status-installment-pending')
+		assert.equal(got.messageKey, 'equipo-credit-detail-collection-pending')
+		assert.deepEqual(got.context, {
+			kind: 'due',
+			dateIso: '2023-01-31',
+		})
 	})
 })

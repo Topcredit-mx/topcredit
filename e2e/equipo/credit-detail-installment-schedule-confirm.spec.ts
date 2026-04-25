@@ -88,7 +88,9 @@ test.describe('Credit detail — confirm installment from schedule', () => {
 			await expect(
 				r1After.getByText(/deducción confirmada/i).first(),
 			).toBeVisible()
-			await expect(r1After.getByText(/^Confirmado$/i).first()).toBeVisible()
+			await expect(
+				r1After.getByText(/instalación confirmada/i).first(),
+			).toBeVisible()
 		})
 	})
 

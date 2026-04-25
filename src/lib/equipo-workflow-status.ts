@@ -17,7 +17,12 @@ export type EquipoWorkflowMessageKey =
 	| 'equipo-workflow-history-on-time'
 	| 'equipo-workflow-history-late'
 	| 'equipo-credit-detail-deduction-confirmed'
+	| 'equipo-credit-detail-deduction-overdue'
+	| 'equipo-credit-detail-deduction-pending'
 	| 'equipo-credit-detail-collection-awaiting-deduction'
+	| 'equipo-credit-detail-collection-confirmed'
+	| 'equipo-credit-detail-collection-delayed'
+	| 'equipo-credit-detail-collection-pending'
 
 export const workflowToneClassName: Record<WorkflowTone, string> = {
 	green: 'bg-green-100 text-green-800',
@@ -31,6 +36,16 @@ export const workflowToneClassName: Record<WorkflowTone, string> = {
 export type WorkflowStatusResolution = {
 	tone: WorkflowTone
 	messageKey: EquipoWorkflowMessageKey
+}
+
+export type CreditDetailStatusContext =
+	| { kind: 'none' }
+	| { kind: 'due'; dateIso: string }
+	| { kind: 'hrConfirmed'; dateIso: string }
+	| { kind: 'installmentConfirmed'; dateIso: string }
+
+export type CreditDetailPaymentStatus = WorkflowStatusResolution & {
+	context: CreditDetailStatusContext
 }
 
 /** Próximas colas deducciones / instalaciones (sin dimensión “hoy” en el badge). */
@@ -56,28 +71,38 @@ export function resolveQueueWorkflowStatus(params: {
 	}
 }
 
+function dateOnlyIso(d: Date): string {
+	return d.toISOString().slice(0, 10)
+}
+
 export function resolveCreditDetailDeductionStatus(params: {
 	hrConfirmedAt: Date | null
 	dueDate: Date
 	todayYmd: string | undefined
-}): WorkflowStatusResolution {
-	const dueYmd = params.dueDate.toISOString().slice(0, 10)
+}): CreditDetailPaymentStatus {
+	const dueYmd = dateOnlyIso(params.dueDate)
 	if (params.hrConfirmedAt === null) {
 		const overdue = params.todayYmd !== undefined && dueYmd < params.todayYmd
 		if (overdue) {
 			return {
 				tone: 'red',
-				messageKey: 'equipo-workflow-status-hr-overdue',
+				messageKey: 'equipo-credit-detail-deduction-overdue',
+				context: { kind: 'due', dateIso: dueYmd },
 			}
 		}
 		return {
 			tone: 'amber',
-			messageKey: 'equipo-workflow-status-rh-pending-detail',
+			messageKey: 'equipo-credit-detail-deduction-pending',
+			context: { kind: 'due', dateIso: dueYmd },
 		}
 	}
 	return {
 		tone: 'green',
 		messageKey: 'equipo-credit-detail-deduction-confirmed',
+		context: {
+			kind: 'hrConfirmed',
+			dateIso: dateOnlyIso(params.hrConfirmedAt),
+		},
 	}
 }
 
@@ -86,30 +111,37 @@ export function resolveCreditDetailCollectionStatus(params: {
 	installmentConfirmedAt: Date | null
 	dueDate: Date
 	todayYmd: string | undefined
-}): WorkflowStatusResolution {
+}): CreditDetailPaymentStatus {
 	if (params.installmentConfirmedAt !== null) {
 		return {
 			tone: 'green',
-			messageKey: 'equipo-workflow-status-confirmed',
+			messageKey: 'equipo-credit-detail-collection-confirmed',
+			context: {
+				kind: 'installmentConfirmed',
+				dateIso: dateOnlyIso(params.installmentConfirmedAt),
+			},
 		}
 	}
 	if (params.hrConfirmedAt === null) {
 		return {
 			tone: 'gray',
 			messageKey: 'equipo-credit-detail-collection-awaiting-deduction',
+			context: { kind: 'none' },
 		}
 	}
-	const dueYmd = params.dueDate.toISOString().slice(0, 10)
+	const dueYmd = dateOnlyIso(params.dueDate)
 	const delayed = params.todayYmd !== undefined && dueYmd < params.todayYmd
 	if (delayed) {
 		return {
 			tone: 'amber_dark',
-			messageKey: 'equipo-workflow-status-installment-delayed',
+			messageKey: 'equipo-credit-detail-collection-delayed',
+			context: { kind: 'due', dateIso: dueYmd },
 		}
 	}
 	return {
 		tone: 'blue',
-		messageKey: 'equipo-workflow-status-installment-pending',
+		messageKey: 'equipo-credit-detail-collection-pending',
+		context: { kind: 'due', dateIso: dueYmd },
 	}
 }
 

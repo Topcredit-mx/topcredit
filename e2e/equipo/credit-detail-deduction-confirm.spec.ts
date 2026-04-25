@@ -257,7 +257,7 @@ test.describe('Credit detail — confirm button visibility by payment state', ()
 		await expect(r0.getByText(/instalación atrasada/i).first()).toBeVisible()
 
 		const r1 = mainDataTable(page).locator('tbody tr').nth(1)
-		await expect(r1.getByText(/atrasado/i).first()).toBeVisible()
+		await expect(r1.getByText(/deducción atrasada/i).first()).toBeVisible()
 		await expect(r1.getByRole('button', { name: /confirmar/i })).toBeVisible()
 
 		const r2 = mainDataTable(page).locator('tbody tr').nth(2)
@@ -268,5 +268,38 @@ test.describe('Credit detail — confirm button visibility by payment state', ()
 
 		const r4 = mainDataTable(page).locator('tbody tr').nth(4)
 		await expect(r4.getByRole('button', { name: /confirmar/i })).toHaveCount(0)
+	})
+
+	test('shows paired deduction and installment status text with dates on the schedule', async ({
+		page,
+	}) => {
+		await page.goto(`/equipo/credits/${seed.creditId}`)
+		await expect(mainDataTable(page)).toBeVisible()
+
+		const r0 = mainDataTable(page).locator('tbody tr').nth(0)
+		const r0Deduction = r0.locator('td').nth(3)
+		const r0Installment = r0.locator('td').nth(4)
+		await expect(r0Deduction.getByText(/deducción confirmada/i)).toBeVisible()
+		await expect(r0Deduction.getByText(/deducción registrada/i)).toBeVisible()
+		await expect(r0Installment.getByText(/instalación atrasada/i)).toBeVisible()
+		await expect(r0Installment.getByText(/fecha de pago/i)).toBeVisible()
+
+		const r1 = mainDataTable(page).locator('tbody tr').nth(1)
+		const r1Deduction = r1.locator('td').nth(3)
+		const r1Installment = r1.locator('td').nth(4)
+		await expect(r1Deduction.getByText(/deducción atrasada/i)).toBeVisible()
+		await expect(r1Deduction.getByText(/fecha de pago/i)).toBeVisible()
+		await expect(
+			r1Installment.getByText(/en espera de deducción/i),
+		).toBeVisible()
+
+		const r2 = mainDataTable(page).locator('tbody tr').nth(2)
+		const r2Deduction = r2.locator('td').nth(3)
+		const r2Installment = r2.locator('td').nth(4)
+		await expect(r2Deduction.getByText(/deducción pendiente/i)).toBeVisible()
+		await expect(r2Deduction.getByText(/fecha de pago/i)).toBeVisible()
+		await expect(
+			r2Installment.getByText(/en espera de deducción/i),
+		).toBeVisible()
 	})
 })
