@@ -689,6 +689,7 @@ export type ApplicationForReview = {
 	companyId: number
 	companyDomain: string
 	creditAmount: string | null
+	equipoCreditId: number | null
 	salaryAtApplication: string
 	salaryFrequency: 'monthly' | 'bi-monthly'
 	companyRate: string
@@ -741,6 +742,7 @@ export async function getApplicationsForReview(params: {
 			companyId: applications.companyId,
 			companyDomain: companies.domain,
 			creditAmount: applications.creditAmount,
+			equipoCreditId: credits.id,
 			salaryAtApplication: applications.salaryAtApplication,
 			salaryFrequency: applications.salaryFrequency,
 			companyRate: companies.rate,
@@ -761,6 +763,7 @@ export async function getApplicationsForReview(params: {
 		})
 		.from(applications)
 		.innerJoin(companies, eq(applications.companyId, companies.id))
+		.leftJoin(credits, eq(credits.applicationId, applications.id))
 		.leftJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
 		.leftJoin(terms, eq(termOfferings.termId, terms.id))
 		.innerJoin(users, eq(applications.applicantId, users.id))
@@ -788,6 +791,7 @@ export async function getApplicationsForReview(params: {
 		companyId: row.companyId,
 		companyDomain: row.companyDomain,
 		creditAmount: row.creditAmount,
+		equipoCreditId: row.equipoCreditId,
 		salaryAtApplication: row.salaryAtApplication,
 		salaryFrequency: row.salaryFrequency,
 		companyRate: row.companyRate,
@@ -842,6 +846,7 @@ export async function getApplicationForReview(
 			companyId: applications.companyId,
 			companyDomain: companies.domain,
 			creditAmount: applications.creditAmount,
+			equipoCreditId: credits.id,
 			salaryAtApplication: applications.salaryAtApplication,
 			salaryFrequency: applications.salaryFrequency,
 			companyRate: companies.rate,
@@ -862,6 +867,7 @@ export async function getApplicationForReview(
 		})
 		.from(applications)
 		.innerJoin(companies, eq(applications.companyId, companies.id))
+		.leftJoin(credits, eq(credits.applicationId, applications.id))
 		.leftJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
 		.leftJoin(terms, eq(termOfferings.termId, terms.id))
 		.innerJoin(users, eq(applications.applicantId, users.id))
@@ -884,6 +890,7 @@ export async function getApplicationForReview(
 		companyId: row.companyId,
 		companyDomain: row.companyDomain,
 		creditAmount: row.creditAmount,
+		equipoCreditId: row.equipoCreditId,
 		salaryAtApplication: row.salaryAtApplication,
 		salaryFrequency: row.salaryFrequency,
 		companyRate: row.companyRate,
@@ -1205,6 +1212,7 @@ export async function getCreditPaymentsByCreditId(
 
 export type CreditDetailForEquipo = {
 	id: number
+	applicationId: number
 	status: CreditStatus
 	transferAmount: string
 	disbursementDate: Date
@@ -1214,6 +1222,7 @@ export type CreditDetailForEquipo = {
 	durationType: 'monthly' | 'bi-monthly'
 	duration: number
 	employeeName: string
+	payrollNumber: string | null
 }
 
 export type CreditForList = {
@@ -1251,6 +1260,7 @@ export async function getCreditDetailForEquipo(
 	const [row] = await db
 		.select({
 			id: credits.id,
+			applicationId: applications.id,
 			status: credits.status,
 			transferAmount: credits.transferAmount,
 			disbursementDate: credits.disbursementDate,
@@ -1260,6 +1270,7 @@ export async function getCreditDetailForEquipo(
 			durationType: terms.durationType,
 			duration: terms.duration,
 			employeeName: users.name,
+			payrollNumber: applications.payrollNumber,
 		})
 		.from(credits)
 		.innerJoin(applications, eq(credits.applicationId, applications.id))

@@ -84,6 +84,36 @@ test.describe('HR credit detail — deduction confirmation', () => {
 			).toBeVisible()
 		})
 
+		test('credit detail links to the related application and shows schedule', async ({
+			page,
+		}) => {
+			await page.goto(`/equipo/credits/${seed.credit1Id}`)
+			const appLink = page.getByRole('link', { name: /ver solicitud/i })
+			await expect(appLink).toBeVisible()
+			await expect(appLink).toHaveAttribute(
+				'href',
+				`/equipo/applications/${seed.application1Id}`,
+			)
+			await expect(
+				page.getByRole('heading', { name: /calendario de pagos/i }),
+			).toBeVisible()
+			await expect(page.getByText(/deduct001/i)).toBeVisible()
+			await expect(page.getByText(/monto dispersado/i)).toBeVisible()
+			await expect(page.getByText(/4 meses/i)).toBeVisible()
+			await page.goto(`/equipo/applications/${seed.application1Id}`)
+			await expect(
+				page.getByRole('heading', { name: /detalle de solicitud/i }),
+			).toBeVisible()
+			const creditLink = page.getByRole('link', {
+				name: /ver crédito dispersado/i,
+			})
+			await expect(creditLink).toBeVisible()
+			await expect(creditLink).toHaveAttribute(
+				'href',
+				`/equipo/credits/${seed.credit1Id}`,
+			)
+		})
+
 		test('shows the employee name as a link in the deductions queue', async ({
 			page,
 		}) => {
