@@ -59,18 +59,19 @@ export function AgentSidebar({
 	const roles = user.roles ?? []
 	const canAccess = (role: string) => isAdmin || roles.includes(role)
 
+	const adminNavigationItems: NavItem[] = isAdmin
+		? [
+				{ title: t('nav-admin-users'), url: '/equipo/users', icon: Users },
+				{
+					title: t('nav-admin-companies'),
+					url: '/equipo/companies',
+					icon: Building2,
+				},
+			]
+		: []
+
 	const navigationItems: NavItem[] = [
 		{ title: t('nav-home'), url: '/equipo', icon: Home },
-		...(isAdmin
-			? [
-					{ title: t('nav-users'), url: '/equipo/users', icon: Users },
-					{
-						title: t('nav-companies'),
-						url: '/equipo/companies',
-						icon: Building2,
-					},
-				]
-			: []),
 		{ title: t('nav-credits'), url: '/equipo/credits', icon: CreditCard },
 		...(canAccess('requests')
 			? [
@@ -209,12 +210,23 @@ export function AgentSidebar({
 				</SidebarMenu>
 			</SidebarHeader>
 
-			<SidebarContent>
-				<NavMain
-					items={navigationItems}
-					disabled={disableNav}
-					groupLabel={t('navigation')}
-				/>
+			<SidebarContent className="min-h-0 flex-1 flex-col gap-0 overflow-hidden p-0">
+				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
+					<NavMain
+						items={navigationItems}
+						disabled={disableNav}
+						groupLabel={t('navigation')}
+					/>
+				</div>
+				{adminNavigationItems.length > 0 ? (
+					<div className="shrink-0 border-sidebar-border border-t">
+						<NavMain
+							items={adminNavigationItems}
+							disabled={disableNav}
+							groupLabel={t('nav-admin')}
+						/>
+					</div>
+				) : null}
 			</SidebarContent>
 
 			<SidebarFooter>
