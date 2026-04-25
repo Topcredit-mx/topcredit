@@ -70,7 +70,7 @@ jobs:
 
             core.setFailed('Timed out waiting for Production migrate');
 
-  e2e:
+  playwright:
     needs: wait-production-migrate
     uses: ./.github/workflows/playwright-base.yml
     secrets: inherit

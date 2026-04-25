@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   neon-create-branches:
-    name: Neon branches
+    name: Create DB Branch
     runs-on: ubuntu-latest
     environment: ${{ inputs.neon_secrets_environment }}
     strategy:
@@ -206,7 +206,7 @@ jobs:
           fi
 
   deploy-playwright-report:
-    name: Pages
+    name: Playwright test report (HTML)
     needs:
       - test
       - playwright-report-gate
@@ -279,7 +279,7 @@ jobs:
           fi
 
   neon-delete-branches:
-    name: Purge Neon shard
+    name: Delete DB Branch
     needs:
       - test
     if: always()
