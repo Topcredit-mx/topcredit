@@ -25,6 +25,20 @@ export const MIN_ACTIVE_INSTALLMENTS_PER_COMPANY = 50
 export const MIN_OVERDUE_CREDITS_PER_COMPANY = 50
 export const MIN_OVERDUE_INSTALLMENTS_CREDITS_PER_COMPANY = 50
 export const MIN_SETTLED_CREDITS_PER_COMPANY = 50
+export const EXTRA_NON_DISBURSED_PENDING_PER_COMPANY = 80
+export const EXTRA_NON_DISBURSED_APPROVED_PER_COMPANY = 50
+export const EXTRA_NON_DISBURSED_PRE_AUTH_PER_COMPANY = 30
+export const EXTRA_NON_DISBURSED_AWAITING_AUTH_PER_COMPANY = 20
+export const EXTRA_NON_DISBURSED_AUTHORIZED_PER_COMPANY = 12
+export const EXTRA_NON_DISBURSED_DENIED_PER_COMPANY = 8
+export const EXTRA_NON_DISBURSED_AUTHORIZED_HR_PENDING_PER_COMPANY = 8
+export const MIN_EXTRA_NON_DISBURSED_PER_COMPANY =
+	EXTRA_NON_DISBURSED_PENDING_PER_COMPANY +
+	EXTRA_NON_DISBURSED_APPROVED_PER_COMPANY +
+	EXTRA_NON_DISBURSED_PRE_AUTH_PER_COMPANY +
+	EXTRA_NON_DISBURSED_AWAITING_AUTH_PER_COMPANY +
+	EXTRA_NON_DISBURSED_AUTHORIZED_PER_COMPANY +
+	EXTRA_NON_DISBURSED_DENIED_PER_COMPANY
 export const MIN_APPLICATIONS_PER_COMPANY = 180
 export const MIN_GLOBAL_TERM_OPTIONS_USED = 15
 export const SEED_EXTRA_APPLICATION_COUNT = 800
@@ -52,15 +66,6 @@ export type BulkSeedUser = {
 	email: string
 	roles: readonly Role[]
 }
-
-const NON_DISBURSED_STATUSES: readonly SeedApplicationStatus[] = [
-	'pending',
-	'approved',
-	'pre-authorized',
-	'awaiting-authorization',
-	'authorized',
-	'denied',
-] as const
 
 function companyForDomain(
 	companies: readonly SeedCompanyForBulk[],
@@ -276,7 +281,37 @@ export function buildExtraSeedDataset(
 				() => 'settled' as const,
 			),
 		]
-		const effectiveCompanyTarget = Math.max(companyTarget, disbursedPlan.length)
+		const nonDisbursedPlan: readonly SeedApplicationStatus[] = [
+			...Array.from(
+				{ length: EXTRA_NON_DISBURSED_PENDING_PER_COMPANY },
+				() => 'pending' as const,
+			),
+			...Array.from(
+				{ length: EXTRA_NON_DISBURSED_APPROVED_PER_COMPANY },
+				() => 'approved' as const,
+			),
+			...Array.from(
+				{ length: EXTRA_NON_DISBURSED_PRE_AUTH_PER_COMPANY },
+				() => 'pre-authorized' as const,
+			),
+			...Array.from(
+				{ length: EXTRA_NON_DISBURSED_AWAITING_AUTH_PER_COMPANY },
+				() => 'awaiting-authorization' as const,
+			),
+			...Array.from(
+				{ length: EXTRA_NON_DISBURSED_AUTHORIZED_PER_COMPANY },
+				() => 'authorized' as const,
+			),
+			...Array.from(
+				{ length: EXTRA_NON_DISBURSED_DENIED_PER_COMPANY },
+				() => 'denied' as const,
+			),
+		]
+		const baselineCompanyTarget = disbursedPlan.length + nonDisbursedPlan.length
+		const effectiveCompanyTarget = Math.max(
+			companyTarget,
+			baselineCompanyTarget,
+		)
 
 		for (
 			let localIndex = 0;
@@ -310,11 +345,10 @@ export function buildExtraSeedDataset(
 
 			const disbursedAfter = disbursedPlan[localIndex]
 			const isDisbursed = disbursedAfter != null
-			const status = isDisbursed
-				? ('disbursed' as const)
-				: NON_DISBURSED_STATUSES[
-						(localIndex + globalIndex) % NON_DISBURSED_STATUSES.length
-					]
+			const nonDisbursedStatus =
+				nonDisbursedPlan[localIndex - disbursedPlan.length] ??
+				nonDisbursedPlan[globalIndex % nonDisbursedPlan.length]
+			const status = isDisbursed ? ('disbursed' as const) : nonDisbursedStatus
 			if (status == null) continue
 
 			let firstDiscount: FirstDiscountPreference = 'none'
@@ -375,7 +409,19 @@ export function buildExtraSeedDataset(
 				denialReason =
 					'Capacidad de endeudamiento excedida según política del empleador (seed realista).'
 			} else if (status === 'authorized') {
-				firstDiscount = 'next-valid'
+				const nonDisbursedOffset = localIndex - disbursedPlan.length
+				const authorizedStartOffset =
+					EXTRA_NON_DISBURSED_PENDING_PER_COMPANY +
+					EXTRA_NON_DISBURSED_APPROVED_PER_COMPANY +
+					EXTRA_NON_DISBURSED_PRE_AUTH_PER_COMPANY +
+					EXTRA_NON_DISBURSED_AWAITING_AUTH_PER_COMPANY
+				const authorizedOrdinal = nonDisbursedOffset - authorizedStartOffset
+				if (
+					authorizedOrdinal >=
+					EXTRA_NON_DISBURSED_AUTHORIZED_HR_PENDING_PER_COMPANY
+				) {
+					firstDiscount = 'next-valid'
+				}
 			}
 
 			const docsRejected =

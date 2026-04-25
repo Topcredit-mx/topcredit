@@ -8,9 +8,17 @@ import {
 } from '../../scripts/seed.fixtures'
 import {
 	buildExtraSeedDataset,
+	EXTRA_NON_DISBURSED_APPROVED_PER_COMPANY,
+	EXTRA_NON_DISBURSED_AUTHORIZED_HR_PENDING_PER_COMPANY,
+	EXTRA_NON_DISBURSED_AUTHORIZED_PER_COMPANY,
+	EXTRA_NON_DISBURSED_AWAITING_AUTH_PER_COMPANY,
+	EXTRA_NON_DISBURSED_DENIED_PER_COMPANY,
+	EXTRA_NON_DISBURSED_PENDING_PER_COMPANY,
+	EXTRA_NON_DISBURSED_PRE_AUTH_PER_COMPANY,
 	MIN_ACTIVE_DEDUCTIONS_PER_COMPANY,
 	MIN_ACTIVE_INSTALLMENTS_PER_COMPANY,
 	MIN_APPLICATIONS_PER_COMPANY,
+	MIN_EXTRA_NON_DISBURSED_PER_COMPANY,
 	MIN_GLOBAL_TERM_OPTIONS_USED,
 	MIN_OVERDUE_CREDITS_PER_COMPANY,
 	MIN_OVERDUE_INSTALLMENTS_CREDITS_PER_COMPANY,
@@ -191,6 +199,51 @@ test('buildExtraSeedDataset: per-company realism minima', () => {
 			installmentsOverdue.length >=
 				MIN_OVERDUE_INSTALLMENTS_CREDITS_PER_COMPANY,
 			`${domain}: installments-overdue credits minimum not met`,
+		)
+		const nonDisbursed = byCompany.filter((a) => a.status !== 'disbursed')
+		assert.ok(
+			nonDisbursed.length >= MIN_EXTRA_NON_DISBURSED_PER_COMPANY,
+			`${domain}: expected >=${MIN_EXTRA_NON_DISBURSED_PER_COMPANY} non-disbursed applications`,
+		)
+		const pending = byCompany.filter((a) => a.status === 'pending')
+		const approved = byCompany.filter((a) => a.status === 'approved')
+		const preAuth = byCompany.filter((a) => a.status === 'pre-authorized')
+		const awaiting = byCompany.filter(
+			(a) => a.status === 'awaiting-authorization',
+		)
+		const authorized = byCompany.filter((a) => a.status === 'authorized')
+		const denied = byCompany.filter((a) => a.status === 'denied')
+		assert.ok(
+			pending.length >= EXTRA_NON_DISBURSED_PENDING_PER_COMPANY,
+			`${domain}: pending stage minimum not met`,
+		)
+		assert.ok(
+			approved.length >= EXTRA_NON_DISBURSED_APPROVED_PER_COMPANY,
+			`${domain}: approved stage minimum not met`,
+		)
+		assert.ok(
+			preAuth.length >= EXTRA_NON_DISBURSED_PRE_AUTH_PER_COMPANY,
+			`${domain}: pre-authorized stage minimum not met`,
+		)
+		assert.ok(
+			awaiting.length >= EXTRA_NON_DISBURSED_AWAITING_AUTH_PER_COMPANY,
+			`${domain}: awaiting-authorization stage minimum not met`,
+		)
+		assert.ok(
+			authorized.length >= EXTRA_NON_DISBURSED_AUTHORIZED_PER_COMPANY,
+			`${domain}: authorized stage minimum not met`,
+		)
+		const authorizedHrPending = authorized.filter(
+			(a) => a.firstDiscount === 'none',
+		)
+		assert.ok(
+			authorizedHrPending.length >=
+				EXTRA_NON_DISBURSED_AUTHORIZED_HR_PENDING_PER_COMPANY,
+			`${domain}: authorized HR-pending minimum not met`,
+		)
+		assert.ok(
+			denied.length >= EXTRA_NON_DISBURSED_DENIED_PER_COMPANY,
+			`${domain}: denied stage minimum not met`,
 		)
 	}
 })

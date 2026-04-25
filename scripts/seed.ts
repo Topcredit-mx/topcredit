@@ -367,18 +367,8 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 	)
 
 	const today = new Date()
-	const logSampleIds: { label: string; id: number }[] = []
 	let createdApplicationsCount = 0
 	let updatedApplicationsCount = 0
-	const addLogSample = (label: string, id: number) => {
-		const key = `${label}|${id}`
-		if (
-			logSampleIds.length < 16 &&
-			!logSampleIds.some((x) => `${x.label}|${x.id}` === key)
-		) {
-			logSampleIds.push({ label, id })
-		}
-	}
 
 	type PreparedSeedApplication = {
 		fixture: (typeof seedApplications)[number]
@@ -603,16 +593,6 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 				createdAt: new Date(timelineBaseTime.getTime() + index * 60_000),
 			})),
 		)
-		if (source.fixture.status === 'pre-authorized') {
-			addLogSample('pre-authorized (Sofía / paquete)', appId)
-		} else if (source.fixture.status === 'denied') {
-			addLogSample('denegada (Patricia / CVA)', appId)
-		} else if (
-			source.fixture.creditAmount === '5000.00' &&
-			source.fixture.status === 'pending'
-		) {
-			addLogSample('pendiente + documentos iniciales', appId)
-		}
 	}
 	for (const [index, chunk] of chunkArray(statusHistoryRows, 1200).entries()) {
 		await db.insert(applicationStatusHistory).values(chunk)
@@ -709,7 +689,7 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 				}
 			})
 			.filter((t) => t != null)
-		const creditIdByApplicationId = await bulkRefreshSeededDisbursedCredits(
+		const _creditIdByApplicationId = await bulkRefreshSeededDisbursedCredits(
 			db,
 			{
 				adminUserId,
@@ -717,40 +697,8 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 			},
 		)
 		console.log(`  ✓ Credits refreshed total: ${refreshTargets.length}`)
-		for (const p of preparedApps) {
-			if (
-				p.fixture.status !== 'disbursed' ||
-				p.fixture.afterCreditInsert === 'none'
-			)
-				continue
-			const appId = existingAppIdByKey.get(p.key)
-			if (appId == null) continue
-			const creditId = creditIdByApplicationId.get(appId)
-			if (creditId != null) {
-				addLogSample(`crédito faker (${p.fixture.afterCreditInsert})`, creditId)
-			}
-		}
 	} else {
 		console.warn('  ⚠ No admin@topcredit.mx: no se insertaron créditos semilla')
-	}
-
-	console.log(
-		'\n--- Referencia demo: cuentas (login) e IDs (ej. /equipo o /cuenta) ---\n' +
-			'  Colas RH / dispersión: andrea.lopez@, luis.torres@, elena.suarez@ topcredit.mx\n' +
-			'  En /equipo elige empresa: Grupo Andares, CVA o Luminor (header).\n' +
-			'  Aplicantes demo: generados con faker (es_MX) en cada corrida de seed.\n' +
-			'  Muestras de solicitud o crédito (IDs reales en esta base):\n',
-	)
-	if (logSampleIds.length > 0) {
-		for (const s of logSampleIds) {
-			const path =
-				s.label.startsWith('crédito') || s.label.includes('crédito')
-					? `/equipo/credits/${s.id}`
-					: `/equipo/applications/${s.id}`
-			console.log(
-				`  · ${s.label} → id ${s.id}  (${path} o análoga en cuenta)\n`,
-			)
-		}
 	}
 	console.log('✅ Seed completed!')
 }
