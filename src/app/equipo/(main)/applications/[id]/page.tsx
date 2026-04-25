@@ -10,11 +10,13 @@ import {
 	User,
 	Wallet,
 } from 'lucide-react'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { ApplicationStatusHistoryCard } from '~/components/application-status-history'
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { filterToLatestDocumentsPerType } from '~/lib/application-document-intake'
 import { canTransitionApplicationFrom } from '~/lib/application-rules'
@@ -37,6 +39,13 @@ import {
 	getTermOfferingsForCompany,
 } from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
+import {
+	EQUIPO_DETAIL_CARD_CLASS,
+	EQUIPO_DETAIL_CARD_CONTENT_CLASS,
+	EQUIPO_DETAIL_CARD_HEADER_CLASS,
+	EQUIPO_DETAIL_STAT_CARD_CLASS,
+	EQUIPO_DETAIL_STAT_CONTENT_CLASS,
+} from '../../detail-layout-classes'
 import { ApplicationActions } from '../application-actions'
 import { ApplicationDocumentsReviewForm } from '../application-documents-review-form'
 import { formatApplicationTerm } from '../constants'
@@ -58,12 +67,6 @@ function statusBadgeVariant(
 			return 'secondary'
 	}
 }
-
-const DETAIL_CARD_CLASS = 'gap-3 py-4'
-const DETAIL_CARD_HEADER_CLASS = 'gap-2 px-4 [.border-b]:pb-4'
-const DETAIL_CARD_CONTENT_CLASS = 'px-4'
-const DETAIL_STAT_CARD_CLASS = 'gap-2 py-3'
-const DETAIL_STAT_CONTENT_CLASS = 'px-4 py-0'
 
 export default async function AppApplicationDetailPage({
 	params,
@@ -152,9 +155,9 @@ export default async function AppApplicationDetailPage({
 			</div>
 
 			{/* Main overview card: applicant + key data */}
-			<Card className={DETAIL_CARD_CLASS}>
+			<Card className={EQUIPO_DETAIL_CARD_CLASS}>
 				<CardHeader
-					className={`grid gap-4 border-b ${DETAIL_CARD_HEADER_CLASS} md:grid-cols-[minmax(0,1fr)_auto] md:items-start`}
+					className={`grid gap-4 border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS} md:grid-cols-[minmax(0,1fr)_auto] md:items-start`}
 				>
 					<div className="space-y-1">
 						<CardTitle asChild className="flex items-center gap-2 text-base">
@@ -170,20 +173,32 @@ export default async function AppApplicationDetailPage({
 							{application.applicant.email}
 						</p>
 					</div>
-					<div className="grid gap-3 md:justify-items-start">
-						<div>
-							<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
-								<Wallet className="size-3.5" aria-hidden />
-								{t('applications-detail-salary')}
-							</p>
-							<p className="mt-1.5 whitespace-nowrap font-medium">
-								{formatCurrencyMxn(application.salaryAtApplication)}{' '}
-								<span className="text-muted-foreground text-sm">MXN</span>
-							</p>
+					<div className="grid gap-3 md:justify-items-end">
+						<div className="grid w-full gap-3 md:justify-items-end">
+							<div className="md:text-right">
+								<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider md:justify-end">
+									<Wallet className="size-3.5" aria-hidden />
+									{t('applications-detail-salary')}
+								</p>
+								<p className="mt-1.5 whitespace-nowrap font-medium md:text-right">
+									{formatCurrencyMxn(application.salaryAtApplication)}{' '}
+									<span className="text-muted-foreground text-sm">MXN</span>
+								</p>
+							</div>
+							{application.equipoCreditId != null ? (
+								<Button variant="outline" size="sm" asChild>
+									<Link href={`/equipo/credits/${application.equipoCreditId}`}>
+										<Receipt className="size-4" aria-hidden />
+										{t('applications-detail-related-credit')}
+									</Link>
+								</Button>
+							) : null}
 						</div>
 					</div>
 				</CardHeader>
-				<CardContent className={`space-y-3 pt-2 ${DETAIL_CARD_CONTENT_CLASS}`}>
+				<CardContent
+					className={`space-y-3 pt-2 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}
+				>
 					{application.denialReason ? (
 						<div>
 							<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
@@ -245,8 +260,8 @@ export default async function AppApplicationDetailPage({
 
 			{/* Term and amount cards */}
 			<div className="grid gap-3 sm:grid-cols-2">
-				<Card className={DETAIL_STAT_CARD_CLASS}>
-					<CardContent className={DETAIL_STAT_CONTENT_CLASS}>
+				<Card className={EQUIPO_DETAIL_STAT_CARD_CLASS}>
+					<CardContent className={EQUIPO_DETAIL_STAT_CONTENT_CLASS}>
 						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
 							<CalendarClock className="size-3.5" aria-hidden />
 							{t('applications-detail-term')}
@@ -258,8 +273,8 @@ export default async function AppApplicationDetailPage({
 						</p>
 					</CardContent>
 				</Card>
-				<Card className={DETAIL_STAT_CARD_CLASS}>
-					<CardContent className={DETAIL_STAT_CONTENT_CLASS}>
+				<Card className={EQUIPO_DETAIL_STAT_CARD_CLASS}>
+					<CardContent className={EQUIPO_DETAIL_STAT_CONTENT_CLASS}>
 						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
 							<Banknote className="size-3.5" aria-hidden />
 							{t('applications-detail-amount')}
@@ -283,10 +298,10 @@ export default async function AppApplicationDetailPage({
 			{/* Documents */}
 			<Card
 				id="equipo-application-documents-card"
-				className={DETAIL_CARD_CLASS}
+				className={EQUIPO_DETAIL_CARD_CLASS}
 				aria-labelledby="equipo-application-documents-heading"
 			>
-				<CardHeader className={`border-b ${DETAIL_CARD_HEADER_CLASS}`}>
+				<CardHeader className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}>
 					<CardTitle asChild className="flex items-center gap-2 text-base">
 						<h2 id="equipo-application-documents-heading">
 							<FolderOpen
@@ -297,7 +312,7 @@ export default async function AppApplicationDetailPage({
 						</h2>
 					</CardTitle>
 				</CardHeader>
-				<CardContent className={`pt-4 ${DETAIL_CARD_CONTENT_CLASS}`}>
+				<CardContent className={`pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}>
 					{documentsForDisplay.length > 0 ? (
 						canReadApplication ? (
 							<ApplicationDocumentsReviewForm
@@ -348,8 +363,8 @@ export default async function AppApplicationDetailPage({
 
 			{/* HR: First discount date display or approve form */}
 			{application.firstDiscountDate != null ? (
-				<Card className={DETAIL_STAT_CARD_CLASS}>
-					<CardContent className={DETAIL_STAT_CONTENT_CLASS}>
+				<Card className={EQUIPO_DETAIL_STAT_CARD_CLASS}>
+					<CardContent className={EQUIPO_DETAIL_STAT_CONTENT_CLASS}>
 						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
 							<CalendarDays className="size-3.5" aria-hidden />
 							{t('hr-first-discount-date')}
@@ -363,8 +378,8 @@ export default async function AppApplicationDetailPage({
 					</CardContent>
 				</Card>
 			) : canSetFirstDiscountDate ? (
-				<Card className={DETAIL_CARD_CLASS}>
-					<CardHeader className={`border-b ${DETAIL_CARD_HEADER_CLASS}`}>
+				<Card className={EQUIPO_DETAIL_CARD_CLASS}>
+					<CardHeader className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}>
 						<CardTitle asChild className="flex items-center gap-2 text-base">
 							<h2>
 								<CalendarDays
@@ -375,7 +390,7 @@ export default async function AppApplicationDetailPage({
 							</h2>
 						</CardTitle>
 					</CardHeader>
-					<CardContent className={`pt-4 ${DETAIL_CARD_CONTENT_CLASS}`}>
+					<CardContent className={`pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}>
 						<HrApproveForm
 							applicationId={application.id}
 							validDates={getValidFirstDiscountDates(
@@ -396,8 +411,8 @@ export default async function AppApplicationDetailPage({
 			{/* Disbursement: form or read-only info */}
 			{application.status === 'disbursed' &&
 			application.transferReference != null ? (
-				<Card className={DETAIL_CARD_CLASS}>
-					<CardHeader className={`border-b ${DETAIL_CARD_HEADER_CLASS}`}>
+				<Card className={EQUIPO_DETAIL_CARD_CLASS}>
+					<CardHeader className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}>
 						<CardTitle asChild className="flex items-center gap-2 text-base">
 							<h2>
 								<Receipt className="size-4 text-muted-foreground" aria-hidden />
@@ -406,7 +421,7 @@ export default async function AppApplicationDetailPage({
 						</CardTitle>
 					</CardHeader>
 					<CardContent
-						className={`space-y-3 pt-4 ${DETAIL_CARD_CONTENT_CLASS}`}
+						className={`space-y-3 pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}
 					>
 						<div>
 							<p className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
@@ -425,8 +440,8 @@ export default async function AppApplicationDetailPage({
 					</CardContent>
 				</Card>
 			) : canDisburse && application.creditAmount != null ? (
-				<Card className={DETAIL_CARD_CLASS}>
-					<CardHeader className={`border-b ${DETAIL_CARD_HEADER_CLASS}`}>
+				<Card className={EQUIPO_DETAIL_CARD_CLASS}>
+					<CardHeader className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}>
 						<CardTitle asChild className="flex items-center gap-2 text-base">
 							<h2>
 								<Receipt className="size-4 text-muted-foreground" aria-hidden />
@@ -434,7 +449,7 @@ export default async function AppApplicationDetailPage({
 							</h2>
 						</CardTitle>
 					</CardHeader>
-					<CardContent className={`pt-4 ${DETAIL_CARD_CONTENT_CLASS}`}>
+					<CardContent className={`pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}>
 						<DisburseForm
 							applicationId={application.id}
 							creditAmount={formatCurrencyMxn(application.creditAmount)}

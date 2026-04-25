@@ -1,0 +1,5 @@
+export const EQUIPO_DETAIL_CARD_CLASS = 'gap-3 py-4'
+export const EQUIPO_DETAIL_CARD_HEADER_CLASS = 'gap-2 px-4 [.border-b]:pb-4'
+export const EQUIPO_DETAIL_CARD_CONTENT_CLASS = 'px-4'
+export const EQUIPO_DETAIL_STAT_CARD_CLASS = 'gap-2 py-3'
+export const EQUIPO_DETAIL_STAT_CONTENT_CLASS = 'px-4 py-0'
