@@ -81,7 +81,15 @@ test.describe('Admin Users', () => {
 			const th = (rx: RegExp) =>
 				page.locator('table thead th').filter({ hasText: rx }).first()
 			await expect(th(/nombre/i)).toBeAttached()
+			await expect(
+				th(/nombre/i)
+					.locator('svg[aria-hidden="true"]')
+					.first(),
+			).toBeAttached()
 			await expect(th(/email/i)).toBeAttached()
+			await expect(
+				th(/email/i).locator('svg[aria-hidden="true"]').first(),
+			).toBeAttached()
 			await expect(th(/solicitudes/i)).toBeAttached()
 			await expect(
 				page
