@@ -482,6 +482,7 @@ export async function getApplicationsByApplicantId(
 
 export type ApplicationDetailForApplicant = {
 	id: number
+	creditId: number | null
 	status: ApplicationStatus
 	creditAmount: string | null
 	salaryAtApplication: string
@@ -530,6 +531,7 @@ export async function getApplicationByApplicantId(
 	const rows = await db
 		.select({
 			id: applications.id,
+			creditId: credits.id,
 			status: applications.status,
 			creditAmount: applications.creditAmount,
 			salaryAtApplication: applications.salaryAtApplication,
@@ -559,6 +561,7 @@ export async function getApplicationByApplicantId(
 		.from(applications)
 		.innerJoin(users, eq(applications.applicantId, users.id))
 		.innerJoin(companies, eq(applications.companyId, companies.id))
+		.leftJoin(credits, eq(credits.applicationId, applications.id))
 		.leftJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
 		.leftJoin(terms, eq(termOfferings.termId, terms.id))
 		.where(
@@ -574,6 +577,7 @@ export async function getApplicationByApplicantId(
 
 	return {
 		id: row.id,
+		creditId: row.creditId,
 		status: row.status,
 		creditAmount: row.creditAmount,
 		salaryAtApplication: row.salaryAtApplication,
@@ -1111,11 +1115,11 @@ export async function getCreditsByApplicantId(
 
 export type CreditDetail = {
 	id: number
+	applicationId: number
 	status: CreditStatus
 	transferAmount: string
 	disbursementDate: Date
 	firstDiscountDate: Date | null
-	companyName: string
 	rate: string
 	durationType: 'monthly' | 'bi-monthly'
 	duration: number
@@ -1137,11 +1141,11 @@ export async function getCreditDetailByApplicantId(
 	const [row] = await db
 		.select({
 			id: credits.id,
+			applicationId: applications.id,
 			status: credits.status,
 			transferAmount: credits.transferAmount,
 			disbursementDate: credits.disbursementDate,
 			firstDiscountDate: applications.firstDiscountDate,
-			companyName: companies.name,
 			rate: companies.rate,
 			durationType: terms.durationType,
 			duration: terms.duration,

@@ -1250,7 +1250,7 @@ test.describe('Cuenta applications', () => {
 			await loginPage(page, applicantWithCompany.email)
 		})
 
-		test('shows disbursement info and filled-in applicant data when status is disbursed', async ({
+		test('links to the related credit, shows transfer reference on the credit page, and omits amount from summary', async ({
 			page,
 		}) => {
 			const app = await resetApplicantApplication({
@@ -1273,27 +1273,43 @@ test.describe('Cuenta applications', () => {
 				postalCode: '64000',
 			})
 			await page.goto(`/cuenta/applications/${app.id}`)
+			const main = cuentaMain(page)
 			await expect(
 				page.getByRole('heading', { name: /resumen de tu solicitud/i }),
 			).toBeVisible()
 			await expect(
-				cuentaMain(page)
+				main
 					.locator('[role="status"]')
 					.filter({ hasText: /dispersado/i })
 					.first(),
 			).toBeVisible()
+			const creditLink = page.getByRole('link', { name: /ver mi crédito/i })
+			await expect(creditLink).toBeVisible()
+			const href = await creditLink.getAttribute('href')
+			if (href == null) throw new Error('expected href on credit link')
+			expect(href).toMatch(/^\/cuenta\/credits\/\d+$/)
+			await expect(page.getByText('REF-123456')).toHaveCount(0)
+			await expect(page.getByText('comprobante.pdf')).toHaveCount(0)
 			await expect(
-				page.getByRole('heading', {
-					name: /información de dispersión/i,
-					level: 2,
-				}),
-			).toBeVisible()
-			await expect(page.getByText('REF-123456')).toBeVisible()
-			await expect(page.getByText('comprobante.pdf')).toBeVisible()
+				page.getByRole('heading', { name: /monto del crédito/i, level: 2 }),
+			).toHaveCount(0)
 			await expect(page.getByText('8112345678')).toBeVisible()
 			await expect(page.getByText('GODE561231GR8')).toBeVisible()
 			await expect(page.getByText('Av. Revolucion 123')).toBeVisible()
 			await expect(page.getByText('Monterrey')).toBeVisible()
+
+			await page.goto(href)
+			await expect(
+				page.getByRole('heading', { name: /detalle de tu crédito/i }),
+			).toBeVisible()
+			const creditMain = cuentaMain(page)
+			await expect(creditMain.getByText('REF-123456')).toBeVisible()
+			await expect(creditMain.getByText('comprobante.pdf')).toBeVisible()
+			await expect(
+				page
+					.getByRole('link', { name: /ver la solicitud relacionada/i })
+					.first(),
+			).toHaveAttribute('href', `/cuenta/applications/${app.id}`)
 		})
 	})
 

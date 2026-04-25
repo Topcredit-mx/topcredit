@@ -1,5 +1,6 @@
 import {
 	AlertCircle,
+	ArrowUpRight,
 	Banknote,
 	CalendarClock,
 	Clock,
@@ -149,6 +150,34 @@ export default async function CuentaApplicationDetailPage({
 				</div>
 			) : null}
 
+			{application.creditId != null ? (
+				<Link
+					href={`/cuenta/credits/${application.creditId}`}
+					aria-label={t('link-to-related-credit')}
+					className={cn(
+						shell.elevatedCard,
+						'group mb-6 flex items-center gap-4 p-4 transition',
+						'hover:border-brand/25 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand focus-visible:outline-offset-2',
+					)}
+				>
+					<div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand/12 to-brand/5 text-brand">
+						<Banknote className="size-6" strokeWidth={1.75} aria-hidden />
+					</div>
+					<div className="min-w-0 flex-1 text-left">
+						<p className="font-semibold text-slate-900 text-sm">
+							{t('link-to-related-credit')}
+						</p>
+						<p className="mt-0.5 text-slate-500 text-sm leading-relaxed">
+							{t('link-to-related-credit-description')}
+						</p>
+					</div>
+					<ArrowUpRight
+						className="size-5 shrink-0 text-slate-400 transition group-hover:text-brand"
+						aria-hidden
+					/>
+				</Link>
+			) : null}
+
 			<div className={cn(shell.elevatedCard, 'overflow-hidden')}>
 				<div className="flex flex-col gap-4 border-slate-100 border-b px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
 					<div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-500 text-xs">
@@ -200,30 +229,41 @@ export default async function CuentaApplicationDetailPage({
 					</div>
 				) : null}
 
-				<div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 md:grid-cols-3">
-					<div className="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-4">
-						<p className="flex items-center gap-1.5 font-semibold text-[11px] text-slate-500 uppercase tracking-wide">
-							<Banknote className="size-3.5" aria-hidden />
-							{t('detail-amount')}
-						</p>
-						<p className="mt-2 font-semibold text-lg text-slate-900">
-							{application.creditAmount
-								? formatCurrencyMxn(application.creditAmount)
-								: t('detail-value-pending')}
-						</p>
-					</div>
+				<div
+					className={cn(
+						'grid grid-cols-1 gap-4 p-6',
+						application.creditId != null
+							? 'sm:grid-cols-1 md:max-w-md'
+							: 'sm:grid-cols-2 md:grid-cols-3',
+					)}
+				>
+					{application.creditId == null ? (
+						<>
+							<div className="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-4">
+								<p className="flex items-center gap-1.5 font-semibold text-[11px] text-slate-500 uppercase tracking-wide">
+									<Banknote className="size-3.5" aria-hidden />
+									{t('detail-amount')}
+								</p>
+								<p className="mt-2 font-semibold text-lg text-slate-900">
+									{application.creditAmount
+										? formatCurrencyMxn(application.creditAmount)
+										: t('detail-value-pending')}
+								</p>
+							</div>
 
-					<div className="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-4">
-						<p className="flex items-center gap-1.5 font-semibold text-[11px] text-slate-500 uppercase tracking-wide">
-							<CalendarClock className="size-3.5" aria-hidden />
-							{t('detail-term')}
-						</p>
-						<p className="mt-2 font-semibold text-lg text-slate-900">
-							{application.termOffering
-								? formatApplicationTerm(application.termOffering, t)
-								: t('detail-value-pending')}
-						</p>
-					</div>
+							<div className="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-4">
+								<p className="flex items-center gap-1.5 font-semibold text-[11px] text-slate-500 uppercase tracking-wide">
+									<CalendarClock className="size-3.5" aria-hidden />
+									{t('detail-term')}
+								</p>
+								<p className="mt-2 font-semibold text-lg text-slate-900">
+									{application.termOffering
+										? formatApplicationTerm(application.termOffering, t)
+										: t('detail-value-pending')}
+								</p>
+							</div>
+						</>
+					) : null}
 
 					<div className="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-4">
 						<p className="flex items-center gap-1.5 font-semibold text-[11px] text-slate-500 uppercase tracking-wide">
@@ -241,6 +281,7 @@ export default async function CuentaApplicationDetailPage({
 			</div>
 
 			{application.status === 'disbursed' &&
+			application.creditId == null &&
 			application.transferReference != null ? (
 				<SectionCard
 					className="mt-8"
