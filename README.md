@@ -81,7 +81,7 @@ If branch protection uses required status checks, register the check name **`E2E
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| CI | Every push | Typecheck, Biome, unit tests |
+| Quality | Every push | Typecheck, Biome, unit tests (`code-quality.yml`) |
 | E2E | Push to branches other than `main` | **`playwright-dev.yml`**: **`testing`** for Neon + Chromium; reusable base; **Create DB Branch** → **Chromium** → **Delete DB Branch**; blob reports → **static report URL** above. |
 | E2E | Push to `main` | **`playwright-main.yml`**: **`wait-production-migrate`**, then base: Neon create/purge in **`staging`**, Chromium in **`testing`**. |
 | Production | Push to `main` | Runs in `production` env: generate, fail on uncommitted migration drift, then `db:migrate`. Needs `DATABASE_URL` in production environment secrets. |
