@@ -173,7 +173,7 @@ jobs:
           if-no-files-found: ignore
 
   playwright-report-gate:
-    name: Wait for all shards
+    name: Wait for all test runs
     needs: test
     if: ${{ !cancelled() && (needs.test.result == 'success' || needs.test.result == 'failure') }}
     runs-on: ubuntu-latest
