@@ -83,12 +83,29 @@ export function resolveQueueWorkflowStatus(params: {
 	}
 }
 
-function dateOnlyIso(d: Date): string {
-	return d.toISOString().slice(0, 10)
-}
-
 function isCalendarDayAfter(confirmYmd: string, dueYmd: string): boolean {
 	return confirmYmd > dueYmd
+}
+
+function dueYmdMexicoCityForSchedule(d: Date): string {
+	return calendarYmdInMexicoCity(d)
+}
+
+/**
+ * On-time vs late: compare the due instant’s and confirmation instant’s
+ * calendar days in `America/Mexico_City` (same rule as credit detail and
+ * history).
+ */
+export function isEquipoScheduleConfirmationOnTime(
+	dueDate: Date | string,
+	confirmedAt: Date | string,
+): boolean {
+	const due = typeof dueDate === 'string' ? new Date(dueDate) : dueDate
+	const conf =
+		typeof confirmedAt === 'string' ? new Date(confirmedAt) : confirmedAt
+	const dueYmdMx = dueYmdMexicoCityForSchedule(due)
+	const confirmedYmdMx = calendarYmdInMexicoCity(conf)
+	return !isCalendarDayAfter(confirmedYmdMx, dueYmdMx)
 }
 
 export function resolveCreditDetailDeductionStatus(params: {
@@ -96,26 +113,26 @@ export function resolveCreditDetailDeductionStatus(params: {
 	dueDate: Date
 	todayYmd: string | undefined
 }): CreditDetailPaymentStatus {
-	const dueYmd = dateOnlyIso(params.dueDate)
+	const dueYmdMx = dueYmdMexicoCityForSchedule(params.dueDate)
 	if (params.hrConfirmedAt === null) {
-		const overdue = params.todayYmd !== undefined && dueYmd < params.todayYmd
+		const overdue = params.todayYmd !== undefined && dueYmdMx < params.todayYmd
 		if (overdue) {
 			return {
 				tone: 'red',
 				messageKey: 'equipo-credit-detail-deduction-overdue',
-				context: { kind: 'due', dateIso: dueYmd },
+				context: { kind: 'due', dateIso: dueYmdMx },
 			}
 		}
 		return {
 			tone: 'amber',
 			messageKey: 'equipo-credit-detail-deduction-pending',
-			context: { kind: 'due', dateIso: dueYmd },
+			context: { kind: 'due', dateIso: dueYmdMx },
 		}
 	}
-	const dueScheduleYmd = dateOnlyIso(params.dueDate)
+	const dueScheduleYmdMx = dueYmdMexicoCityForSchedule(params.dueDate)
 	const confirmedYmdMx = calendarYmdInMexicoCity(params.hrConfirmedAt)
-	const confirmedLate = isCalendarDayAfter(confirmedYmdMx, dueScheduleYmd)
-	const confirmedYmd = dateOnlyIso(params.hrConfirmedAt)
+	const confirmedLate = isCalendarDayAfter(confirmedYmdMx, dueScheduleYmdMx)
+	const confirmedYmd = calendarYmdInMexicoCity(params.hrConfirmedAt)
 	return {
 		tone: confirmedLate ? 'amber' : 'green',
 		messageKey: 'equipo-credit-detail-deduction-confirmed',
@@ -135,12 +152,12 @@ export function resolveCreditDetailCollectionStatus(params: {
 	todayYmd: string | undefined
 }): CreditDetailPaymentStatus {
 	if (params.installmentConfirmedAt !== null) {
-		const dueScheduleYmd = dateOnlyIso(params.dueDate)
+		const dueScheduleYmdMx = dueYmdMexicoCityForSchedule(params.dueDate)
 		const confirmedYmdMx = calendarYmdInMexicoCity(
 			params.installmentConfirmedAt,
 		)
-		const confirmedLate = isCalendarDayAfter(confirmedYmdMx, dueScheduleYmd)
-		const confirmedYmd = dateOnlyIso(params.installmentConfirmedAt)
+		const confirmedLate = isCalendarDayAfter(confirmedYmdMx, dueScheduleYmdMx)
+		const confirmedYmd = calendarYmdInMexicoCity(params.installmentConfirmedAt)
 		return {
 			tone: confirmedLate ? 'amber' : 'green',
 			messageKey: 'equipo-credit-detail-collection-confirmed',
@@ -159,19 +176,19 @@ export function resolveCreditDetailCollectionStatus(params: {
 			context: { kind: 'none' },
 		}
 	}
-	const dueYmd = dateOnlyIso(params.dueDate)
-	const delayed = params.todayYmd !== undefined && dueYmd < params.todayYmd
+	const dueYmdMx = dueYmdMexicoCityForSchedule(params.dueDate)
+	const delayed = params.todayYmd !== undefined && dueYmdMx < params.todayYmd
 	if (delayed) {
 		return {
 			tone: 'amber_dark',
 			messageKey: 'equipo-credit-detail-collection-delayed',
-			context: { kind: 'due', dateIso: dueYmd },
+			context: { kind: 'due', dateIso: dueYmdMx },
 		}
 	}
 	return {
 		tone: 'blue',
 		messageKey: 'equipo-credit-detail-collection-pending',
-		context: { kind: 'due', dateIso: dueYmd },
+		context: { kind: 'due', dateIso: dueYmdMx },
 	}
 }
 
@@ -203,5 +220,5 @@ export function historyTimingStatus(
 ): WorkflowStatusResolution {
 	return confirmedOnTime
 		? { tone: 'green', messageKey: 'equipo-workflow-history-on-time' }
-		: { tone: 'red', messageKey: 'equipo-workflow-history-late' }
+		: { tone: 'amber', messageKey: 'equipo-workflow-history-late' }
 }

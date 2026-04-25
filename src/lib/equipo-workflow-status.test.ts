@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import {
+	isEquipoScheduleConfirmationOnTime,
 	resolveCreditDetailCollectionStatus,
 	resolveCreditDetailDeductionStatus,
 } from './equipo-workflow-status'
@@ -17,7 +18,7 @@ describe('resolveCreditDetailDeductionStatus', () => {
 		assert.equal(got.messageKey, 'equipo-credit-detail-deduction-overdue')
 		assert.deepEqual(got.context, {
 			kind: 'due',
-			dateIso: '2022-12-31',
+			dateIso: '2022-12-30',
 		})
 	})
 
@@ -30,7 +31,7 @@ describe('resolveCreditDetailDeductionStatus', () => {
 		assert.equal(got.messageKey, 'equipo-credit-detail-deduction-pending')
 		assert.deepEqual(got.context, {
 			kind: 'due',
-			dateIso: '2023-01-31',
+			dateIso: '2023-01-30',
 		})
 	})
 
@@ -77,6 +78,24 @@ describe('resolveCreditDetailDeductionStatus', () => {
 		if (got.context.kind === 'hrConfirmed') {
 			assert.equal(got.context.confirmedLate, false)
 		}
+	})
+})
+
+describe('isEquipoScheduleConfirmationOnTime', () => {
+	test('on time when Mexico City confirmation day is not after due Mexico City day', () => {
+		const onTime = isEquipoScheduleConfirmationOnTime(
+			new Date('2022-11-30T12:00:00.000Z'),
+			new Date('2022-12-01T05:00:00.000Z'),
+		)
+		assert.equal(onTime, true)
+	})
+
+	test('late when Mexico City confirmation day is after due Mexico City day', () => {
+		const late = isEquipoScheduleConfirmationOnTime(
+			new Date(Date.UTC(2022, 10, 30)),
+			new Date(Date.UTC(2022, 11, 1, 12, 0, 0)),
+		)
+		assert.equal(late, false)
 	})
 })
 
@@ -155,7 +174,7 @@ describe('resolveCreditDetailCollectionStatus', () => {
 		assert.equal(got.messageKey, 'equipo-credit-detail-collection-delayed')
 		assert.deepEqual(got.context, {
 			kind: 'due',
-			dateIso: '2022-11-30',
+			dateIso: '2022-11-29',
 		})
 	})
 
@@ -169,7 +188,7 @@ describe('resolveCreditDetailCollectionStatus', () => {
 		assert.equal(got.messageKey, 'equipo-credit-detail-collection-pending')
 		assert.deepEqual(got.context, {
 			kind: 'due',
-			dateIso: '2023-01-31',
+			dateIso: '2023-01-30',
 		})
 	})
 })

@@ -91,6 +91,7 @@ import {
 	applicantDeductions2,
 	applicantDeductionsConfirmed,
 	applicantDeductionsConfirmedLate,
+	applicantDeductionsConfirmedMxEdge,
 	applicantDeductionsMultiOverdue,
 	applicantDeductionsOverdue,
 	applicantDeductionsOverdueRecent,
@@ -2775,6 +2776,8 @@ export type SeedDeductionsQueueResult = {
 	confirmedApplicationId: number
 	confirmedByName: string
 	lateConfirmedApplicantName: string
+	/** Shown as on-time in history under Mexico City rules while UTC dates would mark late. */
+	mxEdgeOnTimeApplicantName: string
 	nextDeductionDateISO: string
 	firstInstallmentForCsv: {
 		payrollNumber: string
@@ -2880,6 +2883,9 @@ export const seedDeductionsQueue = async (
 	const applicantConfirmed = findUser(applicantDeductionsConfirmed.email)
 	const applicantConfirmedLate = findUser(
 		applicantDeductionsConfirmedLate.email,
+	)
+	const applicantConfirmedMxEdge = findUser(
+		applicantDeductionsConfirmedMxEdge.email,
 	)
 
 	// Compute next deduction date from the company's salary frequency — same
@@ -3223,6 +3229,49 @@ export const seedDeductionsQueue = async (
 		},
 	])
 
+	// Credit 8: RH confirmed "next UTC day" but same Mexico City calendar day as due
+	// (aligns with resolveCreditDetailDeductionStatus Mexico City edge case).
+	const creditAmountMxEdge = '11000.00'
+	const [app8] = await db
+		.insert(applications)
+		.values({
+			applicantId: applicantConfirmedMxEdge.id,
+			companyId: company.id,
+			termOfferingId: offering.id,
+			creditAmount: creditAmountMxEdge,
+			salaryAtApplication: '11000',
+			salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+			status: 'disbursed' as const,
+			firstDiscountDate: new Date('2022-11-30T12:00:00.000Z'),
+			payrollNumber: 'DEDUCT008',
+		})
+		.returning()
+
+	if (!app8) throw new Error('Seed Deductions: application 8 not created')
+
+	const [credit8] = await db
+		.insert(credits)
+		.values({
+			applicationId: app8.id,
+			status: 'dispersed',
+			disbursementDate: now,
+			transferAmount: creditAmountMxEdge,
+			disbursedByUserId: applicantConfirmedMxEdge.id,
+		})
+		.returning()
+
+	if (!credit8) throw new Error('Seed Deductions: credit 8 not created')
+
+	await db.insert(creditPayments).values([
+		{
+			creditId: credit8.id,
+			dueDate: new Date('2022-11-30T12:00:00.000Z'),
+			amount: '11275.00',
+			hrConfirmedAt: new Date('2022-12-01T05:00:00.000Z'),
+			hrConfirmedByUserId: hrAgent.id,
+		},
+	])
+
 	const firstPayment = schedule1[0]
 	if (!firstPayment) throw new Error('Seed Deductions: schedule1 empty')
 
@@ -3242,6 +3291,7 @@ export const seedDeductionsQueue = async (
 		confirmedApplicationId: app4.id,
 		confirmedByName: hrAgent.name,
 		lateConfirmedApplicantName: applicantConfirmedLate.name,
+		mxEdgeOnTimeApplicantName: applicantConfirmedMxEdge.name,
 		nextDeductionDateISO,
 		firstInstallmentForCsv: {
 			payrollNumber: 'DEDUCT001',
