@@ -19,7 +19,7 @@ permissions:
   pages: write
 
 jobs:
-  playwright:
+  Playwright:
     uses: ./.github/workflows/playwright-base.yml
     secrets: inherit
     with:
