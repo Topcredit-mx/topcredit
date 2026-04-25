@@ -88,6 +88,14 @@ test.describe('Applicant views active credits', () => {
 		await expect(main.getByText('2.50%')).toBeVisible()
 		await expect(main.getByText(/dispersado/i).first()).toBeVisible()
 		await expect(main.getByText(/calendario de pagos/i)).toBeVisible()
+		const linkToApplication = page
+			.getByRole('link', { name: /ver la solicitud relacionada/i })
+			.first()
+		await expect(linkToApplication).toBeVisible()
+		await expect(linkToApplication).toHaveAttribute(
+			'href',
+			`/cuenta/applications/${seedResult.applicationId}`,
+		)
 		await expect(main.getByText('REF-DISPersed-SEED')).toBeVisible()
 		await expect(main.getByText('recibo-dispersado.pdf')).toBeVisible()
 	})

@@ -836,6 +836,16 @@ export const resetApplicantApplication = async (
 		})),
 	)
 
+	if (finalStatus === 'disbursed' && app.creditAmount != null) {
+		await db.insert(credits).values({
+			applicationId: app.id,
+			status: 'dispersed',
+			disbursementDate: new Date(),
+			transferAmount: app.creditAmount,
+			disbursedByUserId: params.applicantId,
+		})
+	}
+
 	return app
 }
 

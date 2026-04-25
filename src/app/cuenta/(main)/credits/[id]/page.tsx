@@ -4,14 +4,15 @@ import {
 	CalendarClock,
 	CalendarDays,
 	Percent,
-	Receipt,
 } from 'lucide-react'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 import { ApplicantPageFooter } from '~/components/app/applicant-page-footer'
 import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
 import { SectionCard } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
 import { Decimal } from '~/lib/decimal'
@@ -75,6 +76,17 @@ export default async function CuentaCreditDetailPage({
 				<h1 className="font-semibold text-3xl text-slate-900 tracking-tight">
 					{t('detail-title')}
 				</h1>
+				<p className="mt-2">
+					<Button
+						asChild
+						variant="link"
+						className="h-auto p-0 font-medium text-base text-brand"
+					>
+						<Link href={`/cuenta/applications/${credit.applicationId}`}>
+							{t('link-to-related-application')}
+						</Link>
+					</Button>
+				</p>
 			</header>
 
 			<div className={cn(shell.elevatedCard, 'overflow-hidden')}>
@@ -129,7 +141,7 @@ export default async function CuentaCreditDetailPage({
 			<SectionCard
 				className="mt-8"
 				icon={CalendarDays}
-				title={t('detail-disbursement')}
+				title={t('section-disbursement-info')}
 			>
 				<dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
 					<DetailField label={t('detail-disbursement')}>
@@ -146,32 +158,18 @@ export default async function CuentaCreditDetailPage({
 							/>
 						</DetailField>
 					) : null}
-					<DetailField label={t('detail-company')}>
-						{credit.companyName}
-					</DetailField>
+					{credit.transferReference != null ? (
+						<DetailField label={tApp('disburse-readonly-transfer-reference')}>
+							{credit.transferReference}
+						</DetailField>
+					) : null}
+					{credit.receiptFileName != null ? (
+						<DetailField label={tApp('disburse-readonly-receipt')}>
+							{credit.receiptFileName}
+						</DetailField>
+					) : null}
 				</dl>
 			</SectionCard>
-
-			{credit.transferReference != null || credit.receiptFileName != null ? (
-				<SectionCard
-					className="mt-8"
-					icon={Receipt}
-					title={tApp('disburse-readonly-title')}
-				>
-					<dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
-						{credit.transferReference != null ? (
-							<DetailField label={tApp('disburse-readonly-transfer-reference')}>
-								{credit.transferReference}
-							</DetailField>
-						) : null}
-						{credit.receiptFileName != null ? (
-							<DetailField label={tApp('disburse-readonly-receipt')}>
-								{credit.receiptFileName}
-							</DetailField>
-						) : null}
-					</dl>
-				</SectionCard>
-			) : null}
 
 			<SectionCard
 				className="mt-8"
