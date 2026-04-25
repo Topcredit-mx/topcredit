@@ -2779,6 +2779,8 @@ export type SeedDeductionsQueueResult = {
 	/** Shown as on-time in history under Mexico City rules while UTC dates would mark late. */
 	mxEdgeOnTimeApplicantName: string
 	nextDeductionDateISO: string
+	/** YYYY-MM-DD of credit4’s payment `dueDate` — use for CSV rows matching DEDUCT004 (not `nextDeductionDateISO` after on-time history seeding). */
+	credit4HrConfirmedPaymentDueDateISO: string
 	firstInstallmentForCsv: {
 		payrollNumber: string
 		amount: string
@@ -3298,6 +3300,9 @@ export const seedDeductionsQueue = async (
 		lateConfirmedApplicantName: applicantConfirmedLate.name,
 		mxEdgeOnTimeApplicantName: applicantConfirmedMxEdge.name,
 		nextDeductionDateISO,
+		credit4HrConfirmedPaymentDueDateISO: credit4HistoryDue
+			.toISOString()
+			.slice(0, 10),
 		firstInstallmentForCsv: {
 			payrollNumber: 'DEDUCT001',
 			amount: firstPayment.amount,
@@ -3549,18 +3554,16 @@ export const seedInstallmentsQueue =
 		await db.insert(creditPayments).values(
 			schedule1.map((entry, index) => {
 				if (index === 0) {
-					const dueY = entry.dueDate.getUTCFullYear()
-					const dueM = entry.dueDate.getUTCMonth()
-					const dueD = entry.dueDate.getUTCDate()
+					// Match confirmation instant to due so America/Mexico_City ymd
+					// matches (see isEquipoScheduleConfirmationOnTime). Noon on the
+					// UTC due date is often the *next* CDMX day vs midnight `dueDate`.
 					return {
 						creditId: credit1.id,
 						dueDate: entry.dueDate,
 						amount: entry.amount,
 						hrConfirmedAt: new Date(now.getTime() - 10 * 24 * 60 * 60_000),
 						hrConfirmedByUserId: hrQueueAgent.id,
-						installmentConfirmedAt: new Date(
-							Date.UTC(dueY, dueM, dueD, 12, 0, 0),
-						),
+						installmentConfirmedAt: new Date(entry.dueDate.getTime()),
 						installmentConfirmedByUserId: installmentQueueAgent.id,
 					}
 				}
