@@ -3,7 +3,14 @@ import {
 	adminOverviewAdmin,
 	overviewCompanyList,
 } from '~/e2e/admin/equipo-admin-overview.fixtures'
-import { cleanupAdminOverview, seedAdminOverview } from '~/e2e/server/tasks'
+import {
+	assignCompanyToUser,
+	cleanupAdminOverview,
+	deleteUserCompanyAssignmentsByEmail,
+	deleteUsersByEmail,
+	resetUser,
+	seedAdminOverview,
+} from '~/e2e/server/tasks'
 import { loginPage } from '../helpers/auth'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 
@@ -82,5 +89,92 @@ test.describe('Equipo admin overview', () => {
 		).toHaveCount(0)
 		await expect(main.getByTestId('admin-dashboard-pipeline')).toBeVisible()
 		await expect(main.getByTestId('admin-dashboard-activity')).toBeVisible()
+	})
+
+	test('admin sidebar shows Administración with users and companies below main navigation', async ({
+		page,
+	}) => {
+		const mainNav = page.getByRole('navigation', { name: 'Navegación' })
+		const adminNav = page.getByRole('navigation', { name: 'Administración' })
+
+		await expect(mainNav.getByRole('link', { name: 'Inicio' })).toBeVisible()
+		await expect(adminNav.getByRole('link', { name: 'Usuarios' })).toBeVisible()
+		await expect(adminNav.getByRole('link', { name: 'Empresas' })).toBeVisible()
+
+		const adminSectionFollowsMain = await page.evaluate(() => {
+			const mainNavEl = document.querySelector(
+				'nav[aria-label="Navegación"]',
+			)?.parentElement
+			const adminNavEl = document.querySelector(
+				'nav[aria-label="Administración"]',
+			)?.parentElement
+			if (!(mainNavEl instanceof HTMLElement)) return false
+			if (!(adminNavEl instanceof HTMLElement)) return false
+			return (
+				(mainNavEl.compareDocumentPosition(adminNavEl) &
+					Node.DOCUMENT_POSITION_FOLLOWING) !==
+				0
+			)
+		})
+		expect(adminSectionFollowsMain).toBe(true)
+	})
+
+	test('after selecting a company, admin users and companies links still reach global admin screens', async ({
+		page,
+	}) => {
+		const companyAName = overviewCompanyList[0]?.name ?? 'Overview Co A'
+		await page.locator('#company-switcher-trigger').click()
+		await page.getByRole('menuitem', { name: companyAName }).click()
+
+		await page
+			.getByRole('navigation', { name: 'Administración' })
+			.getByRole('link', { name: 'Usuarios' })
+			.click()
+		await expect(
+			page.locator('input[aria-label="Filtrar usuarios..."]'),
+		).toBeVisible()
+
+		await page.goto('/equipo')
+		await page.locator('#company-switcher-trigger').click()
+		const companyBName = overviewCompanyList[1]?.name ?? 'Overview Co B'
+		await page.getByRole('menuitem', { name: companyBName }).click()
+
+		await page
+			.getByRole('navigation', { name: 'Administración' })
+			.getByRole('link', { name: 'Empresas' })
+			.click()
+		await expect(
+			page.locator('input[aria-label="Filtrar empresas..."]'),
+		).toBeVisible()
+	})
+
+	test('non-admin agent does not see Administración in the sidebar', async ({
+		page,
+	}) => {
+		const agentEmail = 'sidebar.no-admin@example.com'
+		const firstDomain = overviewCompanyList[0]?.domain ?? 'overview-co-a.com'
+		try {
+			await resetUser({
+				name: 'Sidebar No Admin',
+				email: agentEmail,
+				roles: ['agent', 'requests'],
+			})
+			await assignCompanyToUser({
+				userEmail: agentEmail,
+				companyDomain: firstDomain,
+			})
+			await loginPage(page, agentEmail)
+			await page.goto('/equipo')
+
+			await expect(
+				page.getByRole('navigation', { name: 'Navegación' }),
+			).toBeVisible()
+			await expect(
+				page.getByRole('navigation', { name: 'Administración' }),
+			).toHaveCount(0)
+		} finally {
+			await deleteUserCompanyAssignmentsByEmail([agentEmail])
+			await deleteUsersByEmail([agentEmail])
+		}
 	})
 })
