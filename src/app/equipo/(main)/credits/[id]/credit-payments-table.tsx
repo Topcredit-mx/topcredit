@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { CreditPaymentScheduleStatusCell } from '~/components/equipo/credit-payment-schedule-status-cell'
 import { FinalInstallmentConfirmDialog } from '~/components/equipo/final-installment-confirm-dialog'
-import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import {
@@ -241,12 +241,20 @@ export function CreditPaymentsTable({
 							creditPayment,
 							todayDate,
 						)
-						const deduction = resolveCreditDetailDeductionStatus({
+						const {
+							tone: deductionTone,
+							messageKey: deductionMessageKey,
+							context: deductionContext,
+						} = resolveCreditDetailDeductionStatus({
 							hrConfirmedAt: creditPayment.hrConfirmedAt,
 							dueDate: creditPayment.dueDate,
 							todayYmd: today,
 						})
-						const collection = resolveCreditDetailCollectionStatus({
+						const {
+							tone: collectionTone,
+							messageKey: collectionMessageKey,
+							context: collectionContext,
+						} = resolveCreditDetailCollectionStatus({
 							hrConfirmedAt: creditPayment.hrConfirmedAt,
 							installmentConfirmedAt: creditPayment.installmentConfirmedAt,
 							dueDate: creditPayment.dueDate,
@@ -267,15 +275,17 @@ export function CreditPaymentsTable({
 									{formatCurrencyMxn(creditPayment.amount)}
 								</td>
 								<td className="px-5 py-3.5 text-sm">
-									<WorkflowStatusBadge
-										tone={deduction.tone}
-										messageKey={deduction.messageKey}
+									<CreditPaymentScheduleStatusCell
+										tone={deductionTone}
+										messageKey={deductionMessageKey}
+										context={deductionContext}
 									/>
 								</td>
 								<td className="px-5 py-3.5 text-sm">
-									<WorkflowStatusBadge
-										tone={collection.tone}
-										messageKey={collection.messageKey}
+									<CreditPaymentScheduleStatusCell
+										tone={collectionTone}
+										messageKey={collectionMessageKey}
+										context={collectionContext}
 									/>
 								</td>
 								<td className="px-5 py-3.5">

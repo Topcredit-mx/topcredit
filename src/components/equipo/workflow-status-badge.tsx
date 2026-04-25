@@ -11,9 +11,11 @@ import { cn } from '~/lib/utils'
 export function WorkflowStatusBadge({
 	messageKey,
 	tone,
+	className,
 }: {
 	messageKey: EquipoWorkflowMessageKey
 	tone: WorkflowTone
+	className?: string
 }) {
 	const t = useTranslations('equipo')
 	return (
@@ -21,6 +23,7 @@ export function WorkflowStatusBadge({
 			className={cn(
 				'rounded-full px-2 py-0.5 font-medium text-xs',
 				workflowToneClassName[tone],
+				className,
 			)}
 		>
 			{t(messageKey)}
