@@ -116,3 +116,19 @@ export function isValidFirstDiscountDate(
 	// bi-monthly: 15th or end of month
 	return day === 15 || isEndOfMonth
 }
+
+/** Past/future: only calendar shape (month-end vs 15|EOM), no `date >= today` check. */
+export function isFirstDiscountAnchorCalendarShapeValid(
+	frequency: SalaryFrequency,
+	date: Date,
+): boolean {
+	const year = date.getUTCFullYear()
+	const month = date.getUTCMonth()
+	const day = date.getUTCDate()
+	const endOfMonth = lastDayOfMonthUTC(year, month)
+	const isEndOfMonth = day === endOfMonth.getUTCDate()
+	if (frequency === 'monthly') {
+		return isEndOfMonth
+	}
+	return day === 15 || isEndOfMonth
+}

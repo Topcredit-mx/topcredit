@@ -76,7 +76,7 @@ export const seedCompanies = [
 		name: 'Luminor Soluciones Tecnológicas',
 		domain: 'luminor-tech.com.mx',
 		rate: '0.0300',
-		borrowingCapacityRate: null,
+		borrowingCapacityRate: '0.27',
 		employeeSalaryFrequency: 'bi-monthly' as const,
 		active: true,
 	},
@@ -86,7 +86,7 @@ export const seedCompanies = [
 		rate: '0.0200',
 		borrowingCapacityRate: '0.25',
 		employeeSalaryFrequency: 'monthly' as const,
-		active: false,
+		active: true,
 	},
 	{
 		name: 'Grupo Andares',
@@ -106,22 +106,82 @@ export const seedTermOfferings: ReadonlyArray<{
 	{
 		companyDomain: 'grupoandares.com.mx',
 		durationType: 'monthly',
-		duration: 12,
-	},
-	{
-		companyDomain: 'cva-ingenieros.com.mx',
-		durationType: 'monthly',
-		duration: 12,
-	},
-	{
-		companyDomain: 'cva-ingenieros.com.mx',
-		durationType: 'monthly',
 		duration: 6,
+	},
+	{
+		companyDomain: 'grupoandares.com.mx',
+		durationType: 'monthly',
+		duration: 12,
+	},
+	{
+		companyDomain: 'grupoandares.com.mx',
+		durationType: 'monthly',
+		duration: 18,
+	},
+	{
+		companyDomain: 'grupoandares.com.mx',
+		durationType: 'bi-monthly',
+		duration: 12,
+	},
+	{
+		companyDomain: 'cva-ingenieros.com.mx',
+		durationType: 'monthly',
+		duration: 9,
+	},
+	{
+		companyDomain: 'cva-ingenieros.com.mx',
+		durationType: 'monthly',
+		duration: 15,
+	},
+	{
+		companyDomain: 'cva-ingenieros.com.mx',
+		durationType: 'bi-monthly',
+		duration: 10,
+	},
+	{
+		companyDomain: 'cva-ingenieros.com.mx',
+		durationType: 'bi-monthly',
+		duration: 16,
 	},
 	{
 		companyDomain: 'luminor-tech.com.mx',
 		durationType: 'monthly',
+		duration: 8,
+	},
+	{
+		companyDomain: 'luminor-tech.com.mx',
+		durationType: 'monthly',
+		duration: 14,
+	},
+	{
+		companyDomain: 'luminor-tech.com.mx',
+		durationType: 'bi-monthly',
 		duration: 12,
+	},
+	{
+		companyDomain: 'luminor-tech.com.mx',
+		durationType: 'bi-monthly',
+		duration: 18,
+	},
+	{
+		companyDomain: 'legadoinmobiliario.com.mx',
+		durationType: 'monthly',
+		duration: 7,
+	},
+	{
+		companyDomain: 'legadoinmobiliario.com.mx',
+		durationType: 'monthly',
+		duration: 13,
+	},
+	{
+		companyDomain: 'legadoinmobiliario.com.mx',
+		durationType: 'bi-monthly',
+		duration: 11,
+	},
+	{
+		companyDomain: 'legadoinmobiliario.com.mx',
+		durationType: 'bi-monthly',
+		duration: 17,
 	},
 ] as const
 
@@ -137,12 +197,16 @@ export const applicationStatusEnum = [
 
 export type SeedApplicationStatus = (typeof applicationStatusEnum)[number]
 
+export type FirstDiscountHistoricAnchor = 'month-end' | 'fifteenth'
+
 export type FirstDiscountPreference =
 	| 'none'
 	/** Next valid nómina date for the applicant salary frequency (e.g. fin de mes). */
 	| 'next-valid'
 	/** Crédito con primer vencimiento ya pasado (cola atraso). */
 	| 'overdue-credit'
+	/** Historical credit with first discount N months ago (seed realism). */
+	| 'historic-offset'
 	/**
 	 * Plazo 6 meses, calendario completamente en el pasado, para crédito liquidado
 	 * y bitácoras de confirmación.
@@ -152,6 +216,7 @@ export type FirstDiscountPreference =
 export type AfterCreditInsert =
 	| 'deductions'
 	| 'installments'
+	| 'installments-overdue'
 	| 'overdue'
 	| 'settled'
 	| 'none'
@@ -168,9 +233,15 @@ export type SeedApplicationFixture = {
 	denialReason?: string
 	statusHistory?: readonly SeedApplicationStatus[]
 	firstDiscount: FirstDiscountPreference
+	firstDiscountMonthsAgo?: number
+	/** When set with historic-offset, seed picks monthsAgo so this many payments are due before today. */
+	seedTargetPastDuePaymentCount?: number
+	firstDiscountNextValidPickIndex?: number
+	firstDiscountHistoricAnchor?: FirstDiscountHistoricAnchor
 	transferReference?: string
 	receiptFileName?: string
 	afterCreditInsert: AfterCreditInsert
+	documentDecision: 'approved' | 'rejected'
 }
 
 const canonicalSeedApplications: readonly SeedApplicationFixture[] = []

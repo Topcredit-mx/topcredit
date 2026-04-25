@@ -10,38 +10,35 @@ import {
 import type { Role } from '../src/server/auth/session'
 import type {
 	AfterCreditInsert,
+	FirstDiscountHistoricAnchor,
 	FirstDiscountPreference,
 	SeedApplicationFixture,
 	SeedApplicationStatus,
 } from './seed.fixtures'
+import {
+	findMonthsAgoForPastDueCount,
+	tieBreakerFromEmail,
+} from './seed-past-due'
 
-const CANONICAL_CREDIT_AMOUNTS_FOR_BULK = new Set([
-	'5000.00',
-	'8000.00',
-	'9500.00',
-	'6500.00',
-	'17500.00',
-	'15000.00',
-	'18500.00',
-	'20000.00',
-	'22000.00',
-	'12000.00',
-	'38000.00',
-	'42000.00',
-	'35000.00',
-	'24000.00',
-])
-
-export const SEED_EXTRA_APPLICATION_COUNT = 40
+export const MIN_ACTIVE_DEDUCTIONS_PER_COMPANY = 50
+export const MIN_ACTIVE_INSTALLMENTS_PER_COMPANY = 50
+export const MIN_OVERDUE_CREDITS_PER_COMPANY = 50
+export const MIN_OVERDUE_INSTALLMENTS_CREDITS_PER_COMPANY = 50
+export const MIN_SETTLED_CREDITS_PER_COMPANY = 50
+export const MIN_APPLICATIONS_PER_COMPANY = 180
+export const MIN_GLOBAL_TERM_OPTIONS_USED = 15
+export const SEED_EXTRA_APPLICATION_COUNT = 800
 
 const BULK_FAKER_SEED = 20260425
 const BULK_IDENTITY_MAX_ATTEMPTS = 24
+const BULK_SEED_REFERENCE_TODAY = new Date(Date.UTC(2026, 3, 25))
 
 export type SeedCompanyForBulk = {
 	domain: string
 	rate: string
 	borrowingCapacityRate: string | null
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	active: boolean
 }
 
 export type SeedTermOfferingShape = {
@@ -56,11 +53,6 @@ export type BulkSeedUser = {
 	roles: readonly Role[]
 }
 
-const BULK_EMPLOYER_DOMAINS = [
-	'grupoandares.com.mx',
-	'cva-ingenieros.com.mx',
-] as const
-
 const NON_DISBURSED_STATUSES: readonly SeedApplicationStatus[] = [
 	'pending',
 	'approved',
@@ -68,13 +60,6 @@ const NON_DISBURSED_STATUSES: readonly SeedApplicationStatus[] = [
 	'awaiting-authorization',
 	'authorized',
 	'denied',
-] as const
-
-const DISBURSED_AFTER_CREDIT_CYCLE: readonly AfterCreditInsert[] = [
-	'deductions',
-	'installments',
-	'overdue',
-	'settled',
 ] as const
 
 function companyForDomain(
@@ -91,19 +76,15 @@ function termOfferingsForDomain(
 	return offerings.filter((o) => o.companyDomain === domain)
 }
 
-function pickTerm(
+function pickTermByIndex(
 	offerings: readonly SeedTermOfferingShape[],
 	domain: string,
-	prefer: 'twelve' | 'six',
+	index: number,
 ): SeedTermOfferingShape | undefined {
 	const list = termOfferingsForDomain(offerings, domain)
 	if (list.length === 0) return undefined
-	if (prefer === 'six') {
-		const six = list.find((t) => t.duration === 6)
-		if (six) return six
-	}
-	const twelve = list.find((t) => t.duration === 12)
-	return twelve ?? list[0]
+	const idx = index % list.length
+	return list[idx]
 }
 
 function formatMxn2(amount: number): string {
@@ -164,14 +145,23 @@ function bulkEmployersWithCapacityAndTerms(
 	offerings: readonly SeedTermOfferingShape[],
 ): readonly string[] {
 	const out: string[] = []
-	for (const d of BULK_EMPLOYER_DOMAINS) {
-		const co = companyForDomain(companies, d)
-		if (co == null) continue
-		if (parseBorrowingCapacityRate(co.borrowingCapacityRate) == null) continue
+	for (const company of companies) {
+		const d = company.domain
+		if (!company.active) continue
+		if (parseBorrowingCapacityRate(company.borrowingCapacityRate) == null)
+			continue
 		if (termOfferingsForDomain(offerings, d).length === 0) continue
 		out.push(d)
 	}
 	return out
+}
+
+function domainCode(domain: string): number {
+	let sum = 0
+	for (let i = 0; i < domain.length; i++) {
+		sum += domain.charCodeAt(i)
+	}
+	return sum
 }
 
 function createSeededFaker(): Faker {
@@ -255,115 +245,174 @@ export function buildExtraSeedDataset(
 	const faker = createSeededFaker()
 	const usedFullNames = new Set<string>()
 	const usedEmails = new Set<string>()
-
-	for (let i = 0; i < count; i++) {
-		const isDisbursed = i % 10 < 3
-		const disbursedSlot = i % 4
-		const disbursedAfter = DISBURSED_AFTER_CREDIT_CYCLE[disbursedSlot]
-		if (isDisbursed && disbursedAfter === undefined) continue
-
-		let companyDomain: string
-		let term: SeedTermOfferingShape | undefined
-		let firstDiscount: FirstDiscountPreference
-		let afterCreditInsert: AfterCreditInsert
-		let status: SeedApplicationStatus
-		let denialReason: string | undefined
-		let transferReference: string | undefined
-		let receiptFileName: string | undefined
-
-		if (isDisbursed) {
-			status = 'disbursed'
-			if (disbursedAfter === 'settled') {
-				companyDomain = 'cva-ingenieros.com.mx'
-				term = pickTerm(termOfferings, companyDomain, 'six')
-				firstDiscount = 'settled-six'
-				afterCreditInsert = 'settled'
-			} else if (
-				disbursedAfter === 'deductions' ||
-				disbursedAfter === 'installments' ||
-				disbursedAfter === 'overdue'
-			) {
-				const emp = employers[i % employers.length]
-				if (emp === undefined) continue
-				companyDomain = emp
-				term = pickTerm(termOfferings, companyDomain, 'twelve')
-				afterCreditInsert = disbursedAfter
-				firstDiscount =
-					disbursedAfter === 'overdue' ? 'overdue-credit' : 'next-valid'
-			} else {
-				continue
-			}
-			transferReference = `SPEI-BULK-${i}`
-			receiptFileName = `comprobante-bulk-${i}.pdf`
-		} else {
-			const st = NON_DISBURSED_STATUSES[i % NON_DISBURSED_STATUSES.length]
-			if (st === undefined) continue
-			status = st
-			const emp = employers[i % employers.length]
-			if (emp === undefined) continue
-			companyDomain = emp
-			term = pickTerm(termOfferings, companyDomain, 'twelve')
-			firstDiscount =
-				status === 'authorized' && i % 2 === 0 ? 'next-valid' : 'none'
-			afterCreditInsert = 'none'
-			denialReason =
-				status === 'denied'
-					? 'Política interna de la empresa (semilla volumen).'
-					: undefined
-			transferReference = undefined
-			receiptFileName = undefined
-		}
-
-		if (term == null) continue
+	const companyTarget = Math.max(
+		MIN_APPLICATIONS_PER_COMPANY,
+		Math.ceil(count / employers.length),
+	)
+	let globalIndex = 0
+	for (const companyDomain of employers) {
 		const co = companyForDomain(companies, companyDomain)
 		if (co == null) continue
 
-		const salaryFrequency = co.employeeSalaryFrequency
-		const salaryBase = 22000 + ((i * 397) % 13000)
-		const salaryAtApplication = String(salaryBase)
-		const fractionOfMax = 0.801 + (i % 95) * 0.0012
+		const disbursedPlan: readonly AfterCreditInsert[] = [
+			...Array.from(
+				{ length: MIN_ACTIVE_DEDUCTIONS_PER_COMPANY },
+				() => 'deductions' as const,
+			),
+			...Array.from(
+				{ length: MIN_ACTIVE_INSTALLMENTS_PER_COMPANY },
+				() => 'installments' as const,
+			),
+			...Array.from(
+				{ length: MIN_OVERDUE_CREDITS_PER_COMPANY },
+				() => 'overdue' as const,
+			),
+			...Array.from(
+				{ length: MIN_OVERDUE_INSTALLMENTS_CREDITS_PER_COMPANY },
+				() => 'installments-overdue' as const,
+			),
+			...Array.from(
+				{ length: MIN_SETTLED_CREDITS_PER_COMPANY },
+				() => 'settled' as const,
+			),
+		]
+		const effectiveCompanyTarget = Math.max(companyTarget, disbursedPlan.length)
 
-		const creditAmount = resolveCreditAmount({
-			salaryAtApplication,
-			salaryFrequency,
-			company: co,
-			duration: term.duration,
-			durationType: term.durationType,
-			baseFraction: fractionOfMax,
-			index: i,
-		})
-		if (creditAmount == null) continue
+		for (
+			let localIndex = 0;
+			localIndex < effectiveCompanyTarget;
+			localIndex++
+		) {
+			const term = pickTermByIndex(termOfferings, companyDomain, localIndex)
+			if (term == null) continue
 
-		const identity = buildUniqueIdentity({
-			faker,
-			index: i,
-			companyDomain,
-			usedFullNames,
-			usedEmails,
-		})
-		if (identity == null) continue
+			const salaryAtApplication = String(24000 + ((globalIndex * 113) % 32000))
+			const fractionOfMax = 0.82 + (globalIndex % 9) * 0.01
+			const creditAmount = resolveCreditAmount({
+				salaryAtApplication,
+				salaryFrequency: co.employeeSalaryFrequency,
+				company: co,
+				duration: term.duration,
+				durationType: term.durationType,
+				baseFraction: fractionOfMax,
+				index: globalIndex,
+			})
+			if (creditAmount == null) continue
 
-		users.push({
-			name: identity.name,
-			email: identity.email,
-			roles: ['applicant'] as const,
-		})
+			const identity = buildUniqueIdentity({
+				faker,
+				index: globalIndex,
+				companyDomain,
+				usedFullNames,
+				usedEmails,
+			})
+			if (identity == null) continue
 
-		applications.push({
-			applicantEmail: identity.email,
-			companyDomain,
-			durationType: term.durationType,
-			duration: term.duration,
-			creditAmount,
-			salaryAtApplication,
-			salaryFrequency,
-			status,
-			denialReason,
-			firstDiscount,
-			transferReference,
-			receiptFileName,
-			afterCreditInsert,
-		})
+			const disbursedAfter = disbursedPlan[localIndex]
+			const isDisbursed = disbursedAfter != null
+			const status = isDisbursed
+				? ('disbursed' as const)
+				: NON_DISBURSED_STATUSES[
+						(localIndex + globalIndex) % NON_DISBURSED_STATUSES.length
+					]
+			if (status == null) continue
+
+			let firstDiscount: FirstDiscountPreference = 'none'
+			let firstDiscountMonthsAgo: number | undefined
+			let firstDiscountNextValidPickIndex: number | undefined
+			let firstDiscountHistoricAnchor: FirstDiscountHistoricAnchor | undefined
+			let afterCreditInsert: AfterCreditInsert = 'none'
+			let transferReference: string | undefined
+			let receiptFileName: string | undefined
+			let denialReason: string | undefined
+
+			if (isDisbursed) {
+				const dc = domainCode(companyDomain) % 17
+				afterCreditInsert = disbursedAfter
+				if (disbursedAfter === 'settled') {
+					firstDiscount = 'historic-offset'
+					firstDiscountMonthsAgo =
+						4 + ((globalIndex * 23 + localIndex * 13 + dc) % 55)
+					if (co.employeeSalaryFrequency === 'bi-monthly') {
+						firstDiscountHistoricAnchor =
+							(globalIndex + localIndex + dc) % 2 === 0
+								? 'month-end'
+								: 'fifteenth'
+					}
+				} else if (
+					disbursedAfter === 'overdue' ||
+					disbursedAfter === 'installments-overdue'
+				) {
+					firstDiscount = 'historic-offset'
+					const targetPastDueCount =
+						1 + ((globalIndex * 19 + localIndex * 7 + dc) % term.duration)
+					if (co.employeeSalaryFrequency === 'bi-monthly') {
+						firstDiscountHistoricAnchor =
+							(globalIndex + localIndex + dc + 1) % 2 === 0
+								? 'month-end'
+								: 'fifteenth'
+					}
+					firstDiscountMonthsAgo = findMonthsAgoForPastDueCount({
+						today: BULK_SEED_REFERENCE_TODAY,
+						salaryFrequency: co.employeeSalaryFrequency,
+						historicAnchor: firstDiscountHistoricAnchor ?? 'month-end',
+						duration: term.duration,
+						durationType: term.durationType,
+						targetPastDue: targetPastDueCount,
+						tieBreaker: tieBreakerFromEmail(identity.email),
+					})
+				} else if (
+					disbursedAfter === 'deductions' ||
+					disbursedAfter === 'installments'
+				) {
+					firstDiscount = 'next-valid'
+					firstDiscountNextValidPickIndex =
+						(globalIndex * 31 + localIndex * 7 + dc) % 36
+				}
+				transferReference = `SPEI-BULK-${companyDomain}-${globalIndex}`
+				receiptFileName = `comprobante-bulk-${companyDomain}-${globalIndex}.pdf`
+			} else if (status === 'denied') {
+				denialReason =
+					'Capacidad de endeudamiento excedida según política del empleador (seed realista).'
+			} else if (status === 'authorized') {
+				firstDiscount = 'next-valid'
+			}
+
+			const docsRejected =
+				status === 'denied' || (globalIndex % 9 === 0 && status !== 'pending')
+					? ('rejected' as const)
+					: ('approved' as const)
+
+			users.push({
+				name: identity.name,
+				email: identity.email,
+				roles: ['applicant'] as const,
+			})
+			applications.push({
+				applicantEmail: identity.email,
+				companyDomain,
+				durationType: term.durationType,
+				duration: term.duration,
+				creditAmount,
+				salaryAtApplication,
+				salaryFrequency: co.employeeSalaryFrequency,
+				status,
+				denialReason,
+				firstDiscount,
+				firstDiscountMonthsAgo,
+				...(firstDiscountNextValidPickIndex != null
+					? { firstDiscountNextValidPickIndex }
+					: {}),
+				...(firstDiscountHistoricAnchor != null
+					? { firstDiscountHistoricAnchor }
+					: {}),
+				transferReference,
+				receiptFileName,
+				afterCreditInsert,
+				documentDecision: docsRejected,
+			})
+			globalIndex += 1
+		}
 	}
 
 	return { users, applications }
@@ -393,7 +442,6 @@ function resolveCreditAmount(params: {
 			fractionOfMax: frac,
 		})
 		if (candidate == null) continue
-		if (CANONICAL_CREDIT_AMOUNTS_FOR_BULK.has(candidate)) continue
 		return candidate
 	}
 	return undefined

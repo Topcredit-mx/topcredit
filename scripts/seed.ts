@@ -1,13 +1,11 @@
 import 'dotenv/config'
 import { neon } from '@neondatabase/serverless'
-import { and, eq } from 'drizzle-orm'
+import { and, inArray } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
-import { getValidFirstDiscountDates } from '../src/lib/first-discount-date'
 import type { Role } from '../src/server/auth/session'
 import type { ApplicationStatus } from '../src/server/db/schema'
 import * as schema from '../src/server/db/schema'
 import {
-	type FirstDiscountPreference,
 	seedApplications,
 	seedCompanies,
 	seedTermOfferings,
@@ -15,9 +13,10 @@ import {
 	userCompanyAssignments,
 } from './seed.fixtures'
 import {
-	insertCreditForSeededDisbursedApp,
-	loadTermAndRateForApplication,
+	bulkRefreshSeededDisbursedCredits,
+	loadTermAndRateForApplications,
 } from './seed-credits'
+import { resolveSeedFirstDiscountDate } from './seed-first-discount'
 
 function isRole(s: string): s is Role {
 	return (
@@ -42,7 +41,6 @@ const {
 	termOfferings,
 	applications,
 	applicationStatusHistory,
-	credits,
 } = schema
 
 export function getDb() {
@@ -53,6 +51,22 @@ export function getDb() {
 	}
 	const sql = neon(databaseUrl)
 	return drizzle({ client: sql, schema })
+}
+
+function chunkArray<T>(items: readonly T[], size: number): T[][] {
+	const out: T[][] = []
+	for (let i = 0; i < items.length; i += size) {
+		out.push(items.slice(i, i + size))
+	}
+	return out
+}
+
+function appSeedKey(params: {
+	applicantId: number
+	termOfferingId: number
+	creditAmount: string
+}): string {
+	return `${params.applicantId}|${params.termOfferingId}|${params.creditAmount}`
 }
 
 function getDefaultSeedStatusHistory(
@@ -109,173 +123,253 @@ function getDefaultSeedStatusHistory(
 	}
 }
 
-function endOfMonthMonthsAgo(today: Date, monthsBack: number): Date {
-	const d = new Date(
-		Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - monthsBack, 1),
-	)
-	return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0))
-}
-
-function resolveFirstDiscountDate(
-	preference: FirstDiscountPreference,
-	salaryFrequency: 'monthly' | 'bi-monthly',
-	today: Date,
-): Date | null {
-	switch (preference) {
-		case 'none':
-			return null
-		case 'next-valid': {
-			const dates = getValidFirstDiscountDates(salaryFrequency, today, 1)
-			return dates[0] ?? null
-		}
-		case 'overdue-credit':
-			return endOfMonthMonthsAgo(today, 5)
-		case 'settled-six':
-			return endOfMonthMonthsAgo(today, 7)
-	}
-}
-
 export async function seedDatabase(db: ReturnType<typeof getDb>) {
 	console.log('🌱 Seeding database...\n')
 
 	const userIdByEmail = new Map<string, number>()
 
-	// Users + roles
+	// Users + roles (bulk)
+	const seedUsersByEmail = new Map(seedUsers.map((u) => [u.email, u]))
+	const allEmails = seedUsers.map((u) => u.email)
+	const existingUsers: Array<{ id: number; email: string }> = []
+	for (const emailChunk of chunkArray(allEmails, 400)) {
+		const rows = await db.query.users.findMany({
+			where: inArray(users.email, emailChunk),
+			columns: { id: true, email: true },
+		})
+		existingUsers.push(...rows)
+	}
+	const existingByEmail = new Map(existingUsers.map((u) => [u.email, u.id]))
+	const missingUsers = seedUsers.filter((u) => !existingByEmail.has(u.email))
+	const userInsertChunks = chunkArray(missingUsers, 300)
+	let insertedUsersCount = 0
+	for (const [index, chunk] of userInsertChunks.entries()) {
+		const inserted = await db
+			.insert(users)
+			.values(chunk.map((u) => ({ email: u.email, name: u.name })))
+			.returning({ id: users.id, email: users.email })
+		insertedUsersCount += inserted.length
+		for (const row of inserted) {
+			existingByEmail.set(row.email, row.id)
+		}
+		console.log(
+			`  ✓ Users batch ${index + 1}/${userInsertChunks.length}: inserted ${inserted.length}`,
+		)
+	}
 	for (const u of seedUsers) {
-		let user = await db.query.users.findFirst({
-			where: eq(users.email, u.email),
-		})
-		if (!user) {
-			const [inserted] = await db
-				.insert(users)
-				.values({ email: u.email, name: u.name })
-				.returning()
-			if (!inserted) {
-				console.error(`❌ Failed to create user: ${u.email}`)
-				process.exit(1)
-			}
-			user = inserted
-			console.log(`  ✓ Created user: ${u.email}`)
-		} else {
-			console.log(`  ✓ User already exists: ${u.email}`)
-		}
-		userIdByEmail.set(u.email, user.id)
+		const userId = existingByEmail.get(u.email)
+		if (userId == null) continue
+		userIdByEmail.set(u.email, userId)
+	}
+	console.log(
+		`  ✓ Users existing: ${seedUsers.length - insertedUsersCount}, inserted: ${insertedUsersCount}`,
+	)
 
-		const existingRoles = await db.query.userRoles.findMany({
-			where: eq(userRoles.userId, user.id),
+	const allUserIds = [...userIdByEmail.values()]
+	const existingRoleRows: Array<{ userId: number; role: Role }> = []
+	for (const idChunk of chunkArray(allUserIds, 400)) {
+		const rows = await db.query.userRoles.findMany({
+			where: inArray(userRoles.userId, idChunk),
+			columns: { userId: true, role: true },
 		})
-		const toAdd: Role[] = []
-		for (const role of u.roles) {
-			if (isRole(role) && !existingRoles.some((r) => r.role === role)) {
-				toAdd.push(role)
-			}
-		}
-		if (toAdd.length > 0) {
-			await db
-				.insert(userRoles)
-				.values(toAdd.map((role) => ({ userId: user.id, role })))
-			console.log(`  ✓ Ensured roles for ${u.email}: ${toAdd.join(', ')}`)
+		existingRoleRows.push(...rows)
+	}
+	const existingRoleKeys = new Set(
+		existingRoleRows.map((r) => `${r.userId}|${r.role}`),
+	)
+	const roleRowsToInsert: Array<{ userId: number; role: Role }> = []
+	for (const [email, userId] of userIdByEmail.entries()) {
+		const su = seedUsersByEmail.get(email)
+		if (su == null) continue
+		for (const role of su.roles) {
+			if (!isRole(role)) continue
+			const key = `${userId}|${role}`
+			if (existingRoleKeys.has(key)) continue
+			existingRoleKeys.add(key)
+			roleRowsToInsert.push({ userId, role })
 		}
 	}
+	const roleInsertChunks = chunkArray(roleRowsToInsert, 500)
+	for (const [index, chunk] of roleInsertChunks.entries()) {
+		await db.insert(userRoles).values(chunk)
+		console.log(
+			`  ✓ User roles batch ${index + 1}/${roleInsertChunks.length}: inserted ${chunk.length}`,
+		)
+	}
 
-	// Companies
+	// Companies (bulk)
 	const companyIdByDomain = new Map<string, number>()
-	for (const co of seedCompanies) {
-		const existing = await db.query.companies.findFirst({
-			where: eq(companies.domain, co.domain),
+	const companyDomains = seedCompanies.map((c) => c.domain)
+	const existingCompanies: Array<{ id: number; domain: string }> = []
+	for (const chunk of chunkArray(companyDomains, 200)) {
+		const rows = await db.query.companies.findMany({
+			where: inArray(companies.domain, chunk),
+			columns: { id: true, domain: true },
 		})
-		if (existing) {
-			companyIdByDomain.set(co.domain, existing.id)
-		} else {
-			const [inserted] = await db
-				.insert(companies)
-				.values({
+		existingCompanies.push(...rows)
+	}
+	for (const row of existingCompanies) {
+		companyIdByDomain.set(row.domain, row.id)
+	}
+	const missingCompanies = seedCompanies.filter(
+		(c) => !companyIdByDomain.has(c.domain),
+	)
+	const companyInsertChunks = chunkArray(missingCompanies, 100)
+	for (const [index, chunk] of companyInsertChunks.entries()) {
+		const inserted = await db
+			.insert(companies)
+			.values(
+				chunk.map((co) => ({
 					name: co.name,
 					domain: co.domain,
 					rate: co.rate,
 					borrowingCapacityRate: co.borrowingCapacityRate,
 					employeeSalaryFrequency: co.employeeSalaryFrequency,
 					active: co.active,
-				})
-				.returning()
-			if (inserted) {
-				companyIdByDomain.set(co.domain, inserted.id)
-				console.log(`  ✓ Created company: ${co.name} (${co.domain})`)
-			}
+				})),
+			)
+			.returning({ id: companies.id, domain: companies.domain })
+		for (const row of inserted) {
+			companyIdByDomain.set(row.domain, row.id)
 		}
+		console.log(
+			`  ✓ Companies batch ${index + 1}/${companyInsertChunks.length}: inserted ${inserted.length}`,
+		)
 	}
+	console.log(
+		`  ✓ Companies existing: ${seedCompanies.length - missingCompanies.length}, inserted: ${missingCompanies.length}`,
+	)
 
-	// Terms and term offerings (applicant happy path: company with rate + terms)
+	// Terms and term offerings (bulk)
 	const termByKey = new Map<string, number>()
 	const termOfferingByKey = new Map<string, number>()
-	for (const offering of seedTermOfferings) {
-		const termKey = `${offering.durationType}-${offering.duration}`
-		const offeringKey = `${offering.companyDomain}-${offering.durationType}-${offering.duration}`
-		let termId = termByKey.get(termKey)
-		if (termId == null) {
-			const existing = await db.query.terms.findFirst({
-				where: and(
-					eq(terms.durationType, offering.durationType),
-					eq(terms.duration, offering.duration),
-				),
-				columns: { id: true },
+	const allTerms = await db.query.terms.findMany({
+		columns: { id: true, durationType: true, duration: true },
+	})
+	for (const t of allTerms) {
+		termByKey.set(`${t.durationType}-${t.duration}`, t.id)
+	}
+	const uniqueTermShapes = [
+		...new Map(
+			seedTermOfferings.map((o) => [
+				`${o.durationType}-${o.duration}`,
+				{ durationType: o.durationType, duration: o.duration },
+			]),
+		).values(),
+	]
+	const missingTerms = uniqueTermShapes.filter(
+		(t) => !termByKey.has(`${t.durationType}-${t.duration}`),
+	)
+	const termInsertChunks = chunkArray(missingTerms, 100)
+	for (const [index, chunk] of termInsertChunks.entries()) {
+		const inserted = await db
+			.insert(terms)
+			.values(
+				chunk.map((t) => ({
+					durationType: t.durationType,
+					duration: t.duration,
+				})),
+			)
+			.returning({
+				id: terms.id,
+				durationType: terms.durationType,
+				duration: terms.duration,
 			})
-			if (existing) {
-				termId = existing.id
-			} else {
-				const [inserted] = await db
-					.insert(terms)
-					.values({
-						durationType: offering.durationType,
-						duration: offering.duration,
-					})
-					.returning()
-				if (inserted) {
-					termId = inserted.id
-					console.log(
-						`  ✓ Created term: ${offering.durationType} ${offering.duration}`,
-					)
-				}
-			}
-			if (termId != null) termByKey.set(termKey, termId)
+		for (const t of inserted) {
+			termByKey.set(`${t.durationType}-${t.duration}`, t.id)
 		}
-		if (termId != null) {
-			const companyId = companyIdByDomain.get(offering.companyDomain)
-			if (companyId != null) {
-				const existing = await db.query.termOfferings.findFirst({
-					where: and(
-						eq(termOfferings.companyId, companyId),
-						eq(termOfferings.termId, termId),
-					),
-					columns: { id: true },
-				})
-				if (existing) {
-					termOfferingByKey.set(offeringKey, existing.id)
-				} else {
-					const [inserted] = await db
-						.insert(termOfferings)
-						.values({
-							companyId,
-							termId,
-							disabled: false,
-						})
-						.returning()
-					if (inserted) {
-						termOfferingByKey.set(offeringKey, inserted.id)
-						const co = seedCompanies.find(
-							(c) => c.domain === offering.companyDomain,
-						)
-						console.log(
-							`  ✓ Created term offering for ${co?.name ?? offering.companyDomain}`,
-						)
-					}
-				}
-			}
+		console.log(
+			`  ✓ Terms batch ${index + 1}/${termInsertChunks.length}: inserted ${inserted.length}`,
+		)
+	}
+	console.log(
+		`  ✓ Terms existing: ${uniqueTermShapes.length - missingTerms.length}, inserted: ${missingTerms.length}`,
+	)
+
+	const companyIds = [...companyIdByDomain.values()]
+	const existingOfferings: Array<{
+		id: number
+		companyId: number
+		termId: number
+	}> = []
+	for (const chunk of chunkArray(companyIds, 200)) {
+		const rows = await db.query.termOfferings.findMany({
+			where: inArray(termOfferings.companyId, chunk),
+			columns: { id: true, companyId: true, termId: true },
+		})
+		existingOfferings.push(...rows)
+	}
+	const existingOfferingKeys = new Set(
+		existingOfferings.map((o) => `${o.companyId}|${o.termId}`),
+	)
+	const missingOfferingRows: Array<{
+		companyId: number
+		termId: number
+		disabled: boolean
+	}> = []
+	for (const offering of seedTermOfferings) {
+		const companyId = companyIdByDomain.get(offering.companyDomain)
+		const termId = termByKey.get(
+			`${offering.durationType}-${offering.duration}`,
+		)
+		if (companyId == null || termId == null) continue
+		const key = `${companyId}|${termId}`
+		if (!existingOfferingKeys.has(key)) {
+			existingOfferingKeys.add(key)
+			missingOfferingRows.push({ companyId, termId, disabled: false })
 		}
 	}
+	const offeringInsertChunks = chunkArray(missingOfferingRows, 200)
+	for (const [index, chunk] of offeringInsertChunks.entries()) {
+		await db.insert(termOfferings).values(chunk)
+		console.log(
+			`  ✓ Term offerings batch ${index + 1}/${offeringInsertChunks.length}: inserted ${chunk.length}`,
+		)
+	}
+	for (const offering of seedTermOfferings) {
+		const companyId = companyIdByDomain.get(offering.companyDomain)
+		const termId = termByKey.get(
+			`${offering.durationType}-${offering.duration}`,
+		)
+		if (companyId == null || termId == null) continue
+		const existing = existingOfferings.find(
+			(o) => o.companyId === companyId && o.termId === termId,
+		)
+		if (existing != null) {
+			termOfferingByKey.set(
+				`${offering.companyDomain}-${offering.durationType}-${offering.duration}`,
+				existing.id,
+			)
+		}
+	}
+	const refreshedOfferings = await db.query.termOfferings.findMany({
+		where: inArray(termOfferings.companyId, companyIds),
+		columns: { id: true, companyId: true, termId: true },
+	})
+	const offeringIdByCompanyTerm = new Map(
+		refreshedOfferings.map((o) => [`${o.companyId}|${o.termId}`, o.id]),
+	)
+	for (const offering of seedTermOfferings) {
+		const companyId = companyIdByDomain.get(offering.companyDomain)
+		const termId = termByKey.get(
+			`${offering.durationType}-${offering.duration}`,
+		)
+		if (companyId == null || termId == null) continue
+		const id = offeringIdByCompanyTerm.get(`${companyId}|${termId}`)
+		if (id == null) continue
+		termOfferingByKey.set(
+			`${offering.companyDomain}-${offering.durationType}-${offering.duration}`,
+			id,
+		)
+	}
+	console.log(
+		`  ✓ Term offerings existing: ${seedTermOfferings.length - missingOfferingRows.length}, inserted: ${missingOfferingRows.length}`,
+	)
 
 	const today = new Date()
 	const logSampleIds: { label: string; id: number }[] = []
+	let createdApplicationsCount = 0
+	let updatedApplicationsCount = 0
 	const addLogSample = (label: string, id: number) => {
 		const key = `${label}|${id}`
 		if (
@@ -286,7 +380,15 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 		}
 	}
 
-	// Applications
+	type PreparedSeedApplication = {
+		fixture: (typeof seedApplications)[number]
+		key: string
+		applicantId: number
+		companyId: number
+		termOfferingId: number
+		firstDiscountDate: Date | null
+	}
+	const preparedApps: PreparedSeedApplication[] = []
 	for (const app of seedApplications) {
 		const applicantId = userIdByEmail.get(app.applicantEmail)
 		const companyId = companyIdByDomain.get(app.companyDomain)
@@ -298,159 +400,334 @@ export async function seedDatabase(db: ReturnType<typeof getDb>) {
 			)
 			continue
 		}
-		const firstDiscountDate = resolveFirstDiscountDate(
+		const firstDiscountDate = resolveSeedFirstDiscountDate(
 			app.firstDiscount,
 			app.salaryFrequency,
 			today,
+			{
+				...(app.firstDiscountMonthsAgo != null
+					? { monthsAgo: app.firstDiscountMonthsAgo }
+					: {}),
+				...(app.firstDiscountNextValidPickIndex != null
+					? { nextValidPickIndex: app.firstDiscountNextValidPickIndex }
+					: {}),
+				...(app.firstDiscountHistoricAnchor != null
+					? { historicAnchor: app.firstDiscountHistoricAnchor }
+					: {}),
+			},
 		)
-		const existing = await db.query.applications.findFirst({
-			where: and(
-				eq(applications.applicantId, applicantId),
-				eq(applications.termOfferingId, termOfferingId),
-				eq(applications.creditAmount, app.creditAmount),
-			),
-			columns: { id: true },
+		preparedApps.push({
+			fixture: app,
+			key: appSeedKey({
+				applicantId,
+				termOfferingId,
+				creditAmount: app.creditAmount,
+			}),
+			applicantId,
+			companyId,
+			termOfferingId,
+			firstDiscountDate,
 		})
-		if (!existing) {
-			const timeline =
-				app.statusHistory?.map((status) => ({
-					status,
-					setByUserId: applicantId,
-				})) ?? getDefaultSeedStatusHistory(app.status, applicantId)
-			const lastTimelineStatus = timeline[timeline.length - 1]?.status
-			if (lastTimelineStatus !== app.status) {
-				console.error(
-					`❌ Seed history must end with current status for ${app.applicantEmail}`,
-				)
-				process.exit(1)
-			}
-			const timelineBaseTime = new Date()
-			const [createdApplication] = await db
-				.insert(applications)
-				.values({
-					applicantId,
-					companyId,
-					termOfferingId,
-					creditAmount: app.creditAmount,
-					salaryAtApplication: app.salaryAtApplication,
-					salaryFrequency: app.salaryFrequency,
-					status: app.status,
-					denialReason: app.denialReason ?? null,
-					firstDiscountDate,
-					transferReference:
-						app.status === 'disbursed' ? (app.transferReference ?? null) : null,
-					receiptFileName:
-						app.status === 'disbursed' ? (app.receiptFileName ?? null) : null,
-					receiptStorageKey: null,
+	}
+
+	const applicantIds = [...new Set(preparedApps.map((a) => a.applicantId))]
+	const termOfferingIds = [
+		...new Set(preparedApps.map((a) => a.termOfferingId)),
+	]
+	const existingApplicationRows =
+		applicantIds.length === 0 || termOfferingIds.length === 0
+			? []
+			: await db.query.applications.findMany({
+					where: and(
+						inArray(applications.applicantId, applicantIds),
+						inArray(applications.termOfferingId, termOfferingIds),
+					),
+					columns: {
+						id: true,
+						applicantId: true,
+						termOfferingId: true,
+						creditAmount: true,
+					},
 				})
-				.returning()
+	const existingAppIdByKey = new Map<string, number>()
+	for (const row of existingApplicationRows) {
+		existingAppIdByKey.set(
+			appSeedKey({
+				applicantId: row.applicantId,
+				termOfferingId: row.termOfferingId ?? 0,
+				creditAmount: String(row.creditAmount),
+			}),
+			row.id,
+		)
+	}
 
-			if (!createdApplication) {
-				console.error(`❌ Failed to create application: ${app.applicantEmail}`)
-				process.exit(1)
-			}
-			if (
-				app.status === 'disbursed' &&
-				app.receiptFileName != null &&
-				app.receiptFileName.length > 0
-			) {
-				const key = `disbursement-receipts/${createdApplication.id}/${app.receiptFileName}`
-				await db
-					.update(applications)
-					.set({ receiptStorageKey: key, updatedAt: new Date() })
-					.where(eq(applications.id, createdApplication.id))
-			}
-			if (app.status === 'pre-authorized') {
-				addLogSample('pre-authorized (Sofía / paquete)', createdApplication.id)
-			} else if (app.status === 'denied') {
-				addLogSample('denegada (Patricia / CVA)', createdApplication.id)
-			} else if (app.creditAmount === '5000.00' && app.status === 'pending') {
-				addLogSample('pendiente + documentos iniciales', createdApplication.id)
-			}
-
-			await db.insert(applicationStatusHistory).values(
-				timeline.map((entry, index) => ({
-					applicationId: createdApplication.id,
-					status: entry.status,
-					setByUserId: entry.setByUserId,
-					createdAt: new Date(timelineBaseTime.getTime() + index * 60_000),
+	const toCreate = preparedApps.filter((p) => !existingAppIdByKey.has(p.key))
+	const sourceByKey = new Map(toCreate.map((p) => [p.key, p]))
+	const insertedAppsByKey = new Map<string, number>()
+	const appInsertChunks = chunkArray(toCreate, 250)
+	for (const [index, chunk] of appInsertChunks.entries()) {
+		const inserted = await db
+			.insert(applications)
+			.values(
+				chunk.map((p) => ({
+					applicantId: p.applicantId,
+					companyId: p.companyId,
+					termOfferingId: p.termOfferingId,
+					creditAmount: p.fixture.creditAmount,
+					salaryAtApplication: p.fixture.salaryAtApplication,
+					salaryFrequency: p.fixture.salaryFrequency,
+					status: p.fixture.status,
+					denialReason: p.fixture.denialReason ?? null,
+					firstDiscountDate: p.firstDiscountDate,
+					transferReference:
+						p.fixture.status === 'disbursed'
+							? (p.fixture.transferReference ?? null)
+							: null,
+					receiptFileName:
+						p.fixture.status === 'disbursed'
+							? (p.fixture.receiptFileName ?? null)
+							: null,
+					receiptStorageKey: null,
 				})),
 			)
-			console.log(
-				`  ✓ Created application: ${app.applicantEmail} ${app.status} (${app.creditAmount}) id=${createdApplication.id}`,
-			)
+			.returning({
+				id: applications.id,
+				applicantId: applications.applicantId,
+				termOfferingId: applications.termOfferingId,
+				creditAmount: applications.creditAmount,
+			})
+		for (const row of inserted) {
+			const key = appSeedKey({
+				applicantId: row.applicantId,
+				termOfferingId: row.termOfferingId ?? 0,
+				creditAmount: String(row.creditAmount),
+			})
+			insertedAppsByKey.set(key, row.id)
+			existingAppIdByKey.set(key, row.id)
+		}
+		console.log(
+			`  ✓ Applications insert batch ${index + 1}/${appInsertChunks.length}: inserted ${inserted.length}`,
+		)
+	}
+	createdApplicationsCount = insertedAppsByKey.size
+
+	const updateGroups = new Map<
+		string,
+		{
+			ids: number[]
+			status: (typeof seedApplications)[number]['status']
+			denialReason: string | null
+			firstDiscountDate: Date | null
+			transferReference: string | null
+			receiptFileName: string | null
+		}
+	>()
+	for (const p of preparedApps) {
+		const existingId = existingAppIdByKey.get(p.key)
+		if (existingId == null || insertedAppsByKey.has(p.key)) continue
+		const denialReason = p.fixture.denialReason ?? null
+		const transferReference =
+			p.fixture.status === 'disbursed'
+				? (p.fixture.transferReference ?? null)
+				: null
+		const receiptFileName =
+			p.fixture.status === 'disbursed'
+				? (p.fixture.receiptFileName ?? null)
+				: null
+		const groupKey = [
+			p.fixture.status,
+			denialReason ?? '',
+			p.firstDiscountDate?.toISOString() ?? 'null',
+			transferReference ?? '',
+			receiptFileName ?? '',
+		].join('|')
+		const group = updateGroups.get(groupKey)
+		if (group == null) {
+			updateGroups.set(groupKey, {
+				ids: [existingId],
+				status: p.fixture.status,
+				denialReason,
+				firstDiscountDate: p.firstDiscountDate,
+				transferReference,
+				receiptFileName,
+			})
 		} else {
-			console.log(
-				`  ○ Application already exists: ${app.applicantEmail} ${app.creditAmount} (id ${existing.id})`,
-			)
+			group.ids.push(existingId)
+		}
+	}
+	for (const group of updateGroups.values()) {
+		for (const idChunk of chunkArray(group.ids, 250)) {
+			await db
+				.update(applications)
+				.set({
+					status: group.status,
+					denialReason: group.denialReason,
+					firstDiscountDate: group.firstDiscountDate,
+					transferReference: group.transferReference,
+					receiptFileName: group.receiptFileName,
+					updatedAt: new Date(),
+				})
+				.where(inArray(applications.id, idChunk))
+			updatedApplicationsCount += idChunk.length
 		}
 	}
 
-	// Assign companies to users that require them (e.g. requests); admin does not need assignments
+	const statusHistoryRows: Array<{
+		applicationId: number
+		status: ApplicationStatus
+		setByUserId: number | null
+		createdAt: Date
+	}> = []
+	for (const [key, appId] of insertedAppsByKey.entries()) {
+		const source = sourceByKey.get(key)
+		if (source == null) continue
+		const timeline =
+			source.fixture.statusHistory?.map((status) => ({
+				status,
+				setByUserId: source.applicantId,
+			})) ??
+			getDefaultSeedStatusHistory(source.fixture.status, source.applicantId)
+		const lastTimelineStatus = timeline[timeline.length - 1]?.status
+		if (lastTimelineStatus !== source.fixture.status) {
+			console.error(
+				`❌ Seed history must end with current status for ${source.fixture.applicantEmail}`,
+			)
+			process.exit(1)
+		}
+		const timelineBaseTime = new Date()
+		statusHistoryRows.push(
+			...timeline.map((entry, index) => ({
+				applicationId: appId,
+				status: entry.status,
+				setByUserId: entry.setByUserId,
+				createdAt: new Date(timelineBaseTime.getTime() + index * 60_000),
+			})),
+		)
+		if (source.fixture.status === 'pre-authorized') {
+			addLogSample('pre-authorized (Sofía / paquete)', appId)
+		} else if (source.fixture.status === 'denied') {
+			addLogSample('denegada (Patricia / CVA)', appId)
+		} else if (
+			source.fixture.creditAmount === '5000.00' &&
+			source.fixture.status === 'pending'
+		) {
+			addLogSample('pendiente + documentos iniciales', appId)
+		}
+	}
+	for (const [index, chunk] of chunkArray(statusHistoryRows, 1200).entries()) {
+		await db.insert(applicationStatusHistory).values(chunk)
+		console.log(
+			`  ✓ Application history batch ${index + 1}/${Math.ceil(statusHistoryRows.length / 1200)}: inserted ${chunk.length}`,
+		)
+	}
+	console.log(
+		`  ✓ Applications created: ${createdApplicationsCount}, updated: ${updatedApplicationsCount}`,
+	)
+
+	// Assign companies to users that require them (bulk)
+	const desiredAssignments: Array<{ userId: number; companyId: number }> = []
 	for (const [userEmail, domains] of Object.entries(userCompanyAssignments)) {
 		const userId = userIdByEmail.get(userEmail)
 		if (userId == null) continue
 		for (const domain of domains) {
 			const companyId = companyIdByDomain.get(domain)
 			if (companyId == null) continue
-			const existing = await db.query.userCompanies.findFirst({
-				where: and(
-					eq(userCompanies.userId, userId),
-					eq(userCompanies.companyId, companyId),
-				),
-			})
-			if (!existing) {
-				await db.insert(userCompanies).values({
-					userId,
-					companyId,
-				})
-				const co = seedCompanies.find((c) => c.domain === domain)
-				console.log(`  ✓ Assigned ${co?.name ?? domain} to ${userEmail}`)
-			}
+			desiredAssignments.push({ userId, companyId })
 		}
 	}
+	const assignmentUserIds = [
+		...new Set(desiredAssignments.map((a) => a.userId)),
+	]
+	const existingAssignments: Array<{ userId: number; companyId: number }> = []
+	for (const chunk of chunkArray(assignmentUserIds, 300)) {
+		const rows = await db.query.userCompanies.findMany({
+			where: inArray(userCompanies.userId, chunk),
+			columns: { userId: true, companyId: true },
+		})
+		existingAssignments.push(...rows)
+	}
+	const existingAssignmentKeys = new Set(
+		existingAssignments.map((a) => `${a.userId}|${a.companyId}`),
+	)
+	const missingAssignments = desiredAssignments.filter(
+		(a) => !existingAssignmentKeys.has(`${a.userId}|${a.companyId}`),
+	)
+	const assignmentChunks = chunkArray(missingAssignments, 500)
+	for (const [index, chunk] of assignmentChunks.entries()) {
+		await db.insert(userCompanies).values(chunk)
+		console.log(
+			`  ✓ User-company assignments batch ${index + 1}/${assignmentChunks.length}: inserted ${chunk.length}`,
+		)
+	}
+	console.log(
+		`  ✓ User-company assignments existing: ${desiredAssignments.length - missingAssignments.length}, inserted: ${missingAssignments.length}`,
+	)
 
 	const adminUserId = userIdByEmail.get('admin@topcredit.mx')
 	if (adminUserId != null) {
-		for (const app of seedApplications) {
-			if (app.status !== 'disbursed' || app.afterCreditInsert === 'none')
-				continue
-			const applicant = userIdByEmail.get(app.applicantEmail)
-			const oKey = `${app.companyDomain}-${app.durationType}-${app.duration}`
-			const toId = termOfferingByKey.get(oKey)
-			if (applicant == null || toId == null) continue
-			const appRow = await db.query.applications.findFirst({
-				where: and(
-					eq(applications.applicantId, applicant),
-					eq(applications.termOfferingId, toId),
-					eq(applications.creditAmount, app.creditAmount),
-				),
-			})
+		const disbursedTargets: Array<{
+			applicationId: number
+			loanPrincipal: string
+			afterCredit: Exclude<
+				(typeof seedApplications)[number]['afterCreditInsert'],
+				'none'
+			>
+			firstDiscountDate: Date
+		}> = []
+		for (const p of preparedApps) {
 			if (
-				appRow == null ||
-				appRow.firstDiscountDate == null ||
-				appRow.creditAmount == null
+				p.fixture.status !== 'disbursed' ||
+				p.fixture.afterCreditInsert === 'none'
 			) {
 				continue
 			}
-			const tinfo = await loadTermAndRateForApplication(db, appRow.id)
-			if (tinfo == null) continue
-			await insertCreditForSeededDisbursedApp(db, {
-				applicationId: appRow.id,
-				loanPrincipal: String(appRow.creditAmount),
-				companyRate: tinfo.companyRate,
-				afterCredit: app.afterCreditInsert,
-				duration: tinfo.duration,
-				durationType: tinfo.durationType,
-				firstDiscountDate: appRow.firstDiscountDate,
+			const appId = existingAppIdByKey.get(p.key)
+			if (appId == null || p.firstDiscountDate == null) continue
+			disbursedTargets.push({
+				applicationId: appId,
+				loanPrincipal: p.fixture.creditAmount,
+				afterCredit: p.fixture.afterCreditInsert,
+				firstDiscountDate: p.firstDiscountDate,
+			})
+		}
+		const termInfoByAppId = await loadTermAndRateForApplications(
+			db,
+			disbursedTargets.map((t) => t.applicationId),
+		)
+		const refreshTargets = disbursedTargets
+			.map((target) => {
+				const info = termInfoByAppId.get(target.applicationId)
+				if (info == null) return null
+				return {
+					applicationId: target.applicationId,
+					loanPrincipal: target.loanPrincipal,
+					companyRate: info.companyRate,
+					afterCredit: target.afterCredit,
+					duration: info.duration,
+					durationType: info.durationType,
+					firstDiscountDate: target.firstDiscountDate,
+				}
+			})
+			.filter((t) => t != null)
+		const creditIdByApplicationId = await bulkRefreshSeededDisbursedCredits(
+			db,
+			{
 				adminUserId,
-			})
-			const cRow = await db.query.credits.findFirst({
-				where: eq(credits.applicationId, appRow.id),
-				columns: { id: true },
-			})
-			if (cRow) {
-				addLogSample(`crédito faker (${app.afterCreditInsert})`, cRow.id)
+				targets: refreshTargets,
+			},
+		)
+		console.log(`  ✓ Credits refreshed total: ${refreshTargets.length}`)
+		for (const p of preparedApps) {
+			if (
+				p.fixture.status !== 'disbursed' ||
+				p.fixture.afterCreditInsert === 'none'
+			)
+				continue
+			const appId = existingAppIdByKey.get(p.key)
+			if (appId == null) continue
+			const creditId = creditIdByApplicationId.get(appId)
+			if (creditId != null) {
+				addLogSample(`crédito faker (${p.fixture.afterCreditInsert})`, creditId)
 			}
 		}
 	} else {
