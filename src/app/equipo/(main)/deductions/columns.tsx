@@ -3,7 +3,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
+import { EquipoWorkflowStatusPresentation } from '~/components/equipo/equipo-workflow-status-presentation'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
 import { resolveQueueWorkflowStatus } from '~/lib/equipo-workflow-status'
@@ -105,7 +105,13 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 					hrConfirmedAt: row.original.hrConfirmedAt,
 					installmentConfirmedAt: row.original.installmentConfirmedAt,
 				})
-				return <WorkflowStatusBadge tone={tone} messageKey={messageKey} />
+				return (
+					<EquipoWorkflowStatusPresentation
+						tone={tone}
+						messageKey={messageKey}
+						variant="queue"
+					/>
+				)
 			},
 			enableSorting: false,
 		},

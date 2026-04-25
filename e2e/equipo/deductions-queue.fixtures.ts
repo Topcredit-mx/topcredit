@@ -46,6 +46,13 @@ export const applicantDeductionsConfirmedLate = {
 	roles: ['applicant'] as const,
 }
 
+/** Late in UTC date only, on-time under Mexico City vs schedule (credit detail rules). */
+export const applicantDeductionsConfirmedMxEdge = {
+	name: 'Applicant Deductions MX Edge',
+	email: 'applicant.confirmed.mxedge@deductionsqueue.com',
+	roles: ['applicant'] as const,
+}
+
 export const applicantDeductionsMultiOverdue = {
 	name: 'Applicant Deductions Multi Overdue',
 	email: 'applicant.multi.overdue@deductionsqueue.com',
@@ -67,6 +74,7 @@ export const allDeductionUsers = [
 	applicantDeductionsOverdue,
 	applicantDeductionsConfirmed,
 	applicantDeductionsConfirmedLate,
+	applicantDeductionsConfirmedMxEdge,
 	applicantDeductionsMultiOverdue,
 	applicantDeductionsOverdueRecent,
 ]

@@ -2,7 +2,7 @@
 
 import { History } from 'lucide-react'
 import Link from 'next/link'
-import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
+import { EquipoWorkflowStatusPresentation } from '~/components/equipo/equipo-workflow-status-presentation'
 import { FormattedDate } from '~/components/formatted-date'
 import { SectionTitleRow } from '~/components/ui/section-card'
 import { historyTimingStatus } from '~/lib/equipo-workflow-status'
@@ -80,9 +80,10 @@ export function DeductionHistoryLog({
 														{confirmedByLabel}: {actorLabel}
 													</span>
 												)}
-												<WorkflowStatusBadge
+												<EquipoWorkflowStatusPresentation
 													tone={timing.tone}
 													messageKey={timing.messageKey}
+													variant="history"
 												/>
 											</div>
 											<span className="text-slate-500 text-xs">

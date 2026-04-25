@@ -8,6 +8,7 @@ import { CreditPaymentScheduleStatusCell } from '~/components/equipo/credit-paym
 import { FinalInstallmentConfirmDialog } from '~/components/equipo/final-installment-confirm-dialog'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
+import { calendarYmdInMexicoCity } from '~/lib/calendar-date-tz'
 import {
 	resolveCreditDetailCollectionStatus,
 	resolveCreditDetailDeductionStatus,
@@ -65,7 +66,7 @@ export function CreditPaymentsTable({
 
 	useEffect(() => {
 		const now = new Date()
-		setToday(now.toISOString().slice(0, 10))
+		setToday(calendarYmdInMexicoCity(now))
 		if (employeeSalaryFrequency !== undefined) {
 			setUpcomingDeductionDate(
 				getUpcomingDeductionDateYmd(employeeSalaryFrequency, now),

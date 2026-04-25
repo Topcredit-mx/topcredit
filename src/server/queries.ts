@@ -14,6 +14,7 @@ import {
 	sql,
 } from 'drizzle-orm'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
+import { isEquipoScheduleConfirmationOnTime } from '~/lib/equipo-workflow-status'
 import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
@@ -2283,7 +2284,6 @@ export async function getDeductionConfirmationHistory(
 			cp.amount,
 			cp.due_date,
 			cp.hr_confirmed_at,
-			(cp.hr_confirmed_at::date <= cp.due_date::date) AS confirmed_on_time,
 			a.id AS application_id,
 			u_employee.name AS employee_name,
 			u_confirmer.id AS confirmer_id,
@@ -2312,7 +2312,10 @@ export async function getDeductionConfirmationHistory(
 			amount: String(r.amount),
 			dueDate,
 			hrConfirmedAt,
-			confirmedOnTime: Boolean(r.confirmed_on_time),
+			confirmedOnTime: isEquipoScheduleConfirmationOnTime(
+				dueDate,
+				hrConfirmedAt,
+			),
 			applicationId: Number(r.application_id),
 			employeeName: String(r.employee_name),
 			confirmedByUser:
@@ -2369,7 +2372,6 @@ export async function getInstallmentConfirmationHistory(
 			cp.amount,
 			cp.due_date,
 			cp.installment_confirmed_at,
-			(cp.installment_confirmed_at::date <= cp.due_date::date) AS confirmed_on_time,
 			a.id AS application_id,
 			u_employee.name AS employee_name,
 			u_confirmer.id AS confirmer_id,
@@ -2398,7 +2400,10 @@ export async function getInstallmentConfirmationHistory(
 			amount: String(r.amount),
 			dueDate,
 			installmentConfirmedAt,
-			confirmedOnTime: Boolean(r.confirmed_on_time),
+			confirmedOnTime: isEquipoScheduleConfirmationOnTime(
+				dueDate,
+				installmentConfirmedAt,
+			),
 			applicationId: Number(r.application_id),
 			employeeName: String(r.employee_name),
 			confirmedByUser:

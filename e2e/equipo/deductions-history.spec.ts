@@ -58,7 +58,10 @@ test.describe('HR deduction confirmation history', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/deductions')
-			await expect(page.getByText(/a tiempo/i)).toBeVisible()
+			const historyRow = page.locator('li', {
+				has: page.getByText(seed.confirmedApplicantName, { exact: true }),
+			})
+			await expect(historyRow.getByText(/a tiempo/i).first()).toBeVisible()
 		})
 
 		test('shows the late badge for a deduction confirmed after its due date', async ({

@@ -3,7 +3,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
+import { EquipoWorkflowStatusPresentation } from '~/components/equipo/equipo-workflow-status-presentation'
 import { FormattedDate } from '~/components/formatted-date'
 import { DataTableColumnHeader } from '~/components/ui/data-table'
 import { historyTimingStatus } from '~/lib/equipo-workflow-status'
@@ -88,7 +88,13 @@ export function useDeductionHistoryColumns(): ColumnDef<DeductionConfirmationHis
 				const { tone, messageKey } = historyTimingStatus(
 					row.getValue<boolean>('confirmedOnTime'),
 				)
-				return <WorkflowStatusBadge tone={tone} messageKey={messageKey} />
+				return (
+					<EquipoWorkflowStatusPresentation
+						tone={tone}
+						messageKey={messageKey}
+						variant="history"
+					/>
+				)
 			},
 		},
 	]

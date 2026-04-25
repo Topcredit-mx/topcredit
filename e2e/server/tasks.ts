@@ -91,6 +91,7 @@ import {
 	applicantDeductions2,
 	applicantDeductionsConfirmed,
 	applicantDeductionsConfirmedLate,
+	applicantDeductionsConfirmedMxEdge,
 	applicantDeductionsMultiOverdue,
 	applicantDeductionsOverdue,
 	applicantDeductionsOverdueRecent,
@@ -2775,7 +2776,11 @@ export type SeedDeductionsQueueResult = {
 	confirmedApplicationId: number
 	confirmedByName: string
 	lateConfirmedApplicantName: string
+	/** Shown as on-time in history under Mexico City rules while UTC dates would mark late. */
+	mxEdgeOnTimeApplicantName: string
 	nextDeductionDateISO: string
+	/** YYYY-MM-DD of credit4’s payment `dueDate` — use for CSV rows matching DEDUCT004 (not `nextDeductionDateISO` after on-time history seeding). */
+	credit4HrConfirmedPaymentDueDateISO: string
 	firstInstallmentForCsv: {
 		payrollNumber: string
 		amount: string
@@ -2880,6 +2885,9 @@ export const seedDeductionsQueue = async (
 	const applicantConfirmed = findUser(applicantDeductionsConfirmed.email)
 	const applicantConfirmedLate = findUser(
 		applicantDeductionsConfirmedLate.email,
+	)
+	const applicantConfirmedMxEdge = findUser(
+		applicantDeductionsConfirmedMxEdge.email,
 	)
 
 	// Compute next deduction date from the company's salary frequency — same
@@ -3167,12 +3175,17 @@ export const seedDeductionsQueue = async (
 
 	if (!credit4) throw new Error('Seed Deductions: credit 4 not created')
 
+	// On-time history row: due must be after confirmation in America/Mexico_City
+	// calendar. Using nextDeductionDate as due + hr at now-2m can mark the row
+	// late on month-end (UTC end-of-month vs CDMX). Due = now + 10y keeps "a tiempo" stable.
+	const credit4HistoryDue = new Date(now)
+	credit4HistoryDue.setUTCFullYear(credit4HistoryDue.getUTCFullYear() + 10)
 	// credit4 confirmed recently (more recent than credit5) → appears first in history
 	const credit4ConfirmedAt = new Date(now.getTime() - 2 * 60_000)
 	await db.insert(creditPayments).values([
 		{
 			creditId: credit4.id,
-			dueDate: nextDeductionDate,
+			dueDate: credit4HistoryDue,
 			amount: '15375.00',
 			hrConfirmedAt: credit4ConfirmedAt,
 			hrConfirmedByUserId: hrAgent.id,
@@ -3223,6 +3236,49 @@ export const seedDeductionsQueue = async (
 		},
 	])
 
+	// Credit 8: RH confirmed "next UTC day" but same Mexico City calendar day as due
+	// (aligns with resolveCreditDetailDeductionStatus Mexico City edge case).
+	const creditAmountMxEdge = '11000.00'
+	const [app8] = await db
+		.insert(applications)
+		.values({
+			applicantId: applicantConfirmedMxEdge.id,
+			companyId: company.id,
+			termOfferingId: offering.id,
+			creditAmount: creditAmountMxEdge,
+			salaryAtApplication: '11000',
+			salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+			status: 'disbursed' as const,
+			firstDiscountDate: new Date('2022-11-30T12:00:00.000Z'),
+			payrollNumber: 'DEDUCT008',
+		})
+		.returning()
+
+	if (!app8) throw new Error('Seed Deductions: application 8 not created')
+
+	const [credit8] = await db
+		.insert(credits)
+		.values({
+			applicationId: app8.id,
+			status: 'dispersed',
+			disbursementDate: now,
+			transferAmount: creditAmountMxEdge,
+			disbursedByUserId: applicantConfirmedMxEdge.id,
+		})
+		.returning()
+
+	if (!credit8) throw new Error('Seed Deductions: credit 8 not created')
+
+	await db.insert(creditPayments).values([
+		{
+			creditId: credit8.id,
+			dueDate: new Date('2022-11-30T12:00:00.000Z'),
+			amount: '11275.00',
+			hrConfirmedAt: new Date('2022-12-01T05:00:00.000Z'),
+			hrConfirmedByUserId: hrAgent.id,
+		},
+	])
+
 	const firstPayment = schedule1[0]
 	if (!firstPayment) throw new Error('Seed Deductions: schedule1 empty')
 
@@ -3242,7 +3298,11 @@ export const seedDeductionsQueue = async (
 		confirmedApplicationId: app4.id,
 		confirmedByName: hrAgent.name,
 		lateConfirmedApplicantName: applicantConfirmedLate.name,
+		mxEdgeOnTimeApplicantName: applicantConfirmedMxEdge.name,
 		nextDeductionDateISO,
+		credit4HrConfirmedPaymentDueDateISO: credit4HistoryDue
+			.toISOString()
+			.slice(0, 10),
 		firstInstallmentForCsv: {
 			payrollNumber: 'DEDUCT001',
 			amount: firstPayment.amount,
@@ -3494,18 +3554,16 @@ export const seedInstallmentsQueue =
 		await db.insert(creditPayments).values(
 			schedule1.map((entry, index) => {
 				if (index === 0) {
-					const dueY = entry.dueDate.getUTCFullYear()
-					const dueM = entry.dueDate.getUTCMonth()
-					const dueD = entry.dueDate.getUTCDate()
+					// Match confirmation instant to due so America/Mexico_City ymd
+					// matches (see isEquipoScheduleConfirmationOnTime). Noon on the
+					// UTC due date is often the *next* CDMX day vs midnight `dueDate`.
 					return {
 						creditId: credit1.id,
 						dueDate: entry.dueDate,
 						amount: entry.amount,
 						hrConfirmedAt: new Date(now.getTime() - 10 * 24 * 60 * 60_000),
 						hrConfirmedByUserId: hrQueueAgent.id,
-						installmentConfirmedAt: new Date(
-							Date.UTC(dueY, dueM, dueD, 12, 0, 0),
-						),
+						installmentConfirmedAt: new Date(entry.dueDate.getTime()),
 						installmentConfirmedByUserId: installmentQueueAgent.id,
 					}
 				}

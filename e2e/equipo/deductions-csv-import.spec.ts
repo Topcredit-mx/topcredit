@@ -147,7 +147,7 @@ test.describe('HR deductions CSV import', () => {
 		await page.getByRole('button', { name: /importar csv/i }).click()
 		const dialog = page.getByRole('dialog')
 		await expect(dialog).toBeVisible()
-		const dueDateISO = seed.nextDeductionDateISO.slice(0, 10)
+		const dueDateISO = seed.credit4HrConfirmedPaymentDueDateISO
 		const csvContent = [
 			'payroll_number,amount,date',
 			`DEDUCT004,15375.00,${dueDateISO}`,
@@ -176,11 +176,11 @@ test.describe('HR deductions CSV import', () => {
 		const dialog = page.getByRole('dialog')
 		await expect(dialog).toBeVisible()
 		const { payrollNumber, amount, dueDateISO } = seed.firstInstallmentForCsv
-		const dueDateISO2 = seed.nextDeductionDateISO.slice(0, 10)
+		const credit4Due = seed.credit4HrConfirmedPaymentDueDateISO
 		const csvContent = [
 			'payroll_number,amount,date',
 			`${payrollNumber},${amount},${dueDateISO}`,
-			`DEDUCT004,15375.00,${dueDateISO2}`,
+			`DEDUCT004,15375.00,${credit4Due}`,
 		].join('\n')
 		await dialog.locator('input[type="file"]').setInputFiles({
 			name: 'deducciones-mixed.csv',
@@ -216,11 +216,11 @@ test.describe('HR deductions CSV import', () => {
 		const dialog = page.getByRole('dialog')
 		await expect(dialog).toBeVisible()
 		const { payrollNumber, amount, dueDateISO } = seed.firstInstallmentForCsv
-		const dueDateISO2 = seed.nextDeductionDateISO.slice(0, 10)
+		const credit4Due = seed.credit4HrConfirmedPaymentDueDateISO
 		const csvContent = [
 			'payroll_number,amount,date',
 			`${payrollNumber},${amount},${dueDateISO}`,
-			`DEDUCT004,15375.00,${dueDateISO2}`,
+			`DEDUCT004,15375.00,${credit4Due}`,
 			'UNKNOWN999,not-a-number,2026-01-31',
 		].join('\n')
 		await dialog.locator('input[type="file"]').setInputFiles({
