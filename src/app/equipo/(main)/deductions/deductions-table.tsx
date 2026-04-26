@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import {
 	DataTable,
@@ -7,8 +8,9 @@ import {
 	DataTablePagination,
 } from '~/components/ui/data-table'
 import type { InstallmentForQueue } from '~/server/queries'
-import { BulkConfirmDeductionsBar } from './bulk-confirm-deductions-bar'
 import { useDeductionsColumns } from './columns'
+import { DeductionsQueueStats } from './deductions-queue-stats'
+import { DeductionsQueueToolbar } from './deductions-queue-toolbar'
 import { ExportDeductionsDialog } from './export-deductions-dialog'
 import { ImportDeductionsDialog } from './import-deductions-dialog'
 
@@ -23,23 +25,30 @@ export function DeductionsTable({
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 	companyName: string
 }) {
+	const t = useTranslations('equipo')
 	const columns = useDeductionsColumns()
 	const [exportOpen, setExportOpen] = useState(false)
 	const [importOpen, setImportOpen] = useState(false)
 
 	return (
-		<div className="min-w-0 space-y-4">
-			<DataTable columns={columns} data={installments} schema="deductions">
-				<BulkConfirmDeductionsBar
-					onExportClick={() => setExportOpen(true)}
-					onImportClick={() => setImportOpen(true)}
+		<div className="space-y-4">
+			<DataTable
+				columns={columns}
+				data={installments}
+				schema="deductions"
+				label={t('deductions-title')}
+				filterPlaceholder={t('table-filter-deductions')}
+				createLink={null}
+			>
+				<DeductionsQueueStats
 					nextDeductionDate={nextDeductionDate}
 					employeeSalaryFrequency={employeeSalaryFrequency}
 				/>
-				<DataTableContent
-					variant="equipoCredits"
-					wrapperClassName="rounded-none border-0"
+				<DeductionsQueueToolbar
+					onExportClick={() => setExportOpen(true)}
+					onImportClick={() => setImportOpen(true)}
 				/>
+				<DataTableContent />
 				<DataTablePagination />
 			</DataTable>
 			<ExportDeductionsDialog

@@ -1,4 +1,4 @@
-import { Building2, Wallet } from 'lucide-react'
+import { Building2 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
@@ -15,7 +15,6 @@ import {
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
 import { DeductionHistoryLog } from './deduction-history-log'
-import { DeductionsSecondaryNav } from './deductions-secondary-nav'
 import { DeductionsTable } from './deductions-table'
 
 export default async function DeductionsPage() {
@@ -41,10 +40,9 @@ export default async function DeductionsPage() {
 	if (selectedCompanyId === null) {
 		return (
 			<div className="container mx-auto min-w-0 py-6">
-				<h1 className="mb-2 font-semibold text-2xl text-foreground tracking-tight">
+				<h1 className="mb-6 font-semibold text-2xl text-foreground tracking-tight">
 					{t('deductions-title')}
 				</h1>
-				<DeductionsSecondaryNav />
 				<div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-muted/30 p-12 text-center">
 					<div className="flex size-16 items-center justify-center rounded-full bg-muted">
 						<Building2 className="size-8 text-muted-foreground" />
@@ -82,33 +80,22 @@ export default async function DeductionsPage() {
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
-			<h1 className="mb-2 font-semibold text-2xl text-foreground tracking-tight">
+			<h1 className="mb-6 font-semibold text-2xl text-foreground tracking-tight">
 				{t('deductions-title')}
 			</h1>
-			<DeductionsSecondaryNav />
-			<div className="mb-6 flex items-center gap-2">
-				<div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-muted-foreground">
-					<Wallet className="size-4" aria-hidden />
-				</div>
-				<p className="text-muted-foreground text-sm">
-					{t('deductions-subtitle')}
-				</p>
-			</div>
 			{installmentsFiltered.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">{t('deductions-empty')}</p>
 				</Card>
 			) : (
-				<Card className="overflow-hidden">
-					<DeductionsTable
-						installments={installmentsFiltered}
-						nextDeductionDate={nextDeductionDateStr}
-						employeeSalaryFrequency={
-							company?.employeeSalaryFrequency ?? 'monthly'
-						}
-						companyName={company?.name ?? ''}
-					/>
-				</Card>
+				<DeductionsTable
+					installments={installmentsFiltered}
+					nextDeductionDate={nextDeductionDateStr}
+					employeeSalaryFrequency={
+						company?.employeeSalaryFrequency ?? 'monthly'
+					}
+					companyName={company?.name ?? ''}
+				/>
 			)}
 			<div className="mt-10">
 				<DeductionHistoryLog
