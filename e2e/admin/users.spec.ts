@@ -16,7 +16,7 @@ import {
 	seedAdminUsers,
 } from '~/e2e/server/tasks'
 import { loginPage } from '../helpers/auth'
-import { findTableRow } from '../helpers/interactions'
+import { findTableRow, mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import { clickRoleCheckbox, findRoleCheckbox } from '../helpers/users'
 
@@ -74,7 +74,7 @@ test.describe('Admin Users', () => {
 		test.beforeEach(async ({ page }) => {
 			await loginPage(page, adminUser.email)
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 		})
 
 		test('displays users table with correct columns', async ({ page }) => {
@@ -112,6 +112,26 @@ test.describe('Admin Users', () => {
 			await expect(
 				authTh.locator('svg[aria-hidden="true"]').first(),
 			).toBeAttached()
+			const rhTh = page
+				.locator('table thead th')
+				.filter({ hasText: /^RH$/ })
+				.first()
+			await expect(rhTh).toBeAttached()
+			await expect(
+				rhTh.locator('svg[aria-hidden="true"]').first(),
+			).toBeAttached()
+			await expect(th(/dispersiones/i)).toBeAttached()
+			await expect(
+				th(/dispersiones/i)
+					.locator('svg[aria-hidden="true"]')
+					.first(),
+			).toBeAttached()
+			await expect(th(/instalaciones/i)).toBeAttached()
+			await expect(
+				th(/instalaciones/i)
+					.locator('svg[aria-hidden="true"]')
+					.first(),
+			).toBeAttached()
 			await expect(th(/admin/i)).toBeAttached()
 			await expect(
 				th(/admin/i).locator('svg[aria-hidden="true"]').first(),
@@ -139,11 +159,11 @@ test.describe('Admin Users', () => {
 			await expect(page.getByText(users.bob.name)).toBeAttached()
 		})
 
-		test('displays checkboxes for requests, pre-authorizations, authorizations and admin roles', async ({
+		test('displays a checkbox for each assignable role column', async ({
 			page,
 		}) => {
 			const row = findTableRow(page, users.jane.name)
-			await expect(row.locator('button[role="checkbox"]')).toHaveCount(4)
+			await expect(row.locator('button[role="checkbox"]')).toHaveCount(7)
 		})
 	})
 
@@ -151,7 +171,7 @@ test.describe('Admin Users', () => {
 		test.beforeEach(async ({ page }) => {
 			await loginPage(page, adminUser.email)
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 		})
 
 		test('filters users by name', async ({ page }) => {
@@ -223,7 +243,7 @@ test.describe('Admin Users', () => {
 		test.beforeEach(async ({ page }) => {
 			await loginPage(page, adminUser.email)
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 		})
 
 		test('toggles role on checkbox click', async ({ page }) => {

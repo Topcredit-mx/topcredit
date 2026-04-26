@@ -4,6 +4,9 @@ export const ASSIGNABLE_ROLES: Role[] = [
 	'requests',
 	'pre-authorizations',
 	'authorizations',
+	'hr',
+	'dispersions',
+	'installments',
 	'admin',
 ]
 

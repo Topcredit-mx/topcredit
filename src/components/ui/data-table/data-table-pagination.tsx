@@ -46,7 +46,7 @@ export function DataTablePagination<TData>() {
 	}
 
 	return (
-		<div className="flex min-w-0 flex-col gap-3 px-2 py-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-y-2">
+		<div className="mt-4 flex min-w-0 flex-col gap-3 px-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-y-2">
 			<div className="min-w-0 text-muted-foreground text-sm sm:flex-1">
 				{t('data-table-rows-selected', {
 					selected: selectedCount,

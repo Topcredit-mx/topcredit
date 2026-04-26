@@ -7,10 +7,13 @@ import {
 	CalendarDays,
 	ClipboardList,
 	FileSignature,
+	LayoutList,
 	Loader2,
 	Mail,
 	Shield,
 	UserRound,
+	Users,
+	Wallet,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -288,6 +291,12 @@ export function createColumns(
 				return <FileSignature aria-hidden />
 			case 'authorizations':
 				return <BadgeCheck aria-hidden />
+			case 'hr':
+				return <Users aria-hidden />
+			case 'dispersions':
+				return <Wallet aria-hidden />
+			case 'installments':
+				return <LayoutList aria-hidden />
 			case 'admin':
 				return <Shield aria-hidden />
 			default:
