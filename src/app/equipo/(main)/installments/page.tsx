@@ -74,11 +74,8 @@ export default async function InstallmentsPage() {
 		? getUpcomingDeductionDateYmd(company.employeeSalaryFrequency, new Date())
 		: undefined
 	const payPeriodComparison =
-		company !== null && nextDeductionDateStr !== undefined
-			? {
-					upcomingDeductionDateYmd: nextDeductionDateStr,
-					employeeSalaryFrequency: company.employeeSalaryFrequency,
-				}
+		company !== null
+			? { employeeSalaryFrequency: company.employeeSalaryFrequency }
 			: undefined
 
 	const [

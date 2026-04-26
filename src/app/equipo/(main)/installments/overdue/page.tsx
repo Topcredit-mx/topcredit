@@ -2,7 +2,6 @@ import { Building2 } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
-import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
@@ -65,15 +64,9 @@ export default async function InstallmentsOverduePage() {
 
 	const scope = await getEffectiveCompanyScope()
 	const company = await getCompanyById(selectedCompanyId)
-	const nextDeductionDateStr = company
-		? getUpcomingDeductionDateYmd(company.employeeSalaryFrequency, new Date())
-		: undefined
 	const payPeriodComparison =
-		company !== null && nextDeductionDateStr !== undefined
-			? {
-					upcomingDeductionDateYmd: nextDeductionDateStr,
-					employeeSalaryFrequency: company.employeeSalaryFrequency,
-				}
+		company !== null
+			? { employeeSalaryFrequency: company.employeeSalaryFrequency }
 			: undefined
 
 	const [installments, collectedAmount, collectedCount, oldestPending] =

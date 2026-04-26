@@ -1694,7 +1694,6 @@ function rollingWindowBounds(periodDays: number): {
 }
 
 export type PaymentsOverviewPayPeriodComparison = {
-	upcomingDeductionDateYmd: string
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 }
 
@@ -1707,10 +1706,7 @@ function paymentsCollectedWindowBounds(
 	previousStart: Date
 	previousEnd: Date
 } {
-	if (
-		payPeriodComparison !== undefined &&
-		payPeriodComparison.upcomingDeductionDateYmd !== ''
-	) {
+	if (payPeriodComparison !== undefined) {
 		return getPayPeriodComparisonBounds(
 			payPeriodComparison.employeeSalaryFrequency,
 			new Date(),
