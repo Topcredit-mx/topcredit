@@ -65,17 +65,17 @@ export default async function ApplicationsListPage() {
 					<div className="overflow-x-auto">
 						<table className="w-full">
 							<thead>
-								<tr className="border-slate-100 border-b bg-slate-50/80 text-left text-[11px] text-slate-500 uppercase tracking-wide">
-									<th className="px-5 py-3 font-semibold" scope="col">
+								<tr className="border-slate-100 border-b bg-slate-50/80 text-left text-[11px] text-muted-foreground uppercase tracking-wide">
+									<th className="px-5 py-3 font-medium" scope="col">
 										{t('th-status')}
 									</th>
-									<th className="px-5 py-3 font-semibold" scope="col">
+									<th className="px-5 py-3 font-medium" scope="col">
 										{t('th-amount')}
 									</th>
-									<th className="px-5 py-3 font-semibold" scope="col">
+									<th className="px-5 py-3 font-medium" scope="col">
 										{t('th-date')}
 									</th>
-									<th className="px-5 py-3 font-semibold" scope="col">
+									<th className="px-5 py-3 font-medium" scope="col">
 										{t('th-view')}
 									</th>
 								</tr>
@@ -86,18 +86,18 @@ export default async function ApplicationsListPage() {
 										key={app.id}
 										className="border-slate-100 border-b last:border-0 hover:bg-slate-50/80"
 									>
-										<td className="px-5 py-3.5 text-slate-800">
+										<td className="px-5 py-3.5 text-slate-800 text-sm">
 											{t(
 												CUENTA_APPLICATION_STATUS_KEYS[app.status] ??
 													'status-pending',
 											)}
 										</td>
-										<td className="px-5 py-3.5 text-slate-800">
+										<td className="px-5 py-3.5 text-slate-800 text-sm">
 											{app.creditAmount
 												? formatCurrencyMxn(app.creditAmount)
 												: t('detail-value-pending')}
 										</td>
-										<td className="px-5 py-3.5 text-slate-600">
+										<td className="px-5 py-3.5 text-muted-foreground text-sm">
 											<FormattedDate value={app.createdAt.toISOString()} />
 										</td>
 										<td className="px-5 py-3.5">

@@ -1,11 +1,18 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import {
+	CalendarClock,
+	CircleDollarSign,
+	ListChecks,
+	User,
+	UserRound,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { EquipoWorkflowStatusPresentation } from '~/components/equipo/equipo-workflow-status-presentation'
 import { FormattedDate } from '~/components/formatted-date'
-import { DataTableColumnHeader } from '~/components/ui/data-table'
+import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
 import { historyTimingStatus } from '~/lib/equipo-workflow-status'
 import { formatCurrencyMxn } from '~/lib/utils'
 import type { DeductionConfirmationHistoryItem } from '~/server/queries'
@@ -16,16 +23,18 @@ export function useDeductionHistoryColumns(): ColumnDef<DeductionConfirmationHis
 	return [
 		{
 			accessorKey: 'employeeName',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('deductions-col-employee')}
+					icon={<UserRound aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => (
 				<Link
 					href={`/equipo/applications/${row.original.applicationId}`}
-					className="font-medium hover:underline"
+					className="font-medium text-slate-800 text-sm hover:underline"
 				>
 					{row.getValue('employeeName')}
 				</Link>
@@ -33,24 +42,28 @@ export function useDeductionHistoryColumns(): ColumnDef<DeductionConfirmationHis
 		},
 		{
 			accessorKey: 'amount',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('deductions-col-amount')}
+					icon={<CircleDollarSign aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => (
-				<div className="font-medium">
+				<div className="font-medium text-slate-800 text-sm">
 					{formatCurrencyMxn(row.getValue('amount'))}
 				</div>
 			),
 		},
 		{
 			id: 'confirmedBy',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('deductions-history-confirmed-by')}
+					icon={<User aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => {
@@ -61,10 +74,12 @@ export function useDeductionHistoryColumns(): ColumnDef<DeductionConfirmationHis
 		},
 		{
 			accessorKey: 'hrConfirmedAt',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('deductions-history-col-confirmed-at')}
+					icon={<CalendarClock aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => (
@@ -78,10 +93,12 @@ export function useDeductionHistoryColumns(): ColumnDef<DeductionConfirmationHis
 		},
 		{
 			accessorKey: 'confirmedOnTime',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('deductions-history-col-timing')}
+					icon={<ListChecks aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => {

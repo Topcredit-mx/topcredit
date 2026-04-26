@@ -37,12 +37,12 @@ export function ApplicationsStatusFilter({
 	}
 
 	return (
-		<div className="mb-4 flex justify-end">
+		<div className="flex shrink-0 justify-end">
 			<Select value={value} onValueChange={onValueChange}>
 				<SelectTrigger
 					id="applications-status-filter"
 					name="status"
-					className="w-[180px]"
+					className="w-full min-w-[180px] sm:w-[180px]"
 					size="sm"
 				>
 					<SelectValue />

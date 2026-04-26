@@ -235,7 +235,9 @@ function CompanyAssignmentCell({
 										htmlFor={`company-${company.id}`}
 										className="flex-1 cursor-pointer"
 									>
-										<div className="font-medium">{company.name}</div>
+										<div className="font-medium text-slate-800 text-sm">
+											{company.name}
+										</div>
 										<div className="text-muted-foreground text-sm">
 											{company.domain}
 										</div>
@@ -316,7 +318,11 @@ export function createColumns(
 				/>
 			),
 			cell: ({ row }) => {
-				return <div className="font-medium">{row.getValue('name')}</div>
+				return (
+					<div className="font-medium text-slate-800 text-sm">
+						{row.getValue('name')}
+					</div>
+				)
 			},
 		},
 		{
@@ -330,7 +336,9 @@ export function createColumns(
 			),
 			cell: ({ row }) => {
 				return (
-					<div className="text-muted-foreground">{row.getValue('email')}</div>
+					<div className="text-muted-foreground text-sm">
+						{row.getValue('email')}
+					</div>
 				)
 			},
 		},
@@ -393,7 +401,7 @@ export function createColumns(
 			cell: ({ row }) => {
 				const date: string = row.getValue('createdAt')
 				return (
-					<div className="text-muted-foreground">
+					<div className="text-muted-foreground text-sm">
 						<FormattedDate value={date} />
 					</div>
 				)

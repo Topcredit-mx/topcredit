@@ -62,19 +62,30 @@ export default async function AppApplicationsPage({
 	}
 
 	return (
-		<div className="container mx-auto py-6">
-			<ApplicationsStatusFilter
-				currentStatus={currentStatus}
-				labels={filterLabels}
-			/>
+		<div className="container mx-auto min-w-0 py-6">
+			<h1 className="mb-6 font-semibold text-2xl text-foreground tracking-tight">
+				{t('applications-title')}
+			</h1>
 			{applications.length === 0 ? (
-				<Card className="p-8 text-center">
-					<p className="text-muted-foreground">
-						{t('applications-empty-no-results')}
-					</p>
-				</Card>
+				<div className="space-y-4">
+					<div className="flex justify-end">
+						<ApplicationsStatusFilter
+							currentStatus={currentStatus}
+							labels={filterLabels}
+						/>
+					</div>
+					<Card className="p-8 text-center">
+						<p className="text-muted-foreground">
+							{t('applications-empty-no-results')}
+						</p>
+					</Card>
+				</div>
 			) : (
-				<ApplicationsTable applications={applications} />
+				<ApplicationsTable
+					applications={applications}
+					currentStatus={currentStatus}
+					filterLabels={filterLabels}
+				/>
 			)}
 		</div>
 	)

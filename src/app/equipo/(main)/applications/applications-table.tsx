@@ -1,87 +1,53 @@
-import { getTranslations } from 'next-intl/server'
-import { FormattedDate } from '~/components/formatted-date'
-import { ListDetailLink } from '~/components/list-detail-link'
-import { Button } from '~/components/ui/button'
-import { EQUIPO_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
-import { getPrefetchStrategy } from '~/lib/prefetch-strategy'
-import { formatCurrencyMxn } from '~/lib/utils'
-import type { ApplicationForReview } from '~/server/queries'
-import { formatApplicationTerm } from './constants'
+'use client'
 
-export async function ApplicationsTable({
+import { useTranslations } from 'next-intl'
+import {
+	DataTable,
+	DataTableContent,
+	DataTableHeader,
+	DataTablePagination,
+} from '~/components/ui/data-table'
+import type { ApplicationStatus } from '~/server/db/schema'
+import type { ApplicationForReview } from '~/server/queries'
+import { useApplicationsColumns } from './applications-columns'
+import {
+	ApplicationsStatusFilter,
+	type ApplicationsStatusFilterLabels,
+} from './applications-status-filter'
+
+export function ApplicationsTable({
 	applications,
+	currentStatus,
+	filterLabels,
 }: {
 	applications: ApplicationForReview[]
+	currentStatus: ApplicationStatus | undefined
+	filterLabels: ApplicationsStatusFilterLabels
 }) {
-	const t = await getTranslations('equipo')
+	const t = useTranslations('equipo')
+	const columns = useApplicationsColumns(applications.length)
+
 	return (
-		<div className="overflow-x-auto rounded-md border">
-			<table className="w-full">
-				<thead>
-					<tr className="border-b bg-muted/50 text-left text-sm">
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-col-applicant')}
-						</th>
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-col-amount')}
-						</th>
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-col-term')}
-						</th>
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-col-status')}
-						</th>
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-col-date')}
-						</th>
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-actions')}
-						</th>
-					</tr>
-				</thead>
-				<tbody>
-					{applications.map((app) => (
-						<tr
-							key={app.id}
-							className="border-b last:border-0 hover:bg-muted/30"
-						>
-							<td className="px-4 py-3">
-								<div className="font-medium">{app.applicant.name}</div>
-								<div className="text-muted-foreground text-sm">
-									{app.companyDomain}
-								</div>
-							</td>
-							<td className="px-4 py-3">
-								{app.creditAmount
-									? formatCurrencyMxn(app.creditAmount)
-									: t('applications-detail-value-pending')}
-							</td>
-							<td className="px-4 py-3 text-muted-foreground">
-								{app.termOffering
-									? formatApplicationTerm(app.termOffering, t)
-									: t('applications-detail-value-pending')}
-							</td>
-							<td className="px-4 py-3">
-								{t(EQUIPO_APPLICATION_STATUS_KEYS[app.status])}
-							</td>
-							<td className="px-4 py-3 text-muted-foreground text-sm">
-								<FormattedDate value={app.createdAt.toISOString()} />
-							</td>
-							<td className="px-4 py-3">
-								<Button variant="ghost" size="sm" asChild>
-									<ListDetailLink
-										href={`/equipo/applications/${app.id}`}
-										aria-label={`${t('applications-review')} solicitud`}
-										prefetchStrategy={getPrefetchStrategy(applications.length)}
-									>
-										{t('applications-review')}
-									</ListDetailLink>
-								</Button>
-							</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
+		<div className="space-y-4">
+			<DataTable
+				columns={columns}
+				data={applications}
+				schema="applications"
+				label={t('applications-title')}
+				createLink={null}
+				enableRowSelection={false}
+				initialColumnVisibility={{ _search: false }}
+				filterPlaceholder={t('applications-table-filter')}
+			>
+				<DataTableHeader className="pb-2" disableCreateButton>
+					<ApplicationsStatusFilter
+						currentStatus={currentStatus}
+						labels={filterLabels}
+					/>
+				</DataTableHeader>
+				<DataTableContent />
+				<DataTablePagination />
+			</DataTable>
 		</div>
 	)
 }

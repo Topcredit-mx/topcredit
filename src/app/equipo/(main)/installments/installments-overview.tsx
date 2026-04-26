@@ -7,7 +7,6 @@ import {
 	TrendingUp,
 } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
-import { Card } from '~/components/ui/card'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 
 type Props = {
@@ -30,14 +29,14 @@ export async function InstallmentsOverview({
 	const t = await getTranslations('equipo')
 
 	return (
-		<section aria-labelledby="installments-overview-heading" className="mb-6">
+		<section aria-labelledby="installments-overview-heading" className="mb-4">
 			<h2
 				id="installments-overview-heading"
 				className="mb-3 font-medium text-muted-foreground text-sm"
 			>
 				{t('installments-overview-heading')}
 			</h2>
-			<div className="grid gap-4 md:grid-cols-3">
+			<div className="grid gap-3 md:grid-cols-3">
 				<StatCard
 					title={t('installments-overview-total-collected')}
 					value={formatCurrencyMxn(totalCollectedAmount)}
@@ -55,6 +54,7 @@ export async function InstallmentsOverview({
 					trendPositiveIsGood
 				/>
 				<StatCard
+					data-testid="installments-overview-oldest-pending"
 					title={t('installments-overview-oldest-pending')}
 					value={
 						!pendingAgeApplicable
@@ -79,6 +79,7 @@ type StatCardProps = {
 	changePercent?: number | null
 	changeLabel?: string
 	trendPositiveIsGood?: boolean
+	'data-testid'?: string
 }
 
 function StatCard({
@@ -88,14 +89,20 @@ function StatCard({
 	changePercent,
 	changeLabel,
 	trendPositiveIsGood,
+	'data-testid': dataTestId,
 }: StatCardProps) {
 	return (
-		<Card className="gap-3 p-6">
+		<div
+			data-testid={dataTestId}
+			className="flex flex-col gap-2 rounded-md border bg-muted/25 p-4"
+		>
 			<div className="flex items-center gap-2 text-muted-foreground">
 				<Icon className="size-4" />
 				<span className="font-medium text-sm">{title}</span>
 			</div>
-			<p className="font-bold text-2xl text-foreground">{value}</p>
+			<p className="font-semibold text-foreground text-xl leading-tight">
+				{value}
+			</p>
 			{changeLabel !== undefined && (
 				<div className="flex items-center gap-1.5">
 					<ChangeBadge
@@ -105,7 +112,7 @@ function StatCard({
 					<span className="text-muted-foreground text-xs">{changeLabel}</span>
 				</div>
 			)}
-		</Card>
+		</div>
 	)
 }
 

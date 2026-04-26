@@ -29,7 +29,10 @@ export default async function DeductionHistoryPage() {
 	const historyItems = await getDeductionConfirmationHistory(scope)
 
 	return (
-		<div className="container mx-auto py-6">
+		<div className="container mx-auto min-w-0 py-6">
+			<h1 className="mb-6 font-semibold text-2xl text-foreground tracking-tight">
+				{t('deductions-history-full-title')}
+			</h1>
 			{historyItems.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">

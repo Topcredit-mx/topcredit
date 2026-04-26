@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import {
 	DataTable,
@@ -8,10 +9,10 @@ import {
 } from '~/components/ui/data-table'
 import { canConfirmInstallmentInQueue } from '~/lib/installment-confirmation'
 import type { InstallmentForQueue } from '~/server/queries'
-import { BulkConfirmInstallmentsBar } from './bulk-confirm-installments-bar'
 import { useInstallmentsQueueColumns } from './columns'
 import { ImportInstallmentsCsvDialog } from './import-installments-csv-dialog'
-import { InstallmentsQueueSummary } from './installments-queue-summary'
+import { InstallmentsQueueStats } from './installments-queue-stats'
+import { InstallmentsQueueToolbar } from './installments-queue-toolbar'
 
 export function InstallmentsQueueTable({
 	installments,
@@ -24,31 +25,29 @@ export function InstallmentsQueueTable({
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 	companyName: string
 }) {
+	const t = useTranslations('equipo')
 	const columns = useInstallmentsQueueColumns()
 	const [importOpen, setImportOpen] = useState(false)
 
 	return (
-		<div className="min-w-0 space-y-4">
+		<div className="space-y-4">
 			<DataTable
 				columns={columns}
 				data={installments}
 				schema="installments"
+				label={t('installments-title')}
+				filterPlaceholder={t('table-filter-installments')}
+				createLink={null}
 				enableRowSelection={(row) => canConfirmInstallmentInQueue(row.original)}
 			>
-				<div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-					<div className="flex min-w-0 flex-1 items-center">
-						<InstallmentsQueueSummary
-							nextDeductionDate={nextDeductionDate}
-							employeeSalaryFrequency={employeeSalaryFrequency}
-						/>
-					</div>
-					<div className="relative z-10 shrink-0">
-						<BulkConfirmInstallmentsBar
-							companyName={companyName}
-							onImportClick={() => setImportOpen(true)}
-						/>
-					</div>
-				</div>
+				<InstallmentsQueueStats
+					nextDeductionDate={nextDeductionDate}
+					employeeSalaryFrequency={employeeSalaryFrequency}
+				/>
+				<InstallmentsQueueToolbar
+					companyName={companyName}
+					onImportClick={() => setImportOpen(true)}
+				/>
 				<DataTableContent />
 				<DataTablePagination />
 			</DataTable>

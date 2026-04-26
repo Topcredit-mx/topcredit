@@ -1,8 +1,10 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import {
 	DataTable,
 	DataTableContent,
+	DataTableHeader,
 	DataTablePagination,
 } from '~/components/ui/data-table'
 import type { DeductionConfirmationHistoryItem } from '~/server/queries'
@@ -13,12 +15,23 @@ export function DeductionHistoryTable({
 }: {
 	items: DeductionConfirmationHistoryItem[]
 }) {
+	const t = useTranslations('equipo')
 	const columns = useDeductionHistoryColumns()
 
 	return (
-		<DataTable columns={columns} data={items} schema="deductions-history">
-			<DataTableContent />
-			<DataTablePagination />
-		</DataTable>
+		<div className="space-y-4">
+			<DataTable
+				columns={columns}
+				data={items}
+				schema="deductions-history"
+				label={t('deductions-history-full-title')}
+				filterPlaceholder={t('table-filter-deductions-history')}
+				createLink={null}
+			>
+				<DataTableHeader className="pb-2" disableCreateButton />
+				<DataTableContent />
+				<DataTablePagination />
+			</DataTable>
+		</div>
 	)
 }

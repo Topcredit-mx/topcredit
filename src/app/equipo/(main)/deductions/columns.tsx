@@ -1,11 +1,12 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import { Activity, Building2, CircleDollarSign, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { EquipoWorkflowStatusPresentation } from '~/components/equipo/equipo-workflow-status-presentation'
 import { Checkbox } from '~/components/ui/checkbox'
-import { DataTableColumnHeader } from '~/components/ui/data-table'
+import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
 import { resolveQueueWorkflowStatus } from '~/lib/equipo-workflow-status'
 import { formatCurrencyMxn } from '~/lib/utils'
 import type { InstallmentForQueue } from '~/server/queries'
@@ -38,10 +39,12 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 		},
 		{
 			accessorKey: 'employeeName',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('deductions-col-employee')}
+					icon={<UserRound aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => {
@@ -51,7 +54,7 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 					<div>
 						<Link
 							href={`/equipo/credits/${creditId}`}
-							className="font-medium hover:underline"
+							className="font-medium text-slate-800 text-sm hover:underline"
 						>
 							{row.getValue('employeeName')}
 						</Link>
@@ -66,10 +69,12 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 		},
 		{
 			accessorKey: 'companyName',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('deductions-col-company')}
+					icon={<Building2 aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => (
@@ -80,24 +85,28 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 		},
 		{
 			accessorKey: 'amount',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('deductions-col-amount')}
+					icon={<CircleDollarSign aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => (
-				<div className="font-medium">
+				<div className="font-medium text-slate-800 text-sm">
 					{formatCurrencyMxn(row.getValue('amount'))}
 				</div>
 			),
 		},
 		{
 			id: 'workflowStatus',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('equipo-col-workflow-status')}
+					icon={<Activity aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => {
@@ -113,7 +122,6 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 					/>
 				)
 			},
-			enableSorting: false,
 		},
 	]
 }

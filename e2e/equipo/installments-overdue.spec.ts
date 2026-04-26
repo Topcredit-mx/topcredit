@@ -70,25 +70,22 @@ test.describe('Installments overdue page', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/installments/overdue')
-			const card = page
-				.locator('[data-slot="card"]')
-				.filter({ has: page.getByText(/total cobrado \(7 días\)/i) })
-				.first()
-			await expect(card.getByText(/vs semana anterior/i).first()).toBeVisible()
+			const overview = page.locator(
+				'[aria-labelledby="installments-overview-heading"]',
+			)
+			await expect(overview).toBeVisible()
+			await expect(
+				overview.getByText(/vs semana anterior/i).first(),
+			).toBeVisible()
 		})
 
 		test('shows oldest pending age in days when overdue rows exist', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/installments/overdue')
-			const card = page
-				.locator('[data-slot="card"]')
-				.filter({
-					has: page.getByText(
-						/antigüedad de la instalación pendiente más antigua/i,
-					),
-				})
-				.first()
+			const card = page.locator(
+				'[data-testid="installments-overview-oldest-pending"]',
+			)
 			await expect(card.getByText(/\d+ días/i).first()).toBeVisible()
 		})
 
@@ -97,7 +94,7 @@ test.describe('Installments overdue page', () => {
 		}) => {
 			await page.goto('/equipo/installments/overdue')
 			await expect(
-				page.getByRole('heading', { name: /instalaciones atrasadas/i }),
+				page.getByRole('heading', { level: 1, name: /^instalaciones$/i }),
 			).toBeVisible()
 			const table = mainDataTable(page)
 			await expect(table).toBeVisible()

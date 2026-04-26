@@ -3,6 +3,7 @@
 import { Settings2 } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { cn } from '~/lib/utils'
 import { Button } from '../button'
 import {
 	DropdownMenu,
@@ -40,7 +41,7 @@ export function DataTableHeader<TData>({
 
 	return (
 		<div
-			className={`flex items-center justify-between gap-2 pb-4 ${className}`}
+			className={cn('flex items-center justify-between gap-2 pb-4', className)}
 		>
 			<div className="flex items-center gap-2">
 				<Input

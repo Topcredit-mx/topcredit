@@ -43,7 +43,7 @@ export function CreditsTable({ credits }: CreditsTableProps) {
 					<div>
 						<Link
 							href={`/equipo/credits/${credit.id}`}
-							className="font-medium hover:underline"
+							className="font-medium text-slate-800 text-sm hover:underline"
 						>
 							{credit.employeeName}
 						</Link>
@@ -69,7 +69,7 @@ export function CreditsTable({ credits }: CreditsTableProps) {
 			cell: ({ row }) => {
 				const amount = row.getValue('transferAmount')
 				return (
-					<div className="text-muted-foreground">
+					<div className="font-medium text-slate-800 text-sm">
 						{typeof amount === 'string' ? formatCurrencyMxn(amount) : ''}
 					</div>
 				)
@@ -88,7 +88,7 @@ export function CreditsTable({ credits }: CreditsTableProps) {
 			cell: ({ row }) => {
 				const value = row.getValue('disbursementDate')
 				return (
-					<div className="text-muted-foreground">
+					<div className="text-muted-foreground text-sm">
 						{typeof value === 'string' ? (
 							<FormattedDate value={value} format="date" />
 						) : null}

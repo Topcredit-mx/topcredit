@@ -280,16 +280,28 @@ function PreviewStage({
 							<table className="w-full text-sm">
 								<thead>
 									<tr className="border-b bg-muted/50 text-left">
-										<th className="px-3 py-2 font-medium">
+										<th
+											scope="col"
+											className="px-3 py-2 font-medium text-muted-foreground"
+										>
 											{t('installments-import-col-payroll')}
 										</th>
-										<th className="px-3 py-2 font-medium">
+										<th
+											scope="col"
+											className="px-3 py-2 font-medium text-muted-foreground"
+										>
 											{t('installments-import-col-amount')}
 										</th>
-										<th className="px-3 py-2 font-medium">
+										<th
+											scope="col"
+											className="px-3 py-2 font-medium text-muted-foreground"
+										>
 											{t('installments-import-col-date')}
 										</th>
-										<th className="px-3 py-2 font-medium">
+										<th
+											scope="col"
+											className="px-3 py-2 font-medium text-muted-foreground"
+										>
 											{t('installments-import-col-reason')}
 										</th>
 									</tr>
@@ -297,9 +309,15 @@ function PreviewStage({
 								<tbody>
 									{state.warnings.map((w) => (
 										<tr key={w.line} className="border-b last:border-0">
-											<td className="px-3 py-2">{w.payrollNumber ?? '—'}</td>
-											<td className="px-3 py-2">{w.amount ?? '—'}</td>
-											<td className="px-3 py-2">{w.dueDate ?? '—'}</td>
+											<td className="px-3 py-2 text-slate-800">
+												{w.payrollNumber ?? '—'}
+											</td>
+											<td className="px-3 py-2 text-slate-800">
+												{w.amount ?? '—'}
+											</td>
+											<td className="px-3 py-2 text-slate-800">
+												{w.dueDate ?? '—'}
+											</td>
 											<td className="px-3 py-2 text-amber-700">
 												{warningReason(w, t)}
 											</td>
@@ -321,16 +339,28 @@ function PreviewStage({
 							<table className="w-full text-sm">
 								<thead>
 									<tr className="border-b bg-muted/50 text-left">
-										<th className="px-3 py-2 font-medium">
+										<th
+											scope="col"
+											className="px-3 py-2 font-medium text-muted-foreground"
+										>
 											{t('installments-import-col-payroll')}
 										</th>
-										<th className="px-3 py-2 font-medium">
+										<th
+											scope="col"
+											className="px-3 py-2 font-medium text-muted-foreground"
+										>
 											{t('installments-import-col-amount')}
 										</th>
-										<th className="px-3 py-2 font-medium">
+										<th
+											scope="col"
+											className="px-3 py-2 font-medium text-muted-foreground"
+										>
 											{t('installments-import-col-date')}
 										</th>
-										<th className="px-3 py-2 font-medium">
+										<th
+											scope="col"
+											className="px-3 py-2 font-medium text-muted-foreground"
+										>
 											{t('installments-import-col-error')}
 										</th>
 									</tr>
@@ -338,9 +368,15 @@ function PreviewStage({
 								<tbody>
 									{state.errors.map((err) => (
 										<tr key={err.line} className="border-b last:border-0">
-											<td className="px-3 py-2">{err.payrollNumber ?? '—'}</td>
-											<td className="px-3 py-2">{err.amount ?? '—'}</td>
-											<td className="px-3 py-2">{err.dueDate ?? '—'}</td>
+											<td className="px-3 py-2 text-slate-800">
+												{err.payrollNumber ?? '—'}
+											</td>
+											<td className="px-3 py-2 text-slate-800">
+												{err.amount ?? '—'}
+											</td>
+											<td className="px-3 py-2 text-slate-800">
+												{err.dueDate ?? '—'}
+											</td>
 											<td className="px-3 py-2 text-destructive">
 												{errorCellMessage(err, t)}
 											</td>

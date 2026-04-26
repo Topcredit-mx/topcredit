@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { Card } from '~/components/ui/card'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
@@ -37,7 +38,10 @@ export default async function InstallmentsHistoryPage() {
 	])
 
 	return (
-		<div className="container mx-auto py-6">
+		<div className="container mx-auto min-w-0 py-6">
+			<h1 className="mb-6 font-semibold text-2xl text-foreground tracking-tight">
+				{t('installments-history-full-title')}
+			</h1>
 			<InstallmentsOverview
 				totalCollectedAmount={collectedAmount.totalAmount}
 				amountChangePercent={collectedAmount.changePercent}
@@ -47,9 +51,11 @@ export default async function InstallmentsHistoryPage() {
 				pendingAgeApplicable={false}
 			/>
 			{historyItems.length === 0 ? (
-				<p className="text-center text-muted-foreground text-sm">
-					{t('installments-history-full-empty')}
-				</p>
+				<Card className="p-8 text-center">
+					<p className="text-muted-foreground text-sm">
+						{t('installments-history-full-empty')}
+					</p>
+				</Card>
 			) : (
 				<InstallmentHistoryTable items={historyItems} />
 			)}

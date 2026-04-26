@@ -106,14 +106,9 @@ test.describe('Installments queue', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/installments')
-			const card = page
-				.locator('[data-slot="card"]')
-				.filter({
-					has: page.getByText(
-						/antigüedad de la instalación pendiente más antigua/i,
-					),
-				})
-				.first()
+			const card = page.locator(
+				'[data-testid="installments-overview-oldest-pending"]',
+			)
 			await expect(card.getByText(/0 días/i).first()).toBeVisible()
 		})
 
@@ -152,7 +147,7 @@ test.describe('Installments queue', () => {
 			await page.goto('/equipo/installments')
 			const main = page.getByRole('main')
 			await expect(main.getByText(/próxima deducción/i).first()).toBeVisible()
-			await expect(main.getByText(/nómina:/i).first()).toBeVisible()
+			await expect(main.getByText(/nómina/i).first()).toBeVisible()
 			await expect(main.getByText(/mensual/i).first()).toBeVisible()
 		})
 
