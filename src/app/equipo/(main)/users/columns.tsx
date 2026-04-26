@@ -1,10 +1,20 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { Building2, Loader2 } from 'lucide-react'
+import {
+	BadgeCheck,
+	Building2,
+	CalendarDays,
+	ClipboardList,
+	FileSignature,
+	Loader2,
+	Mail,
+	Shield,
+	UserRound,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useState, useTransition } from 'react'
+import { type ReactNode, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { FormattedDate } from '~/components/formatted-date'
 import {
@@ -267,6 +277,22 @@ export function createColumns(
 	t: ReturnType<typeof useTranslations<'admin'>>,
 ): ColumnDef<UserForTable, unknown>[] {
 	const rolesToShow = ASSIGNABLE_ROLES
+
+	function roleColumnIcon(role: Role): ReactNode {
+		switch (role) {
+			case 'requests':
+				return <ClipboardList aria-hidden />
+			case 'pre-authorizations':
+				return <FileSignature aria-hidden />
+			case 'authorizations':
+				return <BadgeCheck aria-hidden />
+			case 'admin':
+				return <Shield aria-hidden />
+			default:
+				return null
+		}
+	}
+
 	const roleLabels: Record<Role, string> = {
 		applicant: t('users-role-applicant'),
 		agent: t('users-role-agent'),
@@ -283,7 +309,11 @@ export function createColumns(
 		{
 			accessorKey: 'name',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title={t('users-col-name')} />
+				<DataTableColumnHeader
+					column={column}
+					title={t('users-col-name')}
+					icon={<UserRound aria-hidden />}
+				/>
 			),
 			cell: ({ row }) => {
 				return <div className="font-medium">{row.getValue('name')}</div>
@@ -292,7 +322,11 @@ export function createColumns(
 		{
 			accessorKey: 'email',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title={t('users-col-email')} />
+				<DataTableColumnHeader
+					column={column}
+					title={t('users-col-email')}
+					icon={<Mail aria-hidden />}
+				/>
 			),
 			cell: ({ row }) => {
 				return (
@@ -305,7 +339,11 @@ export function createColumns(
 			(role): ColumnDef<UserForTable> => ({
 				id: `role_${role}`,
 				header: ({ column }) => (
-					<DataTableColumnHeader column={column} title={roleLabels[role]} />
+					<DataTableColumnHeader
+						column={column}
+						title={roleLabels[role]}
+						icon={roleColumnIcon(role)}
+					/>
 				),
 				cell: ({ row }) => {
 					const user = row.original
@@ -329,6 +367,7 @@ export function createColumns(
 				<DataTableColumnHeader
 					column={column}
 					title={t('users-col-companies')}
+					icon={<Building2 aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => {
@@ -345,7 +384,11 @@ export function createColumns(
 		{
 			accessorKey: 'createdAt',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title={t('users-col-created')} />
+				<DataTableColumnHeader
+					column={column}
+					title={t('users-col-created')}
+					icon={<CalendarDays aria-hidden />}
+				/>
 			),
 			cell: ({ row }) => {
 				const date: string = row.getValue('createdAt')

@@ -188,6 +188,41 @@ test.describe('Equipo credits list', () => {
 			await expect(mainDataTable(page)).toBeVisible()
 		})
 
+		test('credits list matches admin table layout with filter and column headers', async ({
+			page,
+		}) => {
+			await page.goto('/equipo/credits')
+			await expect(
+				page.locator('input[aria-label="Filtrar créditos..."]'),
+			).toBeVisible()
+			const table = mainDataTable(page)
+			await expect(
+				table.getByRole('columnheader', { name: /empleado/i }),
+			).toBeVisible()
+			await expect(
+				table.getByRole('columnheader', { name: /monto/i }),
+			).toBeVisible()
+			await expect(
+				table.getByRole('columnheader', { name: /fecha de dispersión/i }),
+			).toBeVisible()
+			await expect(
+				table.getByRole('columnheader', { name: /estado/i }),
+			).toBeVisible()
+			for (const rx of [
+				/empleado/i,
+				/monto/i,
+				/fecha de dispersión/i,
+				/estado/i,
+			]) {
+				await expect(
+					table
+						.getByRole('columnheader', { name: rx })
+						.locator('svg[aria-hidden="true"]')
+						.first(),
+				).toBeVisible()
+			}
+		})
+
 		test('shows credits for the selected company', async ({ page }) => {
 			await page.goto('/equipo/credits')
 			await expect(mainDataTable(page)).toBeVisible()

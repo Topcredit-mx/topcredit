@@ -1,5 +1,6 @@
 import type { Column } from '@tanstack/react-table'
 import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { cn } from '~/lib/utils'
 import { Button } from '../button'
 import {
@@ -14,15 +15,28 @@ interface DataTableColumnHeaderProps<TData, TValue>
 	extends React.HTMLAttributes<HTMLDivElement> {
 	column: Column<TData, TValue>
 	title: string
+	icon?: ReactNode
 }
 
 export function DataTableColumnHeader<TData, TValue>({
 	column,
 	title,
+	icon,
 	className,
 }: DataTableColumnHeaderProps<TData, TValue>) {
+	const label = (
+		<span className="flex items-center gap-2">
+			{icon != null ? (
+				<span className="text-muted-foreground [&_svg]:size-4">{icon}</span>
+			) : null}
+			<span>{title}</span>
+		</span>
+	)
+
 	if (!column.getCanSort()) {
-		return <div className={cn(className)}>{title}</div>
+		return (
+			<div className={cn('flex items-center gap-2', className)}>{label}</div>
+		)
 	}
 
 	return (
@@ -35,7 +49,7 @@ export function DataTableColumnHeader<TData, TValue>({
 						size="sm"
 						className="-ml-3 h-8 data-[state=open]:bg-accent"
 					>
-						<span>{title}</span>
+						{label}
 						{column.getIsSorted() === 'desc' ? (
 							<ArrowDown />
 						) : column.getIsSorted() === 'asc' ? (

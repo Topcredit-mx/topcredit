@@ -620,6 +620,7 @@
 		"overdue-deductions-overview-oldest-age": "Mayor atraso",
 		"overdue-deductions-overview-change": "vs semana anterior",
 		"overdue-deductions-overview-days": "{count, plural, one {# día} other {# días}}",
+		"table-filter-credits": "Filtrar créditos...",
 		"credits-title": "Créditos",
 		"credits-subtitle": "Créditos activos por empresa",
 		"credits-empty": "No hay créditos para esta empresa",
