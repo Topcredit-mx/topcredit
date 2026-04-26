@@ -2364,20 +2364,20 @@ export async function getDeductionConfirmationHistory(
 
 	return rows.rows.map((row) => {
 		const r = row
-		const hrConfirmedAt =
+		const dueDateValue =
+			r.due_date instanceof Date ? r.due_date : new Date(String(r.due_date))
+		const hrAtValue =
 			r.hr_confirmed_at instanceof Date
-				? r.hr_confirmed_at.toISOString()
-				: String(r.hr_confirmed_at)
-		const dueDate =
-			r.due_date instanceof Date ? r.due_date.toISOString() : String(r.due_date)
+				? r.hr_confirmed_at
+				: new Date(String(r.hr_confirmed_at))
 		return {
 			id: Number(r.id),
 			amount: String(r.amount),
-			dueDate,
-			hrConfirmedAt,
+			dueDate: dueDateValue.toISOString(),
+			hrConfirmedAt: hrAtValue.toISOString(),
 			confirmedOnTime: isEquipoScheduleConfirmationOnTime(
-				dueDate,
-				hrConfirmedAt,
+				dueDateValue,
+				hrAtValue,
 			),
 			applicationId: Number(r.application_id),
 			employeeName: String(r.employee_name),
@@ -2452,20 +2452,20 @@ export async function getInstallmentConfirmationHistory(
 
 	return rows.rows.map((row) => {
 		const r = row
-		const installmentConfirmedAt =
+		const dueDateValue =
+			r.due_date instanceof Date ? r.due_date : new Date(String(r.due_date))
+		const instAtValue =
 			r.installment_confirmed_at instanceof Date
-				? r.installment_confirmed_at.toISOString()
-				: String(r.installment_confirmed_at)
-		const dueDate =
-			r.due_date instanceof Date ? r.due_date.toISOString() : String(r.due_date)
+				? r.installment_confirmed_at
+				: new Date(String(r.installment_confirmed_at))
 		return {
 			id: Number(r.id),
 			amount: String(r.amount),
-			dueDate,
-			installmentConfirmedAt,
+			dueDate: dueDateValue.toISOString(),
+			installmentConfirmedAt: instAtValue.toISOString(),
 			confirmedOnTime: isEquipoScheduleConfirmationOnTime(
-				dueDate,
-				installmentConfirmedAt,
+				dueDateValue,
+				instAtValue,
 			),
 			applicationId: Number(r.application_id),
 			employeeName: String(r.employee_name),

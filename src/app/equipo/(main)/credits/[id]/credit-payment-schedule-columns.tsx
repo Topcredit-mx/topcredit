@@ -15,6 +15,7 @@ import { CreditPaymentScheduleStatusCell } from '~/components/equipo/credit-paym
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
+import { ymdForDeductionSchedule } from '~/lib/calendar-date-tz'
 import {
 	resolveCreditDetailCollectionStatus,
 	resolveCreditDetailDeductionStatus,
@@ -88,7 +89,7 @@ export function useCreditPaymentScheduleColumns(
 				cell: ({ row }) => (
 					<div className="text-slate-800 text-sm">
 						<FormattedDate
-							value={row.original.dueDate.toISOString().slice(0, 10)}
+							value={ymdForDeductionSchedule(row.original.dueDate)}
 							format="date"
 							showTimeZoneLabel
 						/>
@@ -187,7 +188,7 @@ export function useCreditPaymentScheduleColumns(
 						canConfirmHrDeduction &&
 						canHrConfirm(creditPayment) &&
 						upcomingDeductionDate !== undefined &&
-						creditPayment.dueDate.toISOString().slice(0, 10) <=
+						ymdForDeductionSchedule(creditPayment.dueDate) <=
 							upcomingDeductionDate
 					const showInstallmentConfirm = canShowInstallmentConfirmForRow(
 						creditPayment,

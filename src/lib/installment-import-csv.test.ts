@@ -3,6 +3,7 @@ import { describe, test } from 'node:test'
 import {
 	classifyInstallmentCsvImportRows,
 	makeInstallmentImportKey,
+	normalizeAmountForImportKey,
 } from './installment-import-csv'
 
 describe('makeInstallmentImportKey', () => {
@@ -10,6 +11,15 @@ describe('makeInstallmentImportKey', () => {
 		assert.equal(
 			makeInstallmentImportKey('PN1', '100.00', '2026-02-28'),
 			'PN1|100.00|2026-02-28',
+		)
+	})
+
+	test('normalizes amount so DB and CSV string forms match', () => {
+		assert.equal(normalizeAmountForImportKey('15375'), '15375.00')
+		assert.equal(normalizeAmountForImportKey('15375.00'), '15375.00')
+		assert.equal(
+			makeInstallmentImportKey('X', '15375', '2026-02-28'),
+			makeInstallmentImportKey('X', '15375.00', '2026-02-28'),
 		)
 	})
 })

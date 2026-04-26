@@ -17,7 +17,10 @@ import {
 	isAuthorizationPackageReadyForSubmit,
 	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
-import { endOfDayInstantMexicoCity } from '~/lib/calendar-date-tz'
+import {
+	endOfDayInstantMexicoCity,
+	ymdForDeductionSchedule,
+} from '~/lib/calendar-date-tz'
 import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
@@ -1429,20 +1432,16 @@ export async function validateDeductionsCsv(
 		.innerJoin(applications, eq(credits.applicationId, applications.id))
 		.where(eq(applications.companyId, companyId))
 
-	function makeKey(pn: string, amt: string, dt: string): string {
-		return `${pn}|${amt}|${dt}`
-	}
-
 	const candidateByKey = new Map<
 		string,
 		{ paymentId: number; companyId: number; hrConfirmedAt: Date | null }
 	>()
 	for (const row of candidateRows) {
 		if (!row.payrollNumber) continue
-		const key = makeKey(
+		const key = makeInstallmentImportKey(
 			row.payrollNumber,
-			row.amount,
-			row.dueDate.toISOString().slice(0, 10),
+			String(row.amount),
+			ymdForDeductionSchedule(row.dueDate),
 		)
 		candidateByKey.set(key, {
 			paymentId: row.paymentId,
@@ -1456,7 +1455,11 @@ export async function validateDeductionsCsv(
 	const warningRows: ValidateDeductionsCsvErrorRow[] = []
 
 	for (const csvRow of validRows) {
-		const key = makeKey(csvRow.payrollNumber, csvRow.amount, csvRow.dueDate)
+		const key = makeInstallmentImportKey(
+			csvRow.payrollNumber,
+			csvRow.amount,
+			csvRow.dueDate,
+		)
 		const candidate = candidateByKey.get(key)
 
 		if (
@@ -1625,8 +1628,8 @@ export async function validateInstallmentsCsv(
 		if (!row.payrollNumber) continue
 		const key = makeInstallmentImportKey(
 			row.payrollNumber,
-			row.amount,
-			row.dueDate.toISOString().slice(0, 10),
+			String(row.amount),
+			ymdForDeductionSchedule(row.dueDate),
 		)
 		candidateByKey.set(key, {
 			paymentId: row.paymentId,
@@ -1700,22 +1703,22 @@ export async function confirmHrDeductionsFromCsv(
 			isAdmin ? undefined : inArray(applications.companyId, assignedCompanyIds),
 		)
 
-	function makeKey(
-		payrollNumber: string,
-		amount: string,
-		dueDate: string,
-	): string {
-		return `${payrollNumber}|${amount}|${dueDate}`
-	}
-
 	const csvKeySet = new Set(
-		csvRows.map((r) => makeKey(r.payrollNumber, r.amount, r.dueDate)),
+		csvRows.map((r) =>
+			makeInstallmentImportKey(r.payrollNumber, r.amount, r.dueDate),
+		),
 	)
 
 	const matched = candidateRows.filter((row) => {
 		if (!row.payrollNumber) return false
-		const dueDateStr = row.dueDate.toISOString().slice(0, 10)
-		return csvKeySet.has(makeKey(row.payrollNumber, row.amount, dueDateStr))
+		const dueDateStr = ymdForDeductionSchedule(row.dueDate)
+		return csvKeySet.has(
+			makeInstallmentImportKey(
+				row.payrollNumber,
+				String(row.amount),
+				dueDateStr,
+			),
+		)
 	})
 
 	const unmatched = csvRows.length - matched.length
@@ -1967,22 +1970,22 @@ export async function confirmInstallmentsFromCsv(
 			isAdmin ? undefined : inArray(applications.companyId, assignedCompanyIds),
 		)
 
-	function makeKey(
-		payrollNumber: string,
-		amount: string,
-		dueDate: string,
-	): string {
-		return `${payrollNumber}|${amount}|${dueDate}`
-	}
-
 	const csvKeySet = new Set(
-		csvRows.map((r) => makeKey(r.payrollNumber, r.amount, r.dueDate)),
+		csvRows.map((r) =>
+			makeInstallmentImportKey(r.payrollNumber, r.amount, r.dueDate),
+		),
 	)
 
 	const matched = candidateRows.filter((row) => {
 		if (!row.payrollNumber) return false
-		const dueDateStr = row.dueDate.toISOString().slice(0, 10)
-		return csvKeySet.has(makeKey(row.payrollNumber, row.amount, dueDateStr))
+		const dueDateStr = ymdForDeductionSchedule(row.dueDate)
+		return csvKeySet.has(
+			makeInstallmentImportKey(
+				row.payrollNumber,
+				String(row.amount),
+				dueDateStr,
+			),
+		)
 	})
 
 	const unmatched = csvRows.length - matched.length

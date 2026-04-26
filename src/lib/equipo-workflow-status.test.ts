@@ -112,6 +112,23 @@ describe('isEquipoScheduleConfirmationOnTime', () => {
 		)
 		assert.equal(late, false)
 	})
+
+	test('date-only YYYY-MM-DD string uses Mexico EOD, not UTC midnight', () => {
+		const onTime = isEquipoScheduleConfirmationOnTime(
+			'2022-11-30',
+			new Date('2022-12-01T05:00:00.000Z'),
+		)
+		assert.equal(
+			onTime,
+			true,
+			'on or before 2022-11-30 23:59:59.999 CDMX (same as EOD instants test)',
+		)
+		const late = isEquipoScheduleConfirmationOnTime(
+			'2022-11-30',
+			new Date('2022-12-01T10:00:00.000Z'),
+		)
+		assert.equal(late, false)
+	})
 })
 
 describe('resolveCreditDetailCollectionStatus', () => {

@@ -88,6 +88,23 @@ export function resolveQueueWorkflowStatus(params: {
 	}
 }
 
+const YMD_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * Y-M-D of the business due, for "deadline" = EOD that day in Mexico.
+ * Avoids `new Date("YYYY-MM-DD")` (UTC-midnight) vs EOD-CDMX `Date` mismatches.
+ */
+function businessYmdForScheduleDue(dueDate: Date | string): string {
+	if (typeof dueDate === 'string') {
+		const t = dueDate.trim()
+		if (YMD_ONLY_RE.test(t)) {
+			return t
+		}
+	}
+	const due = typeof dueDate === 'string' ? new Date(dueDate) : dueDate
+	return ymdForDeductionSchedule(due)
+}
+
 /**
  * On-time: confirmation instant is **on or before** 23:59:59.999 that calendar day
  * in `America/Mexico_City` (deduction / due deadline).
@@ -96,11 +113,10 @@ export function isEquipoScheduleConfirmationOnTime(
 	dueDate: Date | string,
 	confirmedAt: Date | string,
 ): boolean {
-	const due = typeof dueDate === 'string' ? new Date(dueDate) : dueDate
+	const ymd = businessYmdForScheduleDue(dueDate)
+	const deadline = endOfDayInstantMexicoCity(ymd)
 	const conf =
 		typeof confirmedAt === 'string' ? new Date(confirmedAt) : confirmedAt
-	const ymd = ymdForDeductionSchedule(due)
-	const deadline = endOfDayInstantMexicoCity(ymd)
 	return conf.getTime() <= deadline.getTime()
 }
 
