@@ -170,12 +170,12 @@ async function loadGlobalOverdueInstallmentsCount(): Promise<number> {
 
 async function loadGlobalOverdueHrDeductionsCount(): Promise<number> {
 	const result = await db.execute(sql`
-		SELECT COUNT(*)::int AS count
+		SELECT COUNT(DISTINCT cp.credit_id)::int AS count
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE cp.hr_confirmed_at IS NULL
-		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND cp.due_date < CURRENT_DATE
 	`)
 	const row = result.rows[0] as { count: unknown } | undefined
 	if (!row) return 0
