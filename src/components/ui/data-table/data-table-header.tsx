@@ -32,6 +32,7 @@ export function DataTableHeader<TData>({
 		createButtonHref,
 		createButtonText,
 		filterPlaceholder: contextFilterPlaceholder,
+		serverSearch,
 	} = useDataTable<TData>()
 	const t = useTranslations('admin')
 	const filterPlaceholder =
@@ -47,7 +48,15 @@ export function DataTableHeader<TData>({
 				<Input
 					type="search"
 					placeholder={filterPlaceholder}
-					onChange={(e) => table.setGlobalFilter(String(e.target.value))}
+					{...(serverSearch !== undefined ? { value: serverSearch.value } : {})}
+					onChange={(e) => {
+						const v = String(e.target.value)
+						if (serverSearch) {
+							serverSearch.onChange(v)
+						} else {
+							table.setGlobalFilter(v)
+						}
+					}}
 					className="max-w-xs"
 					aria-label={filterPlaceholder}
 				/>

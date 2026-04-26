@@ -3,6 +3,7 @@ import {
 	asc,
 	desc,
 	eq,
+	exists,
 	gte,
 	ilike,
 	inArray,
@@ -106,16 +107,61 @@ export async function getUsers(
 		agentsOnly = false,
 	} = params
 
-	const offset = (page - 1) * limit
-
-	let whereCondition: SQL | undefined
+	const predicates: SQL[] = []
 
 	if (search) {
-		whereCondition = or(
+		const searchCond = or(
 			ilike(users.name, `%${search}%`),
 			ilike(users.email, `%${search}%`),
 		)
+		if (searchCond) predicates.push(searchCond)
 	}
+
+	if (agentsOnly) {
+		predicates.push(
+			exists(
+				db
+					.select({ one: sql`1` })
+					.from(userRoles)
+					.where(
+						and(eq(userRoles.userId, users.id), eq(userRoles.role, 'agent')),
+					),
+			),
+		)
+	}
+
+	if (roleFilter) {
+		predicates.push(
+			exists(
+				db
+					.select({ one: sql`1` })
+					.from(userRoles)
+					.where(
+						and(eq(userRoles.userId, users.id), eq(userRoles.role, roleFilter)),
+					),
+			),
+		)
+	}
+
+	const whereCondition =
+		predicates.length === 0
+			? undefined
+			: predicates.length === 1
+				? predicates[0]
+				: and(...predicates)
+
+	const countResult = whereCondition
+		? await db
+				.select({ count: sql<number>`count(*)` })
+				.from(users)
+				.where(whereCondition)
+		: await db.select({ count: sql<number>`count(*)` }).from(users)
+
+	const total = Number(countResult[0]?.count ?? 0)
+	const totalPages = total === 0 ? 0 : Math.ceil(total / limit)
+	const effectivePage =
+		total === 0 ? 1 : Math.min(page, Math.max(1, totalPages))
+	const offset = (effectivePage - 1) * limit
 
 	const allUsers = whereCondition
 		? await db
@@ -132,58 +178,59 @@ export async function getUsers(
 				.offset(offset)
 				.orderBy(users.name)
 
-	const countResult = whereCondition
-		? await db
-				.select({ count: sql<number>`count(*)` })
-				.from(users)
-				.where(whereCondition)
-		: await db.select({ count: sql<number>`count(*)` }).from(users)
+	const userIds = allUsers.map((u) => u.id)
+	const rolesByUserId = new Map<number, Role[]>()
+	const companiesByUserId = new Map<number, CompanyBasic[]>()
 
-	const total = Number(countResult[0]?.count ?? 0)
+	if (userIds.length > 0) {
+		const [roleRows, assignmentRows] = await Promise.all([
+			db.query.userRoles.findMany({
+				where: inArray(userRoles.userId, userIds),
+			}),
+			db.query.userCompanies.findMany({
+				where: inArray(userCompanies.userId, userIds),
+				with: {
+					company: true,
+				},
+			}),
+		])
 
-	const usersWithRoles: UserWithRoles[] = await Promise.all(
-		allUsers.map(async (user) => {
-			const [roles, companyAssignments] = await Promise.all([
-				db.query.userRoles.findMany({
-					where: eq(userRoles.userId, user.id),
-				}),
-				db.query.userCompanies.findMany({
-					where: eq(userCompanies.userId, user.id),
-					with: {
-						company: true,
-					},
-				}),
-			])
-
-			return {
-				...user,
-				roles: roles.map((r) => r.role),
-				companies: companyAssignments.map((a) => ({
-					id: a.company.id,
-					name: a.company.name,
-					domain: a.company.domain,
-				})),
+		for (const row of roleRows) {
+			const list = rolesByUserId.get(row.userId)
+			if (list) {
+				list.push(row.role)
+			} else {
+				rolesByUserId.set(row.userId, [row.role])
 			}
-		}),
-	)
+		}
 
-	let filteredByType = usersWithRoles
-	if (agentsOnly) {
-		filteredByType = usersWithRoles.filter((user) =>
-			user.roles.includes('agent'),
-		)
+		for (const a of assignmentRows) {
+			const company = a.company
+			if (company == null) continue
+			const entry: CompanyBasic = {
+				id: company.id,
+				name: company.name,
+				domain: company.domain,
+			}
+			const list = companiesByUserId.get(a.userId)
+			if (list) {
+				list.push(entry)
+			} else {
+				companiesByUserId.set(a.userId, [entry])
+			}
+		}
 	}
 
-	const filteredUsers = roleFilter
-		? filteredByType.filter((user) => user.roles.includes(roleFilter))
-		: filteredByType
-
-	const totalPages = Math.ceil(total / limit)
+	const usersWithRoles: UserWithRoles[] = allUsers.map((user) => ({
+		...user,
+		roles: rolesByUserId.get(user.id) ?? [],
+		companies: companiesByUserId.get(user.id) ?? [],
+	}))
 
 	return {
-		items: filteredUsers,
-		total: filteredUsers.length,
-		page,
+		items: usersWithRoles,
+		total,
+		page: effectivePage,
 		limit,
 		totalPages,
 	}

@@ -6,7 +6,12 @@ import type {
 	Row,
 	VisibilityState,
 } from '@tanstack/react-table'
-import { type BaseData, DataTableProvider } from './data-table-provider'
+import {
+	type BaseData,
+	DataTableProvider,
+	type ServerPaginationConfig,
+	type ServerSearchConfig,
+} from './data-table-provider'
 
 interface DataTableProps<TData extends BaseData, TValue> {
 	columns: ColumnDef<TData, TValue>[]
@@ -19,6 +24,9 @@ interface DataTableProps<TData extends BaseData, TValue> {
 	enableRowSelection?: boolean | ((row: Row<TData>) => boolean)
 	initialColumnVisibility?: VisibilityState
 	initialPagination?: PaginationState
+	serverPagination?: ServerPaginationConfig
+	serverSearch?: ServerSearchConfig
+	emptyMessage?: string
 	children?: React.ReactNode
 }
 
@@ -33,6 +41,9 @@ function DataTable<TData extends BaseData, TValue>({
 	enableRowSelection,
 	initialColumnVisibility,
 	initialPagination,
+	serverPagination,
+	serverSearch,
+	emptyMessage,
 	children,
 }: DataTableProps<TData, TValue>) {
 	return (
@@ -49,6 +60,9 @@ function DataTable<TData extends BaseData, TValue>({
 				? { initialColumnVisibility }
 				: {})}
 			{...(initialPagination !== undefined ? { initialPagination } : {})}
+			{...(serverPagination !== undefined ? { serverPagination } : {})}
+			{...(serverSearch !== undefined ? { serverSearch } : {})}
+			{...(emptyMessage !== undefined ? { emptyMessage } : {})}
 		>
 			{children}
 		</DataTableProvider>

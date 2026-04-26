@@ -90,6 +90,8 @@
 		"companies-edit-title": "Editar Empresa",
 		"companies-edit-subtitle": "Modifica los detalles de la empresa",
 		"users-title": "Usuarios",
+		"users-loading": "Cargando usuarios...",
+		"users-empty": "No hay usuarios con estos criterios.",
 		"users-subtitle": "Administra los usuarios del sistema",
 		"users-col-name": "Nombre",
 		"users-col-email": "Email",

@@ -156,6 +156,7 @@ test.describe('Admin Users', () => {
 
 		test('filters users by name', async ({ page }) => {
 			await page.locator('input[type="search"]').fill('Jane')
+			await expect(page).toHaveURL(/search=/)
 			await expect(page.getByText(users.jane.name)).toBeAttached()
 			await expect(page.getByText(users.bob.name)).toHaveCount(0)
 		})
@@ -163,13 +164,58 @@ test.describe('Admin Users', () => {
 		test('filters users by email', async ({ page }) => {
 			await page.locator('input[type="search"]').clear()
 			await page.locator('input[type="search"]').fill('requests')
+			await expect(page).toHaveURL(/search=/)
 			await expect(page.getByText(users.jane.email)).toBeAttached()
 			await expect(page.getByText(users.bob.email)).toHaveCount(0)
 		})
 
-		test('shows "No results" when no users match filter', async ({ page }) => {
+		test('shows empty message when no users match filter', async ({ page }) => {
 			await page.locator('input[type="search"]').fill('nonexistentuser')
-			await expect(page.getByText(/no results/i)).toBeAttached()
+			await expect(
+				page.getByText(/no hay usuarios con estos criterios/i),
+			).toBeVisible()
+			await expect(page.locator('table')).toHaveCount(0)
+		})
+	})
+
+	test.describe('Pagination (server)', () => {
+		test.beforeEach(async ({ page }) => {
+			await loginPage(page, adminUser.email)
+		})
+
+		test('loads only the requested page size from the server', async ({
+			page,
+		}) => {
+			await page.goto('/equipo/users?limit=2')
+			await expect(page.locator('table')).toBeVisible()
+			await expect(page.locator('table tbody tr')).toHaveCount(2)
+			await expect(page.getByText(users.jane.name)).toHaveCount(0)
+		})
+
+		test('navigates to the next page and shows the next slice of users', async ({
+			page,
+		}) => {
+			await page.goto('/equipo/users?limit=2')
+			await expect(page.locator('table')).toBeVisible()
+			await expect(
+				page.locator('table').getByText(users.jane.name),
+			).toHaveCount(0)
+
+			await page.getByRole('button', { name: /siguiente/i }).click()
+			await expect(page).toHaveURL(/page=2/)
+			const table = page.locator('table')
+			await expect(table.getByText(users.charlie.name)).toBeAttached()
+			await expect(table.getByText(users.jane.name)).toBeAttached()
+			await expect(table.getByText(adminUser.name)).toHaveCount(0)
+		})
+
+		test('opens a deep-linked page from the URL', async ({ page }) => {
+			await page.goto('/equipo/users?page=3&limit=2')
+			await expect(page.locator('table')).toBeVisible()
+			const table = page.locator('table')
+			await expect(table.getByText(agentOnlyUser.name)).toBeAttached()
+			await expect(table.locator('tbody tr')).toHaveCount(1)
+			await expect(table.getByText(adminUser.name)).toHaveCount(0)
 		})
 	})
 

@@ -11,6 +11,7 @@ import {
 	type Row,
 	type SortingState,
 	type Table,
+	type Updater,
 	useReactTable,
 	type VisibilityState,
 } from '@tanstack/react-table'
@@ -20,6 +21,20 @@ import {
 	type SetStateAction,
 	useState,
 } from 'react'
+
+export type ServerPaginationConfig = {
+	pageIndex: number
+	pageCount: number
+	pageSize: number
+	totalRowCount: number
+	onPageChange: (pageIndex: number) => void
+	onPageSizeChange: (pageSize: number) => void
+}
+
+export type ServerSearchConfig = {
+	value: string
+	onChange: (value: string) => void
+}
 
 export interface IDataTableContext<TData> {
 	rowSelection: Record<string, boolean>
@@ -31,6 +46,9 @@ export interface IDataTableContext<TData> {
 	filterPlaceholder?: string
 	label?: string
 	schema?: string
+	serverPagination?: ServerPaginationConfig
+	serverSearch?: ServerSearchConfig
+	emptyMessage?: string
 }
 
 export const DataTableContext = createContext<
@@ -51,6 +69,9 @@ interface DataTableProps<TData, TValue> {
 	enableRowSelection?: boolean | ((row: Row<TData>) => boolean)
 	initialColumnVisibility?: VisibilityState
 	initialPagination?: PaginationState
+	serverPagination?: ServerPaginationConfig
+	serverSearch?: ServerSearchConfig
+	emptyMessage?: string
 	children?: React.ReactNode
 }
 
@@ -69,6 +90,9 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 	enableRowSelection,
 	initialColumnVisibility,
 	initialPagination,
+	serverPagination,
+	serverSearch,
+	emptyMessage,
 	children,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = useState<SortingState>([])
@@ -78,10 +102,32 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 	)
 	const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
 	const [globalFilter, setGlobalFilter] = useState('')
-	const [pagination, setPagination] = useState<PaginationState>(() => ({
-		pageIndex: initialPagination?.pageIndex ?? 0,
-		pageSize: initialPagination?.pageSize ?? 10,
-	}))
+	const [clientPagination, setClientPagination] = useState<PaginationState>(
+		() => ({
+			pageIndex: initialPagination?.pageIndex ?? 0,
+			pageSize: initialPagination?.pageSize ?? 10,
+		}),
+	)
+
+	const pagination: PaginationState = serverPagination
+		? {
+				pageIndex: serverPagination.pageIndex,
+				pageSize: serverPagination.pageSize,
+			}
+		: clientPagination
+
+	const onPaginationChange = (updater: Updater<PaginationState>) => {
+		if (serverPagination) {
+			const next = typeof updater === 'function' ? updater(pagination) : updater
+			if (next.pageSize !== serverPagination.pageSize) {
+				serverPagination.onPageSizeChange(next.pageSize)
+			} else if (next.pageIndex !== serverPagination.pageIndex) {
+				serverPagination.onPageChange(next.pageIndex)
+			}
+			return
+		}
+		setClientPagination(updater)
+	}
 
 	const createButtonHref =
 		createLink === null
@@ -99,7 +145,12 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 		enableRowSelection:
 			enableRowSelection !== undefined ? enableRowSelection : true,
 		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
+		...(serverPagination
+			? {
+					manualPagination: true as const,
+					pageCount: serverPagination.pageCount,
+				}
+			: { getPaginationRowModel: getPaginationRowModel() }),
 		onSortingChange: setSorting,
 		getSortedRowModel: getSortedRowModel(),
 		onColumnFiltersChange: setColumnFilters,
@@ -107,14 +158,14 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 		onColumnVisibilityChange: setColumnVisibility,
 		onRowSelectionChange: setRowSelection,
 		globalFilterFn: 'includesString',
-		onGlobalFilterChange: setGlobalFilter,
-		onPaginationChange: setPagination,
+		onGlobalFilterChange: serverSearch ? undefined : setGlobalFilter,
+		onPaginationChange,
 		state: {
 			sorting,
 			columnFilters,
 			columnVisibility,
 			rowSelection,
-			globalFilter,
+			globalFilter: serverSearch ? '' : globalFilter,
 			pagination,
 		},
 	})
@@ -131,6 +182,9 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 				label,
 				schema,
 				columnsLength: columns.length,
+				...(serverPagination !== undefined ? { serverPagination } : {}),
+				...(serverSearch !== undefined ? { serverSearch } : {}),
+				...(emptyMessage !== undefined ? { emptyMessage } : {}),
 			}}
 		>
 			{children}
