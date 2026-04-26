@@ -77,7 +77,7 @@ export default async function InstallmentsOverduePage() {
 		getCompanyById(selectedCompanyId),
 	])
 
-	const employeeSalaryFrequency = company?.employeeSalaryFrequency ?? 'monthly'
+	const employeeSalaryFrequency = company?.employeeSalaryFrequency ?? null
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">

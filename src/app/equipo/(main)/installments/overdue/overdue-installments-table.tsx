@@ -16,7 +16,7 @@ export function OverdueInstallmentsTable({
 	employeeSalaryFrequency,
 }: {
 	installments: OverdueInstallmentByCredit[]
-	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly' | null
 }) {
 	const t = useTranslations('equipo')
 	const columns = useOverdueInstallmentsColumns()

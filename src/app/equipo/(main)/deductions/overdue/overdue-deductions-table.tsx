@@ -16,7 +16,7 @@ export function OverdueDeductionsTable({
 	employeeSalaryFrequency,
 }: {
 	deductions: OverdueDeductionByCredit[]
-	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly' | null
 }) {
 	const t = useTranslations('equipo')
 	const columns = useOverdueDeductionsColumns()

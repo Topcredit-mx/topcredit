@@ -8,10 +8,13 @@ import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 export function OverdueQueuePayrollHeader({
 	employeeSalaryFrequency,
 }: {
-	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly' | null
 }) {
 	const nextDeductionDate = useMemo(
-		() => getUpcomingDeductionDateYmd(employeeSalaryFrequency, new Date()),
+		() =>
+			employeeSalaryFrequency === null
+				? undefined
+				: getUpcomingDeductionDateYmd(employeeSalaryFrequency, new Date()),
 		[employeeSalaryFrequency],
 	)
 
