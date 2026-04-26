@@ -1,11 +1,21 @@
 import { expect, test } from '@playwright/test'
-import type { SeedCreditDetailPaymentStatesResult } from '~/e2e/server/tasks'
+import type {
+	SeedApplicationsReviewResult,
+	SeedCreditDetailPaymentStatesResult,
+} from '~/e2e/server/tasks'
 import {
+	cleanupApplicationsReview,
 	cleanupCreditDetailPaymentStates,
+	seedApplicationsReview,
 	seedCreditDetailPaymentStates,
 } from '~/e2e/server/tasks'
-import { loginPage, setSelectedCompanyId } from '../helpers/auth'
+import {
+	clearSelectedCompanyIdCookie,
+	loginPage,
+	setSelectedCompanyId,
+} from '../helpers/auth'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
+import { agentForReview } from './applications-review.fixtures'
 import {
 	creditDetailStatesApplicant,
 	creditDetailStatesHrAgent,
@@ -139,6 +149,80 @@ test.describe('Equipo global search (Command+K)', () => {
 			.click()
 		await expect(
 			page.getByRole('heading', { name: /detalle del crédito/i }),
+		).toBeVisible()
+	})
+
+	test.describe('with no empresa selected in cookie', () => {
+		test.beforeEach(async ({ page }) => {
+			await clearSelectedCompanyIdCookie(page)
+		})
+
+		test('after Ctrl+K, credit link opens credit detail without empresa seleccionada', async ({
+			page,
+		}) => {
+			await page.goto('/equipo')
+			await page.keyboard.press('Control+K')
+			const dialog = page.getByRole('dialog')
+			await expect(dialog).toBeVisible()
+			await dialog
+				.getByLabel(/Buscar por nombre o correo/i)
+				.fill(creditDetailStatesApplicant.email)
+			await dialog
+				.getByRole('link', { name: new RegExp(`Crédito #${seed.creditId}`) })
+				.click()
+			await expect(
+				page.getByRole('heading', { name: /detalle del crédito/i }),
+			).toBeVisible()
+			await expect(
+				page.getByRole('heading', { name: /Selecciona una empresa/i }),
+			).toHaveCount(0)
+		})
+
+		test('after Ctrl+K, solicitud link opens application detail without empresa seleccionada', async ({
+			page,
+		}) => {
+			await page.goto('/equipo')
+			await page.keyboard.press('Control+K')
+			const dialog = page.getByRole('dialog')
+			await expect(dialog).toBeVisible()
+			await dialog
+				.getByLabel(/Buscar por nombre o correo/i)
+				.fill(creditDetailStatesApplicant.email)
+			await dialog
+				.getByRole('link', {
+					name: new RegExp(`Solicitud #${seed.applicationId}`),
+				})
+				.click()
+			await expect(
+				page.getByRole('heading', { name: /detalle de solicitud/i }),
+			).toBeVisible()
+		})
+	})
+})
+
+test.describe('Equipo credit detail outside assigned companies', () => {
+	let reviewSeed: SeedApplicationsReviewResult
+	let creditSeed: SeedCreditDetailPaymentStatesResult
+
+	test.beforeAll(async () => {
+		await cleanupCreditDetailPaymentStates()
+		reviewSeed = await seedApplicationsReview()
+		creditSeed = await seedCreditDetailPaymentStates()
+	})
+
+	test.afterAll(async () => {
+		await cleanupCreditDetailPaymentStates()
+		await cleanupApplicationsReview({ termId: reviewSeed.termId })
+	})
+
+	test('direct URL shows not found when credit belongs to another empresa', async ({
+		page,
+	}) => {
+		await loginPage(page, agentForReview.email)
+		await setSelectedCompanyId(page, reviewSeed.companyId)
+		await page.goto(`/equipo/credits/${creditSeed.creditId}`)
+		await expect(
+			page.getByRole('heading', { name: /Página no encontrada/i }),
 		).toBeVisible()
 	})
 })

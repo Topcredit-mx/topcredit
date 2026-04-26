@@ -1,6 +1,5 @@
 import {
 	Banknote,
-	Building2,
 	CalendarClock,
 	CalendarDays,
 	ChevronLeft,
@@ -24,10 +23,9 @@ import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
 	getCompanyById,
-	getCreditDetailForEquipo,
+	getCreditDetailForEquipoByCreditId,
 	getCreditPaymentsForEquipo,
 } from '~/server/queries'
-import { getEffectiveSelectedCompanyId } from '~/server/scopes'
 import { formatApplicationTerm } from '../../applications/constants'
 import {
 	EQUIPO_DETAIL_CARD_CLASS,
@@ -51,23 +49,7 @@ export default async function EquipoCreditDetailPage({
 }) {
 	getRequiredAgentUser()
 
-	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
-
-	const firstCompanyId = assignedCompanyIds[0]
-	const canConfirmHrDeduction =
-		isAdmin ||
-		(firstCompanyId !== undefined &&
-			ability.can(
-				'confirmHrDeduction',
-				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
-			))
-	const canConfirmInstallment =
-		isAdmin ||
-		(firstCompanyId !== undefined &&
-			ability.can(
-				'confirmInstallment',
-				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
-			))
+	const { ability, isAdmin } = await getAbility()
 
 	const { id } = await params
 	const creditId = Number(id)
@@ -77,34 +59,42 @@ export default async function EquipoCreditDetailPage({
 
 	const t = await getTranslations('equipo')
 
-	const selectedCompanyId = await getEffectiveSelectedCompanyId()
-
-	if (selectedCompanyId === null) {
-		return (
-			<div className="mx-auto grid max-w-4xl gap-3 px-1 py-1 sm:px-1.5 sm:py-1.5">
-				<div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-muted/30 p-12 text-center">
-					<div className="flex size-16 items-center justify-center rounded-full bg-muted">
-						<Building2 className="size-8 text-muted-foreground" />
-					</div>
-					<div className="space-y-1">
-						<h2 className="font-semibold text-lg">
-							{t('credit-detail-no-company')}
-						</h2>
-					</div>
-				</div>
-			</div>
-		)
-	}
-
-	const [credit, creditPayments, company] = await Promise.all([
-		getCreditDetailForEquipo(creditId, selectedCompanyId),
-		getCreditPaymentsForEquipo(creditId, selectedCompanyId),
-		getCompanyById(selectedCompanyId),
-	])
+	const credit = await getCreditDetailForEquipoByCreditId(creditId)
 
 	if (!credit) {
 		notFound()
 	}
+
+	if (
+		!ability.can(
+			'read',
+			subject('Credit', {
+				id: credit.id,
+				applicantId: credit.applicantId,
+				companyId: credit.companyId,
+			}),
+		)
+	) {
+		notFound()
+	}
+
+	const canConfirmHrDeduction =
+		isAdmin ||
+		ability.can(
+			'confirmHrDeduction',
+			subject('CreditPayment', { id: 0, companyId: credit.companyId }),
+		)
+	const canConfirmInstallment =
+		isAdmin ||
+		ability.can(
+			'confirmInstallment',
+			subject('CreditPayment', { id: 0, companyId: credit.companyId }),
+		)
+
+	const [creditPayments, company] = await Promise.all([
+		getCreditPaymentsForEquipo(creditId, credit.companyId),
+		getCompanyById(credit.companyId),
+	])
 
 	const termForFormat = {
 		durationType: credit.durationType,

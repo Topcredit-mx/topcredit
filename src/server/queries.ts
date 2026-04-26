@@ -1352,6 +1352,7 @@ export async function getCreditPaymentsByCreditId(
 export type CreditDetailForEquipo = {
 	id: number
 	applicationId: number
+	applicantId: number
 	status: CreditStatus
 	transferAmount: string
 	disbursementDate: Date
@@ -1400,6 +1401,7 @@ export async function getCreditDetailForEquipo(
 		.select({
 			id: credits.id,
 			applicationId: applications.id,
+			applicantId: applications.applicantId,
 			status: credits.status,
 			transferAmount: credits.transferAmount,
 			disbursementDate: credits.disbursementDate,
@@ -1418,6 +1420,36 @@ export async function getCreditDetailForEquipo(
 		.innerJoin(terms, eq(termOfferings.termId, terms.id))
 		.innerJoin(users, eq(applications.applicantId, users.id))
 		.where(and(eq(credits.id, creditId), eq(applications.companyId, companyId)))
+
+	return row ?? null
+}
+
+export async function getCreditDetailForEquipoByCreditId(
+	creditId: number,
+): Promise<CreditDetailForEquipo | null> {
+	const [row] = await db
+		.select({
+			id: credits.id,
+			applicationId: applications.id,
+			applicantId: applications.applicantId,
+			status: credits.status,
+			transferAmount: credits.transferAmount,
+			disbursementDate: credits.disbursementDate,
+			companyName: companies.name,
+			companyId: companies.id,
+			rate: companies.rate,
+			durationType: terms.durationType,
+			duration: terms.duration,
+			employeeName: users.name,
+			payrollNumber: applications.payrollNumber,
+		})
+		.from(credits)
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.innerJoin(companies, eq(applications.companyId, companies.id))
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.innerJoin(users, eq(applications.applicantId, users.id))
+		.where(and(eq(credits.id, creditId), eq(companies.active, true)))
 
 	return row ?? null
 }
