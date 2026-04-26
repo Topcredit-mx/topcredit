@@ -1,5 +1,6 @@
 'use client'
 
+import { Settings2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
@@ -7,18 +8,28 @@ import { toast } from 'sonner'
 import { PickOverduePaymentsDialog } from '~/components/equipo/pick-overdue-payments-dialog'
 import { Button } from '~/components/ui/button'
 import { useDataTable } from '~/components/ui/data-table'
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
+import { Input } from '~/components/ui/input'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { OverdueInstallmentByCredit } from '~/server/queries'
 import { confirmInstallmentsAction } from '../actions'
 
-export function OverdueInstallmentsBulkBar() {
+export function OverdueInstallmentsToolbar() {
 	const t = useTranslations('equipo')
+	const tAdmin = useTranslations('admin')
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
 	const [isConfirmPending, startConfirmTransition] = useTransition()
 	const [dialogOpen, setDialogOpen] = useState(false)
 
-	const { table } = useDataTable<OverdueInstallmentByCredit>()
+	const { table, filterPlaceholder } =
+		useDataTable<OverdueInstallmentByCredit>()
+	const filterLabel = filterPlaceholder ?? ''
 	const selectedRows = table.getFilteredSelectedRowModel().rows
 	const groups = selectedRows.map((r) => ({
 		creditId: r.original.creditId,
@@ -77,17 +88,57 @@ export function OverdueInstallmentsBulkBar() {
 				onOpenChange={setDialogOpen}
 				onConfirm={runConfirm}
 			/>
-			<div className="flex min-w-0 flex-wrap items-center justify-end gap-2 py-2">
-				{count > 0 ? (
-					<Button
-						type="button"
-						size="sm"
-						disabled={isConfirmPending}
-						onClick={handlePrimaryClick}
-					>
-						{confirmLabel}
-					</Button>
-				) : null}
+			<div className="flex min-w-0 flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+				<Input
+					type="search"
+					placeholder={filterLabel}
+					onChange={(e) => table.setGlobalFilter(String(e.target.value))}
+					className="w-full min-w-0 max-w-full sm:max-w-sm"
+					aria-label={filterLabel}
+				/>
+				<div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2">
+					{count > 0 ? (
+						<Button
+							type="button"
+							size="sm"
+							disabled={isConfirmPending}
+							onClick={handlePrimaryClick}
+						>
+							{confirmLabel}
+						</Button>
+					) : null}
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								id="data-table-view-menu-trigger"
+								variant="outline"
+								size="sm"
+							>
+								<Settings2 />
+								{tAdmin('table-view')}
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							{table
+								.getAllColumns()
+								.filter((column) => column.getCanHide())
+								.map((column) => {
+									return (
+										<DropdownMenuCheckboxItem
+											key={column.id}
+											className="capitalize"
+											checked={column.getIsVisible()}
+											onCheckedChange={(value) =>
+												column.toggleVisibility(!!value)
+											}
+										>
+											{column.id}
+										</DropdownMenuCheckboxItem>
+									)
+								})}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
 			</div>
 		</>
 	)

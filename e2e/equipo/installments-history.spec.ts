@@ -204,14 +204,9 @@ test.describe('Installments confirmation history', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/installments/history')
-			const card = page
-				.locator('[data-slot="card"]')
-				.filter({
-					has: page.getByText(
-						/antigüedad de la instalación pendiente más antigua/i,
-					),
-				})
-				.first()
+			const card = page.locator(
+				'[data-testid="installments-overview-oldest-pending"]',
+			)
 			await expect(card.getByText('—').first()).toBeVisible()
 		})
 	})

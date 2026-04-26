@@ -1,4 +1,3 @@
-import { History } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
@@ -11,7 +10,6 @@ import {
 } from '~/server/queries'
 import { getEffectiveCompanyScope } from '~/server/scopes'
 import { InstallmentsOverview } from '../installments-overview'
-import { InstallmentsSecondaryNav } from '../installments-secondary-nav'
 import { InstallmentHistoryTable } from './installment-history-table'
 
 export default async function InstallmentsHistoryPage() {
@@ -40,19 +38,10 @@ export default async function InstallmentsHistoryPage() {
 	])
 
 	return (
-		<div className="container mx-auto py-6">
-			<h1 className="mb-2 font-semibold text-2xl text-foreground tracking-tight">
-				{t('installments-title')}
+		<div className="container mx-auto min-w-0 py-6">
+			<h1 className="mb-6 font-semibold text-2xl text-foreground tracking-tight">
+				{t('installments-history-full-title')}
 			</h1>
-			<InstallmentsSecondaryNav />
-			<div className="mb-6 flex items-center gap-2">
-				<div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-muted-foreground">
-					<History className="size-4" aria-hidden />
-				</div>
-				<p className="text-muted-foreground text-sm">
-					{t('installments-history-preview-description')}
-				</p>
-			</div>
 			<InstallmentsOverview
 				totalCollectedAmount={collectedAmount.totalAmount}
 				amountChangePercent={collectedAmount.changePercent}
@@ -68,9 +57,7 @@ export default async function InstallmentsHistoryPage() {
 					</p>
 				</Card>
 			) : (
-				<Card className="overflow-hidden">
-					<InstallmentHistoryTable items={historyItems} />
-				</Card>
+				<InstallmentHistoryTable items={historyItems} />
 			)}
 		</div>
 	)

@@ -1,11 +1,18 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import {
+	CalendarClock,
+	CircleDollarSign,
+	ListChecks,
+	User,
+	UserRound,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { EquipoWorkflowStatusPresentation } from '~/components/equipo/equipo-workflow-status-presentation'
 import { FormattedDate } from '~/components/formatted-date'
-import { DataTableColumnHeader } from '~/components/ui/data-table'
+import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
 import { historyTimingStatus } from '~/lib/equipo-workflow-status'
 import { formatCurrencyMxn } from '~/lib/utils'
 import type { InstallmentConfirmationHistoryItem } from '~/server/queries'
@@ -16,10 +23,12 @@ export function useInstallmentHistoryColumns(): ColumnDef<InstallmentConfirmatio
 	return [
 		{
 			accessorKey: 'employeeName',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('installments-col-employee')}
+					icon={<UserRound aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => (
@@ -33,10 +42,12 @@ export function useInstallmentHistoryColumns(): ColumnDef<InstallmentConfirmatio
 		},
 		{
 			accessorKey: 'amount',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('installments-col-amount')}
+					icon={<CircleDollarSign aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => (
@@ -47,10 +58,12 @@ export function useInstallmentHistoryColumns(): ColumnDef<InstallmentConfirmatio
 		},
 		{
 			id: 'confirmedBy',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('installments-history-confirmed-by-col')}
+					icon={<User aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => {
@@ -61,10 +74,12 @@ export function useInstallmentHistoryColumns(): ColumnDef<InstallmentConfirmatio
 		},
 		{
 			accessorKey: 'installmentConfirmedAt',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('installments-history-col-confirmed-at')}
+					icon={<CalendarClock aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => (
@@ -78,10 +93,12 @@ export function useInstallmentHistoryColumns(): ColumnDef<InstallmentConfirmatio
 		},
 		{
 			accessorKey: 'confirmedOnTime',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('installments-history-col-timing')}
+					icon={<ListChecks aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => {

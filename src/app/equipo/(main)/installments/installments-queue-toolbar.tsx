@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, Upload } from 'lucide-react'
+import { Download, Settings2, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
@@ -8,6 +8,13 @@ import { toast } from 'sonner'
 import { FinalInstallmentConfirmDialog } from '~/components/equipo/final-installment-confirm-dialog'
 import { Button } from '~/components/ui/button'
 import { useDataTable } from '~/components/ui/data-table'
+import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
+import { Input } from '~/components/ui/input'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { InstallmentForQueue } from '~/server/queries'
 import {
@@ -15,7 +22,7 @@ import {
 	exportPendingInstallmentsCsvAction,
 } from './actions'
 
-export function BulkConfirmInstallmentsBar({
+export function InstallmentsQueueToolbar({
 	companyName,
 	onImportClick,
 }: {
@@ -23,17 +30,18 @@ export function BulkConfirmInstallmentsBar({
 	onImportClick: () => void
 }) {
 	const t = useTranslations('equipo')
+	const tAdmin = useTranslations('admin')
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
 	const [isConfirmPending, startConfirmTransition] = useTransition()
 	const [isExportPending, startExportTransition] = useTransition()
 
-	const { table } = useDataTable<InstallmentForQueue>()
+	const { table, filterPlaceholder } = useDataTable<InstallmentForQueue>()
+	const filterLabel = filterPlaceholder ?? ''
 	const selectedRows = table.getFilteredSelectedRowModel().rows
 	const count = selectedRows.length
 
 	const [finalDialogOpen, setFinalDialogOpen] = useState(false)
-	/** All selected queue rows; confirmation runs on every id here. */
 	const [pendingBulkAllSelected, setPendingBulkAllSelected] = useState<
 		InstallmentForQueue[] | null
 	>(null)
@@ -101,7 +109,7 @@ export function BulkConfirmInstallmentsBar({
 			: t('installments-bulk-confirm-many', { count })
 
 	return (
-		<div className="flex min-w-0 flex-wrap items-center justify-end gap-2 py-2">
+		<>
 			<FinalInstallmentConfirmDialog
 				open={finalDialogOpen}
 				onOpenChange={(open) => {
@@ -129,36 +137,78 @@ export function BulkConfirmInstallmentsBar({
 				}}
 				isPending={isConfirmPending}
 			/>
-			{count > 0 ? (
-				<Button
-					type="button"
-					size="sm"
-					disabled={isConfirmPending || isExportPending}
-					onClick={handleConfirm}
-				>
-					{confirmLabel}
-				</Button>
-			) : null}
-			<Button
-				type="button"
-				variant="outline"
-				size="sm"
-				disabled={isConfirmPending || isExportPending}
-				onClick={onImportClick}
-			>
-				<Upload className="mr-2 size-4" />
-				{t('installments-import-csv')}
-			</Button>
-			<Button
-				type="button"
-				variant="outline"
-				size="sm"
-				disabled={isConfirmPending || isExportPending}
-				onClick={handleExportCsv}
-			>
-				<Download className="mr-2 size-4" />
-				{t('installments-export-csv')}
-			</Button>
-		</div>
+			<div className="flex min-w-0 flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+				<Input
+					type="search"
+					placeholder={filterLabel}
+					onChange={(e) => table.setGlobalFilter(String(e.target.value))}
+					className="w-full min-w-0 max-w-full sm:max-w-sm"
+					aria-label={filterLabel}
+				/>
+				<div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2">
+					{count > 0 ? (
+						<Button
+							type="button"
+							size="sm"
+							disabled={isConfirmPending || isExportPending}
+							onClick={handleConfirm}
+						>
+							{confirmLabel}
+						</Button>
+					) : null}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						disabled={isConfirmPending || isExportPending}
+						onClick={onImportClick}
+					>
+						<Upload className="mr-2 size-4" />
+						{t('installments-import-csv')}
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						disabled={isConfirmPending || isExportPending}
+						onClick={handleExportCsv}
+					>
+						<Download className="mr-2 size-4" />
+						{t('installments-export-csv')}
+					</Button>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								id="data-table-view-menu-trigger"
+								variant="outline"
+								size="sm"
+							>
+								<Settings2 />
+								{tAdmin('table-view')}
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							{table
+								.getAllColumns()
+								.filter((column) => column.getCanHide())
+								.map((column) => {
+									return (
+										<DropdownMenuCheckboxItem
+											key={column.id}
+											className="capitalize"
+											checked={column.getIsVisible()}
+											onCheckedChange={(value) =>
+												column.toggleVisibility(!!value)
+											}
+										>
+											{column.id}
+										</DropdownMenuCheckboxItem>
+									)
+								})}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
+			</div>
+		</>
 	)
 }

@@ -1,8 +1,10 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import {
 	DataTable,
 	DataTableContent,
+	DataTableHeader,
 	DataTablePagination,
 } from '~/components/ui/data-table'
 import type { InstallmentConfirmationHistoryItem } from '~/server/queries'
@@ -13,15 +15,23 @@ export function InstallmentHistoryTable({
 }: {
 	items: InstallmentConfirmationHistoryItem[]
 }) {
+	const t = useTranslations('equipo')
 	const columns = useInstallmentHistoryColumns()
 
 	return (
-		<DataTable columns={columns} data={items} schema="installments-history">
-			<DataTableContent
-				variant="equipoCredits"
-				wrapperClassName="rounded-none border-0"
-			/>
-			<DataTablePagination />
-		</DataTable>
+		<div className="space-y-4">
+			<DataTable
+				columns={columns}
+				data={items}
+				schema="installments-history"
+				label={t('installments-history-full-title')}
+				filterPlaceholder={t('table-filter-installments-history')}
+				createLink={null}
+			>
+				<DataTableHeader className="pb-2" disableCreateButton />
+				<DataTableContent />
+				<DataTablePagination />
+			</DataTable>
+		</div>
 	)
 }

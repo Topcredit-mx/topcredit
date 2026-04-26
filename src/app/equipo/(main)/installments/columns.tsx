@@ -1,11 +1,18 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import {
+	Activity,
+	Building2,
+	CircleDollarSign,
+	ListOrdered,
+	UserRound,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { EquipoWorkflowStatusPresentation } from '~/components/equipo/equipo-workflow-status-presentation'
 import { Checkbox } from '~/components/ui/checkbox'
-import { DataTableColumnHeader } from '~/components/ui/data-table'
+import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
 import { resolveQueueWorkflowStatus } from '~/lib/equipo-workflow-status'
 import { formatCurrencyMxn } from '~/lib/utils'
 import type { InstallmentForQueue } from '~/server/queries'
@@ -50,10 +57,12 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 		},
 		{
 			accessorKey: 'employeeName',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('installments-col-employee')}
+					icon={<UserRound aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => {
@@ -77,10 +86,12 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 		},
 		{
 			id: 'installmentProgress',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('installments-col-schedule-progress')}
+					icon={<ListOrdered aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => (
@@ -91,14 +102,15 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 					})}
 				</div>
 			),
-			enableSorting: false,
 		},
 		{
 			accessorKey: 'companyName',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('installments-col-company')}
+					icon={<Building2 aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => (
@@ -109,10 +121,12 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 		},
 		{
 			accessorKey: 'amount',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('installments-col-amount')}
+					icon={<CircleDollarSign aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => (
@@ -123,10 +137,12 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 		},
 		{
 			id: 'workflowStatus',
+			enableSorting: false,
 			header: ({ column }) => (
 				<DataTableColumnHeader
 					column={column}
 					title={t('equipo-col-workflow-status')}
+					icon={<Activity aria-hidden />}
 				/>
 			),
 			cell: ({ row }) => {
@@ -142,7 +158,6 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 					/>
 				)
 			},
-			enableSorting: false,
 		},
 	]
 }
