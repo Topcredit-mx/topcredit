@@ -7,6 +7,7 @@ import {
 	getFilteredRowModel,
 	getPaginationRowModel,
 	getSortedRowModel,
+	type PaginationState,
 	type Row,
 	type SortingState,
 	type Table,
@@ -42,11 +43,14 @@ interface DataTableProps<TData, TValue> {
 	data: TData[]
 	schema: string
 	label?: string
-	createLink?: string
+	/** When `null`, no "new" button is shown (overrides `/equipo/${schema}/new`). */
+	createLink?: string | null
 	createButtonText?: string
 	filterPlaceholder?: string
 	/** When set, forwarded to TanStack (e.g. payments queue disables non-eligible rows). Omit when not needed. */
 	enableRowSelection?: boolean | ((row: Row<TData>) => boolean)
+	initialColumnVisibility?: VisibilityState
+	initialPagination?: PaginationState
 	children?: React.ReactNode
 }
 
@@ -63,18 +67,30 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 	schema,
 	label,
 	enableRowSelection,
+	initialColumnVisibility,
+	initialPagination,
 	children,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = useState<SortingState>([])
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+		() => ({ ...(initialColumnVisibility ?? {}) }),
+	)
 	const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
+	const [globalFilter, setGlobalFilter] = useState('')
+	const [pagination, setPagination] = useState<PaginationState>(() => ({
+		pageIndex: initialPagination?.pageIndex ?? 0,
+		pageSize: initialPagination?.pageSize ?? 10,
+	}))
 
-	const createButtonHref = createLink
-		? createLink
-		: schema
-			? `/equipo/${schema}/new`
-			: undefined
+	const createButtonHref =
+		createLink === null
+			? undefined
+			: createLink
+				? createLink
+				: schema
+					? `/equipo/${schema}/new`
+					: undefined
 
 	const table = useReactTable({
 		data,
@@ -91,11 +107,15 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 		onColumnVisibilityChange: setColumnVisibility,
 		onRowSelectionChange: setRowSelection,
 		globalFilterFn: 'includesString',
+		onGlobalFilterChange: setGlobalFilter,
+		onPaginationChange: setPagination,
 		state: {
 			sorting,
 			columnFilters,
 			columnVisibility,
 			rowSelection,
+			globalFilter,
+			pagination,
 		},
 	})
 

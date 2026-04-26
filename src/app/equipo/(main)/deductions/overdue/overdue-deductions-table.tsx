@@ -29,7 +29,10 @@ export function OverdueDeductionsTable({
 				<div className="flex min-w-0 justify-end">
 					<OverdueDeductionsBulkBar />
 				</div>
-				<DataTableContent />
+				<DataTableContent
+					variant="equipoCredits"
+					wrapperClassName="rounded-none border-0"
+				/>
 				<DataTablePagination />
 			</DataTable>
 		</div>

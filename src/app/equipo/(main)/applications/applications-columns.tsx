@@ -1,0 +1,146 @@
+'use client'
+
+import type { ColumnDef } from '@tanstack/react-table'
+import { useTranslations } from 'next-intl'
+import { useMemo } from 'react'
+import { FormattedDate } from '~/components/formatted-date'
+import { ListDetailLink } from '~/components/list-detail-link'
+import { Button } from '~/components/ui/button'
+import { DataTableColumnHeader } from '~/components/ui/data-table'
+import { EQUIPO_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import { getPrefetchStrategy } from '~/lib/prefetch-strategy'
+import { formatCurrencyMxn } from '~/lib/utils'
+import type { ApplicationForReview } from '~/server/queries'
+import { formatApplicationTerm } from './constants'
+
+export function useApplicationsColumns(
+	rowCount: number,
+): ColumnDef<ApplicationForReview>[] {
+	const t = useTranslations('equipo')
+	const prefetchStrategy = getPrefetchStrategy(rowCount)
+
+	return useMemo(
+		() => [
+			{
+				id: '_search',
+				accessorFn: (row: ApplicationForReview) =>
+					[
+						row.applicant.name,
+						row.companyDomain,
+						row.applicant.email,
+						row.creditAmount ?? '',
+					].join(' '),
+				header: () => null,
+				cell: () => null,
+				enableHiding: true,
+				enableSorting: false,
+			},
+			{
+				accessorFn: (row: ApplicationForReview) => row.applicant.name,
+				id: 'applicantName',
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('applications-col-applicant')}
+					/>
+				),
+				cell: ({ row }) => (
+					<div>
+						<div className="font-medium text-slate-800 text-sm">
+							{row.original.applicant.name}
+						</div>
+						<div className="text-muted-foreground text-xs">
+							{row.original.companyDomain}
+						</div>
+					</div>
+				),
+			},
+			{
+				accessorKey: 'creditAmount',
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('applications-col-amount')}
+					/>
+				),
+				cell: ({ row }) => (
+					<div className="text-slate-800 text-sm">
+						{row.original.creditAmount
+							? formatCurrencyMxn(row.original.creditAmount)
+							: t('applications-detail-value-pending')}
+					</div>
+				),
+			},
+			{
+				id: 'term',
+				accessorFn: (row: ApplicationForReview) =>
+					row.termOffering
+						? `${row.termOffering.durationType}-${row.termOffering.duration}`
+						: '',
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('applications-col-term')}
+					/>
+				),
+				cell: ({ row }) => (
+					<div className="text-muted-foreground text-sm">
+						{row.original.termOffering
+							? formatApplicationTerm(row.original.termOffering, t)
+							: t('applications-detail-value-pending')}
+					</div>
+				),
+				enableSorting: false,
+			},
+			{
+				accessorKey: 'status',
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('applications-col-status')}
+					/>
+				),
+				cell: ({ row }) => (
+					<div className="text-slate-800 text-sm">
+						{t(EQUIPO_APPLICATION_STATUS_KEYS[row.original.status])}
+					</div>
+				),
+			},
+			{
+				accessorKey: 'createdAt',
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('applications-col-date')}
+					/>
+				),
+				cell: ({ row }) => (
+					<div className="text-muted-foreground text-sm">
+						<FormattedDate value={row.original.createdAt.toISOString()} />
+					</div>
+				),
+			},
+			{
+				id: 'actions',
+				header: () => (
+					<span className="text-[11px] text-slate-500 uppercase tracking-wide">
+						{t('applications-actions')}
+					</span>
+				),
+				cell: ({ row }) => (
+					<Button variant="ghost" size="sm" asChild>
+						<ListDetailLink
+							href={`/equipo/applications/${row.original.id}`}
+							aria-label={`${t('applications-review')} solicitud`}
+							prefetchStrategy={prefetchStrategy}
+						>
+							{t('applications-review')}
+						</ListDetailLink>
+					</Button>
+				),
+				enableSorting: false,
+			},
+		],
+		[prefetchStrategy, t],
+	)
+}

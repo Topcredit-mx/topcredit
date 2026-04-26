@@ -49,7 +49,10 @@ export function InstallmentsQueueTable({
 						/>
 					</div>
 				</div>
-				<DataTableContent />
+				<DataTableContent
+					variant="equipoCredits"
+					wrapperClassName="rounded-none border-0"
+				/>
 				<DataTablePagination />
 			</DataTable>
 			<ImportInstallmentsCsvDialog

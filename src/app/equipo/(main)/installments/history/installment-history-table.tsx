@@ -17,7 +17,10 @@ export function InstallmentHistoryTable({
 
 	return (
 		<DataTable columns={columns} data={items} schema="installments-history">
-			<DataTableContent />
+			<DataTableContent
+				variant="equipoCredits"
+				wrapperClassName="rounded-none border-0"
+			/>
 			<DataTablePagination />
 		</DataTable>
 	)

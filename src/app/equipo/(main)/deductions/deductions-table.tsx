@@ -36,7 +36,10 @@ export function DeductionsTable({
 					nextDeductionDate={nextDeductionDate}
 					employeeSalaryFrequency={employeeSalaryFrequency}
 				/>
-				<DataTableContent />
+				<DataTableContent
+					variant="equipoCredits"
+					wrapperClassName="rounded-none border-0"
+				/>
 				<DataTablePagination />
 			</DataTable>
 			<ExportDeductionsDialog

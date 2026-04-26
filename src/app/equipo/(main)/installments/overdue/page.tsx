@@ -1,5 +1,4 @@
-import { Building2 } from 'lucide-react'
-import Link from 'next/link'
+import { Building2, TriangleAlert } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
@@ -16,6 +15,7 @@ import {
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
 import { InstallmentsOverview } from '../installments-overview'
+import { InstallmentsSecondaryNav } from '../installments-secondary-nav'
 import { OverdueInstallmentsTable } from './overdue-installments-table'
 
 export default async function InstallmentsOverduePage() {
@@ -42,6 +42,10 @@ export default async function InstallmentsOverduePage() {
 	if (selectedCompanyId === null) {
 		return (
 			<div className="container mx-auto min-w-0 py-6">
+				<h1 className="mb-2 font-semibold text-2xl text-foreground tracking-tight">
+					{t('installments-title')}
+				</h1>
+				<InstallmentsSecondaryNav />
 				<div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-muted/30 p-12 text-center">
 					<div className="flex size-16 items-center justify-center rounded-full bg-muted">
 						<Building2 className="size-8 text-muted-foreground" />
@@ -70,6 +74,18 @@ export default async function InstallmentsOverduePage() {
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
+			<h1 className="mb-2 font-semibold text-2xl text-foreground tracking-tight">
+				{t('installments-title')}
+			</h1>
+			<InstallmentsSecondaryNav />
+			<div className="mb-6 flex items-center gap-2">
+				<div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-muted-foreground">
+					<TriangleAlert className="size-4" aria-hidden />
+				</div>
+				<p className="text-muted-foreground text-sm">
+					{t('installments-overdue-subtitle')}
+				</p>
+			</div>
 			<InstallmentsOverview
 				totalCollectedAmount={collectedAmount.totalAmount}
 				amountChangePercent={collectedAmount.changePercent}
@@ -78,22 +94,6 @@ export default async function InstallmentsOverduePage() {
 				oldestPendingDays={oldestPending.oldestPendingDays}
 				pendingAgeApplicable
 			/>
-			<div className="mb-2">
-				<Link
-					href="/equipo/installments"
-					className="text-muted-foreground text-sm hover:underline"
-				>
-					{t('installments-overdue-back')}
-				</Link>
-			</div>
-			<div className="mb-6 space-y-1">
-				<h1 className="font-semibold text-2xl tracking-tight">
-					{t('installments-overdue-title')}
-				</h1>
-				<p className="text-muted-foreground text-sm">
-					{t('installments-overdue-subtitle')}
-				</p>
-			</div>
 			{installments.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">
@@ -101,7 +101,9 @@ export default async function InstallmentsOverduePage() {
 					</p>
 				</Card>
 			) : (
-				<OverdueInstallmentsTable installments={installments} />
+				<Card className="overflow-hidden">
+					<OverdueInstallmentsTable installments={installments} />
+				</Card>
 			)}
 		</div>
 	)

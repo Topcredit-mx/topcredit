@@ -1,87 +1,72 @@
-import { getTranslations } from 'next-intl/server'
-import { FormattedDate } from '~/components/formatted-date'
-import { ListDetailLink } from '~/components/list-detail-link'
-import { Button } from '~/components/ui/button'
-import { EQUIPO_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
-import { getPrefetchStrategy } from '~/lib/prefetch-strategy'
-import { formatCurrencyMxn } from '~/lib/utils'
-import type { ApplicationForReview } from '~/server/queries'
-import { formatApplicationTerm } from './constants'
+'use client'
 
-export async function ApplicationsTable({
+import { FileText } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { Card } from '~/components/ui/card'
+import {
+	DataTable,
+	DataTableContent,
+	DataTableHeader,
+	DataTablePagination,
+} from '~/components/ui/data-table'
+import type { ApplicationStatus } from '~/server/db/schema'
+import type { ApplicationForReview } from '~/server/queries'
+import { useApplicationsColumns } from './applications-columns'
+import {
+	ApplicationsStatusFilter,
+	type ApplicationsStatusFilterLabels,
+} from './applications-status-filter'
+
+export function ApplicationsTable({
 	applications,
+	currentStatus,
+	filterLabels,
 }: {
 	applications: ApplicationForReview[]
+	currentStatus: ApplicationStatus | undefined
+	filterLabels: ApplicationsStatusFilterLabels
 }) {
-	const t = await getTranslations('equipo')
+	const t = useTranslations('equipo')
+	const columns = useApplicationsColumns(applications.length)
+
 	return (
-		<div className="overflow-x-auto rounded-md border">
-			<table className="w-full">
-				<thead>
-					<tr className="border-b bg-muted/50 text-left text-sm">
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-col-applicant')}
-						</th>
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-col-amount')}
-						</th>
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-col-term')}
-						</th>
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-col-status')}
-						</th>
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-col-date')}
-						</th>
-						<th className="px-4 py-3 font-medium" scope="col">
-							{t('applications-actions')}
-						</th>
-					</tr>
-				</thead>
-				<tbody>
-					{applications.map((app) => (
-						<tr
-							key={app.id}
-							className="border-b last:border-0 hover:bg-muted/30"
-						>
-							<td className="px-4 py-3">
-								<div className="font-medium">{app.applicant.name}</div>
-								<div className="text-muted-foreground text-sm">
-									{app.companyDomain}
-								</div>
-							</td>
-							<td className="px-4 py-3">
-								{app.creditAmount
-									? formatCurrencyMxn(app.creditAmount)
-									: t('applications-detail-value-pending')}
-							</td>
-							<td className="px-4 py-3 text-muted-foreground">
-								{app.termOffering
-									? formatApplicationTerm(app.termOffering, t)
-									: t('applications-detail-value-pending')}
-							</td>
-							<td className="px-4 py-3">
-								{t(EQUIPO_APPLICATION_STATUS_KEYS[app.status])}
-							</td>
-							<td className="px-4 py-3 text-muted-foreground text-sm">
-								<FormattedDate value={app.createdAt.toISOString()} />
-							</td>
-							<td className="px-4 py-3">
-								<Button variant="ghost" size="sm" asChild>
-									<ListDetailLink
-										href={`/equipo/applications/${app.id}`}
-										aria-label={`${t('applications-review')} solicitud`}
-										prefetchStrategy={getPrefetchStrategy(applications.length)}
-									>
-										{t('applications-review')}
-									</ListDetailLink>
-								</Button>
-							</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
+		<div className="space-y-4">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex items-center gap-2">
+					<div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-muted-foreground">
+						<FileText className="size-4" aria-hidden />
+					</div>
+					<p className="text-muted-foreground text-sm">
+						{t('applications-subtitle')}
+					</p>
+				</div>
+				<ApplicationsStatusFilter
+					currentStatus={currentStatus}
+					labels={filterLabels}
+				/>
+			</div>
+			<Card className="overflow-hidden">
+				<div className="border-slate-100 border-b p-4">
+					<DataTable
+						columns={columns}
+						data={applications}
+						schema="applications"
+						createLink={null}
+						enableRowSelection={false}
+						initialColumnVisibility={{ _search: false }}
+						filterPlaceholder={t('applications-table-filter')}
+					>
+						<DataTableHeader disableCreateButton />
+						<DataTableContent
+							variant="equipoCredits"
+							wrapperClassName="rounded-none border-0"
+						/>
+						<div className="border-slate-100 border-t px-4 py-3">
+							<DataTablePagination />
+						</div>
+					</DataTable>
+				</div>
+			</Card>
 		</div>
 	)
 }

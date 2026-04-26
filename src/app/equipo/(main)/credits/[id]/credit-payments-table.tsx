@@ -2,24 +2,21 @@
 
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { CreditPaymentScheduleStatusCell } from '~/components/equipo/credit-payment-schedule-status-cell'
 import { FinalInstallmentConfirmDialog } from '~/components/equipo/final-installment-confirm-dialog'
 import { FormattedDate } from '~/components/formatted-date'
-import { Button } from '~/components/ui/button'
-import { calendarYmdInMexicoCity } from '~/lib/calendar-date-tz'
 import {
-	resolveCreditDetailCollectionStatus,
-	resolveCreditDetailDeductionStatus,
-} from '~/lib/equipo-workflow-status'
+	DataTable,
+	DataTableContent,
+	DataTablePagination,
+} from '~/components/ui/data-table'
+import { calendarYmdInMexicoCity } from '~/lib/calendar-date-tz'
 import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import {
 	canConfirmInstallmentForCreditDetailRow,
-	canHrConfirm,
 	isFullyConfirmed,
 } from '~/lib/installment-confirmation'
-import { formatCurrencyMxn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { CreditPaymentRowForEquipo } from '~/server/queries'
 import {
@@ -27,6 +24,7 @@ import {
 	confirmInstallmentFromCreditAction,
 	confirmInstallmentsFromCreditAction,
 } from './actions'
+import { useCreditPaymentScheduleColumns } from './credit-payment-schedule-columns'
 
 function closesCreditWhenConfirmed(
 	p: Pick<
@@ -74,78 +72,100 @@ export function CreditPaymentsTable({
 		}
 	}, [employeeSalaryFrequency])
 
-	const canShowInstallmentConfirmForRow = (
-		creditPayment: CreditPaymentRowForEquipo,
-		todayDate: Date | undefined,
-	): boolean =>
-		canConfirmInstallment &&
-		todayDate !== undefined &&
-		canConfirmInstallmentForCreditDetailRow(
-			{
-				hrConfirmedAt: creditPayment.hrConfirmedAt,
-				installmentConfirmedAt: creditPayment.installmentConfirmedAt,
-				dueDate: creditPayment.dueDate,
-				employeeSalaryFrequency: creditPayment.employeeSalaryFrequency,
-			},
-			todayDate,
-		)
+	const todayDate = useMemo(
+		() =>
+			today !== undefined ? new Date(`${today}T12:00:00.000Z`) : undefined,
+		[today],
+	)
 
-	const handleHrConfirm = (paymentId: number) => {
-		startTransition(async () => {
-			const result = await confirmHrDeductionFromCreditAction(paymentId)
-			if (result?.error != null) {
-				toast.error(resolveError(result.error))
-			} else {
-				toast.success(t('credit-detail-confirm-success'))
-				setCreditPayments((prev) =>
-					prev.map((p) =>
-						p.id === paymentId ? { ...p, hrConfirmedAt: new Date() } : p,
-					),
-				)
-				router.refresh()
+	const canShowInstallmentConfirmForRow = useCallback(
+		(
+			creditPayment: CreditPaymentRowForEquipo,
+			todayForRow: Date | undefined,
+		): boolean =>
+			canConfirmInstallment &&
+			todayForRow !== undefined &&
+			canConfirmInstallmentForCreditDetailRow(
+				{
+					hrConfirmedAt: creditPayment.hrConfirmedAt,
+					installmentConfirmedAt: creditPayment.installmentConfirmedAt,
+					dueDate: creditPayment.dueDate,
+					employeeSalaryFrequency: creditPayment.employeeSalaryFrequency,
+				},
+				todayForRow,
+			),
+		[canConfirmInstallment],
+	)
+
+	const handleHrConfirm = useCallback(
+		(paymentId: number) => {
+			startTransition(async () => {
+				const result = await confirmHrDeductionFromCreditAction(paymentId)
+				if (result?.error != null) {
+					toast.error(resolveError(result.error))
+				} else {
+					toast.success(t('credit-detail-confirm-success'))
+					setCreditPayments((prev) =>
+						prev.map((p) =>
+							p.id === paymentId ? { ...p, hrConfirmedAt: new Date() } : p,
+						),
+					)
+					router.refresh()
+				}
+			})
+		},
+		[resolveError, router, t],
+	)
+
+	const runSingleInstallmentConfirm = useCallback(
+		(paymentId: number) => {
+			startTransition(async () => {
+				const result = await confirmInstallmentFromCreditAction(paymentId)
+				if (result?.error != null) {
+					toast.error(resolveError(result.error))
+				} else {
+					toast.success(t('installments-bulk-confirm-success-one'))
+					setCreditPayments((prev) =>
+						prev.map((p) =>
+							p.id === paymentId
+								? { ...p, installmentConfirmedAt: new Date() }
+								: p,
+						),
+					)
+					router.refresh()
+				}
+			})
+		},
+		[resolveError, router, t],
+	)
+
+	const requestInstallmentConfirm = useCallback(
+		(
+			creditPayment: CreditPaymentRowForEquipo,
+			todayForRow: Date | undefined,
+		) => {
+			if (!canShowInstallmentConfirmForRow(creditPayment, todayForRow)) {
+				return
 			}
-		})
-	}
-
-	const runSingleInstallmentConfirm = (paymentId: number) => {
-		startTransition(async () => {
-			const result = await confirmInstallmentFromCreditAction(paymentId)
-			if (result?.error != null) {
-				toast.error(resolveError(result.error))
-			} else {
-				toast.success(t('installments-bulk-confirm-success-one'))
-				setCreditPayments((prev) =>
-					prev.map((p) =>
-						p.id === paymentId
-							? { ...p, installmentConfirmedAt: new Date() }
-							: p,
-					),
+			if (closesCreditWhenConfirmed(creditPayment, creditPayments)) {
+				const closingRows = creditPayments.filter(
+					(p) =>
+						canShowInstallmentConfirmForRow(p, todayForRow) &&
+						closesCreditWhenConfirmed(p, creditPayments),
 				)
-				router.refresh()
+				setFinalInstallRows(closingRows)
+				return
 			}
-		})
-	}
+			runSingleInstallmentConfirm(creditPayment.id)
+		},
+		[
+			canShowInstallmentConfirmForRow,
+			creditPayments,
+			runSingleInstallmentConfirm,
+		],
+	)
 
-	const requestInstallmentConfirm = (
-		creditPayment: CreditPaymentRowForEquipo,
-		todayDate: Date | undefined,
-	) => {
-		if (!canShowInstallmentConfirmForRow(creditPayment, todayDate)) {
-			return
-		}
-		if (closesCreditWhenConfirmed(creditPayment, creditPayments)) {
-			const closingRows = creditPayments.filter(
-				(p) =>
-					canShowInstallmentConfirmForRow(p, todayDate) &&
-					closesCreditWhenConfirmed(p, creditPayments),
-			)
-			setFinalInstallRows(closingRows)
-			return
-		}
-		runSingleInstallmentConfirm(creditPayment.id)
-	}
-
-	const handleFinalInstallConfirm = () => {
+	const handleFinalInstallConfirm = useCallback(() => {
 		if (finalInstallRows == null || finalInstallRows.length === 0) {
 			return
 		}
@@ -172,7 +192,20 @@ export function CreditPaymentsTable({
 				router.refresh()
 			}
 		})
-	}
+	}, [finalInstallRows, resolveError, router, t])
+
+	const columns = useCreditPaymentScheduleColumns(creditPayments, {
+		todayYmd: today,
+		upcomingDeductionDate,
+		todayDate,
+		canConfirmHrDeduction,
+		isPending,
+		onHrConfirm: handleHrConfirm,
+		onInstallmentConfirm: requestInstallmentConfirm,
+		canShowInstallmentConfirmForRow,
+	})
+
+	const pageSize = Math.max(creditPayments.length, 1)
 
 	return (
 		<div>
@@ -197,129 +230,33 @@ export function CreditPaymentsTable({
 				isPending={isPending}
 			/>
 
-			{upcomingDeductionDate && (
-				<p className="px-5 pb-3 text-muted-foreground text-sm">
+			{upcomingDeductionDate ? (
+				<p className="px-1 pb-3 text-muted-foreground text-sm sm:px-5">
 					{t('credit-detail-upcoming-deduction-date')}:{' '}
 					<span className="font-medium text-foreground">
 						<FormattedDate value={upcomingDeductionDate} format="date" />
 					</span>
 				</p>
-			)}
-			<table className="w-full">
-				<thead>
-					<tr className="border-slate-100 border-b bg-slate-50/80 text-left text-[11px] text-slate-500 uppercase tracking-wide">
-						<th className="px-5 py-3 font-semibold" scope="col">
-							{t('credit-detail-col-number')}
-						</th>
-						<th className="px-5 py-3 font-semibold" scope="col">
-							{t('credit-detail-col-due-date')}
-						</th>
-						<th className="px-5 py-3 font-semibold" scope="col">
-							{t('credit-detail-col-amount')}
-						</th>
-						<th className="px-5 py-3 font-semibold" scope="col">
-							{t('credit-detail-col-hr-status')}
-						</th>
-						<th className="px-5 py-3 font-semibold" scope="col">
-							{t('credit-detail-col-installment-status')}
-						</th>
-						<th className="px-5 py-3" scope="col" />
-					</tr>
-				</thead>
-				<tbody>
-					{creditPayments.map((creditPayment, index) => {
-						const todayDate =
-							today !== undefined
-								? new Date(`${today}T12:00:00.000Z`)
-								: undefined
-						const showHrConfirm =
-							canConfirmHrDeduction &&
-							canHrConfirm(creditPayment) &&
-							upcomingDeductionDate !== undefined &&
-							creditPayment.dueDate.toISOString().slice(0, 10) <=
-								upcomingDeductionDate
-						const showInstallmentConfirm = canShowInstallmentConfirmForRow(
-							creditPayment,
-							todayDate,
-						)
-						const {
-							tone: deductionTone,
-							messageKey: deductionMessageKey,
-							context: deductionContext,
-						} = resolveCreditDetailDeductionStatus({
-							hrConfirmedAt: creditPayment.hrConfirmedAt,
-							dueDate: creditPayment.dueDate,
-							todayYmd: today,
-						})
-						const {
-							tone: collectionTone,
-							messageKey: collectionMessageKey,
-							context: collectionContext,
-						} = resolveCreditDetailCollectionStatus({
-							hrConfirmedAt: creditPayment.hrConfirmedAt,
-							installmentConfirmedAt: creditPayment.installmentConfirmedAt,
-							dueDate: creditPayment.dueDate,
-							todayYmd: today,
-						})
-						return (
-							<tr key={creditPayment.id} className="border-slate-100 border-b">
-								<td className="px-5 py-3.5 text-slate-800 text-sm">
-									{index + 1}
-								</td>
-								<td className="px-5 py-3.5 text-slate-800 text-sm">
-									<FormattedDate
-										value={creditPayment.dueDate.toISOString().slice(0, 10)}
-										format="date"
-									/>
-								</td>
-								<td className="px-5 py-3.5 text-slate-800 text-sm">
-									{formatCurrencyMxn(creditPayment.amount)}
-								</td>
-								<td className="px-5 py-3.5 text-sm">
-									<CreditPaymentScheduleStatusCell
-										tone={deductionTone}
-										messageKey={deductionMessageKey}
-										context={deductionContext}
-									/>
-								</td>
-								<td className="px-5 py-3.5 text-sm">
-									<CreditPaymentScheduleStatusCell
-										tone={collectionTone}
-										messageKey={collectionMessageKey}
-										context={collectionContext}
-									/>
-								</td>
-								<td className="px-5 py-3.5">
-									<div className="flex flex-col items-end gap-2">
-										{showHrConfirm ? (
-											<Button
-												size="sm"
-												variant="outline"
-												onClick={() => handleHrConfirm(creditPayment.id)}
-												disabled={isPending}
-											>
-												{t('credit-detail-confirm')}
-											</Button>
-										) : null}
-										{showInstallmentConfirm ? (
-											<Button
-												size="sm"
-												variant="outline"
-												disabled={isPending}
-												onClick={() =>
-													requestInstallmentConfirm(creditPayment, todayDate)
-												}
-											>
-												{t('installments-confirm')}
-											</Button>
-										) : null}
-									</div>
-								</td>
-							</tr>
-						)
-					})}
-				</tbody>
-			</table>
+			) : null}
+
+			<DataTable
+				columns={columns}
+				data={creditPayments}
+				schema="credit-payment-schedule"
+				createLink={null}
+				enableRowSelection={false}
+				initialPagination={{ pageIndex: 0, pageSize }}
+			>
+				<DataTableContent
+					variant="equipoCredits"
+					wrapperClassName="rounded-none border-0"
+				/>
+				{creditPayments.length > 10 ? (
+					<div className="border-slate-100 border-t px-2 py-2">
+						<DataTablePagination />
+					</div>
+				) : null}
+			</DataTable>
 		</div>
 	)
 }

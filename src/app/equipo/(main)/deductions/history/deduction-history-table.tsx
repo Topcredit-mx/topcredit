@@ -17,7 +17,10 @@ export function DeductionHistoryTable({
 
 	return (
 		<DataTable columns={columns} data={items} schema="deductions-history">
-			<DataTableContent />
+			<DataTableContent
+				variant="equipoCredits"
+				wrapperClassName="rounded-none border-0"
+			/>
 			<DataTablePagination />
 		</DataTable>
 	)
