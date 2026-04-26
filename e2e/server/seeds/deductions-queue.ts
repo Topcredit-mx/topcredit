@@ -35,7 +35,6 @@ import {
 	eodDayOfOffsetMexicoMonth,
 	eodNCalendarDaysFromMexicoToday,
 	eodYmd,
-	sodYmd,
 } from '../shared/mexico-seed-dates'
 
 export type SeedDeductionsQueueResult = {
@@ -514,7 +513,7 @@ export const seedDeductionsQueue = async (
 		},
 	])
 
-	// Credit 8: HR confirm at Mexico SOD 2022-12-01 vs EOD 2022-11-30 (stable edge-case).
+	// Credit 8: hr confirm ≤ Nov 30 EOD CDMX; `sodYmd('2022-12-01')` is after that instant.
 	const creditAmountMxEdge = '11000.00'
 	const mxEdgeDueEod = eodYmd('2022-11-30')
 	const [app8] = await db
@@ -552,7 +551,7 @@ export const seedDeductionsQueue = async (
 			creditId: credit8.id,
 			dueDate: mxEdgeDueEod,
 			amount: '11275.00',
-			hrConfirmedAt: sodYmd('2022-12-01'),
+			hrConfirmedAt: new Date('2022-12-01T05:00:00.000Z'),
 			hrConfirmedByUserId: hrAgent.id,
 		},
 	])

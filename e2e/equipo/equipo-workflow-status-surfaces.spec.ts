@@ -21,7 +21,11 @@ test.describe('Equipo workflow status UI across queue, overdue, and history', ()
 	let deductionsSeed: SeedDeductionsQueueResult
 	let installmentsOverdueSeed: SeedInstallmentsOverdueResult
 
-	test.beforeAll(async () => {
+	// Seed in `beforeEach` (not `beforeAll`) so `getUpcomingDeductionDate` in the
+	// DB matches the pay-period window the page uses with `new Date()` at
+	// request time. A month change between `beforeAll` and navigation would
+	// make `/equipo/deductions` show an empty Card (no `<table>` in `<main>`).
+	test.beforeEach(async () => {
 		await cleanupDeductionsQueue()
 		await cleanupInstallmentsOverdue()
 		deductionsSeed = await seedDeductionsQueue({ withOverdue: true })

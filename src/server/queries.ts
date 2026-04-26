@@ -1338,20 +1338,24 @@ export async function getCreditPaymentsForEquipo(
 	}))
 }
 
-/** Payments in current pay window; `due_date` = EOD CDMX for that YMD. */
+/**
+ * `credit_payments.due_date` is `timestamp without time zone` but stores UTC
+ * wall-clock instants (Mexico EOD encoded as UTC). Compare to `timestamptz`
+ * parameters via `AT TIME ZONE 'UTC'` so session `TimeZone` does not skew results.
+ */
 function payPeriodWindowCondition(
 	upcomingDeductionYmd: string,
 	startOfBusinessDay: Date,
 ): SQL {
 	const eodUpcoming = endOfDayInstantMexicoCity(upcomingDeductionYmd)
 	return sql`
-				AND cp.due_date >= ${startOfBusinessDay}
-				AND cp.due_date <= ${eodUpcoming}
+				AND (cp.due_date AT TIME ZONE 'UTC') >= ${startOfBusinessDay}
+				AND (cp.due_date AT TIME ZONE 'UTC') <= ${eodUpcoming}
 				AND NOT EXISTS (
 					SELECT 1 FROM credit_payments cp2
 					WHERE cp2.credit_id = cp.credit_id
 					  AND cp2.hr_confirmed_at IS NULL
-					  AND cp2.due_date < ${startOfBusinessDay}
+					  AND (cp2.due_date AT TIME ZONE 'UTC') < ${startOfBusinessDay}
 				)`
 }
 
@@ -1425,7 +1429,7 @@ export async function getInstallmentsForQueue(params: {
 	const installmentsExcludeOverdue: SQL =
 		queue === 'installments'
 			? sql`AND NOT (
-				cp.due_date < ${startOfBusinessDay}
+				(cp.due_date AT TIME ZONE 'UTC') < ${startOfBusinessDay}
 				AND (
 					cp.hr_confirmed_at IS NULL
 					OR cp.installment_confirmed_at IS NULL
@@ -1647,7 +1651,7 @@ export async function getOverdueInstallments(params: {
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE ${companyCondition}
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND (cp.due_date AT TIME ZONE 'UTC') < ${startOfBusinessDay}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -1930,7 +1934,7 @@ export async function getOldestPendingPaymentAgeDays(
 		pendingCondition = sql`
 			cp.installment_confirmed_at IS NULL
 			AND NOT (
-				cp.due_date < ${startOfBusinessDay}
+				(cp.due_date AT TIME ZONE 'UTC') < ${startOfBusinessDay}
 				AND (
 					cp.hr_confirmed_at IS NULL
 					OR cp.installment_confirmed_at IS NULL
@@ -1940,7 +1944,7 @@ export async function getOldestPendingPaymentAgeDays(
 		`
 	} else {
 		pendingCondition = sql`
-			cp.due_date < ${startOfBusinessDay}
+			(cp.due_date AT TIME ZONE 'UTC') < ${startOfBusinessDay}
 			AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -2150,7 +2154,7 @@ export async function getOverdueDeductionsCount(
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND (cp.due_date AT TIME ZONE 'UTC') < ${startOfBusinessDay}
 	`)
 	const row = result.rows[0]
 	return row ? Number(row.count) : 0
@@ -2168,7 +2172,7 @@ export async function getOverdueInstallmentsCount(
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE a.company_id = ${companyId}
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND (cp.due_date AT TIME ZONE 'UTC') < ${startOfBusinessDay}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -2232,7 +2236,7 @@ export async function getOverdueDeductions(
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND (cp.due_date AT TIME ZONE 'UTC') < ${startOfBusinessDay}
 		GROUP BY cp.credit_id
 		ORDER BY MIN(cp.due_date) ASC, cp.credit_id ASC
 	`)
@@ -2291,7 +2295,7 @@ export async function getOverdueDeductionsForCredit(
 		WHERE cp.credit_id = ${creditId}
 		  AND a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND (cp.due_date AT TIME ZONE 'UTC') < ${startOfBusinessDay}
 		ORDER BY cp.due_date ASC
 	`)
 
