@@ -1,14 +1,17 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import type { ReactNode } from 'react'
 import { FormattedDate } from '~/components/formatted-date'
 
 export function PayrollQueueHeaderLine({
 	nextDeductionDate,
 	employeeSalaryFrequency,
+	afterSalaryFrequency,
 }: {
 	nextDeductionDate?: string
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	afterSalaryFrequency?: ReactNode
 }) {
 	const t = useTranslations('equipo')
 	const frequencyValue =
@@ -26,10 +29,13 @@ export function PayrollQueueHeaderLine({
 					</span>
 				</p>
 			) : null}
-			<p>
-				{t('queue-header-salary-frequency-label')}:{' '}
-				<span className="font-medium text-foreground">{frequencyValue}</span>
-			</p>
+			<div className="flex flex-wrap items-end gap-x-3 gap-y-1">
+				<p>
+					{t('queue-header-salary-frequency-label')}:{' '}
+					<span className="font-medium text-foreground">{frequencyValue}</span>
+				</p>
+				{afterSalaryFrequency}
+			</div>
 		</div>
 	)
 }

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { SeedDeductionsQueueResult } from '~/e2e/server/tasks'
 import { cleanupDeductionsQueue, seedDeductionsQueue } from '~/e2e/server/tasks'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
+import { sumAmountStringsMxnE2e } from '../helpers/currency'
 import { mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import {
@@ -230,6 +231,42 @@ test.describe('HR deductions queue bulk confirm', () => {
 
 	test.afterEach(async () => {
 		await cleanupDeductionsQueue()
+	})
+
+	test('shows empty selected-total status beside nómina until a row is selected, then sums selected amounts', async ({
+		page,
+	}) => {
+		await page.goto('/equipo/deductions')
+		const table = mainDataTable(page)
+		await expect(table).toBeVisible()
+		const status = page.getByRole('status', { name: /selección:/i })
+		await expect(status).toBeVisible()
+		await expect(status).toContainText(/sin selección/i)
+		const [a1, a2] = seed.queueUpcomingRowAmounts
+		const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+		const row1 = table.locator('tbody tr').first()
+		await row1.scrollIntoViewIfNeeded()
+		await row1.getByRole('checkbox').click({ force: true })
+		await expect(status).toHaveAttribute(
+			'aria-label',
+			new RegExp(`Selección: total ${escapeRe(sumAmountStringsMxnE2e([a1]))}`),
+		)
+		const row2 = table.locator('tbody tr').nth(1)
+		await row2.scrollIntoViewIfNeeded()
+		await row2.getByRole('checkbox').click({ force: true })
+		await expect(status).toHaveAttribute(
+			'aria-label',
+			new RegExp(
+				`Selección: total ${escapeRe(sumAmountStringsMxnE2e([a1, a2]))}`,
+			),
+		)
+		await row2.getByRole('checkbox').click({ force: true })
+		await expect(status).toHaveAttribute(
+			'aria-label',
+			new RegExp(`Selección: total ${escapeRe(sumAmountStringsMxnE2e([a1]))}`),
+		)
+		await row1.getByRole('checkbox').click({ force: true })
+		await expect(status).toContainText(/sin selección/i)
 	})
 
 	test('shows a checkbox column in the deductions table', async ({ page }) => {

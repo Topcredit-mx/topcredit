@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { SeedDeductionsQueueResult } from '~/e2e/server/tasks'
 import { cleanupDeductionsQueue, seedDeductionsQueue } from '~/e2e/server/tasks'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
+import { sumAmountStringsMxnE2e } from '../helpers/currency'
 import { findTableRow, mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import {
@@ -144,6 +145,48 @@ test.describe('HR overdue deductions list', () => {
 			const overview = page.locator('[data-testid="overdue-overview"]')
 			await expect(overview.getByText(/mayor atraso/i).first()).toBeVisible()
 			await expect(overview.getByText(/día/i).first()).toBeVisible()
+		})
+
+		test('shows nómina line with selected payment total that tracks row checkboxes', async ({
+			page,
+		}) => {
+			await page.goto('/equipo/deductions/overdue')
+			const main = page.getByRole('main')
+			await expect(main.getByText(/^nómina:/i).first()).toBeVisible()
+			const status = page.getByRole('status', { name: /selección:/i })
+			await expect(status).toContainText(/sin selección/i)
+			const totals = seed.overdueDeductionsRowTotals
+			if (totals === undefined) {
+				throw new Error('seed missing overdueDeductionsRowTotals')
+			}
+			const [t0, t1] = totals
+			const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+			const row0 = mainDataTable(page).locator('tbody tr').nth(0)
+			const row1 = mainDataTable(page).locator('tbody tr').nth(1)
+			await row0.scrollIntoViewIfNeeded()
+			await row0.getByRole('checkbox', { name: /seleccionar fila/i }).click()
+			await expect(status).toHaveAttribute(
+				'aria-label',
+				new RegExp(
+					`Selección: total ${escapeRe(sumAmountStringsMxnE2e([t0]))}`,
+				),
+			)
+			await row1.getByRole('checkbox', { name: /seleccionar fila/i }).click()
+			await expect(status).toHaveAttribute(
+				'aria-label',
+				new RegExp(
+					`Selección: total ${escapeRe(sumAmountStringsMxnE2e([t0, t1]))}`,
+				),
+			)
+			await row0.getByRole('checkbox', { name: /seleccionar fila/i }).click()
+			await expect(status).toHaveAttribute(
+				'aria-label',
+				new RegExp(
+					`Selección: total ${escapeRe(sumAmountStringsMxnE2e([t1]))}`,
+				),
+			)
+			await row1.getByRole('checkbox', { name: /seleccionar fila/i }).click()
+			await expect(status).toContainText(/sin selección/i)
 		})
 
 		test('bulk-confirms a single-credit row and removes it from the list', async ({

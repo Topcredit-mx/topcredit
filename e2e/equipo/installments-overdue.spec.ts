@@ -5,6 +5,7 @@ import {
 	seedInstallmentsOverdue,
 } from '~/e2e/server/tasks'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
+import { sumAmountStringsMxnE2e } from '../helpers/currency'
 import { mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import {
@@ -121,6 +122,37 @@ test.describe('Installments overdue page', () => {
 			const trRh = page.locator('tr', { hasText: seed.payrollHrBlocked })
 			await trRh.first().scrollIntoViewIfNeeded()
 			await expect(trRh.first().getByText(/RH Pendiente/i)).toBeVisible()
+		})
+
+		test('shows nómina line with selected confirmable total that tracks overdue row checkboxes', async ({
+			page,
+		}) => {
+			await page.goto('/equipo/installments/overdue')
+			const main = page.getByRole('main')
+			await expect(main.getByText(/^nómina:/i).first()).toBeVisible()
+			const status = page.getByRole('status', { name: /selección:/i })
+			await expect(status).toContainText(/sin selección/i)
+			const [p0, p1, p2] = seed.overdueInstallmentsBlockedConfirmableAmounts
+			const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+			const row = page.locator('tr', {
+				hasText: seed.payrollInstallmentsBlocked,
+			})
+			await row.first().scrollIntoViewIfNeeded()
+			await row
+				.first()
+				.getByRole('checkbox', { name: /seleccionar fila/i })
+				.click()
+			await expect(status).toHaveAttribute(
+				'aria-label',
+				new RegExp(
+					`Selección: total ${escapeRe(sumAmountStringsMxnE2e([p0, p1, p2]))}`,
+				),
+			)
+			await row
+				.first()
+				.getByRole('checkbox', { name: /seleccionar fila/i })
+				.click()
+			await expect(status).toContainText(/sin selección/i)
 		})
 
 		test('does not list overdue rows on the main installments queue', async ({
