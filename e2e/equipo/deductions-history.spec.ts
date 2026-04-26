@@ -159,10 +159,10 @@ test.describe('HR deduction confirmation history', () => {
 		test('shows a back link to the deductions page', async ({ page }) => {
 			await page.goto('/equipo/deductions/history')
 			const link = page
-				.getByRole('navigation', { name: /secciones de deducciones/i })
-				.getByRole('link', { name: /^próximo corte$/i })
-			await link.scrollIntoViewIfNeeded()
+				.getByRole('navigation', { name: 'Breadcrumb' })
+				.getByRole('link', { name: /^deducciones$/i })
 			await expect(link).toBeVisible()
+			await expect(link).toHaveAttribute('href', '/equipo/deductions')
 		})
 	})
 
