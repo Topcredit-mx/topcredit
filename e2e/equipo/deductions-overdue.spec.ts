@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 import type { SeedDeductionsQueueResult } from '~/e2e/server/tasks'
 import { cleanupDeductionsQueue, seedDeductionsQueue } from '~/e2e/server/tasks'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
@@ -341,5 +341,87 @@ test.describe('HR overdue deductions — multiple overdue installments per credi
 		await expect(mainDataTable(page)).toBeVisible()
 		const rowAfter = findTableRow(page, name)
 		await expect(rowAfter.getByText('1', { exact: true }).first()).toBeVisible()
+	})
+})
+
+test.describe('HR agent sidebar overdue deductions badge', () => {
+	let seed: SeedDeductionsQueueResult
+
+	test.beforeEach(async () => {
+		await cleanupDeductionsQueue()
+		seed = await seedDeductionsQueue({
+			withOverdue: true,
+			withMultipleOverdue: true,
+		})
+	})
+
+	test.afterAll(async () => {
+		await cleanupDeductionsQueue()
+	})
+
+	function mainNav(page: Page) {
+		return page.getByRole('navigation', { name: 'Navegación' })
+	}
+
+	async function openDeductionsSubNav(page: Page) {
+		const nav = mainNav(page)
+		await nav.getByRole('button', { name: 'Deducciones' }).click()
+	}
+
+	test.beforeEach(async ({ page }) => {
+		await loginPage(page, hrAgentDeductions.email)
+		await setSelectedCompanyId(page, seed.companyId)
+		await page.goto('/equipo')
+		await expect(mainNav(page)).toBeVisible()
+	})
+
+	test('shows the total overdue payment count on Retrasos, not one per credit', async ({
+		page,
+	}) => {
+		await openDeductionsSubNav(page)
+		const retrasos = mainNav(page).getByRole('link', { name: /Retrasos/i })
+		await expect(retrasos).toBeVisible()
+		await expect(retrasos).toHaveAttribute('href', '/equipo/deductions/overdue')
+		await expect(retrasos.getByText('5', { exact: true })).toBeVisible()
+	})
+
+	test('updates the Retrasos badge after confirming overdue payments', async ({
+		page,
+	}) => {
+		await openDeductionsSubNav(page)
+		await expect(
+			mainNav(page)
+				.getByRole('link', { name: /Retrasos/i })
+				.getByText('5', { exact: true }),
+		).toBeVisible()
+
+		const name = seed.multiOverdueApplicantName ?? ''
+		await page.goto('/equipo/deductions/overdue')
+		await expect(mainDataTable(page)).toBeVisible()
+		const row = findTableRow(page, name)
+		await row.scrollIntoViewIfNeeded()
+		await row.getByRole('checkbox', { name: /seleccionar fila/i }).click()
+		await page
+			.getByRole('button', { name: /confirmar 3 deducciones/i })
+			.first()
+			.click()
+		const dialog = page.getByRole('dialog')
+		await expect(dialog).toBeVisible()
+		const checkboxes = dialog.getByRole('checkbox', {
+			name: /pago \d+/i,
+		})
+		await checkboxes.nth(2).click()
+		await dialog
+			.getByRole('button', { name: /confirmar 2 deducciones/i })
+			.click()
+		await expect(page.getByRole('dialog')).toHaveCount(0)
+
+		await page.goto('/equipo')
+		await openDeductionsSubNav(page)
+		await expect(
+			mainNav(page)
+				.getByRole('link', { name: /Retrasos/i })
+				.getByText('3', { exact: true }),
+		).toBeVisible()
 	})
 })

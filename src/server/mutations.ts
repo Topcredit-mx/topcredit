@@ -1229,6 +1229,7 @@ export async function confirmHrDeduction(
 		})
 		.where(eq(creditPayments.id, paymentId))
 
+	revalidatePath('/equipo')
 	revalidatePath('/equipo/deductions')
 	revalidatePath('/equipo/deductions/overdue')
 	revalidatePath('/equipo/installments')
@@ -1287,6 +1288,7 @@ export async function confirmHrDeductions(
 			),
 		)
 
+	revalidatePath('/equipo')
 	revalidatePath('/equipo/deductions')
 	revalidatePath('/equipo/deductions/overdue')
 	revalidatePath('/equipo/installments')
