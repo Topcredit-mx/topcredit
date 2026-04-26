@@ -32,6 +32,7 @@ import {
 	classifyInstallmentCsvImportRows,
 	makeInstallmentImportKey,
 } from '~/lib/installment-import-csv'
+import { paymentIdsFormContiguousSelectionByCredit } from '~/lib/overdue-payment-pick-validation'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
 	isPreAuthOverCapacity,
@@ -1136,6 +1137,13 @@ async function fetchPaymentsWithContext(
 	}))
 }
 
+function bulkPaymentSelectionIsContiguousByCredit(
+	rows: PaymentWithContext[],
+	selectedPaymentIds: ReadonlySet<number>,
+): boolean {
+	return paymentIdsFormContiguousSelectionByCredit(rows, selectedPaymentIds)
+}
+
 function canConfirmInstallmentWithinPeriod(
 	payment: Pick<
 		PaymentWithContext,
@@ -1245,6 +1253,13 @@ export async function confirmHrDeductions(
 
 	if (rows.length === 0) {
 		return { error: ValidationCode.CREDIT_PAYMENT_NOT_FOUND }
+	}
+
+	const selectedIdSet = new Set(parsed.data.paymentIds)
+	if (!bulkPaymentSelectionIsContiguousByCredit(rows, selectedIdSet)) {
+		return {
+			error: ValidationCode.CREDIT_PAYMENT_BULK_SELECTION_NON_CONTIGUOUS,
+		}
 	}
 
 	for (const payment of rows) {
@@ -1822,6 +1837,14 @@ export async function confirmInstallments(
 
 	if (rows.length !== uniquePaymentIds.length) {
 		return { error: ValidationCode.CREDIT_PAYMENT_NOT_FOUND }
+	}
+
+	if (
+		!bulkPaymentSelectionIsContiguousByCredit(rows, new Set(uniquePaymentIds))
+	) {
+		return {
+			error: ValidationCode.CREDIT_PAYMENT_BULK_SELECTION_NON_CONTIGUOUS,
+		}
 	}
 
 	for (const payment of rows) {

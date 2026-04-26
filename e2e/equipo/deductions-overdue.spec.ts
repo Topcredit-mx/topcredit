@@ -229,17 +229,17 @@ test.describe('HR overdue deductions — multiple overdue installments per credi
 		await cleanupDeductionsQueue()
 	})
 
-	test('aggregates two overdue payments into one table row with count 2', async ({
+	test('aggregates three overdue payments into one table row with count 3', async ({
 		page,
 	}) => {
 		const name = seed.multiOverdueApplicantName ?? ''
 		await page.goto('/equipo/deductions/overdue')
 		await expect(mainDataTable(page)).toBeVisible()
 		const row = findTableRow(page, name)
-		await expect(row.getByText('2', { exact: true }).first()).toBeVisible()
+		await expect(row.getByText('3', { exact: true }).first()).toBeVisible()
 	})
 
-	test('bulk-confirms both overdue payments for a credit in one action and removes the row', async ({
+	test('bulk pick dialog disables confirm and shows a tooltip when the selection skips a due date', async ({
 		page,
 	}) => {
 		const name = seed.multiOverdueApplicantName ?? ''
@@ -249,16 +249,54 @@ test.describe('HR overdue deductions — multiple overdue installments per credi
 		await row.scrollIntoViewIfNeeded()
 		await row.getByRole('checkbox', { name: /seleccionar fila/i }).click()
 		await page
-			.getByRole('button', { name: /confirmar 2 deducciones/i })
+			.getByRole('button', { name: /confirmar 3 deducciones/i })
 			.first()
 			.click()
 		const dialog = page.getByRole('dialog')
 		await expect(dialog).toBeVisible()
+		const checkboxes = dialog.getByRole('checkbox', {
+			name: /pago \d+/i,
+		})
+		await expect(checkboxes).toHaveCount(3)
+		await checkboxes.nth(1).click()
+		const confirm = dialog.getByRole('button', {
+			name: /confirmar 2 deducciones/i,
+		})
+		await expect(confirm).toBeDisabled()
+		await confirm.locator('..').hover()
+		await expect(
+			page.getByText(/no puedes omitir una cuota intermedia/i),
+		).toBeVisible()
+		await expect(checkboxes.nth(0)).toBeChecked()
+		await expect(checkboxes.nth(1)).not.toBeChecked()
+		await expect(checkboxes.nth(2)).toBeChecked()
+	})
+
+	test('bulk-confirms the two oldest overdue payments when the newest is unchecked in the pick dialog', async ({
+		page,
+	}) => {
+		const name = seed.multiOverdueApplicantName ?? ''
+		await page.goto('/equipo/deductions/overdue')
+		await expect(mainDataTable(page)).toBeVisible()
+		const row = findTableRow(page, name)
+		await row.scrollIntoViewIfNeeded()
+		await row.getByRole('checkbox', { name: /seleccionar fila/i }).click()
+		await page
+			.getByRole('button', { name: /confirmar 3 deducciones/i })
+			.first()
+			.click()
+		const dialog = page.getByRole('dialog')
+		await expect(dialog).toBeVisible()
+		const checkboxes = dialog.getByRole('checkbox', {
+			name: /pago \d+/i,
+		})
+		await checkboxes.nth(2).click()
 		await dialog
 			.getByRole('button', { name: /confirmar 2 deducciones/i })
 			.click()
 		await expect(page.getByRole('dialog')).toHaveCount(0)
 		await expect(mainDataTable(page)).toBeVisible()
-		await expect(page.getByText(name, { exact: true })).toHaveCount(0)
+		const rowAfter = findTableRow(page, name)
+		await expect(rowAfter.getByText('1', { exact: true }).first()).toBeVisible()
 	})
 })

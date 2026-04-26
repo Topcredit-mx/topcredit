@@ -3095,6 +3095,9 @@ export const seedDeductionsQueue = async (
 		const pastDate2 = new Date(
 			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, 28),
 		)
+		const pastDateMiddle = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 15),
+		)
 		const creditAmountMultiOverdue = '18000.00'
 		const [app6] = await db
 			.insert(applications)
@@ -3126,17 +3129,22 @@ export const seedDeductionsQueue = async (
 
 		if (!credit6) throw new Error('Seed Deductions: credit 6 not created')
 
-		// 2 overdue installments for credit6 (both past due, both unconfirmed)
+		// 3 overdue installments for credit6 (past due, unconfirmed) — ordered by due date
 		await db.insert(creditPayments).values([
 			{
 				creditId: credit6.id,
 				dueDate: pastDate2,
-				amount: '9300.00',
+				amount: '6200.00',
+			},
+			{
+				creditId: credit6.id,
+				dueDate: pastDateMiddle,
+				amount: '6200.00',
 			},
 			{
 				creditId: credit6.id,
 				dueDate: pastDate,
-				amount: '9300.00',
+				amount: '6200.00',
 			},
 		])
 	}
@@ -3858,7 +3866,7 @@ export const seedInstallmentsOverdue =
 		const scheduleInstallmentsBlocked = generatePaymentSchedule({
 			loanPrincipal: Number(creditAmount),
 			rate: Number(installmentsOverdueCompany.rate),
-			totalPayments: 2,
+			totalPayments: 3,
 			frequency: installmentsOverdueCompany.employeeSalaryFrequency,
 			firstDiscountDate,
 		})

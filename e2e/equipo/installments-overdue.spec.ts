@@ -136,6 +136,72 @@ test.describe('Installments overdue page', () => {
 			).toHaveCount(0)
 		})
 
+		test('bulk pick dialog keeps other checkboxes unchecked when one installment is toggled off', async ({
+			page,
+		}) => {
+			await page.goto('/equipo/installments/overdue')
+			await expect(mainDataTable(page)).toBeVisible()
+			const row = page.locator('tr', {
+				hasText: seed.payrollInstallmentsBlocked,
+			})
+			await row.first().scrollIntoViewIfNeeded()
+			await row
+				.first()
+				.getByRole('checkbox', { name: /seleccionar fila/i })
+				.click()
+			const confirmRe = new RegExp(
+				`confirmar ${seed.installmentsBulkConfirmableCount} instalaciones`,
+				'i',
+			)
+			await page.getByRole('button', { name: confirmRe }).first().click()
+			const dialog = page.getByRole('dialog')
+			await expect(dialog).toBeVisible()
+			const checkboxes = dialog.getByRole('checkbox', {
+				name: /pago \d+/i,
+			})
+			await expect(checkboxes).toHaveCount(
+				seed.installmentsBulkConfirmableCount,
+			)
+			await checkboxes.last().click()
+			await expect(checkboxes.first()).toBeChecked()
+			await expect(checkboxes.nth(1)).toBeChecked()
+			await expect(checkboxes.last()).not.toBeChecked()
+		})
+
+		test('bulk pick dialog disables confirm when the selection skips a due date', async ({
+			page,
+		}) => {
+			await page.goto('/equipo/installments/overdue')
+			await expect(mainDataTable(page)).toBeVisible()
+			const row = page.locator('tr', {
+				hasText: seed.payrollInstallmentsBlocked,
+			})
+			await row.first().scrollIntoViewIfNeeded()
+			await row
+				.first()
+				.getByRole('checkbox', { name: /seleccionar fila/i })
+				.click()
+			const confirmRe = new RegExp(
+				`confirmar ${seed.installmentsBulkConfirmableCount} instalaciones`,
+				'i',
+			)
+			await page.getByRole('button', { name: confirmRe }).first().click()
+			const dialog = page.getByRole('dialog')
+			await expect(dialog).toBeVisible()
+			const checkboxes = dialog.getByRole('checkbox', {
+				name: /pago \d+/i,
+			})
+			await checkboxes.nth(1).click()
+			const confirm = dialog.getByRole('button', {
+				name: /confirmar 2 instalaciones/i,
+			})
+			await expect(confirm).toBeDisabled()
+			await confirm.locator('..').hover()
+			await expect(
+				page.getByText(/no puedes omitir una cuota intermedia/i),
+			).toBeVisible()
+		})
+
 		test('bulk-confirms only installments-blocked overdue rows in one action', async ({
 			page,
 		}) => {
