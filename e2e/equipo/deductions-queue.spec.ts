@@ -68,8 +68,8 @@ test.describe('HR deductions queue', () => {
 		}) => {
 			await page.goto('/equipo/deductions')
 			const main = page.getByRole('main')
-			await expect(main.getByText(/nómina:/i).first()).toBeVisible()
-			await expect(main.getByText(/mensual/i).first()).toBeVisible()
+			await expect(main.getByText(/^nómina$/i).first()).toBeVisible()
+			await expect(main.getByText(/^mensual$/i).first()).toBeVisible()
 		})
 
 		test('shows exactly one row per upcoming credit (one per applicant)', async ({
