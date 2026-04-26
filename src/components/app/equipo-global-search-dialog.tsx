@@ -1,6 +1,15 @@
 'use client'
 
-import { FileText, Search, Wallet } from 'lucide-react'
+import {
+	Banknote,
+	Building2,
+	FileText,
+	Hash,
+	Mail,
+	Search,
+	User,
+	Wallet,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
@@ -102,6 +111,23 @@ export function EquipoGlobalSearchDialog() {
 		}
 	}
 
+	const applicationStatusLabel = (row: EquipoGlobalSearchItem) => {
+		if (isApplicationStatus(row.applicationStatus)) {
+			return t(EQUIPO_APPLICATION_STATUS_KEYS[row.applicationStatus])
+		}
+		return t('applications-status-pending')
+	}
+
+	const creditStatusLabel = (row: EquipoGlobalSearchItem) => {
+		if (row.creditId === null || row.creditStatus === null) {
+			return null
+		}
+		if (row.creditStatus === 'dispersed') {
+			return t('credit-detail-status-dispersed')
+		}
+		return t('credit-detail-status-settled')
+	}
+
 	return (
 		<>
 			<p className="text-muted-foreground text-xs">{t('global-search-hint')}</p>
@@ -155,84 +181,135 @@ export function EquipoGlobalSearchDialog() {
 							</p>
 						) : null}
 						<ul className="space-y-0">
-							{results.map((row) => (
-								<li
-									key={`${row.applicationId}-${row.creditId ?? 'no-credit'}`}
-									className="border-border/60 border-b last:border-b-0"
-								>
-									<div className="flex flex-col gap-1.5 px-4 py-3 transition-colors hover:bg-muted/40">
-										<div className="flex flex-wrap items-baseline justify-between gap-2">
-											<span className="font-medium text-foreground">
-												{row.applicantName}
-											</span>
-											<span className="text-muted-foreground text-xs">
-												{row.companyName}
-											</span>
-										</div>
-										<div className="text-muted-foreground text-sm">
-											{row.applicantEmail}
-										</div>
-										<div className="flex flex-wrap items-center gap-2">
-											<Badge
-												variant="secondary"
-												className="font-normal text-xs"
-											>
-												{t(
-													isApplicationStatus(row.applicationStatus)
-														? EQUIPO_APPLICATION_STATUS_KEYS[
-																row.applicationStatus
-															]
-														: 'applications-status-pending',
-												)}
-											</Badge>
-											{row.creditId !== null && row.creditStatus !== null ? (
-												<Badge
-													variant="outline"
-													className="font-normal text-xs"
-												>
-													{row.creditStatus === 'dispersed'
-														? t('credit-detail-status-dispersed')
-														: t('credit-detail-status-settled')}
-												</Badge>
-											) : null}
+							{results.map((row) => {
+								const appLabel = applicationStatusLabel(row)
+								const credLabel = creditStatusLabel(row)
+								const showCreditStatusBadge =
+									credLabel !== null && credLabel !== appLabel
+
+								return (
+									<li
+										key={`${row.applicationId}-${row.creditId ?? 'no-credit'}`}
+										className="border-border/60 border-b last:border-b-0"
+									>
+										<div className="flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-muted/40">
+											<div className="flex flex-wrap items-start justify-between gap-2">
+												<div className="flex min-w-0 items-center gap-2">
+													<User
+														className="size-4 shrink-0 text-muted-foreground"
+														aria-hidden
+													/>
+													<span className="truncate font-medium text-foreground">
+														{row.applicantName}
+													</span>
+												</div>
+												<div className="flex max-w-full items-center gap-1.5 text-muted-foreground text-xs sm:max-w-[55%]">
+													<Building2
+														className="size-3.5 shrink-0 opacity-80"
+														aria-hidden
+													/>
+													<span className="truncate">{row.companyName}</span>
+												</div>
+											</div>
+											<div className="flex items-center gap-2 text-muted-foreground text-sm">
+												<Mail
+													className="size-3.5 shrink-0 opacity-80"
+													aria-hidden
+												/>
+												<span className="truncate">{row.applicantEmail}</span>
+											</div>
+											<div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+												<div className="flex items-center gap-1.5">
+													<FileText
+														className="size-3.5 shrink-0 text-muted-foreground"
+														aria-hidden
+													/>
+													<span className="sr-only">
+														{t('global-search-label-application')}
+													</span>
+													<Badge
+														variant="secondary"
+														className="font-normal text-xs"
+													>
+														{appLabel}
+													</Badge>
+												</div>
+												{showCreditStatusBadge && credLabel !== null ? (
+													<div className="flex items-center gap-1.5">
+														<Wallet
+															className="size-3.5 shrink-0 text-muted-foreground"
+															aria-hidden
+														/>
+														<span className="sr-only">
+															{t('global-search-label-credit')}
+														</span>
+														<Badge
+															variant="outline"
+															className="font-normal text-xs"
+														>
+															{credLabel}
+														</Badge>
+													</div>
+												) : null}
+											</div>
 											{row.payrollNumber !== null &&
 											row.payrollNumber !== '' ? (
-												<span className="text-muted-foreground text-xs">
-													{t('credit-detail-payroll-number')}:{' '}
-													{row.payrollNumber}
-												</span>
-											) : null}
-											{row.transferAmount !== null ? (
-												<span className="text-muted-foreground text-xs">
+												<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground text-xs">
+													<span className="inline-flex items-center gap-1.5">
+														<Hash
+															className="size-3.5 shrink-0 opacity-80"
+															aria-hidden
+														/>
+														{t('credit-detail-payroll-number')}:{' '}
+														{row.payrollNumber}
+													</span>
+													{row.transferAmount !== null ? (
+														<span className="inline-flex items-center gap-1.5">
+															<Banknote
+																className="size-3.5 shrink-0 opacity-80"
+																aria-hidden
+															/>
+															{formatCurrencyMxn(row.transferAmount)}
+														</span>
+													) : null}
+												</div>
+											) : row.transferAmount !== null ? (
+												<div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+													<Banknote
+														className="size-3.5 shrink-0 opacity-80"
+														aria-hidden
+													/>
 													{formatCurrencyMxn(row.transferAmount)}
-												</span>
+												</div>
 											) : null}
-										</div>
-										<div className="flex flex-wrap gap-4 pt-1">
-											<Link
-												href={`/equipo/applications/${row.applicationId}`}
-												onClick={() => setOpen(false)}
-												className="inline-flex items-center gap-1.5 text-primary text-sm underline-offset-4 hover:underline"
-											>
-												<FileText className="size-3.5 shrink-0" aria-hidden />
-												{t('global-search-link-application', {
-													id: row.applicationId,
-												})}
-											</Link>
-											{row.creditId !== null ? (
+											<div className="flex flex-wrap gap-4 pt-0.5">
 												<Link
-													href={`/equipo/credits/${row.creditId}`}
+													href={`/equipo/applications/${row.applicationId}`}
 													onClick={() => setOpen(false)}
 													className="inline-flex items-center gap-1.5 text-primary text-sm underline-offset-4 hover:underline"
 												>
-													<Wallet className="size-3.5 shrink-0" aria-hidden />
-													{t('global-search-link-credit', { id: row.creditId })}
+													<FileText className="size-3.5 shrink-0" aria-hidden />
+													{t('global-search-link-application', {
+														id: row.applicationId,
+													})}
 												</Link>
-											) : null}
+												{row.creditId !== null ? (
+													<Link
+														href={`/equipo/credits/${row.creditId}`}
+														onClick={() => setOpen(false)}
+														className="inline-flex items-center gap-1.5 text-primary text-sm underline-offset-4 hover:underline"
+													>
+														<Wallet className="size-3.5 shrink-0" aria-hidden />
+														{t('global-search-link-credit', {
+															id: row.creditId,
+														})}
+													</Link>
+												) : null}
+											</div>
 										</div>
-									</div>
-								</li>
-							))}
+									</li>
+								)
+							})}
 						</ul>
 					</div>
 				</DialogContent>

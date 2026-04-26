@@ -386,6 +386,8 @@
 		"global-search-type-more": "Escribe para buscar.",
 		"global-search-link-application": "Solicitud #{id}",
 		"global-search-link-credit": "Crédito #{id}",
+		"global-search-label-application": "Solicitud",
+		"global-search-label-credit": "Crédito",
 		"nav-credits": "Créditos",
 		"nav-installments": "Instalaciones",
 		"nav-installments-next-cutoff": "Próximo Corte",
