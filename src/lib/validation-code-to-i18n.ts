@@ -315,6 +315,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'CREDIT_PAYMENT_BULK_EMPTY',
 	},
+	[ValidationCode.CREDIT_PAYMENT_BULK_SELECTION_NON_CONTIGUOUS]: {
+		namespace: 'equipo',
+		key: 'CREDIT_PAYMENT_BULK_SELECTION_NON_CONTIGUOUS',
+	},
 	[ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN]: {
 		namespace: 'equipo',
 		key: 'CREDIT_PAYMENT_CONFIRM_FORBIDDEN',

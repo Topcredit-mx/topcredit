@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -13,6 +13,15 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '~/components/ui/dialog'
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from '~/components/ui/tooltip'
+import {
+	isOverduePaymentPickSelectionContiguous,
+	overduePaymentPickLinesSortedByDueDate,
+} from '~/lib/overdue-payment-pick-validation'
 import { formatCurrencyMxn } from '~/lib/utils'
 import type { OverduePaymentLine } from '~/server/queries'
 
@@ -32,7 +41,19 @@ type Props = {
 }
 
 function allIds(groups: OverduePaymentPickGroup[]): number[] {
-	return groups.flatMap((g) => g.payments.map((p) => p.id))
+	return groups.flatMap((g) =>
+		overduePaymentPickLinesSortedByDueDate(g.payments).map((p) => p.id),
+	)
+}
+
+function groupsContentKey(groups: OverduePaymentPickGroup[]): string {
+	return groups
+		.map((g) =>
+			overduePaymentPickLinesSortedByDueDate(g.payments)
+				.map((p) => p.id)
+				.join(','),
+		)
+		.join('|')
 }
 
 export function PickOverduePaymentsDialog({
@@ -46,18 +67,46 @@ export function PickOverduePaymentsDialog({
 	const t = useTranslations('equipo')
 	const tCommon = useTranslations('common')
 	const [selected, setSelected] = useState<Set<number>>(new Set())
+	const groupsContentKeyMemo = useMemo(() => groupsContentKey(groups), [groups])
+	const prevOpenRef = useRef(false)
+	const prevContentKeyRef = useRef<string | null>(null)
 
 	useEffect(() => {
-		if (open) {
+		const wasOpen = prevOpenRef.current
+		const prevKey = prevContentKeyRef.current
+		prevOpenRef.current = open
+		if (!open) {
+			return
+		}
+		const keyChanged = prevKey !== null && prevKey !== groupsContentKeyMemo
+		const shouldInit = !wasOpen || keyChanged
+		if (shouldInit) {
 			setSelected(new Set(allIds(groups)))
 		}
-	}, [open, groups])
+		prevContentKeyRef.current = groupsContentKeyMemo
+	}, [open, groupsContentKeyMemo, groups])
 
 	const count = selected.size
 	const titleKey =
 		variant === 'installments'
 			? 'overdue-pick-payments-title-installments'
 			: 'overdue-pick-payments-title-deductions'
+
+	const groupsForValidation = useMemo(
+		() =>
+			groups.map((g) => ({
+				payments: overduePaymentPickLinesSortedByDueDate(g.payments),
+			})),
+		[groups],
+	)
+
+	const selectionContiguous = useMemo(
+		() =>
+			isOverduePaymentPickSelectionContiguous(groupsForValidation, selected),
+		[groupsForValidation, selected],
+	)
+
+	const selectionValid = count > 0 && selectionContiguous
 
 	function toggleId(id: number) {
 		setSelected((prev) => {
@@ -72,7 +121,7 @@ export function PickOverduePaymentsDialog({
 	}
 
 	function handleConfirm() {
-		if (count === 0) return
+		if (!selectionValid) return
 		onConfirm([...selected])
 	}
 
@@ -84,6 +133,17 @@ export function PickOverduePaymentsDialog({
 			: count === 1
 				? t('deductions-bulk-confirm-one')
 				: t('deductions-bulk-confirm-many', { count })
+
+	const confirmDisabled = !selectionValid || isPending
+	const showInvalidSelectionTooltip =
+		count > 0 && !selectionContiguous && !isPending
+
+	const confirmButtonProps = {
+		type: 'button' as const,
+		disabled: confirmDisabled,
+		onClick: handleConfirm,
+		children: confirmLabel,
+	}
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,7 +164,7 @@ export function PickOverduePaymentsDialog({
 								})}
 							</p>
 							<ul className="space-y-2">
-								{g.payments.map((p) => {
+								{overduePaymentPickLinesSortedByDueDate(g.payments).map((p) => {
 									const checked = selected.has(p.id)
 									return (
 										<li
@@ -144,13 +204,20 @@ export function PickOverduePaymentsDialog({
 					>
 						{tCommon('cancel')}
 					</Button>
-					<Button
-						type="button"
-						disabled={count === 0 || isPending}
-						onClick={handleConfirm}
-					>
-						{confirmLabel}
-					</Button>
+					{showInvalidSelectionTooltip ? (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<span className="inline-flex rounded-md">
+									<Button {...confirmButtonProps} />
+								</span>
+							</TooltipTrigger>
+							<TooltipContent side="top" className="max-w-xs text-balance">
+								{t('overdue-pick-payments-invalid-gap')}
+							</TooltipContent>
+						</Tooltip>
+					) : (
+						<Button {...confirmButtonProps} />
+					)}
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
