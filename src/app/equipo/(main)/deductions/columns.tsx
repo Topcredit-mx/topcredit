@@ -1,7 +1,13 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { Activity, Building2, CircleDollarSign, UserRound } from 'lucide-react'
+import {
+	Activity,
+	Building2,
+	CircleDollarSign,
+	ListOrdered,
+	UserRound,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { EquipoWorkflowStatusPresentation } from '~/components/equipo/equipo-workflow-status-presentation'
@@ -66,6 +72,25 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 					</div>
 				)
 			},
+		},
+		{
+			id: 'installmentProgress',
+			enableSorting: false,
+			header: ({ column }) => (
+				<DataTableColumnHeader
+					column={column}
+					title={t('installments-col-schedule-progress')}
+					icon={<ListOrdered aria-hidden />}
+				/>
+			),
+			cell: ({ row }) => (
+				<div className="text-muted-foreground text-sm tabular-nums">
+					{t('installments-col-schedule-progress-value', {
+						position: row.original.installmentPosition,
+						total: row.original.installmentTotal,
+					})}
+				</div>
+			),
 		},
 		{
 			accessorKey: 'companyName',

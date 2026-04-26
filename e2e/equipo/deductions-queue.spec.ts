@@ -35,7 +35,7 @@ test.describe('HR deductions queue', () => {
 			await expect(mainDataTable(page)).toBeVisible()
 		})
 
-		test('shows employee, amount, unified Estado column but not a per-row due date column', async ({
+		test('shows employee, cuota, amount, unified Estado column but not a per-row due date column', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/deductions')
@@ -43,6 +43,9 @@ test.describe('HR deductions queue', () => {
 			const thead = mainDataTable(page).locator('thead')
 			await expect(
 				thead.getByRole('columnheader', { name: /empleado/i }),
+			).toBeVisible()
+			await expect(
+				thead.getByRole('columnheader', { name: /cuota/i }),
 			).toBeVisible()
 			await expect(
 				thead.getByRole('columnheader', { name: /monto/i }),
@@ -53,6 +56,17 @@ test.describe('HR deductions queue', () => {
 			await expect(
 				thead.getByRole('columnheader', { name: /fecha de pago/i }),
 			).toHaveCount(0)
+		})
+
+		test('shows cuota progress matching installments format for each queue row', async ({
+			page,
+		}) => {
+			await page.goto('/equipo/deductions')
+			await expect(mainDataTable(page)).toBeVisible()
+			const tbody = mainDataTable(page).locator('tbody')
+			await expect(tbody.getByText(/^1 de 2$/)).toHaveCount(
+				seed.expectedRowCount,
+			)
 		})
 
 		test('shows a queue-level next deduction date derived from company salary frequency', async ({
