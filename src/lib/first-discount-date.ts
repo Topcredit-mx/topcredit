@@ -1,5 +1,7 @@
 import {
 	calendarYmdInMexicoCity,
+	endOfDayInstantMexicoCity,
+	startOfDayInstantMexicoCity,
 	utcMidnightForYmd,
 } from '~/lib/calendar-date-tz'
 
@@ -13,17 +15,16 @@ function addOneCalendarDayYmd(ymd: string): string {
 }
 
 /**
- * YYYY-MM-DD for a schedule `Date` in DB (stored as UTC midnight; same as
- * `toISOString().slice(0, 10)`). Do not use `calendarYmdInMexicoCity` here or
- * month boundaries shift vs the stored value.
+ * YYYY-MM-DD of the business anchor for a `Date` (due / first discount).
+ * Uses Mexico calendar; required when instants are end-of-day CDMX (UTC date may differ).
  */
 function ymdOfScheduleDate(d: Date): string {
-	return d.toISOString().slice(0, 10)
+	return calendarYmdInMexicoCity(d)
 }
 
-/** Stored schedule anchors use date-only = UTC midnight (matches `toISOString().slice(0,10)`). */
+/** Payroll anchor instant: 23:59:59.999 in `America/Mexico_City`. */
 function scheduleFromYmd(ymd: string): Date {
-	return utcMidnightForYmd(ymd)
+	return endOfDayInstantMexicoCity(ymd)
 }
 
 function lastDayOfMonthYmd(year: number, month0: number): string {
@@ -50,41 +51,48 @@ function isSameOrAfterYmd(a: string, b: string): boolean {
 }
 
 /**
- * Upcoming payroll deduction anchor in `America/Mexico_City` (15th, month-end, or
- * last day of month for monthly). Returned `Date` is midnight-equivalent in CDMX
- * (stored as UTC+6h in `Date` for the calendar day).
+ * YYYY-MM-DD of the upcoming payroll anchor (Mexico), before converting to an EOD instant.
  */
-export function getUpcomingDeductionDate(
+export function getUpcomingDeductionAnchorYmd(
 	frequency: SalaryFrequency,
 	today: Date,
-): Date {
+): string {
 	const ymd = calendarYmdInMexicoCity(today)
 	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd)
 	if (m == null) {
-		return scheduleFromYmd(ymd)
+		return ymd
 	}
 	const year = Number(m[1])
 	const month0 = Number(m[2]) - 1
 	const day = Number(m[3])
 
 	if (frequency === 'monthly') {
-		const eom = lastDayOfMonthYmd(year, month0)
-		return scheduleFromYmd(eom)
+		return lastDayOfMonthYmd(year, month0)
 	}
 
 	const { ymd: eomYmd } = lastDayOfMonthForYmd(ymd)
 	if (day <= 15) {
-		return scheduleFromYmd(ymdString(year, month0, 15))
+		return ymdString(year, month0, 15)
 	}
-	return scheduleFromYmd(eomYmd)
+	return eomYmd
 }
 
-/** Calendar date (YYYY-MM-DD) for the upcoming payroll deduction (Mexico City). */
+/**
+ * Upcoming payroll deduction anchor: **23:59:59.999** that calendar day in CDMX.
+ */
+export function getUpcomingDeductionDate(
+	frequency: SalaryFrequency,
+	today: Date,
+): Date {
+	return scheduleFromYmd(getUpcomingDeductionAnchorYmd(frequency, today))
+}
+
+/** Same Y-M-D as `getUpcomingDeductionAnchorYmd` (header / CSV, etc.). */
 export function getUpcomingDeductionDateYmd(
 	frequency: SalaryFrequency,
 	today: Date,
 ): string {
-	return ymdOfScheduleDate(getUpcomingDeductionDate(frequency, today))
+	return getUpcomingDeductionAnchorYmd(frequency, today)
 }
 
 /** Strictly previous payroll anchor before `onOrBefore` (same calendar day allowed). */
@@ -143,8 +151,7 @@ export type PayPeriodComparisonBounds = {
 
 /**
  * Half-open windows [start, end) for comparing installment collections, aligned to
- * Mexico City payroll deduction dates. Cutoff instants are UTC midnights at
- * the day boundary after each anchor.
+ * Mexico City payroll. `Start` is 00:00:00 that calendar day in CDMX; anchors are EOD CDMX.
  */
 export function getPayPeriodComparisonBounds(
 	frequency: SalaryFrequency,
@@ -152,10 +159,12 @@ export function getPayPeriodComparisonBounds(
 ): PayPeriodComparisonBounds {
 	const pastDeduction = getPastDeductionDate(frequency, today)
 	const pastYmd = ymdOfScheduleDate(pastDeduction)
-	const currentStart = utcMidnightForYmd(addOneCalendarDayYmd(pastYmd))
+	const currentStart = startOfDayInstantMexicoCity(
+		addOneCalendarDayYmd(pastYmd),
+	)
 	const currentEnd = today
 	const anchorBeforePastYmd = previousPayrollAnchorYmd(frequency, pastYmd)
-	const previousStart = utcMidnightForYmd(
+	const previousStart = startOfDayInstantMexicoCity(
 		addOneCalendarDayYmd(anchorBeforePastYmd),
 	)
 	const previousEnd = currentStart
@@ -241,13 +250,31 @@ function lastDayOfMonthUTC(year: number, month0: number): Date {
 	return new Date(Date.UTC(year, month0 + 1, 0))
 }
 
+/**
+ * Date-only `timestamp` rows may be **UTC midnight** (legacy) or **EOD CDMX** (new).
+ * Legacy: use the ISO `YYYY-MM-DD` slice. New: use Mexico City calendar.
+ */
+function anchorYmdForShapeValidation(d: Date): string {
+	if (
+		d.getUTCHours() === 0 &&
+		d.getUTCMinutes() === 0 &&
+		d.getUTCSeconds() === 0 &&
+		d.getUTCMilliseconds() === 0
+	) {
+		return d.toISOString().slice(0, 10)
+	}
+	return calendarYmdInMexicoCity(d)
+}
+
 export function isFirstDiscountAnchorCalendarShapeValid(
 	frequency: SalaryFrequency,
 	date: Date,
 ): boolean {
-	const year = date.getUTCFullYear()
-	const month0 = date.getUTCMonth()
-	const day = date.getUTCDate()
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(anchorYmdForShapeValidation(date))
+	if (m == null) return false
+	const year = Number(m[1])
+	const month0 = Number(m[2]) - 1
+	const day = Number(m[3])
 	const eom = lastDayOfMonthUTC(year, month0)
 	const isEndOfMonth = day === eom.getUTCDate()
 	if (frequency === 'monthly') {

@@ -1,4 +1,7 @@
-import { utcMidnightForYmd } from '~/lib/calendar-date-tz'
+import {
+	calendarYmdInMexicoCity,
+	endOfDayInstantMexicoCity,
+} from '~/lib/calendar-date-tz'
 import { Decimal } from './decimal'
 import { financedCreditAmount } from './pre-authorization-capacity'
 
@@ -42,10 +45,8 @@ function nextMonthEndYmd(ymd: string): string {
 }
 
 /**
- * `dueDate` values are stored as **UTC midnight** for a calendar `YYYY-MM-DD`
- * (`toISOString().slice(0, 10)`). The employer picks that date using Mexico
- * calendar rules via `getValidFirstDiscountDates`; the stored instant is
- * unambiguous. Schedule stepping uses the same YMD string chain as before.
+ * `dueDate` is **23:59:59.999** on the business calendar day in
+ * `America/Mexico_City`. Steps YMDs with {@link calendarYmdInMexicoCity} / chain.
  */
 export function generatePaymentSchedule(params: {
 	loanPrincipal: number
@@ -60,7 +61,7 @@ export function generatePaymentSchedule(params: {
 	const total = new Decimal(financedCreditAmount(loanPrincipal, rate))
 	const perPayment = total.div(totalPayments).todp(2, Decimal.ROUND_DOWN)
 
-	const startYmd = firstDiscountDate.toISOString().slice(0, 10)
+	const startYmd = calendarYmdInMexicoCity(firstDiscountDate)
 	const dates: string[] = [startYmd]
 	for (let i = 1; i < totalPayments; i++) {
 		const prevYmd = dates[i - 1]
@@ -76,7 +77,7 @@ export function generatePaymentSchedule(params: {
 	for (let i = 0; i < totalPayments; i++) {
 		const ymd = dates[i]
 		if (ymd === undefined) break
-		const dueDate = utcMidnightForYmd(ymd)
+		const dueDate = endOfDayInstantMexicoCity(ymd)
 
 		if (i < totalPayments - 1) {
 			schedule.push({ dueDate, amount: perPayment.toFixed(2) })

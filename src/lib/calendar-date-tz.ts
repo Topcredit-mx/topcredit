@@ -1,4 +1,6 @@
 const MEXICO_CITY = 'America/Mexico_City'
+/** US Central Standard Time: Mexico (most spots) is UTC-6 (no US DST in `America/Mexico_City`). */
+const MEXICO_STANDARD_OFFSET = '-06:00'
 
 export function parseYmd(ymd: string): {
 	year: number
@@ -32,12 +34,37 @@ export function todayYmdMexicoCity(now: Date): string {
 }
 
 /**
- * A UTC `Date` at 00:00:00 **UTC** for a calendar `YYYY-MM-DD` (as stored in DB
- * for `due_date` / schedule anchors). This matches `toISOString().slice(0,10)`.
+ * A UTC `Date` at 00:00:00 **UTC** for a calendar `YYYY-MM-DD` (legacy / tests only).
+ * Prefer {@link endOfDayInstantMexicoCity} for `due_date` and payroll anchors.
  */
 export function utcMidnightForYmd(ymd: string): Date {
 	const { year, month0, day } = parseYmd(ymd)
 	return new Date(Date.UTC(year, month0, day, 0, 0, 0, 0))
+}
+
+/** Start of calendar day (00:00:00) in `America/Mexico_City` as a UTC `Date` instant. */
+export function startOfDayInstantMexicoCity(ymd: string): Date {
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd.trim())) {
+		return utcMidnightForYmd(ymd)
+	}
+	return new Date(`${ymd.trim()}T00:00:00.000${MEXICO_STANDARD_OFFSET}`)
+}
+
+/**
+ * End of calendar day (23:59:59.999) in `America/Mexico_City` as a UTC `Date` instant.
+ * Use for `due_date` and first-discount anchors so "on time" is `confirm <= this`.
+ */
+export function endOfDayInstantMexicoCity(ymd: string): Date {
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd.trim())) {
+		return utcMidnightForYmd(ymd)
+	}
+	return new Date(`${ymd.trim()}T23:59:59.999${MEXICO_STANDARD_OFFSET}`)
+}
+
+/** Business calendar Y for a `dueDate` (deduction EOD in Mexico, or legacy UTC midnight). */
+export function ymdForDeductionSchedule(d: Date): string {
+	// `dueDate` = EOD Mexico for that YMD; YMD of instant matches business calendar
+	return calendarYmdInMexicoCity(d)
 }
 
 export function calendarYmdInMexicoCity(d: Date): string {

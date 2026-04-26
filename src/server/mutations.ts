@@ -17,6 +17,7 @@ import {
 	isAuthorizationPackageReadyForSubmit,
 	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
+import { endOfDayInstantMexicoCity } from '~/lib/calendar-date-tz'
 import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
@@ -921,7 +922,10 @@ export async function hrApproveApplication(payload: {
 	if (!yearStr || !monthStr || !dayStr) {
 		return { error: ValidationCode.HR_FIRST_DISCOUNT_DATE_INVALID }
 	}
-	const parsed = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr))
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+		return { error: ValidationCode.HR_FIRST_DISCOUNT_DATE_INVALID }
+	}
+	const parsed = endOfDayInstantMexicoCity(dateStr)
 	if (Number.isNaN(parsed.getTime())) {
 		return { error: ValidationCode.HR_FIRST_DISCOUNT_DATE_INVALID }
 	}
