@@ -25,9 +25,10 @@ import {
 	isAuthorizationPackageFullyApproved,
 	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
+import { ymdForDeductionSchedule } from '~/lib/calendar-date-tz'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import {
-	getUpcomingDeductionDate,
+	getUpcomingDeductionDateYmd,
 	getValidFirstDiscountDates,
 } from '~/lib/first-discount-date'
 import { formatCurrencyMxn } from '~/lib/utils'
@@ -395,12 +396,11 @@ export default async function AppApplicationDetailPage({
 								application.salaryFrequency,
 								now,
 								6,
-							).map((d) => d.toISOString().split('T')[0] ?? '')}
-							suggestedDate={
-								getUpcomingDeductionDate(application.salaryFrequency, now)
-									.toISOString()
-									.split('T')[0] ?? ''
-							}
+							).map((d) => ymdForDeductionSchedule(d))}
+							suggestedDate={getUpcomingDeductionDateYmd(
+								application.salaryFrequency,
+								now,
+							)}
 						/>
 					</CardContent>
 				</Card>

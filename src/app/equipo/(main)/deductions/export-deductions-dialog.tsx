@@ -11,6 +11,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '~/components/ui/dialog'
+import { ymdForDeductionSchedule } from '~/lib/calendar-date-tz'
 import { getValidFirstDiscountDates } from '~/lib/first-discount-date'
 import { exportDeductionsCsvAction } from './actions'
 
@@ -34,7 +35,7 @@ export function ExportDeductionsDialog({
 		employeeSalaryFrequency,
 		new Date(),
 		6,
-	).map((d) => d.toISOString().slice(0, 10))
+	).map((d) => ymdForDeductionSchedule(d))
 
 	const firstDate = validDates[0]
 	const [selectedDate, setSelectedDate] = useState<string>(firstDate ?? '')
