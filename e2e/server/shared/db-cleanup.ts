@@ -1,0 +1,53 @@
+import { eq, inArray, notExists } from 'drizzle-orm'
+import {
+	applicationDocuments,
+	applications,
+	termOfferings,
+	terms,
+} from '~/server/db/schema'
+import { deleteBlob, isBlobStorageKey } from '~/server/storage'
+import type { getDb } from '../e2e-db'
+
+type E2eDb = ReturnType<typeof getDb>
+
+export async function deleteBlobsForTerm(
+	db: E2eDb,
+	termId: number,
+): Promise<void> {
+	if (!process.env.BLOB_READ_WRITE_TOKEN) return
+
+	const appIds = await db
+		.select({ id: applications.id })
+		.from(applications)
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.where(eq(termOfferings.termId, termId))
+
+	const ids = appIds.map((r) => r.id)
+	if (ids.length === 0) return
+
+	const docs = await db
+		.select({
+			id: applicationDocuments.id,
+			storageKey: applicationDocuments.storageKey,
+		})
+		.from(applicationDocuments)
+		.where(inArray(applicationDocuments.applicationId, ids))
+
+	const toDelete = docs.filter((d) => isBlobStorageKey(d.storageKey))
+	await Promise.allSettled(toDelete.map((d) => deleteBlob(d.storageKey)))
+}
+
+export async function deleteOrphanTermsWithoutOfferings(
+	db: E2eDb,
+): Promise<void> {
+	await db
+		.delete(terms)
+		.where(
+			notExists(
+				db
+					.select({ id: termOfferings.id })
+					.from(termOfferings)
+					.where(eq(termOfferings.termId, terms.id)),
+			),
+		)
+}
