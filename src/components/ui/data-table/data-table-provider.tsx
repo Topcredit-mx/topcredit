@@ -48,6 +48,7 @@ export interface IDataTableContext<TData> {
 	schema?: string
 	serverPagination?: ServerPaginationConfig
 	serverSearch?: ServerSearchConfig
+	emptyMessage?: string
 }
 
 export const DataTableContext = createContext<
@@ -70,6 +71,7 @@ interface DataTableProps<TData, TValue> {
 	initialPagination?: PaginationState
 	serverPagination?: ServerPaginationConfig
 	serverSearch?: ServerSearchConfig
+	emptyMessage?: string
 	children?: React.ReactNode
 }
 
@@ -90,6 +92,7 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 	initialPagination,
 	serverPagination,
 	serverSearch,
+	emptyMessage,
 	children,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = useState<SortingState>([])
@@ -181,6 +184,7 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 				columnsLength: columns.length,
 				...(serverPagination !== undefined ? { serverPagination } : {}),
 				...(serverSearch !== undefined ? { serverSearch } : {}),
+				...(emptyMessage !== undefined ? { emptyMessage } : {}),
 			}}
 		>
 			{children}

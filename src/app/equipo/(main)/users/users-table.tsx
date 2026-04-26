@@ -4,9 +4,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import {
 	useCallback,
-	useDeferredValue,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 	useTransition,
 } from 'react'
@@ -18,27 +18,12 @@ import {
 } from '~/components/ui/data-table'
 import type { CompanyBasic, UserForTable } from '~/server/queries'
 import { createColumns } from './columns'
-
-const DEFAULT_PAGE_SIZE = 10
-const MAX_PAGE_SIZE = 50
-
-function firstParam(value: string | string[] | null | undefined): string {
-	if (value == null) return ''
-	return typeof value === 'string' ? value : (value[0] ?? '')
-}
-
-function buildUsersListPath(
-	pathname: string,
-	next: { page: number; limit: number; search: string },
-): string {
-	const params = new URLSearchParams()
-	if (next.page > 1) params.set('page', String(next.page))
-	if (next.limit !== DEFAULT_PAGE_SIZE) params.set('limit', String(next.limit))
-	const trimmed = next.search.trim()
-	if (trimmed.length > 0) params.set('search', trimmed)
-	const qs = params.toString()
-	return qs.length > 0 ? `${pathname}?${qs}` : pathname
-}
+import {
+	buildUsersListUrl,
+	firstParamFromSearchParams,
+	USERS_LIST_DEFAULT_PAGE_SIZE,
+	USERS_LIST_MAX_PAGE_SIZE,
+} from './users-list-params'
 
 interface UsersTableProps {
 	users: UserForTable[]
@@ -66,13 +51,14 @@ export function UsersTable({
 	const [isPending, startTransition] = useTransition()
 
 	const urlSearch = useMemo(
-		() => firstParam(searchParams.get('search')),
+		() => firstParamFromSearchParams(searchParams.get('search')),
 		[searchParams],
 	)
 
 	const [users, setUsers] = useState(initialUsers)
 	const [searchInput, setSearchInput] = useState(urlSearch)
-	const deferredSearch = useDeferredValue(searchInput)
+	const searchInputRef = useRef(searchInput)
+	searchInputRef.current = searchInput
 
 	useEffect(() => {
 		setUsers(initialUsers)
@@ -84,7 +70,7 @@ export function UsersTable({
 
 	const replaceListUrl = useCallback(
 		(next: { page: number; limit: number; search: string }) => {
-			const href = buildUsersListPath(pathname, next)
+			const href = buildUsersListUrl(pathname, next)
 			startTransition(() => {
 				router.replace(href, { scroll: false })
 			})
@@ -92,15 +78,17 @@ export function UsersTable({
 		[pathname, router],
 	)
 
+	// Re-run on each keystroke to reset the debounce timer; ref holds latest value at fire time.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: searchInput intentionally resets debounce
 	useEffect(() => {
 		const handle = window.setTimeout(() => {
-			const trimmed = deferredSearch.trim()
+			const trimmed = searchInputRef.current.trim()
 			const urlTrimmed = urlSearch.trim()
 			if (trimmed === urlTrimmed) return
-			replaceListUrl({ page: 1, limit, search: deferredSearch })
+			replaceListUrl({ page: 1, limit, search: searchInputRef.current })
 		}, 300)
 		return () => window.clearTimeout(handle)
-	}, [deferredSearch, limit, replaceListUrl, urlSearch])
+	}, [searchInput, limit, replaceListUrl, urlSearch])
 
 	const onUserCompaniesChange = (userId: number, companyIds: number[]) => {
 		const companies = companyIds
@@ -135,9 +123,9 @@ export function UsersTable({
 		},
 		onPageSizeChange: (nextSize: number) => {
 			const coerced =
-				nextSize >= 1 && nextSize <= MAX_PAGE_SIZE
+				nextSize >= 1 && nextSize <= USERS_LIST_MAX_PAGE_SIZE
 					? nextSize
-					: DEFAULT_PAGE_SIZE
+					: USERS_LIST_DEFAULT_PAGE_SIZE
 			replaceListUrl({ page: 1, limit: coerced, search: urlSearch })
 		},
 	}
@@ -164,16 +152,11 @@ export function UsersTable({
 					filterPlaceholder={t('table-filter-users')}
 					serverPagination={serverPagination}
 					serverSearch={serverSearch}
+					emptyMessage={showEmpty ? t('users-empty') : undefined}
 				>
 					<DataTableHeader disableCreateButton />
-					{showEmpty ? (
-						<p className="rounded-md border py-12 text-center text-muted-foreground text-sm">
-							{t('users-empty')}
-						</p>
-					) : (
-						<DataTableContent />
-					)}
-					{showEmpty ? null : <DataTablePagination />}
+					<DataTableContent />
+					<DataTablePagination />
 				</DataTable>
 			</div>
 		</div>

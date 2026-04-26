@@ -178,31 +178,54 @@ export async function getUsers(
 				.offset(offset)
 				.orderBy(users.name)
 
-	const usersWithRoles: UserWithRoles[] = await Promise.all(
-		allUsers.map(async (user) => {
-			const [roles, companyAssignments] = await Promise.all([
-				db.query.userRoles.findMany({
-					where: eq(userRoles.userId, user.id),
-				}),
-				db.query.userCompanies.findMany({
-					where: eq(userCompanies.userId, user.id),
-					with: {
-						company: true,
-					},
-				}),
-			])
+	const userIds = allUsers.map((u) => u.id)
+	const rolesByUserId = new Map<number, Role[]>()
+	const companiesByUserId = new Map<number, CompanyBasic[]>()
 
-			return {
-				...user,
-				roles: roles.map((r) => r.role),
-				companies: companyAssignments.map((a) => ({
-					id: a.company.id,
-					name: a.company.name,
-					domain: a.company.domain,
-				})),
+	if (userIds.length > 0) {
+		const [roleRows, assignmentRows] = await Promise.all([
+			db.query.userRoles.findMany({
+				where: inArray(userRoles.userId, userIds),
+			}),
+			db.query.userCompanies.findMany({
+				where: inArray(userCompanies.userId, userIds),
+				with: {
+					company: true,
+				},
+			}),
+		])
+
+		for (const row of roleRows) {
+			const list = rolesByUserId.get(row.userId)
+			if (list) {
+				list.push(row.role)
+			} else {
+				rolesByUserId.set(row.userId, [row.role])
 			}
-		}),
-	)
+		}
+
+		for (const a of assignmentRows) {
+			const company = a.company
+			if (company == null) continue
+			const entry: CompanyBasic = {
+				id: company.id,
+				name: company.name,
+				domain: company.domain,
+			}
+			const list = companiesByUserId.get(a.userId)
+			if (list) {
+				list.push(entry)
+			} else {
+				companiesByUserId.set(a.userId, [entry])
+			}
+		}
+	}
+
+	const usersWithRoles: UserWithRoles[] = allUsers.map((user) => ({
+		...user,
+		roles: rolesByUserId.get(user.id) ?? [],
+		companies: companiesByUserId.get(user.id) ?? [],
+	}))
 
 	return {
 		items: usersWithRoles,

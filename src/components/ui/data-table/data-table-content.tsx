@@ -28,8 +28,21 @@ export function DataTableContent<TData>({
 	bodyRowClassName?: string
 	bodyCellClassName?: string
 } = {}) {
-	const { table, columnsLength } = useDataTable<TData>()
+	const { table, columnsLength, emptyMessage } = useDataTable<TData>()
 	const isCredits = variant === 'equipoCredits'
+	const rowCount = table.getRowModel().rows.length
+	if (rowCount === 0 && emptyMessage !== undefined && emptyMessage !== '') {
+		return (
+			<div
+				className={cn(
+					'min-w-0 rounded-md border py-12 text-center text-muted-foreground text-sm',
+					wrapperClassName,
+				)}
+			>
+				{emptyMessage}
+			</div>
+		)
+	}
 	return (
 		<div className={cn('min-w-0 rounded-md border', wrapperClassName)}>
 			<Table>

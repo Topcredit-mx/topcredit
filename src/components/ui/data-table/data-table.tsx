@@ -26,6 +26,7 @@ interface DataTableProps<TData extends BaseData, TValue> {
 	initialPagination?: PaginationState
 	serverPagination?: ServerPaginationConfig
 	serverSearch?: ServerSearchConfig
+	emptyMessage?: string
 	children?: React.ReactNode
 }
 
@@ -42,6 +43,7 @@ function DataTable<TData extends BaseData, TValue>({
 	initialPagination,
 	serverPagination,
 	serverSearch,
+	emptyMessage,
 	children,
 }: DataTableProps<TData, TValue>) {
 	return (
@@ -60,6 +62,7 @@ function DataTable<TData extends BaseData, TValue>({
 			{...(initialPagination !== undefined ? { initialPagination } : {})}
 			{...(serverPagination !== undefined ? { serverPagination } : {})}
 			{...(serverSearch !== undefined ? { serverSearch } : {})}
+			{...(emptyMessage !== undefined ? { emptyMessage } : {})}
 		>
 			{children}
 		</DataTableProvider>

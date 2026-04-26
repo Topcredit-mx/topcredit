@@ -20,7 +20,7 @@ import { useDataTable } from './use-data-table'
 
 export function DataTablePagination<TData>() {
 	const t = useTranslations('common')
-	const { table, serverPagination } = useDataTable<TData>()
+	const { table, serverPagination, emptyMessage } = useDataTable<TData>()
 	const selectedCount = table.getFilteredSelectedRowModel().rows.length
 	const totalRows = serverPagination
 		? serverPagination.totalRowCount
@@ -33,6 +33,16 @@ export function DataTablePagination<TData>() {
 	if (!pageSizeChoices.includes(currentPageSize)) {
 		pageSizeOptions.push(currentPageSize)
 		pageSizeOptions.sort((a, b) => a - b)
+	}
+
+	const rowCount = table.getRowModel().rows.length
+	if (
+		emptyMessage !== undefined &&
+		emptyMessage !== '' &&
+		rowCount === 0 &&
+		totalRows === 0
+	) {
+		return null
 	}
 
 	return (
