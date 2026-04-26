@@ -49,9 +49,7 @@ export function useCreditPaymentScheduleColumns(
 		() => [
 			{
 				id: 'scheduleNumber',
-				header: () => (
-					<span className="font-semibold">{t('credit-detail-col-number')}</span>
-				),
+				header: () => <span>{t('credit-detail-col-number')}</span>,
 				cell: ({ row }) => {
 					const idx = creditPayments.findIndex((p) => p.id === row.original.id)
 					return (
@@ -64,11 +62,7 @@ export function useCreditPaymentScheduleColumns(
 			},
 			{
 				accessorKey: 'dueDate',
-				header: () => (
-					<span className="font-semibold">
-						{t('credit-detail-col-due-date')}
-					</span>
-				),
+				header: () => <span>{t('credit-detail-col-due-date')}</span>,
 				cell: ({ row }) => (
 					<div className="text-slate-800 text-sm">
 						<FormattedDate
@@ -81,9 +75,7 @@ export function useCreditPaymentScheduleColumns(
 			},
 			{
 				accessorKey: 'amount',
-				header: () => (
-					<span className="font-semibold">{t('credit-detail-col-amount')}</span>
-				),
+				header: () => <span>{t('credit-detail-col-amount')}</span>,
 				cell: ({ row }) => (
 					<div className="text-slate-800 text-sm">
 						{formatCurrencyMxn(row.original.amount)}
@@ -93,11 +85,7 @@ export function useCreditPaymentScheduleColumns(
 			},
 			{
 				id: 'hrStatus',
-				header: () => (
-					<span className="font-semibold">
-						{t('credit-detail-col-hr-status')}
-					</span>
-				),
+				header: () => <span>{t('credit-detail-col-hr-status')}</span>,
 				cell: ({ row }) => {
 					const {
 						tone: deductionTone,
@@ -120,11 +108,7 @@ export function useCreditPaymentScheduleColumns(
 			},
 			{
 				id: 'installmentStatus',
-				header: () => (
-					<span className="font-semibold">
-						{t('credit-detail-col-installment-status')}
-					</span>
-				),
+				header: () => <span>{t('credit-detail-col-installment-status')}</span>,
 				cell: ({ row }) => {
 					const {
 						tone: collectionTone,

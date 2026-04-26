@@ -236,17 +236,17 @@ export default async function CuentaCreditDetailPage({
 					<div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:overflow-visible sm:px-0">
 						<table className="w-full min-w-[36rem]">
 							<thead>
-								<tr className="border-slate-100 border-b bg-slate-50/80 text-left text-[11px] text-slate-500 uppercase tracking-wide">
-									<th className="px-5 py-3 font-semibold" scope="col">
+								<tr className="border-slate-100 border-b bg-slate-50/80 text-left text-[11px] text-muted-foreground uppercase tracking-wide">
+									<th className="px-5 py-3 font-medium" scope="col">
 										{t('schedule-th-number')}
 									</th>
-									<th className="px-5 py-3 font-semibold" scope="col">
+									<th className="px-5 py-3 font-medium" scope="col">
 										{t('schedule-th-due-date')}
 									</th>
-									<th className="px-5 py-3 font-semibold" scope="col">
+									<th className="px-5 py-3 font-medium" scope="col">
 										{t('schedule-th-amount')}
 									</th>
-									<th className="px-5 py-3 font-semibold" scope="col">
+									<th className="px-5 py-3 font-medium" scope="col">
 										{t('schedule-th-status')}
 									</th>
 								</tr>

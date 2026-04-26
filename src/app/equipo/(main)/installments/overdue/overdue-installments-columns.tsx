@@ -74,7 +74,7 @@ export function useOverdueInstallmentsColumns(): ColumnDef<OverdueInstallmentByC
 					<div>
 						<Link
 							href={`/equipo/credits/${String(creditId)}`}
-							className="font-medium hover:underline"
+							className="font-medium text-slate-800 text-sm hover:underline"
 						>
 							{row.getValue('employeeName')}
 						</Link>
@@ -137,7 +137,7 @@ export function useOverdueInstallmentsColumns(): ColumnDef<OverdueInstallmentByC
 				/>
 			),
 			cell: ({ row }) => (
-				<div className="font-medium">
+				<div className="font-medium text-slate-800 text-sm">
 					{formatCurrencyMxn(row.getValue('totalOverdueAmount'))}
 				</div>
 			),

@@ -71,7 +71,7 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 					<div>
 						<Link
 							href={`/equipo/credits/${String(creditId)}`}
-							className="font-medium hover:underline"
+							className="font-medium text-slate-800 text-sm hover:underline"
 						>
 							{employeeName} - {String(creditId)}
 						</Link>
@@ -130,7 +130,7 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 				/>
 			),
 			cell: ({ row }) => (
-				<div className="font-medium">
+				<div className="font-medium text-slate-800 text-sm">
 					{formatCurrencyMxn(row.getValue('amount'))}
 				</div>
 			),

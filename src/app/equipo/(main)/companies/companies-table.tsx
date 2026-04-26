@@ -38,7 +38,11 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				/>
 			),
 			cell: ({ row }) => {
-				return <div className="font-medium">{row.getValue('name')}</div>
+				return (
+					<div className="font-medium text-slate-800 text-sm">
+						{row.getValue('name')}
+					</div>
+				)
 			},
 		},
 		{
@@ -65,7 +69,11 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 			),
 			cell: ({ row }) => {
 				const rate = row.getValue('rate')
-				return <div>{new Decimal(String(rate)).mul(100).toFixed(2)}%</div>
+				return (
+					<div className="text-slate-800 text-sm tabular-nums">
+						{new Decimal(String(rate)).mul(100).toFixed(2)}%
+					</div>
+				)
 			},
 		},
 		{
@@ -79,7 +87,9 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 			cell: ({ row }) => {
 				const rate = row.getValue('borrowingCapacityRate') as string | null
 				return (
-					<div>{rate ? `${new Decimal(rate).mul(100).toFixed(0)}%` : '-'}</div>
+					<div className="text-slate-800 text-sm tabular-nums">
+						{rate ? `${new Decimal(rate).mul(100).toFixed(0)}%` : '-'}
+					</div>
 				)
 			},
 		},
@@ -94,7 +104,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 			cell: ({ row }) => {
 				const frequency = row.getValue('employeeSalaryFrequency') as string
 				return (
-					<div>
+					<div className="text-slate-800 text-sm">
 						{frequency === 'bi-monthly'
 							? t('company-form-frequency-bi-monthly')
 							: t('company-form-frequency-monthly')}

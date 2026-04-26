@@ -49,7 +49,7 @@ export function DataTableContent<TData>({
 										key={header.id}
 										className={cn(
 											isCredits &&
-												'h-auto px-5 py-3 text-left align-middle text-[11px] text-slate-500 uppercase tracking-wide',
+												'h-auto px-5 py-3 text-left align-middle text-[11px] text-muted-foreground uppercase tracking-wide',
 											headCellClassName,
 										)}
 									>
@@ -92,7 +92,10 @@ export function DataTableContent<TData>({
 						))
 					) : (
 						<TableRow>
-							<TableCell colSpan={columnsLength} className="h-24 text-center">
+							<TableCell
+								colSpan={columnsLength}
+								className="h-24 text-center text-muted-foreground"
+							>
 								No results.
 							</TableCell>
 						</TableRow>

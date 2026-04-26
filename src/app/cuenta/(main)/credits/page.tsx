@@ -60,7 +60,7 @@ export default async function CreditsPage() {
 							>
 								<table className="w-full min-w-[44rem] text-left text-sm">
 									<thead>
-										<tr className="border-slate-100 border-b text-slate-500 text-xs uppercase tracking-wider">
+										<tr className="border-slate-100 border-b text-muted-foreground text-xs uppercase tracking-wider">
 											<th className="px-6 py-3 font-medium" scope="col">
 												{t('th-amount')}
 											</th>
@@ -87,15 +87,15 @@ export default async function CreditsPage() {
 												key={credit.id}
 												className="border-slate-50 border-b last:border-0"
 											>
-												<td className="px-6 py-4 font-medium text-slate-900">
+												<td className="px-6 py-4 text-sm">
 													<Link
 														href={`/cuenta/credits/${credit.id}`}
-														className="text-brand underline-offset-2 hover:underline"
+														className="font-medium text-slate-800 underline-offset-2 hover:underline"
 													>
 														{formatCurrencyMxn(credit.transferAmount)}
 													</Link>
 												</td>
-												<td className="px-6 py-4 text-slate-600">
+												<td className="px-6 py-4 text-muted-foreground text-sm">
 													{credit.status === 'settled' ? (
 														<Badge variant="secondary">
 															{t('status-settled')}
@@ -106,43 +106,43 @@ export default async function CreditsPage() {
 														</Badge>
 													)}
 												</td>
-												<td className="px-6 py-4 text-slate-600">
+												<td className="px-6 py-4 text-muted-foreground text-sm">
 													{formatListDate(credit.disbursementDate)}
 												</td>
-												<td className="px-6 py-4 text-slate-600">
+												<td className="px-6 py-4 text-muted-foreground text-sm">
 													{credit.nextDueDate != null &&
 													credit.nextAmount != null ? (
 														<>
-															<span className="block text-slate-900">
+															<span className="block text-slate-800">
 																{formatListDate(credit.nextDueDate)}
 															</span>
-															<span className="mt-0.5 block text-slate-500 text-xs">
+															<span className="mt-0.5 block text-muted-foreground text-xs">
 																{formatCurrencyMxn(credit.nextAmount)}
 															</span>
 														</>
 													) : (
-														<span className="text-slate-500">
+														<span className="text-muted-foreground">
 															{t('list-next-payment-none')}
 														</span>
 													)}
 												</td>
-												<td className="px-6 py-4 text-slate-600">
+												<td className="px-6 py-4 text-muted-foreground text-sm">
 													{credit.paymentTotal > 0 ? (
 														t('progress-payments', {
 															confirmed: credit.paymentConfirmed,
 															total: credit.paymentTotal,
 														})
 													) : (
-														<span className="text-slate-500">
+														<span className="text-muted-foreground">
 															{t('list-next-payment-none')}
 														</span>
 													)}
 												</td>
-												<td className="px-6 py-4 text-slate-600">
+												<td className="px-6 py-4 text-slate-800 text-sm tabular-nums">
 													{credit.outstandingAmount != null ? (
 														formatCurrencyMxn(credit.outstandingAmount)
 													) : (
-														<span className="text-slate-500">
+														<span className="text-muted-foreground">
 															{t('list-next-payment-none')}
 														</span>
 													)}

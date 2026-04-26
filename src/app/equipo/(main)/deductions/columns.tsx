@@ -54,7 +54,7 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 					<div>
 						<Link
 							href={`/equipo/credits/${creditId}`}
-							className="font-medium hover:underline"
+							className="font-medium text-slate-800 text-sm hover:underline"
 						>
 							{row.getValue('employeeName')}
 						</Link>
@@ -94,7 +94,7 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 				/>
 			),
 			cell: ({ row }) => (
-				<div className="font-medium">
+				<div className="font-medium text-slate-800 text-sm">
 					{formatCurrencyMxn(row.getValue('amount'))}
 				</div>
 			),

@@ -34,7 +34,7 @@ export function useInstallmentHistoryColumns(): ColumnDef<InstallmentConfirmatio
 			cell: ({ row }) => (
 				<Link
 					href={`/equipo/applications/${row.original.applicationId}`}
-					className="font-medium hover:underline"
+					className="font-medium text-slate-800 text-sm hover:underline"
 				>
 					{row.getValue('employeeName')}
 				</Link>
@@ -51,7 +51,7 @@ export function useInstallmentHistoryColumns(): ColumnDef<InstallmentConfirmatio
 				/>
 			),
 			cell: ({ row }) => (
-				<div className="font-medium">
+				<div className="font-medium text-slate-800 text-sm">
 					{formatCurrencyMxn(row.getValue('amount'))}
 				</div>
 			),

@@ -90,13 +90,22 @@ export function FinalInstallmentConfirmDialog({
 						<table className="w-full text-sm">
 							<thead>
 								<tr className="border-b bg-muted/50 text-left">
-									<th className="px-3 py-2 font-medium" scope="col">
+									<th
+										className="px-3 py-2 font-medium text-muted-foreground"
+										scope="col"
+									>
 										{t(firstColumnHeaderKey)}
 									</th>
-									<th className="px-3 py-2 font-medium" scope="col">
+									<th
+										className="px-3 py-2 font-medium text-muted-foreground"
+										scope="col"
+									>
 										{t('credit-detail-col-due-date')}
 									</th>
-									<th className="px-3 py-2 font-medium" scope="col">
+									<th
+										className="px-3 py-2 font-medium text-muted-foreground"
+										scope="col"
+									>
 										{t('credit-detail-col-amount')}
 									</th>
 								</tr>
@@ -104,11 +113,13 @@ export function FinalInstallmentConfirmDialog({
 							<tbody>
 								{rows.map((r) => (
 									<tr key={r.id} className="border-b last:border-0">
-										<td className="px-3 py-2">{r.rowLabel}</td>
-										<td className="px-3 py-2">
+										<td className="px-3 py-2 text-slate-800">{r.rowLabel}</td>
+										<td className="px-3 py-2 text-slate-800">
 											<FormattedDate value={r.dueDateIso} format="date" />
 										</td>
-										<td className="px-3 py-2">{formatCurrencyMxn(r.amount)}</td>
+										<td className="px-3 py-2 text-slate-800">
+											{formatCurrencyMxn(r.amount)}
+										</td>
 									</tr>
 								))}
 							</tbody>
