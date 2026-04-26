@@ -14,6 +14,7 @@ import {
 } from '~/components/ui/data-table'
 import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
 import { formatCurrencyMxn } from '~/lib/utils'
+import type { CreditStatus } from '~/server/db/schema'
 import type { CreditForList } from '~/server/queries'
 
 type CreditRow = Omit<CreditForList, 'disbursementDate'> & {
@@ -107,12 +108,20 @@ export function CreditsTable({ credits }: CreditsTableProps) {
 				/>
 			),
 			cell: ({ row }) => {
-				const status = row.original.status
+				const status: CreditStatus = row.original.status
+				const variant =
+					status === 'settled'
+						? 'secondary'
+						: status === 'defaulted'
+							? 'destructive'
+							: 'default'
 				return (
-					<Badge variant={status === 'settled' ? 'secondary' : 'default'}>
+					<Badge variant={variant}>
 						{status === 'settled'
 							? t('credit-detail-status-settled')
-							: t('credit-detail-status-dispersed')}
+							: status === 'defaulted'
+								? t('credit-detail-status-defaulted')
+								: t('credit-detail-status-dispersed')}
 					</Badge>
 				)
 			},

@@ -4,6 +4,7 @@ import {
 	confirmHrDeduction,
 	confirmInstallment,
 	confirmInstallments,
+	defaultCreditAsAdmin,
 } from '~/server/mutations'
 
 export type ConfirmDeductionFromCreditState = {
@@ -44,4 +45,19 @@ export async function confirmInstallmentsFromCreditAction(
 		return { error: result.error }
 	}
 	return { confirmed: true }
+}
+
+export type DefaultCreditFromCreditDetailState = {
+	error?: string
+	defaulted?: true
+} | null
+
+export async function defaultCreditFromCreditDetailAction(
+	creditId: number,
+): Promise<DefaultCreditFromCreditDetailState> {
+	const result = await defaultCreditAsAdmin(creditId)
+	if (result.error != null) {
+		return { error: result.error }
+	}
+	return { defaulted: true }
 }

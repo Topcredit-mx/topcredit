@@ -21,6 +21,7 @@ import {
 	endOfDayInstantMexicoCity,
 	ymdForDeductionSchedule,
 } from '~/lib/calendar-date-tz'
+import { creditHasLongOverdueForAdminDefault } from '~/lib/credit-admin-default'
 import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
@@ -1099,11 +1100,63 @@ export async function disburseApplication(payload: {
 
 // ---- Payments ----
 
+export async function defaultCreditAsAdmin(
+	creditId: number,
+): Promise<{ error?: string; defaulted?: true }> {
+	const { isAdmin } = await getAbility()
+	if (!isAdmin) {
+		return { error: ValidationCode.CREDIT_DEFAULT_ADMIN_ONLY }
+	}
+
+	const [creditRow] = await db
+		.select({ status: credits.status })
+		.from(credits)
+		.where(eq(credits.id, creditId))
+		.limit(1)
+
+	if (!creditRow) {
+		return { error: ValidationCode.CREDIT_NOT_FOUND }
+	}
+	if (creditRow.status !== 'dispersed') {
+		return { error: ValidationCode.CREDIT_DEFAULT_INVALID_STATUS }
+	}
+
+	const paymentRows = await db
+		.select({
+			dueDate: creditPayments.dueDate,
+			hrConfirmedAt: creditPayments.hrConfirmedAt,
+			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
+		})
+		.from(creditPayments)
+		.where(eq(creditPayments.creditId, creditId))
+
+	if (!creditHasLongOverdueForAdminDefault(paymentRows, new Date())) {
+		return { error: ValidationCode.CREDIT_DEFAULT_NOT_LONG_OVERDUE }
+	}
+
+	const now = new Date()
+	await db
+		.update(credits)
+		.set({ status: 'defaulted', updatedAt: now })
+		.where(eq(credits.id, creditId))
+
+	revalidatePath('/equipo')
+	revalidatePath('/equipo/deductions')
+	revalidatePath('/equipo/deductions/overdue')
+	revalidatePath('/equipo/installments')
+	revalidatePath('/equipo/installments/overdue')
+	revalidatePath('/equipo/credits')
+	revalidatePath(`/equipo/credits/${creditId}`)
+	revalidatePath('/cuenta/credits')
+	return { defaulted: true }
+}
+
 type PaymentWithContext = {
 	paymentId: number
 	hrConfirmedAt: Date | null
 	installmentConfirmedAt: Date | null
 	creditId: number
+	creditStatus: 'dispersed' | 'settled' | 'defaulted'
 	companyId: number
 	dueDate: Date
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
@@ -1118,6 +1171,7 @@ async function fetchPaymentsWithContext(
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
 			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
 			creditId: creditPayments.creditId,
+			creditStatus: credits.status,
 			companyId: applications.companyId,
 			dueDate: creditPayments.dueDate,
 			companySalaryFrequency: companies.employeeSalaryFrequency,
@@ -1132,12 +1186,19 @@ async function fetchPaymentsWithContext(
 		hrConfirmedAt: r.hrConfirmedAt,
 		installmentConfirmedAt: r.installmentConfirmedAt,
 		creditId: r.creditId,
+		creditStatus: r.creditStatus,
 		companyId: r.companyId,
 		dueDate: r.dueDate,
 		employeeSalaryFrequency: employeeSalaryFrequencyFromDb(
 			r.companySalaryFrequency,
 		),
 	}))
+}
+
+function paymentBelongsToDefaultedCredit(
+	payment: Pick<PaymentWithContext, 'creditStatus'>,
+): boolean {
+	return payment.creditStatus === 'defaulted'
 }
 
 function bulkPaymentSelectionIsContiguousByCredit(
@@ -1183,11 +1244,14 @@ async function settleCreditsIfFullyConfirmed(
 			.where(eq(creditPayments.creditId, creditId))
 
 		if (allInstallmentsFullyConfirmed(remaining)) {
-			await db
+			const [updated] = await db
 				.update(credits)
 				.set({ status: 'settled', updatedAt: now })
-				.where(eq(credits.id, creditId))
-			settled.push(creditId)
+				.where(and(eq(credits.id, creditId), eq(credits.status, 'dispersed')))
+				.returning({ id: credits.id })
+			if (updated) {
+				settled.push(creditId)
+			}
 		}
 	}
 	return settled
@@ -1217,6 +1281,10 @@ export async function confirmHrDeduction(
 
 	if (!ability.can('confirmHrDeduction', toCreditPaymentSubject(payment))) {
 		return { error: ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN }
+	}
+
+	if (paymentBelongsToDefaultedCredit(payment)) {
+		return { error: ValidationCode.CREDIT_DEFAULTED_PAYMENT_ACTION_BLOCKED }
 	}
 
 	if (!canHrConfirm(payment)) {
@@ -1269,6 +1337,12 @@ export async function confirmHrDeductions(
 	for (const payment of rows) {
 		if (!ability.can('confirmHrDeduction', toCreditPaymentSubject(payment))) {
 			return { error: ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN }
+		}
+	}
+
+	for (const payment of rows) {
+		if (paymentBelongsToDefaultedCredit(payment)) {
+			return { error: ValidationCode.CREDIT_DEFAULTED_PAYMENT_ACTION_BLOCKED }
 		}
 	}
 
@@ -1782,6 +1856,10 @@ export async function confirmInstallment(
 		return { error: ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN }
 	}
 
+	if (paymentBelongsToDefaultedCredit(payment)) {
+		return { error: ValidationCode.CREDIT_DEFAULTED_PAYMENT_ACTION_BLOCKED }
+	}
+
 	if (!canConfirmInstallment(payment)) {
 		return payment.hrConfirmedAt === null
 			? { error: ValidationCode.CREDIT_PAYMENT_NOT_HR_CONFIRMED }
@@ -1855,6 +1933,12 @@ export async function confirmInstallments(
 	for (const payment of rows) {
 		if (!ability.can('confirmInstallment', toCreditPaymentSubject(payment))) {
 			return { error: ValidationCode.CREDIT_PAYMENT_CONFIRM_FORBIDDEN }
+		}
+	}
+
+	for (const payment of rows) {
+		if (paymentBelongsToDefaultedCredit(payment)) {
+			return { error: ValidationCode.CREDIT_DEFAULTED_PAYMENT_ACTION_BLOCKED }
 		}
 	}
 

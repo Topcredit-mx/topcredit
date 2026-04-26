@@ -164,6 +164,10 @@ export default async function CuentaCreditDetailPage({
 							<Badge variant="secondary" className="px-2.5 py-0.5 text-xs">
 								{t('status-settled')}
 							</Badge>
+						) : credit.status === 'defaulted' ? (
+							<Badge variant="destructive" className="px-2.5 py-0.5 text-xs">
+								{t('status-defaulted')}
+							</Badge>
 						) : (
 							<Badge className="border-0 bg-emerald-600 px-2.5 py-0.5 text-white text-xs shadow-sm">
 								{t('status-dispersed')}

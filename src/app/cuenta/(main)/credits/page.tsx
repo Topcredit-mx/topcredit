@@ -19,7 +19,9 @@ export default async function CreditsPage() {
 
 	const creditsList = await getCreditsByApplicantId(user.id)
 	const activeCredits = creditsList.filter((c) => c.status === 'dispersed')
-	const completedCredits = creditsList.filter((c) => c.status === 'settled')
+	const completedCredits = creditsList.filter(
+		(c) => c.status === 'settled' || c.status === 'defaulted',
+	)
 
 	const sections = [
 		{ titleKey: 'section-active-title' as const, items: activeCredits },
@@ -92,6 +94,10 @@ export default async function CreditsPage() {
 													{credit.status === 'settled' ? (
 														<Badge variant="secondary">
 															{t('status-settled')}
+														</Badge>
+													) : credit.status === 'defaulted' ? (
+														<Badge variant="destructive">
+															{t('status-defaulted')}
 														</Badge>
 													) : (
 														<Badge className="border-transparent bg-emerald-600 text-white hover:bg-emerald-600">

@@ -10,6 +10,7 @@ import {
 	isNotNull,
 	isNull,
 	lt,
+	ne,
 	or,
 	type SQL,
 	sql,
@@ -1249,9 +1250,12 @@ export async function getCreditsByApplicantId(
 		}
 	})
 
+	const sortRank = (s: CreditStatus): number => (s === 'dispersed' ? 0 : 1)
 	merged.sort((a, b) => {
-		if (a.status !== b.status) {
-			return a.status === 'dispersed' ? -1 : 1
+		const ra = sortRank(a.status)
+		const rb = sortRank(b.status)
+		if (ra !== rb) {
+			return ra - rb
 		}
 		return b.createdAt.getTime() - a.createdAt.getTime()
 	})
@@ -1499,6 +1503,8 @@ export async function getCreditPaymentsForEquipo(
 	}))
 }
 
+const creditNotDefaultedSql: SQL = sql`cr.status <> 'defaulted'::credit_status`
+
 /** Payments in current pay window; `due_date` is `timestamptz` (instant). */
 function payPeriodWindowCondition(
 	upcomingDeductionYmd: string,
@@ -1634,7 +1640,7 @@ export async function getInstallmentsForQueue(params: {
 		INNER JOIN applications a ON cr.application_id = a.id
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
-		WHERE ${companyCondition} AND ${statusCondition} ${dateCondition} ${installmentsExcludeOverdue}
+		WHERE ${companyCondition} AND ${statusCondition} AND ${creditNotDefaultedSql} ${dateCondition} ${installmentsExcludeOverdue}
 		ORDER BY cp.credit_id, cp.due_date ASC
 	`)
 
@@ -1808,6 +1814,7 @@ export async function getOverdueInstallments(params: {
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE ${companyCondition}
+		  AND ${creditNotDefaultedSql}
 		  AND cp.due_date < ${startOfBusinessDay}
 		  AND (
 				cp.hr_confirmed_at IS NULL
@@ -2114,7 +2121,7 @@ export async function getOldestPendingPaymentAgeDays(
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
-		WHERE ${companyWhere} AND ${pendingCondition}
+		WHERE ${companyWhere} AND ${pendingCondition} AND ${creditNotDefaultedSql}
 	`)
 
 	const raw = rows.rows[0]?.min_due
@@ -2165,6 +2172,7 @@ export async function getTotalOverdueAmount(
 			.where(
 				and(
 					eq(applications.companyId, companyId),
+					ne(credits.status, 'defaulted'),
 					isNull(creditPayments.hrConfirmedAt),
 					lt(creditPayments.dueDate, startOfBusinessDay),
 				),
@@ -2179,6 +2187,7 @@ export async function getTotalOverdueAmount(
 			.where(
 				and(
 					eq(applications.companyId, companyId),
+					ne(credits.status, 'defaulted'),
 					lt(creditPayments.dueDate, cutoff),
 					or(
 						isNull(creditPayments.hrConfirmedAt),
@@ -2223,6 +2232,7 @@ export async function getTotalOverdueCredits(
 			.where(
 				and(
 					eq(applications.companyId, companyId),
+					ne(credits.status, 'defaulted'),
 					isNull(creditPayments.hrConfirmedAt),
 					lt(creditPayments.dueDate, startOfBusinessDay),
 				),
@@ -2237,6 +2247,7 @@ export async function getTotalOverdueCredits(
 			.where(
 				and(
 					eq(applications.companyId, companyId),
+					ne(credits.status, 'defaulted'),
 					lt(creditPayments.dueDate, cutoff),
 					or(
 						isNull(creditPayments.hrConfirmedAt),
@@ -2275,6 +2286,7 @@ export async function getOldestOverdueAge(
 		.where(
 			and(
 				eq(applications.companyId, companyId),
+				ne(credits.status, 'defaulted'),
 				isNull(creditPayments.hrConfirmedAt),
 				lt(creditPayments.dueDate, startOfBusinessDay),
 			),
@@ -2310,6 +2322,7 @@ export async function getOverdueDeductionsCount(
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE a.company_id = ${companyId}
+		  AND ${creditNotDefaultedSql}
 		  AND cp.hr_confirmed_at IS NULL
 		  AND cp.due_date < ${startOfBusinessDay}
 	`)
@@ -2329,6 +2342,7 @@ export async function getOverdueInstallmentsCount(
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE a.company_id = ${companyId}
+		  AND ${creditNotDefaultedSql}
 		  AND cp.due_date < ${startOfBusinessDay}
 		  AND (
 				cp.hr_confirmed_at IS NULL
@@ -2392,6 +2406,7 @@ export async function getOverdueDeductions(
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE a.company_id = ${companyId}
+		  AND ${creditNotDefaultedSql}
 		  AND cp.hr_confirmed_at IS NULL
 		  AND cp.due_date < ${startOfBusinessDay}
 		GROUP BY cp.credit_id
@@ -2451,6 +2466,7 @@ export async function getOverdueDeductionsForCredit(
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE cp.credit_id = ${creditId}
 		  AND a.company_id = ${companyId}
+		  AND ${creditNotDefaultedSql}
 		  AND cp.hr_confirmed_at IS NULL
 		  AND cp.due_date < ${startOfBusinessDay}
 		ORDER BY cp.due_date ASC

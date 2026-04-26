@@ -327,6 +327,26 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE',
 	},
+	[ValidationCode.CREDIT_NOT_FOUND]: {
+		namespace: 'equipo',
+		key: 'CREDIT_NOT_FOUND',
+	},
+	[ValidationCode.CREDIT_DEFAULT_ADMIN_ONLY]: {
+		namespace: 'equipo',
+		key: 'CREDIT_DEFAULT_ADMIN_ONLY',
+	},
+	[ValidationCode.CREDIT_DEFAULT_INVALID_STATUS]: {
+		namespace: 'equipo',
+		key: 'CREDIT_DEFAULT_INVALID_STATUS',
+	},
+	[ValidationCode.CREDIT_DEFAULT_NOT_LONG_OVERDUE]: {
+		namespace: 'equipo',
+		key: 'CREDIT_DEFAULT_NOT_LONG_OVERDUE',
+	},
+	[ValidationCode.CREDIT_DEFAULTED_PAYMENT_ACTION_BLOCKED]: {
+		namespace: 'equipo',
+		key: 'CREDIT_DEFAULTED_PAYMENT_ACTION_BLOCKED',
+	},
 }
 
 function isValidationCode(s: string): s is ValidationCodeType {

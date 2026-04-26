@@ -164,7 +164,8 @@ async function loadGlobalOverdueInstallmentsCount(): Promise<number> {
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
-		WHERE cp.due_date < ${startOfBusinessDay}
+		WHERE cr.status <> 'defaulted'::credit_status
+		  AND cp.due_date < ${startOfBusinessDay}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -184,7 +185,8 @@ async function loadGlobalOverdueHrDeductionsCount(): Promise<number> {
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
-		WHERE cp.hr_confirmed_at IS NULL
+		WHERE cr.status <> 'defaulted'::credit_status
+		  AND cp.hr_confirmed_at IS NULL
 		  AND cp.due_date < ${startOfBusinessDay}
 	`)
 	const row = result.rows[0] as { count: unknown } | undefined
