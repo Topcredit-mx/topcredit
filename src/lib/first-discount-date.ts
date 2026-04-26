@@ -250,27 +250,11 @@ function lastDayOfMonthUTC(year: number, month0: number): Date {
 	return new Date(Date.UTC(year, month0 + 1, 0))
 }
 
-/**
- * Date-only `timestamp` rows may be **UTC midnight** (legacy) or **EOD CDMX** (new).
- * Legacy: use the ISO `YYYY-MM-DD` slice. New: use Mexico City calendar.
- */
-function anchorYmdForShapeValidation(d: Date): string {
-	if (
-		d.getUTCHours() === 0 &&
-		d.getUTCMinutes() === 0 &&
-		d.getUTCSeconds() === 0 &&
-		d.getUTCMilliseconds() === 0
-	) {
-		return d.toISOString().slice(0, 10)
-	}
-	return calendarYmdInMexicoCity(d)
-}
-
 export function isFirstDiscountAnchorCalendarShapeValid(
 	frequency: SalaryFrequency,
 	date: Date,
 ): boolean {
-	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(anchorYmdForShapeValidation(date))
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymdOfScheduleDate(date))
 	if (m == null) return false
 	const year = Number(m[1])
 	const month0 = Number(m[2]) - 1
