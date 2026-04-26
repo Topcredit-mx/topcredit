@@ -173,6 +173,7 @@ export function useOverdueInstallmentsColumns(): ColumnDef<OverdueInstallmentByC
 					<FormattedDate
 						value={row.getValue('oldestOverdueDueDate')}
 						format="date"
+						showTimeZoneLabel
 					/>
 				</div>
 			),

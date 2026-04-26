@@ -234,7 +234,11 @@ export function CreditPaymentsTable({
 				<p className="text-muted-foreground text-sm">
 					{t('credit-detail-upcoming-deduction-date')}:{' '}
 					<span className="font-medium text-foreground">
-						<FormattedDate value={upcomingDeductionDate} format="date" />
+						<FormattedDate
+							value={upcomingDeductionDate}
+							format="date"
+							showTimeZoneLabel
+						/>
 					</span>
 				</p>
 			) : null}

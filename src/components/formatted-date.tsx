@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 const LOCALE = 'es-MX'
@@ -67,19 +68,41 @@ function formatDate(
 export interface FormattedDateProps {
 	value: Date | string
 	format?: 'date' | 'datetime' | 'datetime-short'
+	/** When true, appends a short CDMX business-time label (e.g. "· CDMX"). */
+	showTimeZoneLabel?: boolean
 	className?: string
 }
 
 export function FormattedDate({
 	value,
 	format = 'date',
+	showTimeZoneLabel = false,
 	className,
 }: FormattedDateProps) {
+	const t = useTranslations('common')
 	const [display, setDisplay] = useState(PLACEHOLDER)
 
 	useEffect(() => {
 		setDisplay(formatDate(value, format))
 	}, [value, format])
 
-	return <span className={className}>{display}</span>
+	if (!showTimeZoneLabel) {
+		return <span className={className}>{display}</span>
+	}
+
+	const ariaLabel = t('date-business-aria', { date: display })
+	const suffix = t('date-timezone-suffix')
+
+	return (
+		<span className={className}>
+			<span className="sr-only">{ariaLabel}</span>
+			<span aria-hidden className="inline-block">
+				<span className="whitespace-nowrap">{display}</span>
+				<span className="whitespace-nowrap text-muted-foreground">
+					{' '}
+					{suffix}
+				</span>
+			</span>
+		</span>
+	)
 }

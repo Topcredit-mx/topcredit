@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
 import { ApplicantPageFooter } from '~/components/app/applicant-page-footer'
+import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
@@ -10,14 +11,6 @@ import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { getCreditsByApplicantId } from '~/server/queries'
-
-function formatListDate(d: Date) {
-	return d.toLocaleDateString('es-MX', {
-		year: 'numeric',
-		month: 'short',
-		day: 'numeric',
-	})
-}
 
 export default async function CreditsPage() {
 	const user = await getRequiredApplicantUser()
@@ -107,14 +100,21 @@ export default async function CreditsPage() {
 													)}
 												</td>
 												<td className="px-6 py-4 text-muted-foreground text-sm">
-													{formatListDate(credit.disbursementDate)}
+													<FormattedDate
+														value={credit.disbursementDate.toISOString()}
+														format="date"
+													/>
 												</td>
 												<td className="px-6 py-4 text-muted-foreground text-sm">
 													{credit.nextDueDate != null &&
 													credit.nextAmount != null ? (
 														<>
 															<span className="block text-slate-800">
-																{formatListDate(credit.nextDueDate)}
+																<FormattedDate
+																	value={credit.nextDueDate.toISOString()}
+																	format="date"
+																	showTimeZoneLabel
+																/>
 															</span>
 															<span className="mt-0.5 block text-muted-foreground text-xs">
 																{formatCurrencyMxn(credit.nextAmount)}

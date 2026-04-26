@@ -370,6 +370,7 @@ export default async function AppApplicationDetailPage({
 							<FormattedDate
 								value={application.firstDiscountDate.toISOString()}
 								format="date"
+								showTimeZoneLabel
 							/>
 						</p>
 					</CardContent>

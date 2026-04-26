@@ -15,6 +15,7 @@ import { useTranslations } from 'next-intl'
 import { useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { ImportCsvPreviewSummary } from '~/components/equipo/import-csv-preview-summary'
+import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
 import {
 	Dialog,
@@ -24,6 +25,14 @@ import {
 } from '~/components/ui/dialog'
 import { cn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
+
+function CsvPreviewDueDate({ value }: { value: string | null | undefined }) {
+	if (value == null || value === '') {
+		return '—'
+	}
+	return <FormattedDate value={value} format="date" showTimeZoneLabel />
+}
+
 import type {
 	CsvImportParseStats,
 	ValidateDeductionsCsvErrorRow,
@@ -316,7 +325,7 @@ function PreviewStage({
 												{w.amount ?? '—'}
 											</td>
 											<td className="px-3 py-2 text-slate-800">
-												{w.dueDate ?? '—'}
+												<CsvPreviewDueDate value={w.dueDate} />
 											</td>
 											<td className="px-3 py-2 text-amber-700">
 												{warningReason(w, t)}
@@ -375,7 +384,7 @@ function PreviewStage({
 												{err.amount ?? '—'}
 											</td>
 											<td className="px-3 py-2 text-slate-800">
-												{err.dueDate ?? '—'}
+												<CsvPreviewDueDate value={err.dueDate} />
 											</td>
 											<td className="px-3 py-2 text-destructive">
 												{errorCellMessage(err, t)}

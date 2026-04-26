@@ -90,6 +90,7 @@ export function useCreditPaymentScheduleColumns(
 						<FormattedDate
 							value={row.original.dueDate.toISOString().slice(0, 10)}
 							format="date"
+							showTimeZoneLabel
 						/>
 					</div>
 				),
