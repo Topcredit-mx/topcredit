@@ -115,7 +115,11 @@ export function FinalInstallmentConfirmDialog({
 									<tr key={r.id} className="border-b last:border-0">
 										<td className="px-3 py-2 text-slate-800">{r.rowLabel}</td>
 										<td className="px-3 py-2 text-slate-800">
-											<FormattedDate value={r.dueDateIso} format="date" />
+											<FormattedDate
+												value={r.dueDateIso}
+												format="date"
+												showTimeZoneLabel
+											/>
 										</td>
 										<td className="px-3 py-2 text-slate-800">
 											{formatCurrencyMxn(r.amount)}

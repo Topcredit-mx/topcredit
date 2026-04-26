@@ -1,10 +1,13 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 const LOCALE = 'es-MX'
 
 const PLACEHOLDER = '\u2014'
+
+const MEXICO_TZ = 'America/Mexico_City'
 
 const DATE_ONLY_OPTIONS: Intl.DateTimeFormatOptions = {
 	year: 'numeric',
@@ -13,6 +16,7 @@ const DATE_ONLY_OPTIONS: Intl.DateTimeFormatOptions = {
 }
 
 const DATETIME_SHORT_OPTIONS: Intl.DateTimeFormatOptions = {
+	timeZone: MEXICO_TZ,
 	day: 'numeric',
 	month: 'short',
 	hour: 'numeric',
@@ -20,6 +24,7 @@ const DATETIME_SHORT_OPTIONS: Intl.DateTimeFormatOptions = {
 }
 
 const DATETIME_FULL_OPTIONS: Intl.DateTimeFormatOptions = {
+	timeZone: MEXICO_TZ,
 	year: 'numeric',
 	month: 'short',
 	day: 'numeric',
@@ -63,19 +68,41 @@ function formatDate(
 export interface FormattedDateProps {
 	value: Date | string
 	format?: 'date' | 'datetime' | 'datetime-short'
+	/** When true, appends a short CDMX business-time label (e.g. "· CDMX"). */
+	showTimeZoneLabel?: boolean
 	className?: string
 }
 
 export function FormattedDate({
 	value,
 	format = 'date',
+	showTimeZoneLabel = false,
 	className,
 }: FormattedDateProps) {
+	const t = useTranslations('common')
 	const [display, setDisplay] = useState(PLACEHOLDER)
 
 	useEffect(() => {
 		setDisplay(formatDate(value, format))
 	}, [value, format])
 
-	return <span className={className}>{display}</span>
+	if (!showTimeZoneLabel) {
+		return <span className={className}>{display}</span>
+	}
+
+	const ariaLabel = t('date-business-aria', { date: display })
+	const suffix = t('date-timezone-suffix')
+
+	return (
+		<span className={className}>
+			<span className="sr-only">{ariaLabel}</span>
+			<span aria-hidden className="inline-block">
+				<span className="whitespace-nowrap">{display}</span>
+				<span className="whitespace-nowrap text-muted-foreground">
+					{' '}
+					{suffix}
+				</span>
+			</span>
+		</span>
+	)
 }

@@ -13,6 +13,8 @@ export type InstallmentImportParsedRow = {
 	line: number
 }
 
+import { Decimal } from './decimal'
+
 export type InstallmentImportCandidate = {
 	paymentId: number
 	companyId: number
@@ -20,12 +22,28 @@ export type InstallmentImportCandidate = {
 	installmentConfirmedAt: Date | null
 }
 
+/**
+ * One canonical `amount` string for CSV↔DB matching: Postgres `numeric` / JS
+ * drivers can yield `"15375"` while CSVs use `"15375.00"`.
+ */
+export function normalizeAmountForImportKey(amount: string | number): string {
+	const s = String(amount).trim()
+	if (s === '') {
+		return s
+	}
+	try {
+		return new Decimal(s).todp(2, Decimal.ROUND_HALF_UP).toFixed(2)
+	} catch {
+		return s
+	}
+}
+
 export function makeInstallmentImportKey(
 	payrollNumber: string,
 	amount: string,
 	dueDate: string,
 ): string {
-	return `${payrollNumber}|${amount}|${dueDate}`
+	return `${payrollNumber}|${normalizeAmountForImportKey(amount)}|${dueDate}`
 }
 
 export function classifyInstallmentCsvImportRows(

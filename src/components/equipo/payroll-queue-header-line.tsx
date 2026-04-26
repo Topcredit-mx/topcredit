@@ -27,7 +27,7 @@ export function PayrollQueueHeaderLine({
 				<p>
 					{t('queue-header-next-deduction-label')}:{' '}
 					<span className="font-medium text-foreground">
-						<FormattedDate value={nextDeductionDate} />
+						<FormattedDate value={nextDeductionDate} showTimeZoneLabel />
 					</span>
 				</p>
 			) : null}

@@ -1,3 +1,6 @@
+import { endOfCurrentMonthEodMx } from './mexico-seed-dates'
+
+/** @deprecated Use {@link endOfCurrentMonthEodMx} (Mexico business EOD). */
 export function endOfCurrentMonthUTC(now: Date): Date {
-	return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
+	return endOfCurrentMonthEodMx(now)
 }

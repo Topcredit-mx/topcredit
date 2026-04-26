@@ -1,3 +1,4 @@
+import { ymdForDeductionSchedule } from '../src/lib/calendar-date-tz'
 import { generatePaymentSchedule } from '../src/lib/payment-schedule'
 import type { FirstDiscountHistoricAnchor } from './seed.fixtures'
 import { resolveSeedFirstDiscountDate } from './seed-first-discount'
@@ -6,20 +7,21 @@ const SCHEDULE_STUB_PRINCIPAL = 10_000
 const SCHEDULE_STUB_RATE = 0.02
 const MONTHS_AGO_SCAN_MAX = 150
 
-function utcCalendarDayKey(d: Date): number {
-	return (
-		d.getUTCFullYear() * 10_000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate()
-	)
+/** Compare Mexico business Y-M-D strings (lexicographic = chronological). */
+function businessYmdKey(ymd: string): number {
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd)
+	if (m == null) return 0
+	return Number(m[1]) * 10_000 + Number(m[2]) * 100 + Number(m[3])
 }
 
 export function countPastDuePaymentsInSchedule(
 	schedule: ReadonlyArray<{ dueDate: Date }>,
 	today: Date,
 ): number {
-	const todayKey = utcCalendarDayKey(today)
+	const todayKey = businessYmdKey(ymdForDeductionSchedule(today))
 	let n = 0
 	for (const row of schedule) {
-		if (utcCalendarDayKey(row.dueDate) < todayKey) {
+		if (businessYmdKey(ymdForDeductionSchedule(row.dueDate)) < todayKey) {
 			n += 1
 		}
 	}

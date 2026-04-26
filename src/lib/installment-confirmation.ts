@@ -1,3 +1,7 @@
+import {
+	endOfDayInstantMexicoCity,
+	ymdForDeductionSchedule,
+} from '~/lib/calendar-date-tz'
 import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 
 export type CreditPaymentTimestamps = {
@@ -29,7 +33,7 @@ export function canConfirmInstallmentForCreditDetailRow(
 		p.employeeSalaryFrequency,
 		today,
 	)
-	return p.dueDate.toISOString().slice(0, 10) <= upcomingYmd
+	return ymdForDeductionSchedule(p.dueDate) <= upcomingYmd
 }
 
 export type InstallmentQueueTimestamps = {
@@ -52,24 +56,23 @@ export function canConfirmInstallmentInQueue(
 	})
 }
 
-function utcDateOnlyString(d: Date): string {
-	return d.toISOString().slice(0, 10)
-}
-
-function parseDueDateDay(value: string): string | null {
-	if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+function parseDueYmd(value: string): string | null {
+	if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+		return ymdForDeductionSchedule(endOfDayInstantMexicoCity(value))
+	}
 	const parsed = new Date(value)
 	if (Number.isNaN(parsed.getTime())) return null
-	return utcDateOnlyString(parsed)
+	return ymdForDeductionSchedule(parsed)
 }
 
+/** Overdue = current time is after 23:59:59.999 on the due calendar day (Mexico). */
 export function isDueDateBeforeToday(
 	dueDateIsoOrDay: string,
 	today: Date,
 ): boolean {
-	const dueDay = parseDueDateDay(dueDateIsoOrDay)
-	if (dueDay === null) return false
-	return dueDay < utcDateOnlyString(today)
+	const dueYmd = parseDueYmd(dueDateIsoOrDay)
+	if (dueYmd === null) return false
+	return today.getTime() > endOfDayInstantMexicoCity(dueYmd).getTime()
 }
 
 function queueRowFullyConfirmed(row: InstallmentQueueTimestamps): boolean {
@@ -97,7 +100,8 @@ export function isInstallmentOverdueFromDb(
 ): boolean {
 	if (p.hrConfirmedAt !== null && p.installmentConfirmedAt !== null)
 		return false
-	return isDueDateBeforeToday(p.dueDate.toISOString(), today)
+	const ymd = ymdForDeductionSchedule(p.dueDate)
+	return today.getTime() > endOfDayInstantMexicoCity(ymd).getTime()
 }
 
 export function isFullyConfirmed(p: CreditPaymentTimestamps): boolean {

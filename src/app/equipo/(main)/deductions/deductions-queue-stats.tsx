@@ -33,7 +33,7 @@ export function DeductionsQueueStats({
 					</p>
 					<p className="font-semibold text-foreground text-lg leading-snug tracking-tight">
 						{nextDeductionDate ? (
-							<FormattedDate value={nextDeductionDate} />
+							<FormattedDate value={nextDeductionDate} showTimeZoneLabel />
 						) : (
 							<span className="text-muted-foreground">—</span>
 						)}

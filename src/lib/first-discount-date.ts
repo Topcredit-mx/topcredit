@@ -1,77 +1,145 @@
+import {
+	calendarYmdInMexicoCity,
+	endOfDayInstantMexicoCity,
+	startOfDayInstantMexicoCity,
+	utcMidnightForYmd,
+} from '~/lib/calendar-date-tz'
+
 type SalaryFrequency = 'bi-monthly' | 'monthly'
 
-function utcDate(year: number, month: number, day: number): Date {
-	return new Date(Date.UTC(year, month, day))
+/** +1 calendar day in UTC (Mexico has no DST; safe for YMD line). */
+function addOneCalendarDayYmd(ymd: string): string {
+	const d = utcMidnightForYmd(ymd)
+	d.setUTCDate(d.getUTCDate() + 1)
+	return d.toISOString().slice(0, 10)
 }
 
-function lastDayOfMonthUTC(year: number, month: number): Date {
-	return new Date(Date.UTC(year, month + 1, 0))
+/**
+ * YYYY-MM-DD of the business anchor for a `Date` (due / first discount).
+ * Uses Mexico calendar; required when instants are end-of-day CDMX (UTC date may differ).
+ */
+function ymdOfScheduleDate(d: Date): string {
+	return calendarYmdInMexicoCity(d)
 }
 
-function isSameOrAfter(date: Date, reference: Date): boolean {
-	return date >= reference
+/** Payroll anchor instant: 23:59:59.999 in `America/Mexico_City`. */
+function scheduleFromYmd(ymd: string): Date {
+	return endOfDayInstantMexicoCity(ymd)
 }
 
+function lastDayOfMonthYmd(year: number, month0: number): string {
+	const last = new Date(Date.UTC(year, month0 + 1, 0))
+	const d = last.getUTCDate()
+	return `${String(year).padStart(4, '0')}-${String(month0 + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+}
+
+function lastDayOfMonthForYmd(ymd: string): { day: number; ymd: string } {
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd.trim())
+	if (m == null) return { day: 31, ymd: '1970-01-31' }
+	const year = Number(m[1])
+	const month0 = Number(m[2]) - 1
+	const y = lastDayOfMonthYmd(year, month0)
+	return { day: Number(y.slice(8, 10)), ymd: y }
+}
+
+function ymdString(year: number, month0: number, day: number): string {
+	return `${String(year).padStart(4, '0')}-${String(month0 + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function isSameOrAfterYmd(a: string, b: string): boolean {
+	return a >= b
+}
+
+/**
+ * YYYY-MM-DD of the upcoming payroll anchor (Mexico), before converting to an EOD instant.
+ */
+export function getUpcomingDeductionAnchorYmd(
+	frequency: SalaryFrequency,
+	today: Date,
+): string {
+	const ymd = calendarYmdInMexicoCity(today)
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd)
+	if (m == null) {
+		return ymd
+	}
+	const year = Number(m[1])
+	const month0 = Number(m[2]) - 1
+	const day = Number(m[3])
+
+	if (frequency === 'monthly') {
+		return lastDayOfMonthYmd(year, month0)
+	}
+
+	const { ymd: eomYmd } = lastDayOfMonthForYmd(ymd)
+	if (day <= 15) {
+		return ymdString(year, month0, 15)
+	}
+	return eomYmd
+}
+
+/**
+ * Upcoming payroll deduction anchor: **23:59:59.999** that calendar day in CDMX.
+ */
 export function getUpcomingDeductionDate(
 	frequency: SalaryFrequency,
 	today: Date,
 ): Date {
-	const year = today.getUTCFullYear()
-	const month = today.getUTCMonth()
-	const day = today.getUTCDate()
-
-	if (frequency === 'monthly') {
-		return lastDayOfMonthUTC(year, month)
-	}
-
-	// bi-monthly: 15th or last day of month
-	if (day <= 15) {
-		return utcDate(year, month, 15)
-	}
-	return lastDayOfMonthUTC(year, month)
+	return scheduleFromYmd(getUpcomingDeductionAnchorYmd(frequency, today))
 }
 
-/** Calendar date (YYYY-MM-DD) for the upcoming payroll deduction, UTC. */
+/** Same Y-M-D as `getUpcomingDeductionAnchorYmd` (header / CSV, etc.). */
 export function getUpcomingDeductionDateYmd(
 	frequency: SalaryFrequency,
 	today: Date,
 ): string {
-	return getUpcomingDeductionDate(frequency, today).toISOString().slice(0, 10)
+	return getUpcomingDeductionAnchorYmd(frequency, today)
 }
 
 /** Strictly previous payroll anchor before `onOrBefore` (same calendar day allowed). */
-function previousPayrollAnchorUtc(
+function previousPayrollAnchorYmd(
 	frequency: SalaryFrequency,
-	onOrBefore: Date,
-): Date {
-	const y = onOrBefore.getUTCFullYear()
-	const m = onOrBefore.getUTCMonth()
-	const d = onOrBefore.getUTCDate()
+	onOrBeforeYmd: string,
+): string {
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(onOrBeforeYmd)
+	if (m == null) return onOrBeforeYmd
+	const year = Number(m[1])
+	const month0 = Number(m[2]) - 1
+	const day = Number(m[3])
 
 	if (frequency === 'monthly') {
-		return lastDayOfMonthUTC(y, m - 1)
+		if (month0 === 0) {
+			return lastDayOfMonthYmd(year - 1, 11)
+		}
+		return lastDayOfMonthYmd(year, month0 - 1)
 	}
 
-	const eomDay = lastDayOfMonthUTC(y, m).getUTCDate()
-	if (d === 15) {
-		return lastDayOfMonthUTC(y, m - 1)
+	const { day: eomDay } = lastDayOfMonthForYmd(onOrBeforeYmd)
+	if (day === 15) {
+		if (month0 === 0) {
+			return lastDayOfMonthYmd(year - 1, 11)
+		}
+		return lastDayOfMonthYmd(year, month0 - 1)
 	}
-	if (d === eomDay) {
-		return utcDate(y, m, 15)
+	if (day === eomDay) {
+		return ymdString(year, month0, 15)
 	}
-	return lastDayOfMonthUTC(y, m - 1)
+	if (month0 === 0) {
+		return lastDayOfMonthYmd(year - 1, 11)
+	}
+	return lastDayOfMonthYmd(year, month0 - 1)
 }
 
 /**
- * Last completed payroll deduction date (UTC calendar day) relative to `today`.
- * This is the anchor strictly before `getUpcomingDeductionDate(frequency, today)`.
+ * Last completed payroll deduction date (Mexico calendar) relative to `today`.
+ * The anchor strictly before `getUpcomingDeductionDate(frequency, today)`.
  */
 export function getPastDeductionDate(
 	frequency: SalaryFrequency,
 	today: Date,
 ): Date {
-	const upcoming = getUpcomingDeductionDate(frequency, today)
-	return previousPayrollAnchorUtc(frequency, upcoming)
+	const upcomingYmd = getUpcomingDeductionDateYmd(frequency, today)
+	const prevYmd = previousPayrollAnchorYmd(frequency, upcomingYmd)
+	return scheduleFromYmd(prevYmd)
 }
 
 export type PayPeriodComparisonBounds = {
@@ -82,29 +150,22 @@ export type PayPeriodComparisonBounds = {
 }
 
 /**
- * Half-open UTC windows [start, end) for comparing installment collections
- * (current pay period vs the previous one), aligned to payroll deduction dates.
+ * Half-open windows [start, end) for comparing installment collections, aligned to
+ * Mexico City payroll. `Start` is 00:00:00 that calendar day in CDMX; anchors are EOD CDMX.
  */
 export function getPayPeriodComparisonBounds(
 	frequency: SalaryFrequency,
 	today: Date,
 ): PayPeriodComparisonBounds {
 	const pastDeduction = getPastDeductionDate(frequency, today)
-	const currentStart = new Date(
-		Date.UTC(
-			pastDeduction.getUTCFullYear(),
-			pastDeduction.getUTCMonth(),
-			pastDeduction.getUTCDate() + 1,
-		),
+	const pastYmd = ymdOfScheduleDate(pastDeduction)
+	const currentStart = startOfDayInstantMexicoCity(
+		addOneCalendarDayYmd(pastYmd),
 	)
 	const currentEnd = today
-	const anchorBeforePast = previousPayrollAnchorUtc(frequency, pastDeduction)
-	const previousStart = new Date(
-		Date.UTC(
-			anchorBeforePast.getUTCFullYear(),
-			anchorBeforePast.getUTCMonth(),
-			anchorBeforePast.getUTCDate() + 1,
-		),
+	const anchorBeforePastYmd = previousPayrollAnchorYmd(frequency, pastYmd)
+	const previousStart = startOfDayInstantMexicoCity(
+		addOneCalendarDayYmd(anchorBeforePastYmd),
 	)
 	const previousEnd = currentStart
 	return { currentStart, currentEnd, previousStart, previousEnd }
@@ -115,47 +176,52 @@ export function getValidFirstDiscountDates(
 	today: Date,
 	count: number,
 ): Date[] {
+	const todayYmd = calendarYmdInMexicoCity(today)
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayYmd)
+	if (m == null) return []
+	let year = Number(m[1])
+	let month0 = Number(m[2]) - 1
+	const day = Number(m[3])
 	const dates: Date[] = []
-	let year = today.getUTCFullYear()
-	let month = today.getUTCMonth()
-	const day = today.getUTCDate()
 
 	if (frequency === 'monthly') {
-		let cursor = lastDayOfMonthUTC(year, month)
-		if (!isSameOrAfter(cursor, today)) {
-			month += 1
-			cursor = lastDayOfMonthUTC(year + Math.floor(month / 12), month % 12)
+		let eomYmd = lastDayOfMonthYmd(year, month0)
+		if (!isSameOrAfterYmd(eomYmd, todayYmd)) {
+			month0 += 1
+			if (month0 > 11) {
+				month0 = 0
+				year += 1
+			}
+			eomYmd = lastDayOfMonthYmd(year, month0)
 		}
 		while (dates.length < count) {
-			const endOfMonth = lastDayOfMonthUTC(year, month)
-			if (isSameOrAfter(endOfMonth, today)) {
-				dates.push(endOfMonth)
+			const eom = lastDayOfMonthYmd(year, month0)
+			if (isSameOrAfterYmd(eom, todayYmd)) {
+				dates.push(scheduleFromYmd(eom))
 			}
-			month += 1
-			if (month > 11) {
-				month = 0
+			month0 += 1
+			if (month0 > 11) {
+				month0 = 0
 				year += 1
 			}
 		}
 		return dates
 	}
 
-	// bi-monthly: alternate between 15th and end-of-month
 	let nextIs15th = day <= 15
-
 	while (dates.length < count) {
-		const candidate = nextIs15th
-			? utcDate(year, month, 15)
-			: lastDayOfMonthUTC(year, month)
+		const candidateYmd = nextIs15th
+			? ymdString(year, month0, 15)
+			: lastDayOfMonthYmd(year, month0)
 
-		if (isSameOrAfter(candidate, today)) {
-			dates.push(candidate)
+		if (isSameOrAfterYmd(candidateYmd, todayYmd)) {
+			dates.push(scheduleFromYmd(candidateYmd))
 		}
 
 		if (!nextIs15th) {
-			month += 1
-			if (month > 11) {
-				month = 0
+			month0 += 1
+			if (month0 > 11) {
+				month0 = 0
 				year += 1
 			}
 		}
@@ -170,34 +236,31 @@ export function isValidFirstDiscountDate(
 	date: Date,
 	today: Date,
 ): boolean {
-	if (!isSameOrAfter(date, today)) {
+	const dateYmd = ymdOfScheduleDate(date)
+	const todayYmd = calendarYmdInMexicoCity(today)
+	if (!isSameOrAfterYmd(dateYmd, todayYmd)) {
 		return false
 	}
 
-	const year = date.getUTCFullYear()
-	const month = date.getUTCMonth()
-	const day = date.getUTCDate()
-	const endOfMonth = lastDayOfMonthUTC(year, month)
-	const isEndOfMonth = day === endOfMonth.getUTCDate()
-
-	if (frequency === 'monthly') {
-		return isEndOfMonth
-	}
-
-	// bi-monthly: 15th or end of month
-	return day === 15 || isEndOfMonth
+	return isFirstDiscountAnchorCalendarShapeValid(frequency, date)
 }
 
 /** Past/future: only calendar shape (month-end vs 15|EOM), no `date >= today` check. */
+function lastDayOfMonthUTC(year: number, month0: number): Date {
+	return new Date(Date.UTC(year, month0 + 1, 0))
+}
+
 export function isFirstDiscountAnchorCalendarShapeValid(
 	frequency: SalaryFrequency,
 	date: Date,
 ): boolean {
-	const year = date.getUTCFullYear()
-	const month = date.getUTCMonth()
-	const day = date.getUTCDate()
-	const endOfMonth = lastDayOfMonthUTC(year, month)
-	const isEndOfMonth = day === endOfMonth.getUTCDate()
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymdOfScheduleDate(date))
+	if (m == null) return false
+	const year = Number(m[1])
+	const month0 = Number(m[2]) - 1
+	const day = Number(m[3])
+	const eom = lastDayOfMonthUTC(year, month0)
+	const isEndOfMonth = day === eom.getUTCDate()
 	if (frequency === 'monthly') {
 		return isEndOfMonth
 	}

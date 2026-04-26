@@ -68,10 +68,11 @@ test.describe('HR deduction confirmation history', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/deductions')
-			await expect(
-				page.getByText(seed.lateConfirmedApplicantName),
-			).toBeVisible()
-			await expect(page.getByText(/tarde/i)).toBeVisible()
+			const historyRow = page.locator('li', {
+				has: page.getByText(seed.lateConfirmedApplicantName, { exact: true }),
+			})
+			await expect(historyRow).toBeVisible()
+			await expect(historyRow.getByText(/tarde/i).first()).toBeVisible()
 		})
 
 		test('orders history from most recent confirmation to oldest', async ({

@@ -1,5 +1,5 @@
 {
-	"id": "177e08c2-577e-4818-9244-43f84e428d75",
+	"id": "cdde390e-f38e-46d2-a6ef-6608d88d4ce7",
 	"prevId": "00000000-0000-0000-0000-000000000000",
 	"version": "7",
 	"dialect": "postgresql",
@@ -338,7 +338,7 @@
 				},
 				"first_discount_date": {
 					"name": "first_discount_date",
-					"type": "timestamp",
+					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": false
 				},
@@ -493,7 +493,7 @@
 				},
 				"due_date": {
 					"name": "due_date",
-					"type": "timestamp",
+					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": true
 				},

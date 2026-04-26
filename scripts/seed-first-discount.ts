@@ -1,3 +1,4 @@
+import { endOfDayInstantMexicoCity } from '../src/lib/calendar-date-tz'
 import { getValidFirstDiscountDates } from '../src/lib/first-discount-date'
 import type {
 	FirstDiscountHistoricAnchor,
@@ -16,13 +17,16 @@ function endOfMonthMonthsAgo(today: Date, monthsBack: number): Date {
 	const d = new Date(
 		Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - monthsBack, 1),
 	)
-	return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0))
+	const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0))
+	const ymd = last.toISOString().slice(0, 10)
+	return endOfDayInstantMexicoCity(ymd)
 }
 
 function fifteenthOfMonthMonthsAgo(today: Date, monthsBack: number): Date {
-	return new Date(
+	const d = new Date(
 		Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - monthsBack, 15),
 	)
+	return endOfDayInstantMexicoCity(d.toISOString().slice(0, 10))
 }
 
 export function resolveSeedFirstDiscountDate(

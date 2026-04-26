@@ -1,4 +1,8 @@
 import { and, eq, sql } from 'drizzle-orm'
+import {
+	startOfDayInstantMexicoCity,
+	todayYmdMexicoCity,
+} from '~/lib/calendar-date-tz'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { db } from '~/server/db'
 import {
@@ -152,12 +156,15 @@ async function loadCreditKpis(companyId?: number): Promise<{
 }
 
 async function loadGlobalOverdueInstallmentsCount(): Promise<number> {
+	const startOfBusinessDay = startOfDayInstantMexicoCity(
+		todayYmdMexicoCity(new Date()),
+	)
 	const result = await db.execute(sql`
 		SELECT COUNT(*)::int AS count
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
-		WHERE (cp.due_date)::date < CURRENT_DATE
+		WHERE cp.due_date < ${startOfBusinessDay}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -169,13 +176,16 @@ async function loadGlobalOverdueInstallmentsCount(): Promise<number> {
 }
 
 async function loadGlobalOverdueHrDeductionsCount(): Promise<number> {
+	const startOfBusinessDay = startOfDayInstantMexicoCity(
+		todayYmdMexicoCity(new Date()),
+	)
 	const result = await db.execute(sql`
 		SELECT COUNT(DISTINCT cp.credit_id)::int AS count
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE cp.hr_confirmed_at IS NULL
-		  AND cp.due_date < CURRENT_DATE
+		  AND cp.due_date < ${startOfBusinessDay}
 	`)
 	const row = result.rows[0] as { count: unknown } | undefined
 	if (!row) return 0

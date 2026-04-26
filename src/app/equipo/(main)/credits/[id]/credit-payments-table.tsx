@@ -11,7 +11,10 @@ import {
 	DataTableContent,
 	DataTablePagination,
 } from '~/components/ui/data-table'
-import { calendarYmdInMexicoCity } from '~/lib/calendar-date-tz'
+import {
+	calendarYmdInMexicoCity,
+	ymdForDeductionSchedule,
+} from '~/lib/calendar-date-tz'
 import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import {
 	canConfirmInstallmentForCreditDetailRow,
@@ -221,7 +224,7 @@ export function CreditPaymentsTable({
 					return {
 						id: p.id,
 						rowLabel: scheduleIndex >= 0 ? String(scheduleIndex + 1) : '—',
-						dueDateIso: p.dueDate.toISOString().slice(0, 10),
+						dueDateIso: ymdForDeductionSchedule(p.dueDate),
 						amount: p.amount,
 					}
 				})}
@@ -234,7 +237,11 @@ export function CreditPaymentsTable({
 				<p className="text-muted-foreground text-sm">
 					{t('credit-detail-upcoming-deduction-date')}:{' '}
 					<span className="font-medium text-foreground">
-						<FormattedDate value={upcomingDeductionDate} format="date" />
+						<FormattedDate
+							value={upcomingDeductionDate}
+							format="date"
+							showTimeZoneLabel
+						/>
 					</span>
 				</p>
 			) : null}

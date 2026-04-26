@@ -171,6 +171,7 @@ export function useOverdueDeductionsColumns(): ColumnDef<OverdueDeductionByCredi
 					<FormattedDate
 						value={row.getValue('oldestOverdueDueDate')}
 						format="date"
+						showTimeZoneLabel
 					/>
 				</div>
 			),

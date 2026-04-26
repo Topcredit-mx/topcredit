@@ -183,7 +183,11 @@ export function PickOverduePaymentsDialog({
 											<div className="min-w-0 flex-1 text-sm">
 												<div className="text-muted-foreground text-xs">
 													{t('overdue-pick-payments-due')}{' '}
-													<FormattedDate value={p.dueDate} format="date" />
+													<FormattedDate
+														value={p.dueDate}
+														format="date"
+														showTimeZoneLabel
+													/>
 												</div>
 												<div className="mt-0.5 font-medium tabular-nums">
 													{formatCurrencyMxn(p.amount)}

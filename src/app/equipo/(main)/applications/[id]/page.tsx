@@ -25,9 +25,10 @@ import {
 	isAuthorizationPackageFullyApproved,
 	isInitialIntakeFullyApproved,
 } from '~/lib/authorization-package-readiness'
+import { ymdForDeductionSchedule } from '~/lib/calendar-date-tz'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import {
-	getUpcomingDeductionDate,
+	getUpcomingDeductionDateYmd,
 	getValidFirstDiscountDates,
 } from '~/lib/first-discount-date'
 import { formatCurrencyMxn } from '~/lib/utils'
@@ -88,9 +89,6 @@ export default async function AppApplicationDetailPage({
 		notFound()
 	}
 	const now = new Date()
-	const todayUTC = new Date(
-		Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-	)
 	const t = await getTranslations('equipo')
 	const canTransition = canTransitionApplicationFrom(application.status)
 	const appSubject = subject('Application', {
@@ -373,6 +371,7 @@ export default async function AppApplicationDetailPage({
 							<FormattedDate
 								value={application.firstDiscountDate.toISOString()}
 								format="date"
+								showTimeZoneLabel
 							/>
 						</p>
 					</CardContent>
@@ -395,14 +394,13 @@ export default async function AppApplicationDetailPage({
 							applicationId={application.id}
 							validDates={getValidFirstDiscountDates(
 								application.salaryFrequency,
-								todayUTC,
+								now,
 								6,
-							).map((d) => d.toISOString().split('T')[0] ?? '')}
-							suggestedDate={
-								getUpcomingDeductionDate(application.salaryFrequency, todayUTC)
-									.toISOString()
-									.split('T')[0] ?? ''
-							}
+							).map((d) => ymdForDeductionSchedule(d))}
+							suggestedDate={getUpcomingDeductionDateYmd(
+								application.salaryFrequency,
+								now,
+							)}
 						/>
 					</CardContent>
 				</Card>

@@ -13,6 +13,12 @@ import {
 	type SQL,
 	sql,
 } from 'drizzle-orm'
+import {
+	endOfDayInstantMexicoCity,
+	startOfDayInstantMexicoCity,
+	todayYmdMexicoCity,
+	ymdForDeductionSchedule,
+} from '~/lib/calendar-date-tz'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
 import { isEquipoScheduleConfirmationOnTime } from '~/lib/equipo-workflow-status'
 import {
@@ -1332,16 +1338,20 @@ export async function getCreditPaymentsForEquipo(
 	}))
 }
 
-/** Payments due on or before this payroll date, excluding credits with overdue HR gaps. */
-function payPeriodWindowCondition(upcomingDeductionDate: string): SQL {
+/** Payments in current pay window; `due_date` is `timestamptz` (instant). */
+function payPeriodWindowCondition(
+	upcomingDeductionYmd: string,
+	startOfBusinessDay: Date,
+): SQL {
+	const eodUpcoming = endOfDayInstantMexicoCity(upcomingDeductionYmd)
 	return sql`
-				AND (cp.due_date)::date >= CURRENT_DATE
-				AND (cp.due_date)::date <= (${upcomingDeductionDate})::date
+				AND cp.due_date >= ${startOfBusinessDay}
+				AND cp.due_date <= ${eodUpcoming}
 				AND NOT EXISTS (
 					SELECT 1 FROM credit_payments cp2
 					WHERE cp2.credit_id = cp.credit_id
 					  AND cp2.hr_confirmed_at IS NULL
-					  AND (cp2.due_date)::date < CURRENT_DATE
+					  AND cp2.due_date < ${startOfBusinessDay}
 				)`
 }
 
@@ -1374,6 +1384,8 @@ export async function getInstallmentsForQueue(params: {
 	upcomingDeductionDate?: string
 }): Promise<InstallmentForQueue[]> {
 	const { scope, queue, upcomingDeductionDate } = params
+	const businessTodayYmd = todayYmdMexicoCity(new Date())
+	const startOfBusinessDay = startOfDayInstantMexicoCity(businessTodayYmd)
 	const { ability } = await getAbility()
 
 	let companyCondition: SQL
@@ -1407,13 +1419,13 @@ export async function getInstallmentsForQueue(params: {
 
 	const dateCondition: SQL =
 		usePayPeriodWindow && upcomingDeductionDate !== undefined
-			? payPeriodWindowCondition(upcomingDeductionDate)
+			? payPeriodWindowCondition(upcomingDeductionDate, startOfBusinessDay)
 			: sql``
 
 	const installmentsExcludeOverdue: SQL =
 		queue === 'installments'
 			? sql`AND NOT (
-				(cp.due_date)::date < CURRENT_DATE
+				cp.due_date < ${startOfBusinessDay}
 				AND (
 					cp.hr_confirmed_at IS NULL
 					OR cp.installment_confirmed_at IS NULL
@@ -1585,6 +1597,8 @@ export async function getOverdueInstallments(params: {
 	scope: CompanyScope
 }): Promise<OverdueInstallmentByCredit[]> {
 	const { scope } = params
+	const businessTodayYmd = todayYmdMexicoCity(new Date())
+	const startOfBusinessDay = startOfDayInstantMexicoCity(businessTodayYmd)
 	const { ability } = await getAbility()
 
 	let companyCondition: SQL
@@ -1633,7 +1647,7 @@ export async function getOverdueInstallments(params: {
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE ${companyCondition}
-		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND cp.due_date < ${startOfBusinessDay}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -1889,6 +1903,8 @@ export async function getOldestPendingPaymentAgeDays(
 	screen: PaymentsOverviewPendingScreen,
 	upcomingDeductionDate?: string,
 ): Promise<{ oldestPendingDays: number | null }> {
+	const businessTodayYmd = todayYmdMexicoCity(new Date())
+	const startOfBusinessDay = startOfDayInstantMexicoCity(businessTodayYmd)
 	const { ability } = await getAbility()
 	if (scope.type === 'single') {
 		requireAbility(ability, 'read', subject('Company', { id: scope.companyId }))
@@ -1908,13 +1924,13 @@ export async function getOldestPendingPaymentAgeDays(
 	if (screen === 'installments-queue') {
 		const dateCondition: SQL =
 			upcomingDeductionDate !== undefined
-				? payPeriodWindowCondition(upcomingDeductionDate)
+				? payPeriodWindowCondition(upcomingDeductionDate, startOfBusinessDay)
 				: sql``
 
 		pendingCondition = sql`
 			cp.installment_confirmed_at IS NULL
 			AND NOT (
-				(cp.due_date)::date < CURRENT_DATE
+				cp.due_date < ${startOfBusinessDay}
 				AND (
 					cp.hr_confirmed_at IS NULL
 					OR cp.installment_confirmed_at IS NULL
@@ -1924,7 +1940,7 @@ export async function getOldestPendingPaymentAgeDays(
 		`
 	} else {
 		pendingCondition = sql`
-			(cp.due_date)::date < CURRENT_DATE
+			cp.due_date < ${startOfBusinessDay}
 			AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -1933,7 +1949,7 @@ export async function getOldestPendingPaymentAgeDays(
 	}
 
 	const rows = await db.execute(sql`
-		SELECT MIN((cp.due_date)::date)::text AS min_due
+		SELECT MIN(cp.due_date) AS min_due
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
@@ -1944,18 +1960,16 @@ export async function getOldestPendingPaymentAgeDays(
 	if (raw === null || raw === undefined) {
 		return { oldestPendingDays: null }
 	}
-	const minDueStr = String(raw)
-	const minDue = new Date(`${minDueStr}T00:00:00.000Z`)
+	const minDue = raw instanceof Date ? raw : new Date(String(raw))
 	if (Number.isNaN(minDue.getTime())) {
 		return { oldestPendingDays: null }
 	}
 
-	const today = new Date()
-	const todayUtc = new Date(
-		Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
-	)
+	const minDueYmd = ymdForDeductionSchedule(minDue)
 	const rawAgeDays = Math.floor(
-		(todayUtc.getTime() - minDue.getTime()) / MS_PER_DAY,
+		(new Date(`${businessTodayYmd}T00:00:00.000Z`).getTime() -
+			new Date(`${minDueYmd}T00:00:00.000Z`).getTime()) /
+			MS_PER_DAY,
 	)
 	const oldestPendingDays = rawAgeDays < 0 ? 0 : rawAgeDays
 
@@ -1971,6 +1985,9 @@ export async function getTotalOverdueAmount(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
+	const startOfBusinessDay = startOfDayInstantMexicoCity(
+		todayYmdMexicoCity(new Date()),
+	)
 	const { currentStart: cutoff } = getPayPeriodComparisonBounds(
 		employeeSalaryFrequency,
 		new Date(),
@@ -1988,7 +2005,7 @@ export async function getTotalOverdueAmount(
 				and(
 					eq(applications.companyId, companyId),
 					isNull(creditPayments.hrConfirmedAt),
-					sql`${creditPayments.dueDate} < CURRENT_DATE`,
+					lt(creditPayments.dueDate, startOfBusinessDay),
 				),
 			),
 		db
@@ -2026,6 +2043,9 @@ export async function getTotalOverdueCredits(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
+	const startOfBusinessDay = startOfDayInstantMexicoCity(
+		todayYmdMexicoCity(new Date()),
+	)
 	const { currentStart: cutoff } = getPayPeriodComparisonBounds(
 		employeeSalaryFrequency,
 		new Date(),
@@ -2043,7 +2063,7 @@ export async function getTotalOverdueCredits(
 				and(
 					eq(applications.companyId, companyId),
 					isNull(creditPayments.hrConfirmedAt),
-					sql`${creditPayments.dueDate} < CURRENT_DATE`,
+					lt(creditPayments.dueDate, startOfBusinessDay),
 				),
 			),
 		db
@@ -2081,6 +2101,9 @@ export async function getOldestOverdueAge(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
+	const startOfBusinessDay = startOfDayInstantMexicoCity(
+		todayYmdMexicoCity(new Date()),
+	)
 	const [row] = await db
 		.select({
 			minDate: sql<string | null>`MIN(${creditPayments.dueDate})`,
@@ -2092,7 +2115,7 @@ export async function getOldestOverdueAge(
 			and(
 				eq(applications.companyId, companyId),
 				isNull(creditPayments.hrConfirmedAt),
-				sql`${creditPayments.dueDate} < CURRENT_DATE`,
+				lt(creditPayments.dueDate, startOfBusinessDay),
 			),
 		)
 
@@ -2100,14 +2123,16 @@ export async function getOldestOverdueAge(
 		return { oldestOverdueDays: null }
 	}
 
-	const today = new Date()
-	today.setUTCHours(0, 0, 0, 0)
-	const minDate = new Date(row.minDate)
+	const minD = new Date(row.minDate)
+	const minYmd = ymdForDeductionSchedule(minD)
+	const todayYmd = todayYmdMexicoCity(new Date())
 	const oldestOverdueDays = Math.floor(
-		(today.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24),
+		(new Date(`${todayYmd}T00:00:00.000Z`).getTime() -
+			new Date(`${minYmd}T00:00:00.000Z`).getTime()) /
+			(1000 * 60 * 60 * 24),
 	)
 
-	return { oldestOverdueDays }
+	return { oldestOverdueDays: oldestOverdueDays < 0 ? 0 : oldestOverdueDays }
 }
 
 // ---- Overdue deductions count ----
@@ -2115,6 +2140,9 @@ export async function getOldestOverdueAge(
 export async function getOverdueDeductionsCount(
 	companyId: number,
 ): Promise<number> {
+	const startOfBusinessDay = startOfDayInstantMexicoCity(
+		todayYmdMexicoCity(new Date()),
+	)
 	const result = await db.execute(sql`
 		SELECT COUNT(*)::int AS count
 		FROM credit_payments cp
@@ -2122,7 +2150,7 @@ export async function getOverdueDeductionsCount(
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND cp.due_date < ${startOfBusinessDay}
 	`)
 	const row = result.rows[0]
 	return row ? Number(row.count) : 0
@@ -2131,13 +2159,16 @@ export async function getOverdueDeductionsCount(
 export async function getOverdueInstallmentsCount(
 	companyId: number,
 ): Promise<number> {
+	const startOfBusinessDay = startOfDayInstantMexicoCity(
+		todayYmdMexicoCity(new Date()),
+	)
 	const result = await db.execute(sql`
 		SELECT COUNT(*)::int AS count
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE a.company_id = ${companyId}
-		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND cp.due_date < ${startOfBusinessDay}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -2171,6 +2202,9 @@ export async function getOverdueDeductions(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
+	const startOfBusinessDay = startOfDayInstantMexicoCity(
+		todayYmdMexicoCity(new Date()),
+	)
 	const rows = await db.execute(sql`
 		SELECT
 			cp.credit_id,
@@ -2198,7 +2232,7 @@ export async function getOverdueDeductions(
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND cp.due_date < ${startOfBusinessDay}
 		GROUP BY cp.credit_id
 		ORDER BY MIN(cp.due_date) ASC, cp.credit_id ASC
 	`)
@@ -2243,6 +2277,9 @@ export async function getOverdueDeductionsForCredit(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
+	const startOfBusinessDay = startOfDayInstantMexicoCity(
+		todayYmdMexicoCity(new Date()),
+	)
 	const rows = await db.execute(sql`
 		SELECT
 			cp.id,
@@ -2254,7 +2291,7 @@ export async function getOverdueDeductionsForCredit(
 		WHERE cp.credit_id = ${creditId}
 		  AND a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND cp.due_date < CURRENT_DATE
+		  AND cp.due_date < ${startOfBusinessDay}
 		ORDER BY cp.due_date ASC
 	`)
 
@@ -2327,20 +2364,20 @@ export async function getDeductionConfirmationHistory(
 
 	return rows.rows.map((row) => {
 		const r = row
-		const hrConfirmedAt =
+		const dueDateValue =
+			r.due_date instanceof Date ? r.due_date : new Date(String(r.due_date))
+		const hrAtValue =
 			r.hr_confirmed_at instanceof Date
-				? r.hr_confirmed_at.toISOString()
-				: String(r.hr_confirmed_at)
-		const dueDate =
-			r.due_date instanceof Date ? r.due_date.toISOString() : String(r.due_date)
+				? r.hr_confirmed_at
+				: new Date(String(r.hr_confirmed_at))
 		return {
 			id: Number(r.id),
 			amount: String(r.amount),
-			dueDate,
-			hrConfirmedAt,
+			dueDate: dueDateValue.toISOString(),
+			hrConfirmedAt: hrAtValue.toISOString(),
 			confirmedOnTime: isEquipoScheduleConfirmationOnTime(
-				dueDate,
-				hrConfirmedAt,
+				dueDateValue,
+				hrAtValue,
 			),
 			applicationId: Number(r.application_id),
 			employeeName: String(r.employee_name),
@@ -2415,20 +2452,20 @@ export async function getInstallmentConfirmationHistory(
 
 	return rows.rows.map((row) => {
 		const r = row
-		const installmentConfirmedAt =
+		const dueDateValue =
+			r.due_date instanceof Date ? r.due_date : new Date(String(r.due_date))
+		const instAtValue =
 			r.installment_confirmed_at instanceof Date
-				? r.installment_confirmed_at.toISOString()
-				: String(r.installment_confirmed_at)
-		const dueDate =
-			r.due_date instanceof Date ? r.due_date.toISOString() : String(r.due_date)
+				? r.installment_confirmed_at
+				: new Date(String(r.installment_confirmed_at))
 		return {
 			id: Number(r.id),
 			amount: String(r.amount),
-			dueDate,
-			installmentConfirmedAt,
+			dueDate: dueDateValue.toISOString(),
+			installmentConfirmedAt: instAtValue.toISOString(),
 			confirmedOnTime: isEquipoScheduleConfirmationOnTime(
-				dueDate,
-				installmentConfirmedAt,
+				dueDateValue,
+				instAtValue,
 			),
 			applicationId: Number(r.application_id),
 			employeeName: String(r.employee_name),

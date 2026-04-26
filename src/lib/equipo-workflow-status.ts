@@ -1,4 +1,9 @@
-import { calendarYmdInMexicoCity } from '~/lib/calendar-date-tz'
+import {
+	calendarYmdInMexicoCity,
+	endOfDayInstantMexicoCity,
+	startOfDayInstantMexicoCity,
+	ymdForDeductionSchedule,
+} from '~/lib/calendar-date-tz'
 
 export type WorkflowTone =
 	| 'green'
@@ -83,39 +88,50 @@ export function resolveQueueWorkflowStatus(params: {
 	}
 }
 
-function isCalendarDayAfter(confirmYmd: string, dueYmd: string): boolean {
-	return confirmYmd > dueYmd
-}
+const YMD_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
 
-function dueYmdMexicoCityForSchedule(d: Date): string {
-	return calendarYmdInMexicoCity(d)
+/**
+ * Y-M-D of the business due, for "deadline" = EOD that day in Mexico.
+ * Avoids `new Date("YYYY-MM-DD")` (UTC-midnight) vs EOD-CDMX `Date` mismatches.
+ */
+function businessYmdForScheduleDue(dueDate: Date | string): string {
+	if (typeof dueDate === 'string') {
+		const t = dueDate.trim()
+		if (YMD_ONLY_RE.test(t)) {
+			return t
+		}
+	}
+	const due = typeof dueDate === 'string' ? new Date(dueDate) : dueDate
+	return ymdForDeductionSchedule(due)
 }
 
 /**
- * On-time vs late: compare the due instant’s and confirmation instant’s
- * calendar days in `America/Mexico_City` (same rule as credit detail and
- * history).
+ * On-time: confirmation instant is **on or before** 23:59:59.999 that calendar day
+ * in `America/Mexico_City` (deduction / due deadline).
  */
 export function isEquipoScheduleConfirmationOnTime(
 	dueDate: Date | string,
 	confirmedAt: Date | string,
 ): boolean {
-	const due = typeof dueDate === 'string' ? new Date(dueDate) : dueDate
+	const ymd = businessYmdForScheduleDue(dueDate)
+	const deadline = endOfDayInstantMexicoCity(ymd)
 	const conf =
 		typeof confirmedAt === 'string' ? new Date(confirmedAt) : confirmedAt
-	const dueYmdMx = dueYmdMexicoCityForSchedule(due)
-	const confirmedYmdMx = calendarYmdInMexicoCity(conf)
-	return !isCalendarDayAfter(confirmedYmdMx, dueYmdMx)
+	return conf.getTime() <= deadline.getTime()
 }
 
 export function resolveCreditDetailDeductionStatus(params: {
 	hrConfirmedAt: Date | null
 	dueDate: Date
 	todayYmd: string | undefined
+	/** For tests; default `new Date()`. "Overdue" = after Mexico EOD of due day. */
+	now?: Date
 }): CreditDetailPaymentStatus {
-	const dueYmdMx = dueYmdMexicoCityForSchedule(params.dueDate)
+	const asOf = params.now ?? new Date()
+	const dueYmdMx = ymdForDeductionSchedule(params.dueDate)
+	const dueEod = endOfDayInstantMexicoCity(dueYmdMx)
 	if (params.hrConfirmedAt === null) {
-		const overdue = params.todayYmd !== undefined && dueYmdMx < params.todayYmd
+		const overdue = asOf.getTime() > dueEod.getTime()
 		if (overdue) {
 			return {
 				tone: 'red',
@@ -129,9 +145,10 @@ export function resolveCreditDetailDeductionStatus(params: {
 			context: { kind: 'due', dateIso: dueYmdMx },
 		}
 	}
-	const dueScheduleYmdMx = dueYmdMexicoCityForSchedule(params.dueDate)
-	const confirmedYmdMx = calendarYmdInMexicoCity(params.hrConfirmedAt)
-	const confirmedLate = isCalendarDayAfter(confirmedYmdMx, dueScheduleYmdMx)
+	const confirmedLate = !isEquipoScheduleConfirmationOnTime(
+		params.dueDate,
+		params.hrConfirmedAt,
+	)
 	const confirmedYmd = calendarYmdInMexicoCity(params.hrConfirmedAt)
 	return {
 		tone: confirmedLate ? 'amber' : 'green',
@@ -150,13 +167,13 @@ export function resolveCreditDetailCollectionStatus(params: {
 	installmentConfirmedAt: Date | null
 	dueDate: Date
 	todayYmd: string | undefined
+	now?: Date
 }): CreditDetailPaymentStatus {
 	if (params.installmentConfirmedAt !== null) {
-		const dueScheduleYmdMx = dueYmdMexicoCityForSchedule(params.dueDate)
-		const confirmedYmdMx = calendarYmdInMexicoCity(
+		const confirmedLate = !isEquipoScheduleConfirmationOnTime(
+			params.dueDate,
 			params.installmentConfirmedAt,
 		)
-		const confirmedLate = isCalendarDayAfter(confirmedYmdMx, dueScheduleYmdMx)
 		const confirmedYmd = calendarYmdInMexicoCity(params.installmentConfirmedAt)
 		return {
 			tone: confirmedLate ? 'amber' : 'green',
@@ -176,8 +193,15 @@ export function resolveCreditDetailCollectionStatus(params: {
 			context: { kind: 'none' },
 		}
 	}
-	const dueYmdMx = dueYmdMexicoCityForSchedule(params.dueDate)
-	const delayed = params.todayYmd !== undefined && dueYmdMx < params.todayYmd
+	const asOf = params.now ?? new Date()
+	const dueYmdMx = ymdForDeductionSchedule(params.dueDate)
+	const dueEod = endOfDayInstantMexicoCity(dueYmdMx)
+	const startToday = startOfDayInstantMexicoCity(
+		params.todayYmd ?? calendarYmdInMexicoCity(asOf),
+	)
+	const afterDueDay = asOf.getTime() > dueEod.getTime()
+	const delayed =
+		afterDueDay && params.hrConfirmedAt.getTime() < startToday.getTime()
 	if (delayed) {
 		return {
 			tone: 'amber_dark',

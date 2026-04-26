@@ -205,6 +205,7 @@ export default async function CuentaCreditDetailPage({
 							<FormattedDate
 								value={credit.firstDiscountDate.toISOString()}
 								format="date"
+								showTimeZoneLabel
 							/>
 						</IconDetailField>
 					) : null}
@@ -264,6 +265,7 @@ export default async function CuentaCreditDetailPage({
 											<FormattedDate
 												value={payment.dueDate.toISOString()}
 												format="date"
+												showTimeZoneLabel
 											/>
 										</td>
 										<td className="px-5 py-3.5 text-slate-800 text-sm">
