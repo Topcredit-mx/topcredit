@@ -646,6 +646,7 @@
 		"credit-detail-disbursement-date": "Fecha de dispersión",
 		"credit-detail-payment-schedule": "Calendario de pagos",
 		"credit-detail-col-number": "#",
+		"credit-detail-col-number-aria": "Número de pago",
 		"credit-detail-col-due-date": "Fecha Programada",
 		"credit-detail-col-amount": "Monto",
 		"credit-detail-col-hr-status": "Deducción",

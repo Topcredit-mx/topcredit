@@ -23,24 +23,27 @@ export function DataTableColumnHeader<TData, TValue>({
 	title,
 	icon,
 	className,
+	...rest
 }: DataTableColumnHeaderProps<TData, TValue>) {
 	const label = (
 		<span className="flex items-center gap-2">
 			{icon != null ? (
 				<span className="text-muted-foreground [&_svg]:size-4">{icon}</span>
 			) : null}
-			<span>{title}</span>
+			{title !== '' ? <span>{title}</span> : null}
 		</span>
 	)
 
 	if (!column.getCanSort()) {
 		return (
-			<div className={cn('flex items-center gap-2', className)}>{label}</div>
+			<div className={cn('flex items-center gap-2', className)} {...rest}>
+				{label}
+			</div>
 		)
 	}
 
 	return (
-		<div className={cn('flex items-center gap-2', className)}>
+		<div className={cn('flex items-center gap-2', className)} {...rest}>
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<Button

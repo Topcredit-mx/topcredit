@@ -232,37 +232,31 @@ export default async function EquipoCreditDetailPage({
 				</Card>
 			</div>
 
-			<Card
-				id="equipo-credit-payment-schedule-card"
-				className={EQUIPO_DETAIL_CARD_CLASS}
+			<section
+				className="space-y-4"
+				id="equipo-credit-payment-schedule"
 				aria-labelledby="equipo-credit-payment-schedule-heading"
 			>
-				<CardHeader className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}>
-					<CardTitle asChild className="flex items-center gap-2 text-base">
-						<h2 id="equipo-credit-payment-schedule-heading">
-							<ListOrdered
-								className="size-4 text-muted-foreground"
-								aria-hidden
-							/>
-							{t('credit-detail-payment-schedule')}
-						</h2>
-					</CardTitle>
-				</CardHeader>
-				<CardContent className="px-0 pt-4">
-					{creditPayments.length > 0 ? (
-						<CreditPaymentsTable
-							creditPayments={creditPayments}
-							canConfirmHrDeduction={canConfirmHrDeduction}
-							canConfirmInstallment={canConfirmInstallment}
-							employeeSalaryFrequency={company?.employeeSalaryFrequency}
-						/>
-					) : (
-						<p className="px-4 text-muted-foreground text-sm">
-							{t('credit-detail-not-found')}
-						</p>
-					)}
-				</CardContent>
-			</Card>
+				<h2
+					className="flex items-center gap-2 font-semibold text-foreground text-lg"
+					id="equipo-credit-payment-schedule-heading"
+				>
+					<ListOrdered className="size-4 text-muted-foreground" aria-hidden />
+					{t('credit-detail-payment-schedule')}
+				</h2>
+				{creditPayments.length > 0 ? (
+					<CreditPaymentsTable
+						creditPayments={creditPayments}
+						canConfirmHrDeduction={canConfirmHrDeduction}
+						canConfirmInstallment={canConfirmInstallment}
+						employeeSalaryFrequency={company?.employeeSalaryFrequency}
+					/>
+				) : (
+					<p className="text-muted-foreground text-sm">
+						{t('credit-detail-not-found')}
+					</p>
+				)}
+			</section>
 		</section>
 	)
 }

@@ -208,7 +208,7 @@ export function CreditPaymentsTable({
 	const pageSize = Math.max(creditPayments.length, 1)
 
 	return (
-		<div>
+		<div className="space-y-4">
 			<FinalInstallmentConfirmDialog
 				open={finalInstallRows != null && finalInstallRows.length > 0}
 				onOpenChange={(open) => {
@@ -231,7 +231,7 @@ export function CreditPaymentsTable({
 			/>
 
 			{upcomingDeductionDate ? (
-				<p className="px-1 pb-3 text-muted-foreground text-sm sm:px-5">
+				<p className="text-muted-foreground text-sm">
 					{t('credit-detail-upcoming-deduction-date')}:{' '}
 					<span className="font-medium text-foreground">
 						<FormattedDate value={upcomingDeductionDate} format="date" />
@@ -247,12 +247,9 @@ export function CreditPaymentsTable({
 				enableRowSelection={false}
 				initialPagination={{ pageIndex: 0, pageSize }}
 			>
-				<DataTableContent
-					variant="equipoCredits"
-					wrapperClassName="rounded-none border-0"
-				/>
+				<DataTableContent />
 				{creditPayments.length > 10 ? (
-					<div className="border-slate-100 border-t px-2 py-2">
+					<div className="px-2 py-2">
 						<DataTablePagination />
 					</div>
 				) : null}

@@ -1,11 +1,20 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import {
+	ArrowUpRight,
+	CalendarDays,
+	CircleDollarSign,
+	ClipboardList,
+	Hash,
+	ListChecks,
+} from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
 import { CreditPaymentScheduleStatusCell } from '~/components/equipo/credit-payment-schedule-status-cell'
 import { FormattedDate } from '~/components/formatted-date'
 import { Button } from '~/components/ui/button'
+import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
 import {
 	resolveCreditDetailCollectionStatus,
 	resolveCreditDetailDeductionStatus,
@@ -49,7 +58,14 @@ export function useCreditPaymentScheduleColumns(
 		() => [
 			{
 				id: 'scheduleNumber',
-				header: () => <span>{t('credit-detail-col-number')}</span>,
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title=""
+						icon={<Hash aria-hidden />}
+						aria-label={t('credit-detail-col-number-aria')}
+					/>
+				),
 				cell: ({ row }) => {
 					const idx = creditPayments.findIndex((p) => p.id === row.original.id)
 					return (
@@ -62,7 +78,13 @@ export function useCreditPaymentScheduleColumns(
 			},
 			{
 				accessorKey: 'dueDate',
-				header: () => <span>{t('credit-detail-col-due-date')}</span>,
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('credit-detail-col-due-date')}
+						icon={<CalendarDays aria-hidden />}
+					/>
+				),
 				cell: ({ row }) => (
 					<div className="text-slate-800 text-sm">
 						<FormattedDate
@@ -75,7 +97,13 @@ export function useCreditPaymentScheduleColumns(
 			},
 			{
 				accessorKey: 'amount',
-				header: () => <span>{t('credit-detail-col-amount')}</span>,
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('credit-detail-col-amount')}
+						icon={<CircleDollarSign aria-hidden />}
+					/>
+				),
 				cell: ({ row }) => (
 					<div className="text-slate-800 text-sm">
 						{formatCurrencyMxn(row.original.amount)}
@@ -85,7 +113,13 @@ export function useCreditPaymentScheduleColumns(
 			},
 			{
 				id: 'hrStatus',
-				header: () => <span>{t('credit-detail-col-hr-status')}</span>,
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('credit-detail-col-hr-status')}
+						icon={<ClipboardList aria-hidden />}
+					/>
+				),
 				cell: ({ row }) => {
 					const {
 						tone: deductionTone,
@@ -108,7 +142,13 @@ export function useCreditPaymentScheduleColumns(
 			},
 			{
 				id: 'installmentStatus',
-				header: () => <span>{t('credit-detail-col-installment-status')}</span>,
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('credit-detail-col-installment-status')}
+						icon={<ListChecks aria-hidden />}
+					/>
+				),
 				cell: ({ row }) => {
 					const {
 						tone: collectionTone,
@@ -132,8 +172,13 @@ export function useCreditPaymentScheduleColumns(
 			},
 			{
 				id: 'actions',
-				header: () => (
-					<span className="sr-only">{t('applications-actions')}</span>
+				enableHiding: false,
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('applications-actions')}
+						icon={<ArrowUpRight aria-hidden />}
+					/>
 				),
 				cell: ({ row }) => {
 					const creditPayment = row.original
