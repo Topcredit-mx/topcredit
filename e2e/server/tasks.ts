@@ -2786,6 +2786,10 @@ export type SeedDeductionsQueueResult = {
 		amount: string
 		dueDateISO: string
 	}
+	/** Amounts for the two upcoming queue rows (credit1 then credit2), for selected-total UI tests. */
+	queueUpcomingRowAmounts: [string, string]
+	/** Per-row `totalOverdueAmount` on `/equipo/deductions/overdue` when `withOverdue` is true (two credits). */
+	overdueDeductionsRowTotals?: [string, string]
 	multiOverdueApplicantName?: string
 }
 
@@ -3288,7 +3292,9 @@ export const seedDeductionsQueue = async (
 	])
 
 	const firstPayment = schedule1[0]
+	const secondPayment = schedule2[0]
 	if (!firstPayment) throw new Error('Seed Deductions: schedule1 empty')
+	if (!secondPayment) throw new Error('Seed Deductions: schedule2 empty')
 
 	return {
 		companyId: company.id,
@@ -3316,6 +3322,15 @@ export const seedDeductionsQueue = async (
 			amount: firstPayment.amount,
 			dueDateISO: firstPayment.dueDate.toISOString().slice(0, 10),
 		},
+		queueUpcomingRowAmounts: [firstPayment.amount, secondPayment.amount],
+		...(withOverdue
+			? {
+					overdueDeductionsRowTotals: ['20500.00', '8713.00'] as [
+						string,
+						string,
+					],
+				}
+			: {}),
 		multiOverdueApplicantName: applicantMultiOverdue.name,
 	}
 }
@@ -3378,6 +3393,8 @@ export type SeedInstallmentsQueueResult = {
 		amount: string
 		dueDateISO: string
 	}
+	/** Amounts shown on the two selectable queue rows (credit2 and credit3; credit1 is HR-blocked). */
+	queueSelectableRowAmounts: [string, string]
 }
 
 export const seedInstallmentsQueue =
@@ -3664,7 +3681,8 @@ export const seedInstallmentsQueue =
 		const s1First = schedule1[0]
 		const s1Second = schedule1[1]
 		const s2First = schedule2[0]
-		if (!s1First || !s1Second || !s2First) {
+		const s3First = schedule3[0]
+		if (!s1First || !s1Second || !s2First || !s3First) {
 			throw new Error('Seed Installments Queue: schedule entry missing')
 		}
 
@@ -3692,6 +3710,7 @@ export const seedInstallmentsQueue =
 				amount: s1Second.amount,
 				dueDateISO: s1Second.dueDate.toISOString().slice(0, 10),
 			},
+			queueSelectableRowAmounts: [s2First.amount, s3First.amount],
 		}
 	}
 
@@ -3726,6 +3745,8 @@ export type SeedInstallmentsOverdueResult = {
 	payrollHrBlocked: string
 	totalOverdueRowCount: number
 	installmentsBulkConfirmableCount: number
+	/** Amounts of HR-confirmed, installment-pending payments on the installments-blocked overdue credit. */
+	overdueInstallmentsBlockedConfirmableAmounts: [string, string, string]
 }
 
 export const seedInstallmentsOverdue =
@@ -3934,6 +3955,19 @@ export const seedInstallmentsOverdue =
 			})),
 		)
 
+		const overdueInstAmounts = scheduleInstallmentsBlocked.map((e) => e.amount)
+		if (overdueInstAmounts.length !== 3) {
+			throw new Error(
+				'Seed Installments Overdue: expected 3 confirmable amounts',
+			)
+		}
+		const a0 = overdueInstAmounts[0]
+		const a1 = overdueInstAmounts[1]
+		const a2 = overdueInstAmounts[2]
+		if (a0 === undefined || a1 === undefined || a2 === undefined) {
+			throw new Error('Seed Installments Overdue: confirmable amounts missing')
+		}
+
 		return {
 			companyId: company.id,
 			applicantInstallmentsBlockedName: applicantInstallmentsBlocked.name ?? '',
@@ -3942,6 +3976,7 @@ export const seedInstallmentsOverdue =
 			payrollHrBlocked: 'OVERDUE-HR-01',
 			totalOverdueRowCount: 2,
 			installmentsBulkConfirmableCount: scheduleInstallmentsBlocked.length,
+			overdueInstallmentsBlockedConfirmableAmounts: [a0, a1, a2],
 		}
 	}
 

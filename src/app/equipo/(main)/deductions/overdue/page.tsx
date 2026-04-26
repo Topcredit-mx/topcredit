@@ -5,6 +5,7 @@ import { Card } from '~/components/ui/card'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
+	getCompanyById,
 	getOldestOverdueAge,
 	getOverdueDeductions,
 	getTotalOverdueAmount,
@@ -57,13 +58,16 @@ export default async function OverdueDeductionsPage() {
 		)
 	}
 
-	const [overdueDeductions, totalAmount, totalCredits, oldestAge] =
+	const [overdueDeductions, totalAmount, totalCredits, oldestAge, company] =
 		await Promise.all([
 			getOverdueDeductions(selectedCompanyId),
 			getTotalOverdueAmount(selectedCompanyId),
 			getTotalOverdueCredits(selectedCompanyId),
 			getOldestOverdueAge(selectedCompanyId),
+			getCompanyById(selectedCompanyId),
 		])
+
+	const employeeSalaryFrequency = company?.employeeSalaryFrequency ?? null
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
@@ -84,7 +88,10 @@ export default async function OverdueDeductionsPage() {
 					</p>
 				</Card>
 			) : (
-				<OverdueDeductionsTable deductions={overdueDeductions} />
+				<OverdueDeductionsTable
+					deductions={overdueDeductions}
+					employeeSalaryFrequency={employeeSalaryFrequency}
+				/>
 			)}
 		</div>
 	)

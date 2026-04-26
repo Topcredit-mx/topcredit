@@ -5,6 +5,7 @@ import { Card } from '~/components/ui/card'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
+	getCompanyById,
 	getOldestPendingPaymentAgeDays,
 	getOverdueInstallments,
 	getPaymentsCollectedAmountSummary,
@@ -62,13 +63,21 @@ export default async function InstallmentsOverduePage() {
 	}
 
 	const scope = await getEffectiveCompanyScope()
-	const [installments, collectedAmount, collectedCount, oldestPending] =
-		await Promise.all([
-			getOverdueInstallments({ scope }),
-			getPaymentsCollectedAmountSummary(scope),
-			getPaymentsCollectedCountSummary(scope),
-			getOldestPendingPaymentAgeDays(scope, 'installments-overdue'),
-		])
+	const [
+		installments,
+		collectedAmount,
+		collectedCount,
+		oldestPending,
+		company,
+	] = await Promise.all([
+		getOverdueInstallments({ scope }),
+		getPaymentsCollectedAmountSummary(scope),
+		getPaymentsCollectedCountSummary(scope),
+		getOldestPendingPaymentAgeDays(scope, 'installments-overdue'),
+		getCompanyById(selectedCompanyId),
+	])
+
+	const employeeSalaryFrequency = company?.employeeSalaryFrequency ?? null
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
@@ -90,7 +99,10 @@ export default async function InstallmentsOverduePage() {
 					</p>
 				</Card>
 			) : (
-				<OverdueInstallmentsTable installments={installments} />
+				<OverdueInstallmentsTable
+					installments={installments}
+					employeeSalaryFrequency={employeeSalaryFrequency}
+				/>
 			)}
 		</div>
 	)

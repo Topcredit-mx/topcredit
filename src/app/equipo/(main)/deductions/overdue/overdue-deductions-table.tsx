@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { OverdueQueuePayrollHeader } from '~/components/equipo/overdue-queue-payroll-header'
 import {
 	DataTable,
 	DataTableContent,
@@ -12,8 +13,10 @@ import { OverdueDeductionsToolbar } from './overdue-deductions-toolbar'
 
 export function OverdueDeductionsTable({
 	deductions,
+	employeeSalaryFrequency,
 }: {
 	deductions: OverdueDeductionByCredit[]
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly' | null
 }) {
 	const t = useTranslations('equipo')
 	const columns = useOverdueDeductionsColumns()
@@ -31,6 +34,9 @@ export function OverdueDeductionsTable({
 					row.original.confirmableOverduePaymentIds.length > 0
 				}
 			>
+				<OverdueQueuePayrollHeader
+					employeeSalaryFrequency={employeeSalaryFrequency}
+				/>
 				<OverdueDeductionsToolbar />
 				<DataTableContent />
 				<DataTablePagination />

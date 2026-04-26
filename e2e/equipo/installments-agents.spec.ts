@@ -14,6 +14,7 @@ import {
 	loginPage,
 	setSelectedCompanyId,
 } from '../helpers/auth'
+import { sumAmountStringsMxnE2e } from '../helpers/currency'
 import { mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import {
@@ -149,6 +150,65 @@ test.describe('Installments queue', () => {
 			await expect(main.getByText(/próxima deducción/i).first()).toBeVisible()
 			await expect(main.getByText(/nómina/i).first()).toBeVisible()
 			await expect(main.getByText(/mensual/i).first()).toBeVisible()
+		})
+
+		test('shows selected-row amount total beside nómina and updates when checkboxes change', async ({
+			page,
+		}) => {
+			await page.goto('/equipo/installments')
+			const table = mainDataTable(page)
+			await expect(table).toBeVisible()
+			const status = page.getByRole('status', { name: /selección:/i })
+			await expect(status).toContainText(/sin selección/i)
+			const [amt1, amt2] = seed.queueSelectableRowAmounts
+			const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+			const rowInst2 = page.locator('tr', { hasText: 'INST002' })
+			const rowInst3 = page.locator('tr', { hasText: 'INST003' })
+			await rowInst2.first().scrollIntoViewIfNeeded()
+			await rowInst2
+				.first()
+				.locator('button[role="checkbox"]')
+				.click({ force: true })
+			await expect(status).toHaveAttribute(
+				'aria-label',
+				new RegExp(
+					`Selección: total ${escapeRe(sumAmountStringsMxnE2e([amt1]))}`,
+				),
+			)
+			await rowInst3
+				.first()
+				.locator('button[role="checkbox"]')
+				.click({ force: true })
+			await expect(status).toHaveAttribute(
+				'aria-label',
+				new RegExp(
+					`Selección: total ${escapeRe(sumAmountStringsMxnE2e([amt1, amt2]))}`,
+				),
+			)
+			await rowInst2
+				.first()
+				.locator('button[role="checkbox"]')
+				.click({ force: true })
+			await expect(status).toHaveAttribute(
+				'aria-label',
+				new RegExp(
+					`Selección: total ${escapeRe(sumAmountStringsMxnE2e([amt2]))}`,
+				),
+			)
+			await rowInst3
+				.first()
+				.locator('button[role="checkbox"]')
+				.click({ force: true })
+			await expect(status).toContainText(/sin selección/i)
+			await table
+				.locator('button[aria-label="Seleccionar todas las filas elegibles"]')
+				.click()
+			await expect(status).toHaveAttribute(
+				'aria-label',
+				new RegExp(
+					`Selección: total ${escapeRe(sumAmountStringsMxnE2e([amt1, amt2]))}`,
+				),
+			)
 		})
 
 		test('shows RH Pendiente when the front installment is still pending HR', async ({

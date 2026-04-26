@@ -2,6 +2,7 @@
 
 import { Banknote, CalendarDays } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { QueueSelectedInstallmentAmountTotal } from '~/components/equipo/queue-selected-amount-total'
 import { FormattedDate } from '~/components/formatted-date'
 
 export function DeductionsQueueStats({
@@ -46,13 +47,16 @@ export function DeductionsQueueStats({
 				>
 					<Banknote className="size-5" />
 				</div>
-				<div className="min-w-0">
-					<p className="text-muted-foreground text-xs leading-tight">
-						{t('queue-header-salary-frequency-label')}
-					</p>
-					<p className="font-semibold text-foreground text-lg leading-snug tracking-tight">
-						{frequencyValue}
-					</p>
+				<div className="flex min-w-0 flex-1 flex-row items-end justify-between gap-3">
+					<div className="min-w-0">
+						<p className="text-muted-foreground text-xs leading-tight">
+							{t('queue-header-salary-frequency-label')}
+						</p>
+						<p className="font-semibold text-foreground text-lg leading-snug tracking-tight">
+							{frequencyValue}
+						</p>
+					</div>
+					<QueueSelectedInstallmentAmountTotal className="shrink-0 text-right" />
 				</div>
 			</div>
 		</div>
