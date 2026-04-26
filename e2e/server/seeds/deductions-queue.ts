@@ -12,6 +12,7 @@ import {
 	deductionsCompany,
 	hrAgentDeductions,
 } from '~/e2e/equipo/deductions-queue.fixtures'
+import { ymdForDeductionSchedule } from '~/lib/calendar-date-tz'
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
@@ -27,6 +28,15 @@ import {
 } from '~/server/db/schema'
 import { getDb } from '../e2e-db'
 import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
+import {
+	businessDueDateIso,
+	endOfMonthMonthsAgoEodMx,
+	eodBusinessDaysAgo,
+	eodDayOfOffsetMexicoMonth,
+	eodNCalendarDaysFromMexicoToday,
+	eodYmd,
+	sodYmd,
+} from '../shared/mexico-seed-dates'
 
 export type SeedDeductionsQueueResult = {
 	companyId: number
@@ -166,7 +176,7 @@ export const seedDeductionsQueue = async (
 		deductionsCompany.employeeSalaryFrequency,
 		now,
 	)
-	const nextDeductionDateISO = nextDeductionDate.toISOString()
+	const nextDeductionDateISO = ymdForDeductionSchedule(nextDeductionDate)
 
 	const creditAmount1 = '40000.00'
 	const creditAmount2 = '30000.00'
@@ -234,9 +244,7 @@ export const seedDeductionsQueue = async (
 
 	if (!credit2) throw new Error('Seed Deductions: credit 2 not created')
 
-	const pastDate = new Date(
-		Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 28),
-	)
+	const pastDate = endOfMonthMonthsAgoEodMx(now, 1)
 
 	// Credit 3: overdue credit — first installment is in the past and unconfirmed.
 	// Only seeded when withOverdue is true so the overdue badge doesn't appear in unrelated tests.
@@ -317,9 +325,7 @@ export const seedDeductionsQueue = async (
 		// Credit 7: recently overdue credit — due 3 days ago (< 7 days).
 		// Appears in the current overdue snapshot but NOT in the 7-day-ago snapshot,
 		// so the overview cards show a measurable week-over-week change.
-		const recentPastDate = new Date(
-			Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 3),
-		)
+		const recentPastDate = eodBusinessDaysAgo(now, 3)
 		const creditAmountOverdueRecent = '8500.00'
 		const [app7] = await db
 			.insert(applications)
@@ -362,12 +368,8 @@ export const seedDeductionsQueue = async (
 
 	// Credit 6: credit with 2 overdue installments — used to test bulk-confirm of multiple payments.
 	if (withMultipleOverdue) {
-		const pastDate2 = new Date(
-			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, 28),
-		)
-		const pastDateMiddle = new Date(
-			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 15),
-		)
+		const pastDate2 = endOfMonthMonthsAgoEodMx(now, 2)
+		const pastDateMiddle = eodDayOfOffsetMexicoMonth(now, -1, 15)
 		const creditAmountMultiOverdue = '18000.00'
 		const [app6] = await db
 			.insert(applications)
@@ -453,11 +455,9 @@ export const seedDeductionsQueue = async (
 
 	if (!credit4) throw new Error('Seed Deductions: credit 4 not created')
 
-	// On-time history row: due must be after confirmation in America/Mexico_City
-	// calendar. Using nextDeductionDate as due + hr at now-2m can mark the row
-	// late on month-end (UTC end-of-month vs CDMX). Due = now + 10y keeps "a tiempo" stable.
-	const credit4HistoryDue = new Date(now)
-	credit4HistoryDue.setUTCFullYear(credit4HistoryDue.getUTCFullYear() + 10)
+	// On-time history row: due is after EOD of the business due date, hr confirmed
+	// *before* that EOD. Far-future EOD keeps "a tiempo" independent of "now."
+	const credit4HistoryDue = eodNCalendarDaysFromMexicoToday(now, 3650)
 	// credit4 confirmed recently (more recent than credit5) → appears first in history
 	const credit4ConfirmedAt = new Date(now.getTime() - 2 * 60_000)
 	await db.insert(creditPayments).values([
@@ -514,9 +514,9 @@ export const seedDeductionsQueue = async (
 		},
 	])
 
-	// Credit 8: RH confirmed "next UTC day" but same Mexico City calendar day as due
-	// (aligns with resolveCreditDetailDeductionStatus Mexico City edge case).
+	// Credit 8: HR confirm at Mexico SOD 2022-12-01 vs EOD 2022-11-30 (stable edge-case).
 	const creditAmountMxEdge = '11000.00'
+	const mxEdgeDueEod = eodYmd('2022-11-30')
 	const [app8] = await db
 		.insert(applications)
 		.values({
@@ -527,7 +527,7 @@ export const seedDeductionsQueue = async (
 			salaryAtApplication: '11000',
 			salaryFrequency: deductionsCompany.employeeSalaryFrequency,
 			status: 'disbursed' as const,
-			firstDiscountDate: new Date('2022-11-30T12:00:00.000Z'),
+			firstDiscountDate: mxEdgeDueEod,
 			payrollNumber: 'DEDUCT008',
 		})
 		.returning()
@@ -550,9 +550,9 @@ export const seedDeductionsQueue = async (
 	await db.insert(creditPayments).values([
 		{
 			creditId: credit8.id,
-			dueDate: new Date('2022-11-30T12:00:00.000Z'),
+			dueDate: mxEdgeDueEod,
 			amount: '11275.00',
-			hrConfirmedAt: new Date('2022-12-01T05:00:00.000Z'),
+			hrConfirmedAt: sodYmd('2022-12-01'),
 			hrConfirmedByUserId: hrAgent.id,
 		},
 	])
@@ -580,13 +580,11 @@ export const seedDeductionsQueue = async (
 		lateConfirmedApplicantName: applicantConfirmedLate.name,
 		mxEdgeOnTimeApplicantName: applicantConfirmedMxEdge.name,
 		nextDeductionDateISO,
-		credit4HrConfirmedPaymentDueDateISO: credit4HistoryDue
-			.toISOString()
-			.slice(0, 10),
+		credit4HrConfirmedPaymentDueDateISO: businessDueDateIso(credit4HistoryDue),
 		firstInstallmentForCsv: {
 			payrollNumber: 'DEDUCT001',
 			amount: firstPayment.amount,
-			dueDateISO: firstPayment.dueDate.toISOString().slice(0, 10),
+			dueDateISO: ymdForDeductionSchedule(firstPayment.dueDate),
 		},
 		queueUpcomingRowAmounts: [firstPayment.amount, secondPayment.amount],
 		...(withOverdue

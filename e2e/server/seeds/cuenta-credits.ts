@@ -19,6 +19,7 @@ import {
 } from '~/server/db/schema'
 import { getDb } from '../e2e-db'
 import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
+import { eodNCalendarDaysFromMexicoToday } from '../shared/mexico-seed-dates'
 import { createOrderedSeedStatusHistory } from '../shared/status-history'
 
 // --- Cuenta Credits ---
@@ -120,7 +121,7 @@ async function seedCuentaCreditsBase(
 			salaryAtApplication: '40000',
 			salaryFrequency: creditsCompany.employeeSalaryFrequency,
 			status,
-			firstDiscountDate: new Date(now.getTime() + 30 * 24 * 60 * 60_000),
+			firstDiscountDate: eodNCalendarDaysFromMexicoToday(now, 30),
 			transferReference: withCredit ? 'REF-DISPersed-SEED' : null,
 			receiptFileName: withCredit ? 'recibo-dispersado.pdf' : null,
 		})
@@ -158,7 +159,7 @@ async function seedCuentaCreditsBase(
 		if (!credit) throw new Error('Seed Credits: credit not created')
 		creditId = credit.id
 
-		const firstDiscountDate = new Date(now.getTime() + 30 * 24 * 60 * 60_000)
+		const firstDiscountDate = eodNCalendarDaysFromMexicoToday(now, 30)
 		const schedule = generatePaymentSchedule({
 			loanPrincipal: Number(creditAmount),
 			rate: Number(creditsCompany.rate),
@@ -193,7 +194,7 @@ async function seedCuentaCreditsBase(
 				salaryAtApplication: '40000',
 				salaryFrequency: creditsCompany.employeeSalaryFrequency,
 				status: settledStatus,
-				firstDiscountDate: new Date(now.getTime() - 60 * 24 * 60 * 60_000),
+				firstDiscountDate: eodNCalendarDaysFromMexicoToday(now, -60),
 				transferReference: 'REF-SETTLED-SEED',
 				receiptFileName: 'comprobante-settled.pdf',
 			})
@@ -230,8 +231,9 @@ async function seedCuentaCreditsBase(
 			throw new Error('Seed Credits: settled credit not created')
 		settledCreditId = creditSettled.id
 
-		const settledFirstDiscount = new Date(
-			settledDisbursement.getTime() + 30 * 24 * 60 * 60_000,
+		const settledFirstDiscount = eodNCalendarDaysFromMexicoToday(
+			settledDisbursement,
+			30,
 		)
 		const scheduleSettled = generatePaymentSchedule({
 			loanPrincipal: Number(settledCreditAmount),

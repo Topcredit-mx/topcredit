@@ -19,6 +19,7 @@ import {
 	hrOverdueInstallmentsAgent,
 	installmentsOverdueCompany,
 } from '~/e2e/equipo/installments-overdue.fixtures'
+import { ymdForDeductionSchedule } from '~/lib/calendar-date-tz'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
 	applications,
@@ -33,7 +34,11 @@ import {
 } from '~/server/db/schema'
 import { getDb } from '../e2e-db'
 import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
-import { endOfCurrentMonthUTC } from '../shared/end-of-month'
+import {
+	endOfCurrentMonthEodMx,
+	endOfPreviousMonthEodMx,
+	eodYmd,
+} from '../shared/mexico-seed-dates'
 
 export type SeedInstallmentsQueueResult = {
 	companyId: number
@@ -159,12 +164,10 @@ export const seedInstallmentsQueue =
 
 		const applicant1 = findUser('applicant@installmentsqueue.e2e')
 		const applicant2 = findUser('applicant2@installmentsqueue.e2e')
-		const firstDiscountDate = endOfCurrentMonthUTC(now)
-		// Credit 1: schedule must place the HR-pending installment in the *current* pay
-		// period (same cutoff as getInstallmentsForQueue + upcomingDeductionDate).
-		const firstDiscountDateCredit1 = new Date(
-			Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0),
-		)
+		const firstDiscountDate = endOfCurrentMonthEodMx(now)
+		// Credit 1: first anchor in *previous* month so schedule + queue align with
+		// Mexico pay-period (same as app logic using Mexico civil calendar).
+		const firstDiscountDateCredit1 = endOfPreviousMonthEodMx(now)
 		const creditAmount1 = '40000.00'
 		const creditAmount2 = '30000.00'
 
@@ -288,13 +291,14 @@ export const seedInstallmentsQueue =
 		)
 
 		// Extra installment on credit2: installment confirmed after due date (history: late badge)
+		const late2019 = eodYmd('2019-06-30')
 		await db.insert(creditPayments).values({
 			creditId: credit2.id,
-			dueDate: new Date(Date.UTC(2019, 5, 1)),
+			dueDate: late2019,
 			amount: '100.00',
-			hrConfirmedAt: new Date(Date.UTC(2019, 5, 1)),
+			hrConfirmedAt: late2019,
 			hrConfirmedByUserId: hrQueueAgent.id,
-			installmentConfirmedAt: new Date(Date.UTC(2019, 6, 15)),
+			installmentConfirmedAt: eodYmd('2019-07-31'),
 			installmentConfirmedByUserId: installmentQueueAgent.id,
 		})
 
@@ -367,17 +371,17 @@ export const seedInstallmentsQueue =
 			firstInstallmentForCsv: {
 				payrollNumber: 'INST002',
 				amount: s2First.amount,
-				dueDateISO: s2First.dueDate.toISOString().slice(0, 10),
+				dueDateISO: ymdForDeductionSchedule(s2First.dueDate),
 			},
 			alreadyReceivedInstallmentForCsv: {
 				payrollNumber: 'INST001',
 				amount: s1First.amount,
-				dueDateISO: s1First.dueDate.toISOString().slice(0, 10),
+				dueDateISO: ymdForDeductionSchedule(s1First.dueDate),
 			},
 			notHrConfirmedInstallmentForCsv: {
 				payrollNumber: 'INST001',
 				amount: s1Second.amount,
-				dueDateISO: s1Second.dueDate.toISOString().slice(0, 10),
+				dueDateISO: ymdForDeductionSchedule(s1Second.dueDate),
 			},
 			queueSelectableRowAmounts: [s2First.amount, s3First.amount],
 		}
@@ -505,7 +509,7 @@ export const seedInstallmentsOverdue =
 		)
 		const applicantHrPending = findUser(applicantOverdueHrPending.email)
 		const hrAgent = findUser(hrOverdueInstallmentsAgent.email)
-		const firstDiscountDate = new Date(Date.UTC(2019, 0, 31))
+		const firstDiscountDate = eodYmd('2019-01-31')
 		const creditAmount = '20000.00'
 
 		const [appInstallmentsBlocked] = await db
@@ -758,7 +762,7 @@ export const seedInstallmentsQueueTwentyPending =
 		const installmentAgent = findUser(installmentsBulkAgent.email)
 		const hrAgent = findUser(installmentsBulkHrAgent.email)
 
-		const firstDiscountDate = endOfCurrentMonthUTC(now)
+		const firstDiscountDate = endOfCurrentMonthEodMx(now)
 		const creditAmount = '12000.00'
 
 		for (let i = 0; i < installmentsBulkApplicants.length; i++) {

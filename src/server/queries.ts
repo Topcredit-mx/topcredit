@@ -1425,7 +1425,7 @@ export async function getInstallmentsForQueue(params: {
 	const installmentsExcludeOverdue: SQL =
 		queue === 'installments'
 			? sql`AND NOT (
-				cp.due_date < ${startBusinessDay}
+				cp.due_date < ${startOfBusinessDay}
 				AND (
 					cp.hr_confirmed_at IS NULL
 					OR cp.installment_confirmed_at IS NULL

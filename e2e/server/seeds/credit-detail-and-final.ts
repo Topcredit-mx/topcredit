@@ -34,6 +34,12 @@ import {
 } from '~/server/db/schema'
 import { getDb } from '../e2e-db'
 import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
+import {
+	endOfCurrentMonthEodMx,
+	endOfNextMonthEodMx,
+	eodBusinessDaysAgo,
+	eodYmd,
+} from '../shared/mexico-seed-dates'
 import { createOrderedSeedStatusHistory } from '../shared/status-history'
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -141,11 +147,12 @@ export const seedCreditDetailPaymentStates =
 		//   upcoming period: Jan 31 2023  (last day of frozen month → getUpcomingDeductionDate result)
 		//   future 1       : Feb 28 2023
 		//   future 2       : Mar 31 2023
-		const confirmedPastDate = new Date(Date.UTC(2022, 10, 30))
-		const overdueDate = new Date(Date.UTC(2022, 11, 31))
-		const upcomingDate = new Date(Date.UTC(2023, 0, 31))
-		const future1Date = new Date(Date.UTC(2023, 1, 28))
-		const future2Date = new Date(Date.UTC(2023, 2, 31))
+		// Fixed Mexico business EODs (align with frozen E2E clock 2023-01-05).
+		const confirmedPastDate = eodYmd('2022-11-30')
+		const overdueDate = eodYmd('2022-12-31')
+		const upcomingDate = eodYmd('2023-01-31')
+		const future1Date = eodYmd('2023-02-28')
+		const future2Date = eodYmd('2023-03-31')
 
 		const [app] = await db
 			.insert(applications)
@@ -345,11 +352,12 @@ export const seedCreditDetailInstallmentSchedule =
 			}),
 		)
 
-		const confirmedPastDate = new Date(Date.UTC(2022, 10, 30))
-		const overdueDate = new Date(Date.UTC(2022, 11, 31))
-		const upcomingDate = new Date(Date.UTC(2023, 0, 31))
-		const future1Date = new Date(Date.UTC(2023, 1, 28))
-		const future2Date = new Date(Date.UTC(2023, 2, 31))
+		// Fixed Mexico business EODs (align with frozen E2E clock 2023-01-05).
+		const confirmedPastDate = eodYmd('2022-11-30')
+		const overdueDate = eodYmd('2022-12-31')
+		const upcomingDate = eodYmd('2023-01-31')
+		const future1Date = eodYmd('2023-02-28')
+		const future2Date = eodYmd('2023-03-31')
 
 		const [app] = await db
 			.insert(applications)
@@ -566,22 +574,11 @@ export const seedCreditFinalInstallmentSettles =
 			}),
 		)
 
-		// Use dates relative to seed time so the final payment stays in the *upcoming*
-		// installments queue: SQL uses Mexico City calendar date, which ignores Playwright's clock.
-		const dayMs = 86_400_000
-		const todayUtc = Date.UTC(
-			now.getUTCFullYear(),
-			now.getUTCMonth(),
-			now.getUTCDate(),
-		)
-		const row0Date = new Date(todayUtc - 90 * dayMs)
-		const row1Date = new Date(todayUtc - 60 * dayMs)
-		// Last day of current UTC month: matches `getUpcomingDeductionDate('monthly', now)` so
-		// the credit-detail confirm button is eligible, and `due_date >= Mexico today` keeps the
-		// row in the upcoming installments queue (not overdue).
-		const row2Date = new Date(
-			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
-		)
+		// Mexico business EOD; relative to DB seed time (Playwright clock does not change DB)
+		const row0Date = eodBusinessDaysAgo(now, 90)
+		const row1Date = eodBusinessDaysAgo(now, 60)
+		// End of current business month: aligns with monthly `getUpcomingDeductionDate`.
+		const row2Date = endOfCurrentMonthEodMx(now)
 
 		const [app] = await db
 			.insert(applications)
@@ -771,20 +768,10 @@ export const seedInstallmentsQueueMixedSettlementAndPartial =
 			}),
 		)
 
-		const dayMs = 86_400_000
-		const todayUtc = Date.UTC(
-			now.getUTCFullYear(),
-			now.getUTCMonth(),
-			now.getUTCDate(),
-		)
-		const row0Date = new Date(todayUtc - 90 * dayMs)
-		const row1Date = new Date(todayUtc - 60 * dayMs)
-		const dueThisMonthEnd = new Date(
-			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
-		)
-		const dueNextMonthEnd = new Date(
-			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 0),
-		)
+		const row0Date = eodBusinessDaysAgo(now, 90)
+		const row1Date = eodBusinessDaysAgo(now, 60)
+		const dueThisMonthEnd = endOfCurrentMonthEodMx(now)
+		const dueNextMonthEnd = endOfNextMonthEodMx(now)
 
 		const hrAt = (d: Date) => new Date(d.getTime() + 24 * 60 * 60_000)
 
