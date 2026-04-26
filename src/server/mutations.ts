@@ -955,11 +955,7 @@ export async function hrApproveApplication(payload: {
 
 	const { isValidFirstDiscountDate } = await import('~/lib/first-discount-date')
 
-	const now = new Date()
-	const today = new Date(
-		Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-	)
-	if (!isValidFirstDiscountDate(app.salaryFrequency, parsed, today)) {
+	if (!isValidFirstDiscountDate(app.salaryFrequency, parsed, new Date())) {
 		return { error: ValidationCode.HR_FIRST_DISCOUNT_DATE_INVALID }
 	}
 

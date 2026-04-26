@@ -1,3 +1,4 @@
+import { todayYmdMexicoCity } from '~/lib/calendar-date-tz'
 import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 
 export type CreditPaymentTimestamps = {
@@ -52,15 +53,15 @@ export function canConfirmInstallmentInQueue(
 	})
 }
 
-function utcDateOnlyString(d: Date): string {
-	return d.toISOString().slice(0, 10)
+function businessTodayYmd(today: Date): string {
+	return todayYmdMexicoCity(today)
 }
 
 function parseDueDateDay(value: string): string | null {
 	if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
 	const parsed = new Date(value)
 	if (Number.isNaN(parsed.getTime())) return null
-	return utcDateOnlyString(parsed)
+	return parsed.toISOString().slice(0, 10)
 }
 
 export function isDueDateBeforeToday(
@@ -69,7 +70,7 @@ export function isDueDateBeforeToday(
 ): boolean {
 	const dueDay = parseDueDateDay(dueDateIsoOrDay)
 	if (dueDay === null) return false
-	return dueDay < utcDateOnlyString(today)
+	return dueDay < businessTodayYmd(today)
 }
 
 function queueRowFullyConfirmed(row: InstallmentQueueTimestamps): boolean {

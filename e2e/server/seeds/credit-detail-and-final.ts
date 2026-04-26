@@ -567,7 +567,7 @@ export const seedCreditFinalInstallmentSettles =
 		)
 
 		// Use dates relative to seed time so the final payment stays in the *upcoming*
-		// installments queue: SQL uses CURRENT_DATE, which ignores Playwright's clock.
+		// installments queue: SQL uses Mexico City calendar date, which ignores Playwright's clock.
 		const dayMs = 86_400_000
 		const todayUtc = Date.UTC(
 			now.getUTCFullYear(),
@@ -577,7 +577,7 @@ export const seedCreditFinalInstallmentSettles =
 		const row0Date = new Date(todayUtc - 90 * dayMs)
 		const row1Date = new Date(todayUtc - 60 * dayMs)
 		// Last day of current UTC month: matches `getUpcomingDeductionDate('monthly', now)` so
-		// the credit-detail confirm button is eligible, and `due_date >= CURRENT_DATE` keeps the
+		// the credit-detail confirm button is eligible, and `due_date >= Mexico today` keeps the
 		// row in the upcoming installments queue (not overdue).
 		const row2Date = new Date(
 			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),

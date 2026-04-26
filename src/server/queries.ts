@@ -13,6 +13,8 @@ import {
 	type SQL,
 	sql,
 } from 'drizzle-orm'
+import { calendarYmdInMexicoCity } from '~/lib/calendar-date-tz'
+import { sqlTodayMexicoCity } from '~/lib/db-mexico-date'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
 import { isEquipoScheduleConfirmationOnTime } from '~/lib/equipo-workflow-status'
 import {
@@ -1335,13 +1337,13 @@ export async function getCreditPaymentsForEquipo(
 /** Payments due on or before this payroll date, excluding credits with overdue HR gaps. */
 function payPeriodWindowCondition(upcomingDeductionDate: string): SQL {
 	return sql`
-				AND (cp.due_date)::date >= CURRENT_DATE
+				AND (cp.due_date)::date >= ${sqlTodayMexicoCity}
 				AND (cp.due_date)::date <= (${upcomingDeductionDate})::date
 				AND NOT EXISTS (
 					SELECT 1 FROM credit_payments cp2
 					WHERE cp2.credit_id = cp.credit_id
 					  AND cp2.hr_confirmed_at IS NULL
-					  AND (cp2.due_date)::date < CURRENT_DATE
+					  AND (cp2.due_date)::date < ${sqlTodayMexicoCity}
 				)`
 }
 
@@ -1413,7 +1415,7 @@ export async function getInstallmentsForQueue(params: {
 	const installmentsExcludeOverdue: SQL =
 		queue === 'installments'
 			? sql`AND NOT (
-				(cp.due_date)::date < CURRENT_DATE
+				(cp.due_date)::date < ${sqlTodayMexicoCity}
 				AND (
 					cp.hr_confirmed_at IS NULL
 					OR cp.installment_confirmed_at IS NULL
@@ -1633,7 +1635,7 @@ export async function getOverdueInstallments(params: {
 		INNER JOIN users u ON a.applicant_id = u.id
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE ${companyCondition}
-		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND (cp.due_date)::date < ${sqlTodayMexicoCity}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -1914,7 +1916,7 @@ export async function getOldestPendingPaymentAgeDays(
 		pendingCondition = sql`
 			cp.installment_confirmed_at IS NULL
 			AND NOT (
-				(cp.due_date)::date < CURRENT_DATE
+				(cp.due_date)::date < ${sqlTodayMexicoCity}
 				AND (
 					cp.hr_confirmed_at IS NULL
 					OR cp.installment_confirmed_at IS NULL
@@ -1924,7 +1926,7 @@ export async function getOldestPendingPaymentAgeDays(
 		`
 	} else {
 		pendingCondition = sql`
-			(cp.due_date)::date < CURRENT_DATE
+			(cp.due_date)::date < ${sqlTodayMexicoCity}
 			AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -1950,12 +1952,12 @@ export async function getOldestPendingPaymentAgeDays(
 		return { oldestPendingDays: null }
 	}
 
-	const today = new Date()
-	const todayUtc = new Date(
-		Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
-	)
+	const todayYmd = calendarYmdInMexicoCity(new Date())
+	const minDueYmd = minDueStr
 	const rawAgeDays = Math.floor(
-		(todayUtc.getTime() - minDue.getTime()) / MS_PER_DAY,
+		(new Date(`${todayYmd}T00:00:00.000Z`).getTime() -
+			new Date(`${minDueYmd}T00:00:00.000Z`).getTime()) /
+			MS_PER_DAY,
 	)
 	const oldestPendingDays = rawAgeDays < 0 ? 0 : rawAgeDays
 
@@ -1988,7 +1990,7 @@ export async function getTotalOverdueAmount(
 				and(
 					eq(applications.companyId, companyId),
 					isNull(creditPayments.hrConfirmedAt),
-					sql`${creditPayments.dueDate} < CURRENT_DATE`,
+					sql`${creditPayments.dueDate} < ${sqlTodayMexicoCity}`,
 				),
 			),
 		db
@@ -2043,7 +2045,7 @@ export async function getTotalOverdueCredits(
 				and(
 					eq(applications.companyId, companyId),
 					isNull(creditPayments.hrConfirmedAt),
-					sql`${creditPayments.dueDate} < CURRENT_DATE`,
+					sql`${creditPayments.dueDate} < ${sqlTodayMexicoCity}`,
 				),
 			),
 		db
@@ -2092,7 +2094,7 @@ export async function getOldestOverdueAge(
 			and(
 				eq(applications.companyId, companyId),
 				isNull(creditPayments.hrConfirmedAt),
-				sql`${creditPayments.dueDate} < CURRENT_DATE`,
+				sql`${creditPayments.dueDate} < ${sqlTodayMexicoCity}`,
 			),
 		)
 
@@ -2100,11 +2102,12 @@ export async function getOldestOverdueAge(
 		return { oldestOverdueDays: null }
 	}
 
-	const today = new Date()
-	today.setUTCHours(0, 0, 0, 0)
-	const minDate = new Date(row.minDate)
+	const todayYmd = calendarYmdInMexicoCity(new Date())
+	const minYmd = new Date(row.minDate).toISOString().slice(0, 10)
 	const oldestOverdueDays = Math.floor(
-		(today.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24),
+		(new Date(`${todayYmd}T00:00:00.000Z`).getTime() -
+			new Date(`${minYmd}T00:00:00.000Z`).getTime()) /
+			(1000 * 60 * 60 * 24),
 	)
 
 	return { oldestOverdueDays }
@@ -2122,7 +2125,7 @@ export async function getOverdueDeductionsCount(
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND (cp.due_date)::date < ${sqlTodayMexicoCity}
 	`)
 	const row = result.rows[0]
 	return row ? Number(row.count) : 0
@@ -2137,7 +2140,7 @@ export async function getOverdueInstallmentsCount(
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE a.company_id = ${companyId}
-		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND (cp.due_date)::date < ${sqlTodayMexicoCity}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -2198,7 +2201,7 @@ export async function getOverdueDeductions(
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND (cp.due_date)::date < CURRENT_DATE
+		  AND (cp.due_date)::date < ${sqlTodayMexicoCity}
 		GROUP BY cp.credit_id
 		ORDER BY MIN(cp.due_date) ASC, cp.credit_id ASC
 	`)
@@ -2254,7 +2257,7 @@ export async function getOverdueDeductionsForCredit(
 		WHERE cp.credit_id = ${creditId}
 		  AND a.company_id = ${companyId}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND cp.due_date < CURRENT_DATE
+		  AND cp.due_date < ${sqlTodayMexicoCity}
 		ORDER BY cp.due_date ASC
 	`)
 

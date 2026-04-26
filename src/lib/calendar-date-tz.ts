@@ -1,5 +1,45 @@
 const MEXICO_CITY = 'America/Mexico_City'
 
+export function parseYmd(ymd: string): {
+	year: number
+	month0: number
+	day: number
+} {
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd.trim())
+	if (m == null) {
+		return { year: 1970, month0: 0, day: 1 }
+	}
+	return {
+		year: Number(m[1]),
+		month0: Number(m[2]) - 1,
+		day: Number(m[3]),
+	}
+}
+
+/** Calendar date in Mexico City, split into 0-based month index. */
+export function calendarPartsInMexicoCity(d: Date): {
+	year: number
+	month0: number
+	day: number
+} {
+	const ymd = calendarYmdInMexicoCity(d)
+	return parseYmd(ymd)
+}
+
+/** `todayYmd` / alias for `calendarYmdInMexicoCity` (business "today" in CDMX). */
+export function todayYmdMexicoCity(now: Date): string {
+	return calendarYmdInMexicoCity(now)
+}
+
+/**
+ * A UTC `Date` at 00:00:00 **UTC** for a calendar `YYYY-MM-DD` (as stored in DB
+ * for `due_date` / schedule anchors). This matches `toISOString().slice(0,10)`.
+ */
+export function utcMidnightForYmd(ymd: string): Date {
+	const { year, month0, day } = parseYmd(ymd)
+	return new Date(Date.UTC(year, month0, day, 0, 0, 0, 0))
+}
+
 export function calendarYmdInMexicoCity(d: Date): string {
 	const parts = new Intl.DateTimeFormat('en-US', {
 		timeZone: MEXICO_CITY,

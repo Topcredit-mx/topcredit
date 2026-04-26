@@ -6,6 +6,8 @@ const LOCALE = 'es-MX'
 
 const PLACEHOLDER = '\u2014'
 
+const MEXICO_TZ = 'America/Mexico_City'
+
 const DATE_ONLY_OPTIONS: Intl.DateTimeFormatOptions = {
 	year: 'numeric',
 	month: 'short',
@@ -13,6 +15,7 @@ const DATE_ONLY_OPTIONS: Intl.DateTimeFormatOptions = {
 }
 
 const DATETIME_SHORT_OPTIONS: Intl.DateTimeFormatOptions = {
+	timeZone: MEXICO_TZ,
 	day: 'numeric',
 	month: 'short',
 	hour: 'numeric',
@@ -20,6 +23,7 @@ const DATETIME_SHORT_OPTIONS: Intl.DateTimeFormatOptions = {
 }
 
 const DATETIME_FULL_OPTIONS: Intl.DateTimeFormatOptions = {
+	timeZone: MEXICO_TZ,
 	year: 'numeric',
 	month: 'short',
 	day: 'numeric',

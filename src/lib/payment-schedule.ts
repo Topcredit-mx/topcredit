@@ -1,38 +1,52 @@
+import { utcMidnightForYmd } from '~/lib/calendar-date-tz'
 import { Decimal } from './decimal'
 import { financedCreditAmount } from './pre-authorization-capacity'
 
 export type PaymentScheduleEntry = { dueDate: Date; amount: string }
 
-function utcDate(year: number, month: number, day: number): Date {
-	return new Date(Date.UTC(year, month, day))
+function lastDayOfMonthYmd(year: number, month0: number): string {
+	const last = new Date(Date.UTC(year, month0 + 1, 0))
+	const d = last.getUTCDate()
+	return `${String(year).padStart(4, '0')}-${String(month0 + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
-function lastDayOfMonthUTC(year: number, month: number): Date {
-	return new Date(Date.UTC(year, month + 1, 0))
+function ymdString(year: number, month0: number, day: number): string {
+	return `${String(year).padStart(4, '0')}-${String(month0 + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
-function nextBiMonthlyDate(current: Date): Date {
-	const year = current.getUTCFullYear()
-	const month = current.getUTCMonth()
-	const day = current.getUTCDate()
-
+function nextBiMonthlyYmd(ymd: string): string {
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd.trim())
+	if (m == null) return ymd
+	const year = Number(m[1])
+	const month0 = Number(m[2]) - 1
+	const day = Number(m[3])
 	if (day === 15) {
-		return lastDayOfMonthUTC(year, month)
+		return lastDayOfMonthYmd(year, month0)
 	}
 	// current is month-end, next is 15th of next month
-	return utcDate(year, month + 1, 15)
+	if (month0 === 11) {
+		return ymdString(year + 1, 0, 15)
+	}
+	return ymdString(year, month0 + 1, 15)
 }
 
-function nextMonthEnd(current: Date): Date {
-	const year = current.getUTCFullYear()
-	const month = current.getUTCMonth() + 1
-	return lastDayOfMonthUTC(year, month)
+function nextMonthEndYmd(ymd: string): string {
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd.trim())
+	if (m == null) return ymd
+	const year = Number(m[1])
+	const month0 = Number(m[2]) - 1
+	if (month0 === 11) {
+		return lastDayOfMonthYmd(year + 1, 0)
+	}
+	return lastDayOfMonthYmd(year, month0 + 1)
 }
 
-function normalizeToUTCMidnight(date: Date): Date {
-	return utcDate(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-}
-
+/**
+ * `dueDate` values are stored as **UTC midnight** for a calendar `YYYY-MM-DD`
+ * (`toISOString().slice(0, 10)`). The employer picks that date using Mexico
+ * calendar rules via `getValidFirstDiscountDates`; the stored instant is
+ * unambiguous. Schedule stepping uses the same YMD string chain as before.
+ */
 export function generatePaymentSchedule(params: {
 	loanPrincipal: number
 	rate: number
@@ -46,20 +60,23 @@ export function generatePaymentSchedule(params: {
 	const total = new Decimal(financedCreditAmount(loanPrincipal, rate))
 	const perPayment = total.div(totalPayments).todp(2, Decimal.ROUND_DOWN)
 
-	const start = normalizeToUTCMidnight(firstDiscountDate)
-	const dates: Date[] = [start]
+	const startYmd = firstDiscountDate.toISOString().slice(0, 10)
+	const dates: string[] = [startYmd]
 	for (let i = 1; i < totalPayments; i++) {
-		const prev = dates[i - 1]
-		if (!prev) break
+		const prevYmd = dates[i - 1]
+		if (prevYmd === undefined) break
 		dates.push(
-			frequency === 'monthly' ? nextMonthEnd(prev) : nextBiMonthlyDate(prev),
+			frequency === 'monthly'
+				? nextMonthEndYmd(prevYmd)
+				: nextBiMonthlyYmd(prevYmd),
 		)
 	}
 
 	const schedule: Array<PaymentScheduleEntry> = []
 	for (let i = 0; i < totalPayments; i++) {
-		const dueDate = dates[i]
-		if (!dueDate) break
+		const ymd = dates[i]
+		if (ymd === undefined) break
+		const dueDate = utcMidnightForYmd(ymd)
 
 		if (i < totalPayments - 1) {
 			schedule.push({ dueDate, amount: perPayment.toFixed(2) })
