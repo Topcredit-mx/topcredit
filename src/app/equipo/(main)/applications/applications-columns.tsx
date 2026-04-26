@@ -1,12 +1,20 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
+import {
+	ArrowUpRight,
+	CalendarDays,
+	CalendarRange,
+	CircleDollarSign,
+	Tag,
+	UserRound,
+} from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
 import { FormattedDate } from '~/components/formatted-date'
 import { ListDetailLink } from '~/components/list-detail-link'
 import { Button } from '~/components/ui/button'
-import { DataTableColumnHeader } from '~/components/ui/data-table'
+import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
 import { EQUIPO_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import { getPrefetchStrategy } from '~/lib/prefetch-strategy'
 import { formatCurrencyMxn } from '~/lib/utils'
@@ -38,10 +46,12 @@ export function useApplicationsColumns(
 			{
 				accessorFn: (row: ApplicationForReview) => row.applicant.name,
 				id: 'applicantName',
+				enableSorting: false,
 				header: ({ column }) => (
 					<DataTableColumnHeader
 						column={column}
 						title={t('applications-col-applicant')}
+						icon={<UserRound aria-hidden />}
 					/>
 				),
 				cell: ({ row }) => (
@@ -57,10 +67,12 @@ export function useApplicationsColumns(
 			},
 			{
 				accessorKey: 'creditAmount',
+				enableSorting: false,
 				header: ({ column }) => (
 					<DataTableColumnHeader
 						column={column}
 						title={t('applications-col-amount')}
+						icon={<CircleDollarSign aria-hidden />}
 					/>
 				),
 				cell: ({ row }) => (
@@ -77,10 +89,12 @@ export function useApplicationsColumns(
 					row.termOffering
 						? `${row.termOffering.durationType}-${row.termOffering.duration}`
 						: '',
+				enableSorting: false,
 				header: ({ column }) => (
 					<DataTableColumnHeader
 						column={column}
 						title={t('applications-col-term')}
+						icon={<CalendarRange aria-hidden />}
 					/>
 				),
 				cell: ({ row }) => (
@@ -90,14 +104,15 @@ export function useApplicationsColumns(
 							: t('applications-detail-value-pending')}
 					</div>
 				),
-				enableSorting: false,
 			},
 			{
 				accessorKey: 'status',
+				enableSorting: false,
 				header: ({ column }) => (
 					<DataTableColumnHeader
 						column={column}
 						title={t('applications-col-status')}
+						icon={<Tag aria-hidden />}
 					/>
 				),
 				cell: ({ row }) => (
@@ -108,10 +123,12 @@ export function useApplicationsColumns(
 			},
 			{
 				accessorKey: 'createdAt',
+				enableSorting: false,
 				header: ({ column }) => (
 					<DataTableColumnHeader
 						column={column}
 						title={t('applications-col-date')}
+						icon={<CalendarDays aria-hidden />}
 					/>
 				),
 				cell: ({ row }) => (
@@ -122,10 +139,14 @@ export function useApplicationsColumns(
 			},
 			{
 				id: 'actions',
-				header: () => (
-					<span className="text-[11px] text-slate-500 uppercase tracking-wide">
-						{t('applications-actions')}
-					</span>
+				enableSorting: false,
+				enableHiding: false,
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('applications-actions')}
+						icon={<ArrowUpRight aria-hidden />}
+					/>
 				),
 				cell: ({ row }) => (
 					<Button variant="ghost" size="sm" asChild>
@@ -138,7 +159,6 @@ export function useApplicationsColumns(
 						</ListDetailLink>
 					</Button>
 				),
-				enableSorting: false,
 			},
 		],
 		[prefetchStrategy, t],

@@ -62,7 +62,7 @@ export default async function AppApplicationsPage({
 	}
 
 	return (
-		<div className="container mx-auto py-6">
+		<div className="container mx-auto min-w-0 py-6">
 			<h1 className="mb-6 font-semibold text-2xl text-foreground tracking-tight">
 				{t('applications-title')}
 			</h1>
