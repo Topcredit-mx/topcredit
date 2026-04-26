@@ -49,7 +49,7 @@ CREATE TABLE "applications" (
 	"transfer_reference" text,
 	"receipt_storage_key" text,
 	"receipt_file_name" text,
-	"first_discount_date" timestamp,
+	"first_discount_date" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "applications_financial_terms_required_for_late_statuses_check" CHECK (("applications"."status" NOT IN ('pre-authorized', 'awaiting-authorization', 'authorized') OR ("applications"."term_offering_id" IS NOT NULL AND "applications"."credit_amount" IS NOT NULL)))
@@ -71,7 +71,7 @@ CREATE TABLE "companies" (
 CREATE TABLE "credit_payments" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"credit_id" integer NOT NULL,
-	"due_date" timestamp NOT NULL,
+	"due_date" timestamp with time zone NOT NULL,
 	"amount" numeric(12, 2) NOT NULL,
 	"hr_confirmed_at" timestamp with time zone,
 	"confirmed_by_user_id" integer,

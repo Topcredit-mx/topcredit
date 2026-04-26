@@ -243,8 +243,7 @@ export const applications = pgTable(
 		receiptStorageKey: text('receipt_storage_key'),
 		receiptFileName: text('receipt_file_name'),
 		firstDiscountDate: timestamp('first_discount_date', {
-			mode: 'date',
-			withTimezone: false,
+			withTimezone: true,
 		}),
 		createdAt: timestamp('created_at', { withTimezone: true })
 			.defaultNow()
@@ -350,10 +349,7 @@ export const creditPayments = pgTable('credit_payments', {
 	creditId: integer('credit_id')
 		.notNull()
 		.references(() => credits.id, { onDelete: 'cascade' }),
-	dueDate: timestamp('due_date', {
-		mode: 'date',
-		withTimezone: false,
-	}).notNull(),
+	dueDate: timestamp('due_date', { withTimezone: true }).notNull(),
 	amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
 	hrConfirmedAt: timestamp('hr_confirmed_at', { withTimezone: true }),
 	hrConfirmedByUserId: integer('confirmed_by_user_id').references(
