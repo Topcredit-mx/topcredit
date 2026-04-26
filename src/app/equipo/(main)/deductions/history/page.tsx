@@ -1,4 +1,3 @@
-import { History } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
@@ -30,18 +29,10 @@ export default async function DeductionHistoryPage() {
 	const historyItems = await getDeductionConfirmationHistory(scope)
 
 	return (
-		<div className="container mx-auto py-6">
+		<div className="container mx-auto min-w-0 py-6">
 			<h1 className="mb-6 font-semibold text-2xl text-foreground tracking-tight">
-				{t('deductions-title')}
+				{t('deductions-history-full-title')}
 			</h1>
-			<div className="mb-6 flex items-center gap-2">
-				<div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-muted-foreground">
-					<History className="size-4" aria-hidden />
-				</div>
-				<p className="text-muted-foreground text-sm">
-					{t('deductions-history-description')}
-				</p>
-			</div>
 			{historyItems.length === 0 ? (
 				<Card className="p-8 text-center">
 					<p className="text-muted-foreground">
@@ -49,9 +40,7 @@ export default async function DeductionHistoryPage() {
 					</p>
 				</Card>
 			) : (
-				<Card className="overflow-hidden">
-					<DeductionHistoryTable items={historyItems} />
-				</Card>
+				<DeductionHistoryTable items={historyItems} />
 			)}
 		</div>
 	)

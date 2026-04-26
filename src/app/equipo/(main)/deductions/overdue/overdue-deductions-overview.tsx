@@ -7,7 +7,6 @@ import {
 	TrendingUp,
 } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
-import { Card } from '~/components/ui/card'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 
 type Props = {
@@ -30,7 +29,7 @@ export async function OverdueDeductionsOverview({
 	return (
 		<div
 			data-testid="overdue-overview"
-			className="mb-6 grid gap-4 md:grid-cols-3"
+			className="mb-4 grid gap-3 md:grid-cols-3"
 		>
 			<StatCard
 				title={t('overdue-deductions-overview-total-amount')}
@@ -80,13 +79,13 @@ function StatCard({
 	changeLabel,
 }: StatCardProps) {
 	return (
-		<Card className="gap-3 p-6">
+		<div className="flex flex-col gap-2 rounded-md border bg-muted/25 p-4">
 			<div className="flex items-center gap-2 text-muted-foreground">
 				<Icon className="size-4" />
 				<span className="font-medium text-sm">{title}</span>
 			</div>
 			<p
-				className="font-bold text-2xl text-foreground"
+				className="font-semibold text-foreground text-xl leading-tight"
 				{...(valueTestId ? { 'data-testid': valueTestId } : {})}
 			>
 				{value}
@@ -97,7 +96,7 @@ function StatCard({
 					<span className="text-muted-foreground text-xs">{changeLabel}</span>
 				</div>
 			)}
-		</Card>
+		</div>
 	)
 }
 
