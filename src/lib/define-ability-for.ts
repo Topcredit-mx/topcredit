@@ -66,6 +66,7 @@ export type ApplicationDocumentSubject = {
 export type CreditSubject = {
 	id: number
 	applicantId: number
+	companyId?: number
 } & ForcedSubject<'Credit'>
 
 export type CreditPaymentSubject = {
@@ -276,6 +277,19 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 				$in: ['awaiting-authorization', 'authorized'],
 			},
 		})
+	}
+
+	if (
+		isAgent &&
+		hasCompanyAssignments &&
+		(isRequests ||
+			isPreAuthorizations ||
+			isAuthorizations ||
+			isHr ||
+			isInstallments ||
+			isDispersions)
+	) {
+		can('read', 'Credit', { companyId: { $in: ctx.assignedCompanyIds } })
 	}
 
 	return build()

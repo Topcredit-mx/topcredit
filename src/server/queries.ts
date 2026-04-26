@@ -53,6 +53,88 @@ import { isBlobStorageKey } from '~/server/storage'
 
 export type { CompanyBasic, CompanyScope } from '~/server/scopes'
 
+export type EquipoSearchRow = {
+	applicationId: number
+	applicantId: number
+	companyId: number
+	creditId: number | null
+	applicantName: string
+	applicantEmail: string
+	companyName: string
+	companyDomain: string
+	applicationStatus: ApplicationStatus
+	creditStatus: CreditStatus | null
+	transferAmount: string | null
+	payrollNumber: string | null
+}
+
+export async function getEquipoApplicationCreditSearchRows(params: {
+	scope: CompanyScope
+	query: string
+	limit?: number
+}): Promise<EquipoSearchRow[]> {
+	const trimmed = params.query.trim()
+	if (trimmed.length === 0) return []
+
+	const { scope } = params
+	const limit = params.limit ?? 20
+
+	let companyCondition: SQL
+	if (scope.type === 'single') {
+		companyCondition = eq(applications.companyId, scope.companyId)
+	} else if (scope.type === 'multi') {
+		if (scope.companyIds.length === 0) {
+			return []
+		}
+		companyCondition = inArray(applications.companyId, scope.companyIds)
+	} else {
+		companyCondition = sql`1=1`
+	}
+
+	const applicantMatch = or(
+		ilike(users.name, `%${trimmed}%`),
+		ilike(users.email, `%${trimmed}%`),
+	)
+
+	const rows = await db
+		.select({
+			applicationId: applications.id,
+			applicantId: applications.applicantId,
+			companyId: applications.companyId,
+			creditId: credits.id,
+			applicantName: users.name,
+			applicantEmail: users.email,
+			companyName: companies.name,
+			companyDomain: companies.domain,
+			applicationStatus: applications.status,
+			creditStatus: credits.status,
+			transferAmount: credits.transferAmount,
+			payrollNumber: applications.payrollNumber,
+		})
+		.from(applications)
+		.innerJoin(companies, eq(applications.companyId, companies.id))
+		.innerJoin(users, eq(applications.applicantId, users.id))
+		.leftJoin(credits, eq(credits.applicationId, applications.id))
+		.where(and(companyCondition, eq(companies.active, true), applicantMatch))
+		.orderBy(desc(applications.updatedAt), applications.id)
+		.limit(limit)
+
+	return rows.map((r) => ({
+		applicationId: r.applicationId,
+		applicantId: r.applicantId,
+		companyId: r.companyId,
+		creditId: r.creditId,
+		applicantName: r.applicantName,
+		applicantEmail: r.applicantEmail,
+		companyName: r.companyName,
+		companyDomain: r.companyDomain,
+		applicationStatus: r.applicationStatus,
+		creditStatus: r.creditStatus,
+		transferAmount: r.transferAmount,
+		payrollNumber: r.payrollNumber,
+	}))
+}
+
 // ---- User ----
 
 export type UserWithRoles = {

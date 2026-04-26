@@ -11,6 +11,7 @@ import {
 	creditDetailStatesApplicant,
 	creditDetailStatesCompany,
 	creditDetailStatesHrAgent,
+	creditDetailStatesPendingOnlyApplicant,
 } from '~/e2e/equipo/credit-detail-states.fixtures'
 import {
 	allCreditFinalInstallmentSettleUsers,
@@ -48,7 +49,9 @@ import { createOrderedSeedStatusHistory } from '../shared/status-history'
 
 export type SeedCreditDetailPaymentStatesResult = {
 	companyId: number
+	applicationId: number
 	creditId: number
+	pendingOnlyApplicationId: number
 }
 
 export const seedCreditDetailPaymentStates =
@@ -101,6 +104,9 @@ export const seedCreditDetailPaymentStates =
 
 		const hrAgent = findUser(creditDetailStatesHrAgent.email)
 		const applicant = findUser(creditDetailStatesApplicant.email)
+		const pendingOnlyApplicant = findUser(
+			creditDetailStatesPendingOnlyApplicant.email,
+		)
 
 		const [term] = await db
 			.insert(terms)
@@ -170,6 +176,25 @@ export const seedCreditDetailPaymentStates =
 		if (!app)
 			throw new Error('Seed CreditDetailStates: application not created')
 
+		const [pendingApp] = await db
+			.insert(applications)
+			.values({
+				applicantId: pendingOnlyApplicant.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: '10000.00',
+				salaryAtApplication: '30000',
+				salaryFrequency: creditDetailStatesCompany.employeeSalaryFrequency,
+				payrollNumber: 'PN-PENDING-ONLY',
+				status: 'pending' as const,
+			})
+			.returning()
+		if (!pendingApp) {
+			throw new Error(
+				'Seed CreditDetailStates: pending application not created',
+			)
+		}
+
 		await db.insert(applicationStatusHistory).values(
 			createOrderedSeedStatusHistory({
 				finalStatus: 'disbursed',
@@ -179,6 +204,18 @@ export const seedCreditDetailPaymentStates =
 				status: entry.status,
 				setByUserId: entry.setByUserId,
 				createdAt: new Date(now.getTime() - (6 - index) * 60_000),
+			})),
+		)
+
+		await db.insert(applicationStatusHistory).values(
+			createOrderedSeedStatusHistory({
+				finalStatus: 'pending',
+				defaultActorUserId: pendingOnlyApplicant.id,
+			}).map((entry, index) => ({
+				applicationId: pendingApp.id,
+				status: entry.status,
+				setByUserId: entry.setByUserId,
+				createdAt: new Date(now.getTime() - (20 - index) * 60_000),
 			})),
 		)
 
@@ -231,7 +268,9 @@ export const seedCreditDetailPaymentStates =
 
 		return {
 			companyId: company.id,
+			applicationId: app.id,
 			creditId: credit.id,
+			pendingOnlyApplicationId: pendingApp.id,
 		}
 	}
 

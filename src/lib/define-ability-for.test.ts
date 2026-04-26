@@ -129,6 +129,21 @@ test('hr+agent can confirmHrDeduction for assigned company, cannot confirmInstal
 	assert.equal(ability.can('confirmInstallment', paymentCompany10), false)
 })
 
+const creditCompany10 = subject('Credit', {
+	id: 1,
+	applicantId: 2,
+	companyId: 10,
+})
+
+test('hr+agent can read credit in assigned company', () => {
+	const ability = defineAbilityFor({
+		roles: ['agent', 'hr'],
+		assignedCompanyIds: [10],
+		userId: 99,
+	})
+	assert.equal(ability.can('read', creditCompany10), true)
+})
+
 test('installments+agent can confirmInstallment for assigned company, cannot confirmHrDeduction', () => {
 	const ability = defineAbilityFor({
 		roles: ['agent', 'installments'],
