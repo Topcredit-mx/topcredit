@@ -8,8 +8,8 @@ import {
 import {
 	getPastDeductionDate,
 	getPayPeriodComparisonBounds,
-	getUpcomingDeductionDate,
 	getUpcomingDeductionAnchorYmd,
+	getUpcomingDeductionDate,
 	getUpcomingDeductionDateYmd,
 	getValidFirstDiscountDates,
 	isValidFirstDiscountDate,
@@ -293,42 +293,66 @@ describe('getValidFirstDiscountDates', () => {
 describe('isValidFirstDiscountDate', () => {
 	test('bi-monthly accepts the 15th', () => {
 		assert.equal(
-			isValidFirstDiscountDate('bi-monthly', mxYmdInstant(2026, 2, 15), mxYmdInstant(2026, 2, 3)),
+			isValidFirstDiscountDate(
+				'bi-monthly',
+				mxYmdInstant(2026, 2, 15),
+				mxYmdInstant(2026, 2, 3),
+			),
 			true,
 		)
 	})
 
 	test('bi-monthly accepts end of month', () => {
 		assert.equal(
-			isValidFirstDiscountDate('bi-monthly', mxYmdInstant(2026, 2, 31), mxYmdInstant(2026, 2, 3)),
+			isValidFirstDiscountDate(
+				'bi-monthly',
+				mxYmdInstant(2026, 2, 31),
+				mxYmdInstant(2026, 2, 3),
+			),
 			true,
 		)
 	})
 
 	test('bi-monthly rejects arbitrary date', () => {
 		assert.equal(
-			isValidFirstDiscountDate('bi-monthly', mxYmdInstant(2026, 2, 20), mxYmdInstant(2026, 2, 3)),
+			isValidFirstDiscountDate(
+				'bi-monthly',
+				mxYmdInstant(2026, 2, 20),
+				mxYmdInstant(2026, 2, 3),
+			),
 			false,
 		)
 	})
 
 	test('monthly accepts end of month', () => {
 		assert.equal(
-			isValidFirstDiscountDate('monthly', mxYmdInstant(2026, 2, 31), mxYmdInstant(2026, 2, 3)),
+			isValidFirstDiscountDate(
+				'monthly',
+				mxYmdInstant(2026, 2, 31),
+				mxYmdInstant(2026, 2, 3),
+			),
 			true,
 		)
 	})
 
 	test('monthly rejects the 15th', () => {
 		assert.equal(
-			isValidFirstDiscountDate('monthly', mxYmdInstant(2026, 2, 15), mxYmdInstant(2026, 2, 3)),
+			isValidFirstDiscountDate(
+				'monthly',
+				mxYmdInstant(2026, 2, 15),
+				mxYmdInstant(2026, 2, 3),
+			),
 			false,
 		)
 	})
 
 	test('rejects date in the past', () => {
 		assert.equal(
-			isValidFirstDiscountDate('bi-monthly', mxYmdInstant(2026, 1, 15), mxYmdInstant(2026, 2, 3)),
+			isValidFirstDiscountDate(
+				'bi-monthly',
+				mxYmdInstant(2026, 1, 15),
+				mxYmdInstant(2026, 2, 3),
+			),
 			false,
 		)
 	})
