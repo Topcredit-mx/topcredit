@@ -289,25 +289,19 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2]
-    env:
-      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           ref: ${{ github.sha }}
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: ".node-version"
-
       - id: sha
         run: echo "short_sha=$(echo '${{ github.sha }}' | cut -c1-7)" >> "$GITHUB_OUTPUT"
 
       - name: Delete Neon test branch
-        run: |
-          branch="test-${{ steps.sha.outputs.short_sha }}-${{ matrix.shard }}"
-          npm i -g neonctl@v2
-          echo "Deleting ${branch}..."
-          neonctl branches delete "${branch}" --project-id "${NEON_PROJECT_ID}" || true
+        continue-on-error: true
+        uses: neondatabase/delete-branch-action@v3.2.1
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch: test-${{ steps.sha.outputs.short_sha }}-${{ matrix.shard }}
+          api_key: ${{ secrets.NEON_API_KEY }}
