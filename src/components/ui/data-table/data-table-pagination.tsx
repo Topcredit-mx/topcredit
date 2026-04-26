@@ -20,11 +20,20 @@ import { useDataTable } from './use-data-table'
 
 export function DataTablePagination<TData>() {
 	const t = useTranslations('common')
-	const { table } = useDataTable<TData>()
+	const { table, serverPagination } = useDataTable<TData>()
 	const selectedCount = table.getFilteredSelectedRowModel().rows.length
-	const totalRows = table.getFilteredRowModel().rows.length
+	const totalRows = serverPagination
+		? serverPagination.totalRowCount
+		: table.getFilteredRowModel().rows.length
 	const pageIndex = table.getState().pagination.pageIndex
-	const pageCount = table.getPageCount()
+	const pageCount = Math.max(table.getPageCount(), 1)
+	const currentPageSize = table.getState().pagination.pageSize
+	const pageSizeChoices = [10, 20, 25, 30, 40, 50]
+	const pageSizeOptions = [...pageSizeChoices]
+	if (!pageSizeChoices.includes(currentPageSize)) {
+		pageSizeOptions.push(currentPageSize)
+		pageSizeOptions.sort((a, b) => a - b)
+	}
 
 	return (
 		<div className="flex min-w-0 flex-col gap-3 px-2 py-0 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-y-2">
@@ -49,7 +58,7 @@ export function DataTablePagination<TData>() {
 							<SelectValue placeholder={table.getState().pagination.pageSize} />
 						</SelectTrigger>
 						<SelectContent side="top">
-							{[10, 20, 25, 30, 40, 50].map((pageSize) => (
+							{pageSizeOptions.map((pageSize) => (
 								<SelectItem key={pageSize} value={`${pageSize}`}>
 									{pageSize}
 								</SelectItem>

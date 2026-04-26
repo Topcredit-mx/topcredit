@@ -3,6 +3,7 @@ import {
 	asc,
 	desc,
 	eq,
+	exists,
 	gte,
 	ilike,
 	inArray,
@@ -106,16 +107,61 @@ export async function getUsers(
 		agentsOnly = false,
 	} = params
 
-	const offset = (page - 1) * limit
-
-	let whereCondition: SQL | undefined
+	const predicates: SQL[] = []
 
 	if (search) {
-		whereCondition = or(
+		const searchCond = or(
 			ilike(users.name, `%${search}%`),
 			ilike(users.email, `%${search}%`),
 		)
+		if (searchCond) predicates.push(searchCond)
 	}
+
+	if (agentsOnly) {
+		predicates.push(
+			exists(
+				db
+					.select({ one: sql`1` })
+					.from(userRoles)
+					.where(
+						and(eq(userRoles.userId, users.id), eq(userRoles.role, 'agent')),
+					),
+			),
+		)
+	}
+
+	if (roleFilter) {
+		predicates.push(
+			exists(
+				db
+					.select({ one: sql`1` })
+					.from(userRoles)
+					.where(
+						and(eq(userRoles.userId, users.id), eq(userRoles.role, roleFilter)),
+					),
+			),
+		)
+	}
+
+	const whereCondition =
+		predicates.length === 0
+			? undefined
+			: predicates.length === 1
+				? predicates[0]
+				: and(...predicates)
+
+	const countResult = whereCondition
+		? await db
+				.select({ count: sql<number>`count(*)` })
+				.from(users)
+				.where(whereCondition)
+		: await db.select({ count: sql<number>`count(*)` }).from(users)
+
+	const total = Number(countResult[0]?.count ?? 0)
+	const totalPages = total === 0 ? 0 : Math.ceil(total / limit)
+	const effectivePage =
+		total === 0 ? 1 : Math.min(page, Math.max(1, totalPages))
+	const offset = (effectivePage - 1) * limit
 
 	const allUsers = whereCondition
 		? await db
@@ -131,15 +177,6 @@ export async function getUsers(
 				.limit(limit)
 				.offset(offset)
 				.orderBy(users.name)
-
-	const countResult = whereCondition
-		? await db
-				.select({ count: sql<number>`count(*)` })
-				.from(users)
-				.where(whereCondition)
-		: await db.select({ count: sql<number>`count(*)` }).from(users)
-
-	const total = Number(countResult[0]?.count ?? 0)
 
 	const usersWithRoles: UserWithRoles[] = await Promise.all(
 		allUsers.map(async (user) => {
@@ -167,23 +204,10 @@ export async function getUsers(
 		}),
 	)
 
-	let filteredByType = usersWithRoles
-	if (agentsOnly) {
-		filteredByType = usersWithRoles.filter((user) =>
-			user.roles.includes('agent'),
-		)
-	}
-
-	const filteredUsers = roleFilter
-		? filteredByType.filter((user) => user.roles.includes(roleFilter))
-		: filteredByType
-
-	const totalPages = Math.ceil(total / limit)
-
 	return {
-		items: filteredUsers,
-		total: filteredUsers.length,
-		page,
+		items: usersWithRoles,
+		total,
+		page: effectivePage,
 		limit,
 		totalPages,
 	}
