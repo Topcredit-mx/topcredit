@@ -1,14 +1,19 @@
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
+import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
+	getCompanyById,
 	getInstallmentConfirmationHistory,
 	getPaymentsCollectedAmountSummary,
 	getPaymentsCollectedCountSummary,
 } from '~/server/queries'
-import { getEffectiveCompanyScope } from '~/server/scopes'
+import {
+	getEffectiveCompanyScope,
+	getEffectiveSelectedCompanyId,
+} from '~/server/scopes'
 import { InstallmentsOverview } from '../installments-overview'
 import { InstallmentHistoryTable } from './installment-history-table'
 
@@ -30,11 +35,27 @@ export default async function InstallmentsHistoryPage() {
 
 	const t = await getTranslations('equipo')
 
-	const scope = await getEffectiveCompanyScope()
+	const [scope, selectedCompanyId] = await Promise.all([
+		getEffectiveCompanyScope(),
+		getEffectiveSelectedCompanyId(),
+	])
+	const company =
+		selectedCompanyId !== null ? await getCompanyById(selectedCompanyId) : null
+	const nextDeductionDateStr = company
+		? getUpcomingDeductionDateYmd(company.employeeSalaryFrequency, new Date())
+		: undefined
+	const payPeriodComparison =
+		company !== null && nextDeductionDateStr !== undefined
+			? {
+					upcomingDeductionDateYmd: nextDeductionDateStr,
+					employeeSalaryFrequency: company.employeeSalaryFrequency,
+				}
+			: undefined
+
 	const [historyItems, collectedAmount, collectedCount] = await Promise.all([
 		getInstallmentConfirmationHistory(scope),
-		getPaymentsCollectedAmountSummary(scope),
-		getPaymentsCollectedCountSummary(scope),
+		getPaymentsCollectedAmountSummary(scope, 7, payPeriodComparison),
+		getPaymentsCollectedCountSummary(scope, 7, payPeriodComparison),
 	])
 
 	return (

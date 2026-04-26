@@ -58,16 +58,19 @@ export default async function OverdueDeductionsPage() {
 		)
 	}
 
-	const [overdueDeductions, totalAmount, totalCredits, oldestAge, company] =
+	const company = await getCompanyById(selectedCompanyId)
+	const employeeSalaryFrequency = company?.employeeSalaryFrequency ?? 'monthly'
+
+	const [overdueDeductions, totalAmount, totalCredits, oldestAge] =
 		await Promise.all([
 			getOverdueDeductions(selectedCompanyId),
-			getTotalOverdueAmount(selectedCompanyId),
-			getTotalOverdueCredits(selectedCompanyId),
+			getTotalOverdueAmount(selectedCompanyId, employeeSalaryFrequency),
+			getTotalOverdueCredits(selectedCompanyId, employeeSalaryFrequency),
 			getOldestOverdueAge(selectedCompanyId),
-			getCompanyById(selectedCompanyId),
 		])
 
-	const employeeSalaryFrequency = company?.employeeSalaryFrequency ?? null
+	const employeeSalaryFrequencyForTable =
+		company?.employeeSalaryFrequency ?? null
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
@@ -90,7 +93,7 @@ export default async function OverdueDeductionsPage() {
 			) : (
 				<OverdueDeductionsTable
 					deductions={overdueDeductions}
-					employeeSalaryFrequency={employeeSalaryFrequency}
+					employeeSalaryFrequency={employeeSalaryFrequencyForTable}
 				/>
 			)}
 		</div>

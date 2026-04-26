@@ -73,6 +73,13 @@ export default async function InstallmentsPage() {
 	const nextDeductionDateStr = company
 		? getUpcomingDeductionDateYmd(company.employeeSalaryFrequency, new Date())
 		: undefined
+	const payPeriodComparison =
+		company !== null && nextDeductionDateStr !== undefined
+			? {
+					upcomingDeductionDateYmd: nextDeductionDateStr,
+					employeeSalaryFrequency: company.employeeSalaryFrequency,
+				}
+			: undefined
 
 	const [
 		installments,
@@ -87,8 +94,8 @@ export default async function InstallmentsPage() {
 			upcomingDeductionDate: nextDeductionDateStr,
 		}),
 		getInstallmentConfirmationHistory(scope, 10),
-		getPaymentsCollectedAmountSummary(scope),
-		getPaymentsCollectedCountSummary(scope),
+		getPaymentsCollectedAmountSummary(scope, 7, payPeriodComparison),
+		getPaymentsCollectedCountSummary(scope, 7, payPeriodComparison),
 		getOldestPendingPaymentAgeDays(
 			scope,
 			'installments-queue',
