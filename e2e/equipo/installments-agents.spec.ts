@@ -66,10 +66,10 @@ test.describe('Installments queue', () => {
 				page.getByRole('heading', { name: /resumen de instalaciones/i }),
 			).toBeVisible()
 			await expect(
-				page.getByText(/total cobrado \(7 días\)/i).first(),
+				page.getByText(/total cobrado \(periodo actual\)/i).first(),
 			).toBeVisible()
 			await expect(
-				page.getByText(/instalaciones cobradas \(7 días\)/i).first(),
+				page.getByText(/instalaciones cobradas \(periodo actual\)/i).first(),
 			).toBeVisible()
 			await expect(
 				page
@@ -92,7 +92,7 @@ test.describe('Installments queue', () => {
 			expect(headingBottom).toBeLessThanOrEqual(tableTop + 2)
 		})
 
-		test('shows weekly comparison labels on the collected amount and count cards', async ({
+		test('shows previous-deduction comparison labels on the collected amount and count cards', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/installments')
@@ -100,7 +100,7 @@ test.describe('Installments queue', () => {
 				'[aria-labelledby="installments-overview-heading"]',
 			)
 			await expect(overview).toBeVisible()
-			await expect(overview.getByText(/vs semana anterior/i)).toHaveCount(2)
+			await expect(overview.getByText(/vs deducción anterior/i)).toHaveCount(2)
 		})
 
 		test('shows zero-day oldest pending when the queue uses future due dates', async ({

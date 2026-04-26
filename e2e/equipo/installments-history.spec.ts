@@ -177,10 +177,10 @@ test.describe('Installments confirmation history', () => {
 				page.getByRole('heading', { name: /resumen de instalaciones/i }),
 			).toBeVisible()
 			await expect(
-				page.getByText(/total cobrado \(7 días\)/i).first(),
+				page.getByText(/total cobrado \(periodo actual\)/i).first(),
 			).toBeVisible()
 			await expect(
-				page.getByText(/instalaciones cobradas \(7 días\)/i).first(),
+				page.getByText(/instalaciones cobradas \(periodo actual\)/i).first(),
 			).toBeVisible()
 			await expect(
 				page
@@ -189,7 +189,7 @@ test.describe('Installments confirmation history', () => {
 			).toBeVisible()
 		})
 
-		test('shows weekly comparison on collected metrics on the full history page', async ({
+		test('shows previous-deduction comparison on collected metrics on the full history page', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/installments/history')
@@ -197,7 +197,7 @@ test.describe('Installments confirmation history', () => {
 				'[aria-labelledby="installments-overview-heading"]',
 			)
 			await expect(overview).toBeVisible()
-			await expect(overview.getByText(/vs semana anterior/i)).toHaveCount(2)
+			await expect(overview.getByText(/vs deducción anterior/i)).toHaveCount(2)
 		})
 
 		test('shows an em dash for oldest pending on the history-only screen', async ({

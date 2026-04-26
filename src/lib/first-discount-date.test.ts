@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import {
+	getPastDeductionDate,
+	getPayPeriodComparisonBounds,
 	getUpcomingDeductionDate,
 	getUpcomingDeductionDateYmd,
 	getValidFirstDiscountDates,
@@ -90,6 +92,61 @@ describe('getUpcomingDeductionDateYmd', () => {
 			getUpcomingDeductionDateYmd('monthly', today),
 			getUpcomingDeductionDate('monthly', today).toISOString().slice(0, 10),
 		)
+	})
+})
+
+describe('getPastDeductionDate', () => {
+	test('monthly mid-month returns last month-end', () => {
+		const today = utc(2026, 2, 10) // March 10
+		assert.deepEqual(getPastDeductionDate('monthly', today), utc(2026, 1, 28))
+	})
+
+	test('monthly on month-end returns previous month-end', () => {
+		const today = utc(2026, 2, 31) // March 31
+		assert.deepEqual(getPastDeductionDate('monthly', today), utc(2026, 1, 28))
+	})
+
+	test('bi-monthly before 15th returns previous month-end', () => {
+		const today = utc(2026, 2, 10) // March 10
+		assert.deepEqual(
+			getPastDeductionDate('bi-monthly', today),
+			utc(2026, 1, 28),
+		)
+	})
+
+	test('bi-monthly after 15th returns the 15th of same month', () => {
+		const today = utc(2026, 2, 20) // March 20
+		assert.deepEqual(
+			getPastDeductionDate('bi-monthly', today),
+			utc(2026, 2, 15),
+		)
+	})
+
+	test('bi-monthly on month-end returns the 15th of same month', () => {
+		const today = utc(2026, 2, 31) // March 31
+		assert.deepEqual(
+			getPastDeductionDate('bi-monthly', today),
+			utc(2026, 2, 15),
+		)
+	})
+})
+
+describe('getPayPeriodComparisonBounds', () => {
+	test('monthly aligns current window to day after past deduction', () => {
+		const today = utc(2026, 2, 10) // March 10
+		const b = getPayPeriodComparisonBounds('monthly', today)
+		assert.deepEqual(b.currentStart, utc(2026, 2, 1))
+		assert.equal(b.currentEnd.getTime(), today.getTime())
+		assert.deepEqual(b.previousStart, utc(2026, 1, 1))
+		assert.deepEqual(b.previousEnd, utc(2026, 2, 1))
+	})
+
+	test('bi-monthly mid-first-half uses previous month-end as previous period start anchor', () => {
+		const today = utc(2026, 2, 10) // March 10
+		const b = getPayPeriodComparisonBounds('bi-monthly', today)
+		assert.deepEqual(b.currentStart, utc(2026, 2, 1))
+		assert.deepEqual(b.previousStart, utc(2026, 1, 16))
+		assert.deepEqual(b.previousEnd, utc(2026, 2, 1))
 	})
 })
 

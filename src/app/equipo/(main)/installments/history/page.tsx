@@ -4,11 +4,15 @@ import { Card } from '~/components/ui/card'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
+	getCompanyById,
 	getInstallmentConfirmationHistory,
 	getPaymentsCollectedAmountSummary,
 	getPaymentsCollectedCountSummary,
 } from '~/server/queries'
-import { getEffectiveCompanyScope } from '~/server/scopes'
+import {
+	getEffectiveCompanyScope,
+	getEffectiveSelectedCompanyId,
+} from '~/server/scopes'
 import { InstallmentsOverview } from '../installments-overview'
 import { InstallmentHistoryTable } from './installment-history-table'
 
@@ -30,11 +34,21 @@ export default async function InstallmentsHistoryPage() {
 
 	const t = await getTranslations('equipo')
 
-	const scope = await getEffectiveCompanyScope()
+	const [scope, selectedCompanyId] = await Promise.all([
+		getEffectiveCompanyScope(),
+		getEffectiveSelectedCompanyId(),
+	])
+	const company =
+		selectedCompanyId !== null ? await getCompanyById(selectedCompanyId) : null
+	const payPeriodComparison =
+		company !== null
+			? { employeeSalaryFrequency: company.employeeSalaryFrequency }
+			: undefined
+
 	const [historyItems, collectedAmount, collectedCount] = await Promise.all([
 		getInstallmentConfirmationHistory(scope),
-		getPaymentsCollectedAmountSummary(scope),
-		getPaymentsCollectedCountSummary(scope),
+		getPaymentsCollectedAmountSummary(scope, 7, payPeriodComparison),
+		getPaymentsCollectedCountSummary(scope, 7, payPeriodComparison),
 	])
 
 	return (

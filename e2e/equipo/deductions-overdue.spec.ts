@@ -104,7 +104,7 @@ test.describe('HR overdue deductions list', () => {
 			expect(overviewTop).toBeLessThan(tableTop)
 		})
 
-		test('shows the total overdue amount card with a weekly change badge', async ({
+		test('shows the total overdue amount card with a previous-deduction change badge', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/deductions/overdue')
@@ -113,14 +113,14 @@ test.describe('HR overdue deductions list', () => {
 				overview.getByText(/monto total atrasado/i).first(),
 			).toBeVisible()
 			await expect(
-				overview.getByText(/vs semana anterior/i).first(),
+				overview.getByText(/vs deducción anterior/i).first(),
 			).toBeVisible()
 			await expect(
 				overview.locator('[data-testid="change-badge"]').first(),
 			).toBeVisible()
 		})
 
-		test('shows the total overdue credits card with a weekly change badge', async ({
+		test('shows the total overdue credits card with a previous-deduction change badge', async ({
 			page,
 		}) => {
 			await page.goto('/equipo/deductions/overdue')
@@ -129,7 +129,7 @@ test.describe('HR overdue deductions list', () => {
 				overview.getByText(/créditos atrasados/i).first(),
 			).toBeVisible()
 			await expect(
-				overview.getByText(/vs semana anterior/i).first(),
+				overview.getByText(/vs deducción anterior/i).first(),
 			).toBeVisible()
 		})
 

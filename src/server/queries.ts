@@ -15,7 +15,10 @@ import {
 } from 'drizzle-orm'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
 import { isEquipoScheduleConfirmationOnTime } from '~/lib/equipo-workflow-status'
-import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
+import {
+	getPayPeriodComparisonBounds,
+	getUpcomingDeductionDateYmd,
+} from '~/lib/first-discount-date'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import type { Role } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -1690,6 +1693,28 @@ function rollingWindowBounds(periodDays: number): {
 	return { currentStart, currentEnd, previousStart, previousEnd }
 }
 
+export type PaymentsOverviewPayPeriodComparison = {
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+}
+
+function paymentsCollectedWindowBounds(
+	periodDays: number,
+	payPeriodComparison: PaymentsOverviewPayPeriodComparison | undefined,
+): {
+	currentStart: Date
+	currentEnd: Date
+	previousStart: Date
+	previousEnd: Date
+} {
+	if (payPeriodComparison !== undefined) {
+		return getPayPeriodComparisonBounds(
+			payPeriodComparison.employeeSalaryFrequency,
+			new Date(),
+		)
+	}
+	return rollingWindowBounds(periodDays)
+}
+
 function paymentsOverviewCompanyFilterDrizzle(
 	scope: CompanyScope,
 ): SQL | undefined {
@@ -1725,6 +1750,7 @@ export type PaymentsOverviewPendingScreen =
 export async function getPaymentsCollectedAmountSummary(
 	scope: CompanyScope,
 	periodDays = 7,
+	payPeriodComparison?: PaymentsOverviewPayPeriodComparison,
 ): Promise<{ totalAmount: string; changePercent: number | null }> {
 	const { ability } = await getAbility()
 	if (scope.type === 'single') {
@@ -1741,7 +1767,7 @@ export async function getPaymentsCollectedAmountSummary(
 
 	const companyFilter = paymentsOverviewCompanyFilterDrizzle(scope)
 	const { currentStart, currentEnd, previousStart, previousEnd } =
-		rollingWindowBounds(periodDays)
+		paymentsCollectedWindowBounds(periodDays, payPeriodComparison)
 
 	const windowCurrent = and(
 		isNotNull(creditPayments.installmentConfirmedAt),
@@ -1793,6 +1819,7 @@ export async function getPaymentsCollectedAmountSummary(
 export async function getPaymentsCollectedCountSummary(
 	scope: CompanyScope,
 	periodDays = 7,
+	payPeriodComparison?: PaymentsOverviewPayPeriodComparison,
 ): Promise<{ totalPayments: number; changePercent: number | null }> {
 	const { ability } = await getAbility()
 	if (scope.type === 'single') {
@@ -1809,7 +1836,7 @@ export async function getPaymentsCollectedCountSummary(
 
 	const companyFilter = paymentsOverviewCompanyFilterDrizzle(scope)
 	const { currentStart, currentEnd, previousStart, previousEnd } =
-		rollingWindowBounds(periodDays)
+		paymentsCollectedWindowBounds(periodDays, payPeriodComparison)
 
 	const countWindowCurrent = and(
 		isNotNull(creditPayments.installmentConfirmedAt),
@@ -1937,21 +1964,17 @@ export async function getOldestPendingPaymentAgeDays(
 
 // ---- Overdue deductions overview ----
 
-function overdueCutoffDate(periodDays: number): Date {
-	const cutoff = new Date()
-	cutoff.setUTCDate(cutoff.getUTCDate() - periodDays)
-	cutoff.setUTCHours(0, 0, 0, 0)
-	return cutoff
-}
-
 export async function getTotalOverdueAmount(
 	companyId: number,
-	periodDays = 7,
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly',
 ): Promise<{ totalAmount: string; changePercent: number | null }> {
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
-	const cutoff = overdueCutoffDate(periodDays)
+	const { currentStart: cutoff } = getPayPeriodComparisonBounds(
+		employeeSalaryFrequency,
+		new Date(),
+	)
 
 	const [currentRow, previousRow] = await Promise.all([
 		db
@@ -1998,12 +2021,15 @@ export async function getTotalOverdueAmount(
 
 export async function getTotalOverdueCredits(
 	companyId: number,
-	periodDays = 7,
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly',
 ): Promise<{ totalCredits: number; changePercent: number | null }> {
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
-	const cutoff = overdueCutoffDate(periodDays)
+	const { currentStart: cutoff } = getPayPeriodComparisonBounds(
+		employeeSalaryFrequency,
+		new Date(),
+	)
 
 	const [currentRow, previousRow] = await Promise.all([
 		db

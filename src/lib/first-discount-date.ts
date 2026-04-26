@@ -39,6 +39,77 @@ export function getUpcomingDeductionDateYmd(
 	return getUpcomingDeductionDate(frequency, today).toISOString().slice(0, 10)
 }
 
+/** Strictly previous payroll anchor before `onOrBefore` (same calendar day allowed). */
+function previousPayrollAnchorUtc(
+	frequency: SalaryFrequency,
+	onOrBefore: Date,
+): Date {
+	const y = onOrBefore.getUTCFullYear()
+	const m = onOrBefore.getUTCMonth()
+	const d = onOrBefore.getUTCDate()
+
+	if (frequency === 'monthly') {
+		return lastDayOfMonthUTC(y, m - 1)
+	}
+
+	const eomDay = lastDayOfMonthUTC(y, m).getUTCDate()
+	if (d === 15) {
+		return lastDayOfMonthUTC(y, m - 1)
+	}
+	if (d === eomDay) {
+		return utcDate(y, m, 15)
+	}
+	return lastDayOfMonthUTC(y, m - 1)
+}
+
+/**
+ * Last completed payroll deduction date (UTC calendar day) relative to `today`.
+ * This is the anchor strictly before `getUpcomingDeductionDate(frequency, today)`.
+ */
+export function getPastDeductionDate(
+	frequency: SalaryFrequency,
+	today: Date,
+): Date {
+	const upcoming = getUpcomingDeductionDate(frequency, today)
+	return previousPayrollAnchorUtc(frequency, upcoming)
+}
+
+export type PayPeriodComparisonBounds = {
+	currentStart: Date
+	currentEnd: Date
+	previousStart: Date
+	previousEnd: Date
+}
+
+/**
+ * Half-open UTC windows [start, end) for comparing installment collections
+ * (current pay period vs the previous one), aligned to payroll deduction dates.
+ */
+export function getPayPeriodComparisonBounds(
+	frequency: SalaryFrequency,
+	today: Date,
+): PayPeriodComparisonBounds {
+	const pastDeduction = getPastDeductionDate(frequency, today)
+	const currentStart = new Date(
+		Date.UTC(
+			pastDeduction.getUTCFullYear(),
+			pastDeduction.getUTCMonth(),
+			pastDeduction.getUTCDate() + 1,
+		),
+	)
+	const currentEnd = today
+	const anchorBeforePast = previousPayrollAnchorUtc(frequency, pastDeduction)
+	const previousStart = new Date(
+		Date.UTC(
+			anchorBeforePast.getUTCFullYear(),
+			anchorBeforePast.getUTCMonth(),
+			anchorBeforePast.getUTCDate() + 1,
+		),
+	)
+	const previousEnd = currentStart
+	return { currentStart, currentEnd, previousStart, previousEnd }
+}
+
 export function getValidFirstDiscountDates(
 	frequency: SalaryFrequency,
 	today: Date,
