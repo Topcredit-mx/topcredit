@@ -28,7 +28,7 @@ test.describe('Admin marks long-overdue credit as defaulted from credit detail',
 		await cleanupCreditDefaultAdmin()
 	})
 
-	test('admin always sees the default button; after confirming, status is incobrable and queues no longer list that employee', async ({
+	test('admin always sees the default button; after confirming, status is cartera vencida and queues no longer list that employee', async ({
 		page,
 	}) => {
 		await loginPage(page, creditDefaultAdminAgent.email)
@@ -39,7 +39,7 @@ test.describe('Admin marks long-overdue credit as defaulted from credit detail',
 			page.getByRole('heading', { name: /detalle del crédito/i }),
 		).toBeVisible()
 		await expect(
-			page.getByRole('button', { name: /marcar como incobrable/i }),
+			page.getByRole('button', { name: /marcar cartera vencida/i }),
 		).toBeVisible()
 
 		await page.goto('/equipo/installments/overdue')
@@ -49,20 +49,20 @@ test.describe('Admin marks long-overdue credit as defaulted from credit detail',
 
 		await page.goto(`/equipo/credits/${seed.defaultTargetCreditId}`)
 		const markDefaulted = page.getByRole('button', {
-			name: /marcar como incobrable/i,
+			name: /marcar cartera vencida/i,
 		})
 		await markDefaulted.scrollIntoViewIfNeeded()
 		await markDefaulted.click()
 		const markDialog = page.getByRole('alertdialog', {
-			name: /¿marcar este crédito como incobrable\?/i,
+			name: /¿marcar este crédito en cartera vencida\?/i,
 		})
 		await expect(markDialog).toBeVisible()
 		await markDialog.getByRole('button', { name: /^confirmar$/i }).click()
 		await expect(
-			page.getByText(/crédito marcado como incobrable/i),
+			page.getByText(/crédito marcado en cartera vencida/i),
 		).toBeVisible()
 		await expect(
-			page.getByRole('status').getByText(/incobrable/i),
+			page.getByRole('status').getByText(/cartera vencida/i),
 		).toBeVisible()
 
 		await page.goto('/equipo/installments/overdue')
@@ -82,7 +82,7 @@ test.describe('Admin marks long-overdue credit as defaulted from credit detail',
 		).toBeVisible()
 	})
 
-	test('admin can open the defaulted credits list from the sidebar and see the incobrable row', async ({
+	test('admin can open the defaulted credits list from the sidebar and see the cartera vencida row', async ({
 		page,
 	}) => {
 		await loginPage(page, creditDefaultAdminAgent.email)
@@ -91,11 +91,11 @@ test.describe('Admin marks long-overdue credit as defaulted from credit detail',
 		await expect(
 			page
 				.getByRole('navigation', { name: /administración/i })
-				.getByRole('link', { name: /créditos incobrables/i }),
+				.getByRole('link', { name: /cartera vencida/i }),
 		).toBeVisible()
 		await page.goto('/equipo/credits/defaulted')
 		await expect(
-			page.getByRole('heading', { name: /créditos incobrables/i }).first(),
+			page.getByRole('heading', { name: /cartera vencida/i }).first(),
 		).toBeVisible()
 		await expect(
 			mainDataTable(page)
@@ -116,7 +116,7 @@ test.describe('Admin marks long-overdue credit as defaulted from credit detail',
 			page.getByRole('heading', { name: /detalle del crédito/i }),
 		).toBeVisible()
 		await expect(
-			page.getByRole('button', { name: /marcar como incobrable/i }),
+			page.getByRole('button', { name: /marcar cartera vencida/i }),
 		).toHaveCount(0)
 	})
 
@@ -149,7 +149,7 @@ test.describe('Admin marks long-overdue credit as defaulted from credit detail',
 		await reactivate.scrollIntoViewIfNeeded()
 		await expect(reactivate).toBeVisible()
 		await expect(
-			page.getByRole('button', { name: /marcar como incobrable/i }),
+			page.getByRole('button', { name: /marcar cartera vencida/i }),
 		).toHaveCount(0)
 
 		await reactivate.click()

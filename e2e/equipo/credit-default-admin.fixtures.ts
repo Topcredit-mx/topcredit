@@ -19,7 +19,7 @@ export const creditDefaultInstallmentsAgent = {
 }
 
 export const creditDefaultApplicant = {
-	name: 'Empleado Objetivo Incobrable',
+	name: 'Empleado Objetivo Cartera Vencida',
 	email: 'applicant@credit-default-admin.e2e',
 	roles: ['applicant'] as const,
 }

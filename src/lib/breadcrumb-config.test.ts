@@ -41,7 +41,7 @@ describe('getEquipoBreadcrumbSegments - deductions', () => {
 })
 
 describe('getEquipoBreadcrumbSegments - credits defaulted', () => {
-	test('credits/defaulted shows Home > Créditos > Créditos incobrables', () => {
+	test('credits/defaulted shows Home > Créditos > Cartera vencida', () => {
 		const segments = getEquipoBreadcrumbSegments(
 			`${base}/credits/defaulted`,
 			{},
