@@ -5,7 +5,7 @@ import {
 	seedCreditDefaultAdmin,
 } from '~/e2e/server/tasks'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
-import { findTableRow } from '../helpers/interactions'
+import { findTableRow, mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import {
 	creditDefaultAdminAgent,
@@ -48,13 +48,16 @@ test.describe('Admin marks long-overdue credit as defaulted from credit detail',
 		).toBeVisible()
 
 		await page.goto(`/equipo/credits/${seed.defaultTargetCreditId}`)
-		await page.getByRole('button', { name: /marcar como incobrable/i }).click()
-		await expect(
-			page.getByRole('heading', {
-				name: /¿marcar este crédito como incobrable\?/i,
-			}),
-		).toBeVisible()
-		await page.getByRole('button', { name: /^confirmar$/i }).click()
+		const markDefaulted = page.getByRole('button', {
+			name: /marcar como incobrable/i,
+		})
+		await markDefaulted.scrollIntoViewIfNeeded()
+		await markDefaulted.click()
+		const markDialog = page.getByRole('alertdialog', {
+			name: /¿marcar este crédito como incobrable\?/i,
+		})
+		await expect(markDialog).toBeVisible()
+		await markDialog.getByRole('button', { name: /^confirmar$/i }).click()
 		await expect(
 			page.getByText(/crédito marcado como incobrable/i),
 		).toBeVisible()
@@ -76,6 +79,30 @@ test.describe('Admin marks long-overdue credit as defaulted from credit detail',
 		).toHaveCount(0)
 		await expect(
 			findTableRow(page, seed.otherOverdueApplicantName),
+		).toBeVisible()
+	})
+
+	test('admin can open the defaulted credits list from the sidebar and see the incobrable row', async ({
+		page,
+	}) => {
+		await loginPage(page, creditDefaultAdminAgent.email)
+		await setSelectedCompanyId(page, seed.companyId)
+		await page.goto('/equipo')
+		await expect(
+			page
+				.getByRole('navigation', { name: /administración/i })
+				.getByRole('link', { name: /créditos incobrables/i }),
+		).toBeVisible()
+		await page.goto('/equipo/credits/defaulted')
+		await expect(
+			page.getByRole('heading', { name: /créditos incobrables/i }).first(),
+		).toBeVisible()
+		await expect(
+			mainDataTable(page)
+				.getByRole('row', {
+					name: new RegExp(seed.defaultTargetApplicantName, 'i'),
+				})
+				.first(),
 		).toBeVisible()
 	})
 
@@ -118,20 +145,19 @@ test.describe('Admin marks long-overdue credit as defaulted from credit detail',
 		await expect(
 			page.getByRole('heading', { name: /zona de riesgo/i }),
 		).toBeVisible()
-		await expect(
-			page.getByRole('button', { name: /reactivar crédito/i }),
-		).toBeVisible()
+		const reactivate = page.getByRole('button', { name: /reactivar crédito/i })
+		await reactivate.scrollIntoViewIfNeeded()
+		await expect(reactivate).toBeVisible()
 		await expect(
 			page.getByRole('button', { name: /marcar como incobrable/i }),
 		).toHaveCount(0)
 
-		await page.getByRole('button', { name: /reactivar crédito/i }).click()
-		await expect(
-			page.getByRole('heading', {
-				name: /¿reactivar este crédito como dispersado\?/i,
-			}),
-		).toBeVisible()
-		await page.getByRole('button', { name: /^reactivar$/i }).click()
+		await reactivate.click()
+		const restoreDialog = page.getByRole('alertdialog', {
+			name: /¿reactivar este crédito como dispersado\?/i,
+		})
+		await expect(restoreDialog).toBeVisible()
+		await restoreDialog.getByRole('button', { name: /^reactivar$/i }).click()
 		await expect(
 			page.getByText(/crédito reactivado \(dispersado\)/i),
 		).toBeVisible()

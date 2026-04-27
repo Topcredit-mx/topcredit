@@ -1397,6 +1397,30 @@ export async function getCreditsForEquipo(
 		.orderBy(desc(credits.disbursementDate))
 }
 
+export async function getDefaultedCreditsForEquipo(
+	companyId: number,
+): Promise<CreditForList[]> {
+	return db
+		.select({
+			id: credits.id,
+			status: credits.status,
+			transferAmount: credits.transferAmount,
+			disbursementDate: credits.disbursementDate,
+			employeeName: users.name,
+			payrollNumber: applications.payrollNumber,
+		})
+		.from(credits)
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.innerJoin(users, eq(applications.applicantId, users.id))
+		.where(
+			and(
+				eq(applications.companyId, companyId),
+				eq(credits.status, 'defaulted'),
+			),
+		)
+		.orderBy(desc(credits.disbursementDate))
+}
+
 export async function getCreditDetailForEquipo(
 	creditId: number,
 	companyId: number,
