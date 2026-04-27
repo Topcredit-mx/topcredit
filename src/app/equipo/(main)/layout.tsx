@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { AgentNoAssignmentsEmpty } from '~/components/app/agent-no-assignments-empty'
 import { AgentSidebar } from '~/components/app/agent-sidebar'
+import { EquipoGlobalSearchDialog } from '~/components/app/equipo-global-search-dialog'
 import { BreadcrumbNav } from '~/components/breadcrumb-nav'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { getRequiredAgentUser } from '~/server/auth/session'
@@ -58,9 +59,12 @@ export default async function AppMainLayout({
 			/>
 			<main className="flex min-w-0 flex-1 flex-col">
 				<header className="border-b">
-					<div className="flex h-14 min-h-14 items-center gap-4 px-6">
-						<SidebarTrigger />
-						<BreadcrumbNav scope="equipo" />
+					<div className="flex h-14 min-h-14 items-center justify-between gap-4 px-6">
+						<div className="flex min-w-0 items-center gap-4">
+							<SidebarTrigger />
+							<BreadcrumbNav scope="equipo" />
+						</div>
+						{!showNoAssignmentsEmpty ? <EquipoGlobalSearchDialog /> : null}
 					</div>
 				</header>
 				<div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-gray-50 px-8 pt-0 pb-8">

@@ -18,7 +18,14 @@ export const creditDetailStatesApplicant = {
 	roles: ['applicant'] as const,
 }
 
+export const creditDetailStatesPendingOnlyApplicant = {
+	name: 'Pending Only Credit States',
+	email: 'pending.only@credit-detail-states.e2e',
+	roles: ['applicant'] as const,
+}
+
 export const allCreditDetailStatesUsers = [
 	creditDetailStatesHrAgent,
 	creditDetailStatesApplicant,
+	creditDetailStatesPendingOnlyApplicant,
 ]
