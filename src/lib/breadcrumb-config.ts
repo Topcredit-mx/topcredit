@@ -1,3 +1,8 @@
+import {
+	type EquipoApplicationQueueSlug,
+	isEquipoApplicationQueueSlug,
+} from '~/lib/equipo-application-queues'
+
 export const BREADCRUMB_LABEL_KEYS = [
 	'cuenta-home',
 	'cuenta-applications',
@@ -6,6 +11,11 @@ export const BREADCRUMB_LABEL_KEYS = [
 	'cuenta-credits',
 	'equipo-home',
 	'equipo-applications',
+	'equipo-queue-solicitudes',
+	'equipo-queue-pre-autorizaciones',
+	'equipo-queue-autorizaciones',
+	'equipo-queue-solicitudes-rh',
+	'equipo-queue-dispersiones',
 	'equipo-applications-detail',
 	'equipo-companies',
 	'equipo-companies-new',
@@ -27,6 +37,17 @@ export type BreadcrumbLabelKey = (typeof BREADCRUMB_LABEL_KEYS)[number]
 export type BreadcrumbSegment = { href: string; labelKey: BreadcrumbLabelKey }
 
 type Params = { id?: string; domain?: string }
+
+const EQUIPO_QUEUE_BREADCRUMB_KEY: Record<
+	EquipoApplicationQueueSlug,
+	BreadcrumbLabelKey
+> = {
+	solicitudes: 'equipo-queue-solicitudes',
+	'pre-autorizaciones': 'equipo-queue-pre-autorizaciones',
+	autorizaciones: 'equipo-queue-autorizaciones',
+	'solicitudes-rh': 'equipo-queue-solicitudes-rh',
+	dispersiones: 'equipo-queue-dispersiones',
+}
 
 export function getCuentaBreadcrumbSegments(
 	pathname: string,
@@ -86,6 +107,37 @@ export function getEquipoBreadcrumbSegments(
 			{ href: `${base}/applications`, labelKey: 'equipo-applications' },
 		]
 	}
+
+	const queuesPrefix = `${base}/applications/queues/`
+	if (pathname.startsWith(queuesPrefix)) {
+		const rest = pathname.slice(queuesPrefix.length)
+		const parts = rest.split('/').filter(Boolean)
+		const queueSlug = parts[0]
+		const detailId = parts[1]
+		if (
+			queueSlug !== undefined &&
+			isEquipoApplicationQueueSlug(queueSlug) &&
+			(detailId === undefined || detailId === params.id)
+		) {
+			const listHref = `${queuesPrefix}${queueSlug}`
+			const queueKey = EQUIPO_QUEUE_BREADCRUMB_KEY[queueSlug]
+			if (detailId !== undefined && params.id === detailId) {
+				return [
+					{ href: base, labelKey: 'equipo-home' },
+					{ href: listHref, labelKey: queueKey },
+					{
+						href: `${listHref}/${detailId}`,
+						labelKey: 'equipo-applications-detail',
+					},
+				]
+			}
+			return [
+				{ href: base, labelKey: 'equipo-home' },
+				{ href: listHref, labelKey: queueKey },
+			]
+		}
+	}
+
 	const appId = params.id
 	if (appId && pathname === `${base}/applications/${appId}`) {
 		return [

@@ -35,8 +35,16 @@ export function BreadcrumbNav({ scope }: { scope: BreadcrumbScope }) {
 	const params = useParams()
 	const t = useTranslations('breadcrumbs')
 
+	const rawId = params.id
+	const idParam =
+		typeof rawId === 'string'
+			? rawId
+			: Array.isArray(rawId) && rawId.length > 0 && typeof rawId[0] === 'string'
+				? rawId[0]
+				: undefined
+
 	const segments = getSegments(scope, pathname, {
-		id: typeof params.id === 'string' ? params.id : undefined,
+		id: idParam,
 		domain: typeof params.domain === 'string' ? params.domain : undefined,
 	})
 
