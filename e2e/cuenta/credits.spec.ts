@@ -67,9 +67,10 @@ test.describe('Applicant views active credits', () => {
 		const expectedNextPaymentLabel = formatMxBusinessDate(
 			`${nextDueYmd}T12:00:00.000Z`,
 		)
-		await expect(
-			activeTable.getByText(expectedNextPaymentLabel, { exact: true }),
-		).toBeVisible()
+		const disbursedRow = activeTable
+			.getByRole('row')
+			.filter({ has: page.getByRole('link', { name: '$50,000.00' }) })
+		await expect(disbursedRow.getByText(expectedNextPaymentLabel)).toBeVisible()
 
 		await expect(activeTable.getByText(/^Dispersado$/i)).toBeVisible()
 		await expect(completedTable.getByText(/^Liquidado$/i)).toBeVisible()
