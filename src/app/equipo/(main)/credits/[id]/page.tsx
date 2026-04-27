@@ -35,7 +35,7 @@ import {
 	EQUIPO_DETAIL_STAT_CARD_CLASS,
 	EQUIPO_DETAIL_STAT_CONTENT_CLASS,
 } from '../../detail-layout-classes'
-import { CreditDefaultAdminButton } from './credit-default-admin-button'
+import { CreditAdminDangerZone } from './credit-admin-danger-zone'
 import { CreditPaymentsTable } from './credit-payments-table'
 
 function creditStatusBadgeVariant(
@@ -175,7 +175,6 @@ export default async function EquipoCreditDetailPage({
 								{t('credit-detail-related-application')}
 							</Link>
 						</Button>
-						{isAdmin ? <CreditDefaultAdminButton creditId={credit.id} /> : null}
 					</div>
 				</CardHeader>
 				<CardContent
@@ -258,6 +257,13 @@ export default async function EquipoCreditDetailPage({
 					</p>
 				)}
 			</section>
+
+			{isAdmin ? (
+				<CreditAdminDangerZone
+					creditId={credit.id}
+					creditStatus={credit.status}
+				/>
+			) : null}
 		</section>
 	)
 }

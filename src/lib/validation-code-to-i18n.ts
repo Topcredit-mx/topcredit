@@ -347,6 +347,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'CREDIT_DEFAULTED_PAYMENT_ACTION_BLOCKED',
 	},
+	[ValidationCode.CREDIT_RESTORE_NOT_DEFAULTED]: {
+		namespace: 'equipo',
+		key: 'CREDIT_RESTORE_NOT_DEFAULTED',
+	},
 }
 
 function isValidationCode(s: string): s is ValidationCodeType {

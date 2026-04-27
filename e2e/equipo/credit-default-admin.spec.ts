@@ -108,4 +108,35 @@ test.describe('Admin marks long-overdue credit as defaulted from credit detail',
 				.getByText(new RegExp(seed.defaultTargetApplicantName, 'i')),
 		).toHaveCount(0)
 	})
+
+	test('admin sees danger zone at bottom and can reactivate a defaulted credit to dispersed', async ({
+		page,
+	}) => {
+		await loginPage(page, creditDefaultAdminAgent.email)
+		await setSelectedCompanyId(page, seed.companyId)
+		await page.goto(`/equipo/credits/${seed.defaultTargetCreditId}`)
+		await expect(
+			page.getByRole('heading', { name: /zona de riesgo/i }),
+		).toBeVisible()
+		await expect(
+			page.getByRole('button', { name: /reactivar crédito/i }),
+		).toBeVisible()
+		await expect(
+			page.getByRole('button', { name: /marcar como incobrable/i }),
+		).toHaveCount(0)
+
+		await page.getByRole('button', { name: /reactivar crédito/i }).click()
+		await expect(
+			page.getByRole('heading', {
+				name: /¿reactivar este crédito como dispersado\?/i,
+			}),
+		).toBeVisible()
+		await page.getByRole('button', { name: /^reactivar$/i }).click()
+		await expect(
+			page.getByText(/crédito reactivado \(dispersado\)/i),
+		).toBeVisible()
+		await expect(
+			page.getByRole('status').getByText(/dispersado/i),
+		).toBeVisible()
+	})
 })

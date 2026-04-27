@@ -1151,6 +1151,44 @@ export async function defaultCreditAsAdmin(
 	return { defaulted: true }
 }
 
+export async function restoreCreditFromDefaultAsAdmin(
+	creditId: number,
+): Promise<{ error?: string; restored?: true }> {
+	const { isAdmin } = await getAbility()
+	if (!isAdmin) {
+		return { error: ValidationCode.CREDIT_DEFAULT_ADMIN_ONLY }
+	}
+
+	const [creditRow] = await db
+		.select({ status: credits.status })
+		.from(credits)
+		.where(eq(credits.id, creditId))
+		.limit(1)
+
+	if (!creditRow) {
+		return { error: ValidationCode.CREDIT_NOT_FOUND }
+	}
+	if (creditRow.status !== 'defaulted') {
+		return { error: ValidationCode.CREDIT_RESTORE_NOT_DEFAULTED }
+	}
+
+	const now = new Date()
+	await db
+		.update(credits)
+		.set({ status: 'dispersed', updatedAt: now })
+		.where(eq(credits.id, creditId))
+
+	revalidatePath('/equipo')
+	revalidatePath('/equipo/deductions')
+	revalidatePath('/equipo/deductions/overdue')
+	revalidatePath('/equipo/installments')
+	revalidatePath('/equipo/installments/overdue')
+	revalidatePath('/equipo/credits')
+	revalidatePath(`/equipo/credits/${creditId}`)
+	revalidatePath('/cuenta/credits')
+	return { restored: true }
+}
+
 type PaymentWithContext = {
 	paymentId: number
 	hrConfirmedAt: Date | null
