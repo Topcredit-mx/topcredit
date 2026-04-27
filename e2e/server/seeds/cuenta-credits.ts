@@ -172,11 +172,14 @@ async function seedCuentaCreditsBase(
 			frequency: 'monthly',
 			firstDiscountDate,
 		})
-		const secondDue = schedule[1]
-		if (secondDue === undefined) {
-			throw new Error('Seed Credits: expected second schedule installment')
+		// nextDueDate in list query = earliest payment with installmentConfirmedAt null (rows 0–1 confirmed).
+		const firstPendingDue = schedule[2]
+		if (firstPendingDue === undefined) {
+			throw new Error(
+				'Seed Credits: expected third schedule installment (first pending)',
+			)
 		}
-		nextDisbursedPaymentDueIso = secondDue.dueDate.toISOString()
+		nextDisbursedPaymentDueIso = firstPendingDue.dueDate.toISOString()
 
 		// Rows 0–1: Fully confirmed ("Confirmado")
 		// Row 2: HR confirmed only ("En proceso" to applicant)
