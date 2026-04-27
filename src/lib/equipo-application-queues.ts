@@ -1,4 +1,3 @@
-import { revalidatePath } from 'next/cache'
 import type { ApplicationStatus } from '~/server/db/schema'
 
 export const EQUIPO_APPLICATION_QUEUE_SLUGS = [
@@ -102,16 +101,4 @@ export const EQUIPO_QUEUE_LIST_QUERY: Record<
 		hrPending: undefined,
 		disbursementPending: true,
 	},
-}
-
-const LIST_PATHS = Object.values(EQUIPO_QUEUE_LIST_PATH)
-
-export function revalidateAllEquipoApplicationViews(applicationId: number) {
-	for (const base of LIST_PATHS) {
-		revalidatePath(base)
-		revalidatePath(`${base}/${String(applicationId)}`)
-	}
-	revalidatePath(`/equipo/applications/${String(applicationId)}`)
-	revalidatePath('/equipo/applications')
-	revalidatePath(QUEUES_BASE)
 }

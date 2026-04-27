@@ -25,7 +25,7 @@ import { creditHasLongOverdueForAdminDefault } from '~/lib/credit-admin-default'
 import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
-import { revalidateAllEquipoApplicationViews } from '~/lib/equipo-application-queues'
+import { revalidateAllEquipoApplicationViews } from '~/lib/equipo-application-queues-revalidate'
 import {
 	allInstallmentsFullyConfirmed,
 	canConfirmInstallment,
