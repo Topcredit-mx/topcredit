@@ -5,7 +5,6 @@ import {
 	seedCuentaCredits,
 	seedCuentaCreditsEmpty,
 } from '~/e2e/server/tasks'
-import { formatMxBusinessDate } from '~/lib/format-mx-business-date'
 import { loginPage } from '../helpers/auth'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import { creditsApplicant, creditsOtherApplicant } from './credits.fixtures'
@@ -60,13 +59,19 @@ test.describe('Applicant views active credits', () => {
 			})
 			.locator('table')
 
-		const nextDueYmd = seedResult.nextDisbursedPaymentDueYmd
-		if (nextDueYmd === null) {
-			throw new Error('seed must expose next disbursed payment due YMD')
+		const nextDueIso = seedResult.nextDisbursedPaymentDueIso
+		if (nextDueIso === null) {
+			throw new Error('seed must expose next disbursed payment due instant')
 		}
-		const expectedNextPaymentLabel = formatMxBusinessDate(
-			`${nextDueYmd}T12:00:00.000Z`,
-		)
+		const expectedNextPaymentLabel = await page.evaluate((iso) => {
+			const d = new Date(iso)
+			return d.toLocaleDateString('es-MX', {
+				timeZone: 'America/Mexico_City',
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric',
+			})
+		}, nextDueIso)
 		const disbursedRow = activeTable
 			.getByRole('row')
 			.filter({ has: page.getByRole('link', { name: '$50,000.00' }) })

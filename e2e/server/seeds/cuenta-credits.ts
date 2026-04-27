@@ -5,7 +5,6 @@ import {
 	creditsCompany,
 	creditsOtherApplicant,
 } from '~/e2e/cuenta/credits.fixtures'
-import { calendarYmdInMexicoCity } from '~/lib/calendar-date-tz'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
 	applicationStatusHistory,
@@ -38,7 +37,7 @@ export type SeedCuentaCreditsResult = {
 	confirmedPaymentRowIndex: number
 	processingPaymentRowIndex: number
 	pendingPaymentRowIndex: number
-	nextDisbursedPaymentDueYmd: string | null
+	nextDisbursedPaymentDueIso: string | null
 }
 
 async function seedCuentaCreditsBase(
@@ -149,7 +148,7 @@ async function seedCuentaCreditsBase(
 
 	let creditId: number | null = null
 	let settledCreditId: number | null = null
-	let nextDisbursedPaymentDueYmd: string | null = null
+	let nextDisbursedPaymentDueIso: string | null = null
 	const settledCreditAmount = '30000.00'
 	if (withCredit) {
 		const [credit] = await db
@@ -177,7 +176,7 @@ async function seedCuentaCreditsBase(
 		if (secondDue === undefined) {
 			throw new Error('Seed Credits: expected second schedule installment')
 		}
-		nextDisbursedPaymentDueYmd = calendarYmdInMexicoCity(secondDue.dueDate)
+		nextDisbursedPaymentDueIso = secondDue.dueDate.toISOString()
 
 		// Rows 0–1: Fully confirmed ("Confirmado")
 		// Row 2: HR confirmed only ("En proceso" to applicant)
@@ -276,7 +275,7 @@ async function seedCuentaCreditsBase(
 		confirmedPaymentRowIndex: 0,
 		processingPaymentRowIndex: 2,
 		pendingPaymentRowIndex: 3,
-		nextDisbursedPaymentDueYmd,
+		nextDisbursedPaymentDueIso,
 	}
 }
 
