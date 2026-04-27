@@ -75,7 +75,11 @@ test.describe('Applicant views active credits', () => {
 		const disbursedRow = activeTable
 			.getByRole('row')
 			.filter({ has: page.getByRole('link', { name: '$50,000.00' }) })
-		await expect(disbursedRow.getByText(expectedNextPaymentLabel)).toBeVisible()
+		const visibleNextPaymentDate = disbursedRow
+			.locator('span[aria-hidden="true"]')
+			.locator('> span.whitespace-nowrap')
+			.first()
+		await expect(visibleNextPaymentDate).toHaveText(expectedNextPaymentLabel)
 
 		await expect(activeTable.getByText(/^Dispersado$/i)).toBeVisible()
 		await expect(completedTable.getByText(/^Liquidado$/i)).toBeVisible()
