@@ -1,7 +1,6 @@
 'use client'
 
 import {
-	Ban,
 	Banknote,
 	Building2,
 	CalendarClock,
@@ -71,7 +70,7 @@ export function AgentSidebar({
 				{
 					title: t('nav-admin-credits-defaulted'),
 					url: '/equipo/credits/defaulted',
-					icon: Ban,
+					icon: Wallet,
 				},
 			]
 		: []
