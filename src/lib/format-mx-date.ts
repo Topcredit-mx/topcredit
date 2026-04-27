@@ -28,14 +28,14 @@ function toDate(value: Date | string): Date {
 	return value
 }
 
-export type FormatMxBusinessDateOptions = {
+export type FormatMxDateOptions = {
 	/** Default `short` (e.g. may); use `long` for full month names in labels. */
 	month?: 'short' | 'long'
 }
 
-export function formatMxBusinessDate(
+export function formatMxDate(
 	value: Date | string,
-	options?: FormatMxBusinessDateOptions,
+	options?: FormatMxDateOptions,
 ): string {
 	const month = options?.month ?? 'short'
 	const intlOptions: Intl.DateTimeFormatOptions = {

@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useActionState } from 'react'
 import { Button } from '~/components/ui/button'
-import { formatMxBusinessDate } from '~/lib/format-mx-business-date'
+import { formatMxDate } from '~/lib/format-mx-date'
 import {
 	getResolvedError,
 	useResolveValidationError,
@@ -51,7 +51,7 @@ export function HrApproveForm({
 				>
 					{validDates.map((d) => (
 						<option key={d} value={d}>
-							{formatMxBusinessDate(d, { month: 'long' })}
+							{formatMxDate(d, { month: 'long' })}
 						</option>
 					))}
 				</select>

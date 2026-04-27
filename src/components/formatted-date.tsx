@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
-import { formatMxBusinessDate } from '~/lib/format-mx-business-date'
+import { formatMxDate } from '~/lib/format-mx-date'
 
 const LOCALE = 'es-MX'
 
@@ -52,7 +52,7 @@ function formatDate(
 	kind: 'date' | 'datetime' | 'datetime-short',
 ): string {
 	if (kind === 'date') {
-		return formatMxBusinessDate(value)
+		return formatMxDate(value)
 	}
 	const date = toDate(value)
 	if (kind === 'datetime') {
