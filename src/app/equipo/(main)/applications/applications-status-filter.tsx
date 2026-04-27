@@ -21,18 +21,20 @@ export type ApplicationsStatusFilterLabels = {
 export function ApplicationsStatusFilter({
 	currentStatus,
 	labels,
+	listBasePath,
 }: {
 	currentStatus: ApplicationStatus | undefined
 	labels: ApplicationsStatusFilterLabels
+	listBasePath: string
 }) {
 	const router = useRouter()
 	const value = currentStatus ?? ALL_VALUE
 
 	function onValueChange(val: string) {
 		if (val === ALL_VALUE) {
-			router.push('/equipo/applications')
+			router.push(listBasePath)
 		} else {
-			router.push(`/equipo/applications?status=${encodeURIComponent(val)}`)
+			router.push(`${listBasePath}?status=${encodeURIComponent(val)}`)
 		}
 	}
 

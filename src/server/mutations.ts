@@ -25,6 +25,7 @@ import { creditHasLongOverdueForAdminDefault } from '~/lib/credit-admin-default'
 import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
+import { revalidateAllEquipoApplicationViews } from '~/lib/equipo-application-queues'
 import {
 	allInstallmentsFullyConfirmed,
 	canConfirmInstallment,
@@ -385,8 +386,7 @@ export async function applyApplicationDocumentDecisions(
 		if (followUpResult.error != null) {
 			return { error: followUpResult.error }
 		}
-		revalidatePath('/equipo/applications')
-		revalidatePath(`/equipo/applications/${applicationId}`)
+		revalidateAllEquipoApplicationViews(applicationId)
 		revalidatePath('/cuenta/applications')
 		revalidatePath(`/cuenta/applications/${applicationId}`)
 		return {}
@@ -552,8 +552,7 @@ export async function applyApplicationDocumentDecisions(
 		}
 	}
 
-	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${applicationId}`)
+	revalidateAllEquipoApplicationViews(applicationId)
 	revalidatePath('/cuenta/applications')
 	revalidatePath(`/cuenta/applications/${applicationId}`)
 	return {}
@@ -745,8 +744,7 @@ export async function preAuthorizeApplication(payload: unknown): Promise<{
 
 	await sendApplicationStatusEmail(data.applicationId, 'pre-authorized')
 
-	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${data.applicationId}`)
+	revalidateAllEquipoApplicationViews(data.applicationId)
 	revalidatePath('/cuenta/applications')
 	revalidatePath(`/cuenta/applications/${data.applicationId}`)
 	return {}
@@ -819,8 +817,7 @@ export async function submitApplicationForAuthorizationReview(
 
 	await sendApplicationStatusEmail(applicationId, 'awaiting-authorization')
 
-	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${applicationId}`)
+	revalidateAllEquipoApplicationViews(applicationId)
 	revalidatePath('/cuenta/applications')
 	revalidatePath(`/cuenta/applications/${applicationId}`)
 	return {}
@@ -900,8 +897,7 @@ export async function updateApplicationStatus(
 
 	await sendApplicationStatusEmail(applicationId, data.status)
 
-	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${applicationId}`)
+	revalidateAllEquipoApplicationViews(applicationId)
 	revalidatePath('/cuenta/applications')
 	revalidatePath(`/cuenta/applications/${applicationId}`)
 	return {}
@@ -975,8 +971,7 @@ export async function hrApproveApplication(payload: {
 		})
 		.where(eq(applications.id, applicationId))
 
-	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${applicationId}`)
+	revalidateAllEquipoApplicationViews(applicationId)
 	revalidatePath('/cuenta/applications')
 	revalidatePath(`/cuenta/applications/${applicationId}`)
 	return {}
@@ -1090,8 +1085,7 @@ export async function disburseApplication(payload: {
 		}
 	}
 
-	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${applicationId}`)
+	revalidateAllEquipoApplicationViews(applicationId)
 	revalidatePath('/cuenta/applications')
 	revalidatePath(`/cuenta/applications/${applicationId}`)
 	revalidatePath('/cuenta/credits')

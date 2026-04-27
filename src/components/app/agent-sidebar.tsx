@@ -82,7 +82,7 @@ export function AgentSidebar({
 			? [
 					{
 						title: t('nav-requests'),
-						url: '/equipo/applications?status=pending',
+						url: '/equipo/applications/queues/solicitudes',
 						icon: FileText,
 					},
 				]
@@ -91,7 +91,7 @@ export function AgentSidebar({
 			? [
 					{
 						title: t('nav-pre-authorizations'),
-						url: '/equipo/applications?status=approved',
+						url: '/equipo/applications/queues/pre-autorizaciones',
 						icon: CheckSquare,
 					},
 				]
@@ -100,7 +100,7 @@ export function AgentSidebar({
 			? [
 					{
 						title: t('nav-authorizations'),
-						url: '/equipo/applications?status=awaiting-authorization',
+						url: '/equipo/applications/queues/autorizaciones',
 						icon: ShieldCheck,
 					},
 				]
@@ -109,7 +109,7 @@ export function AgentSidebar({
 			? [
 					{
 						title: t('nav-hr'),
-						url: '/equipo/applications?status=authorized&hrPending=true',
+						url: '/equipo/applications/queues/solicitudes-rh',
 						icon: UserCheck,
 					},
 					{
@@ -176,7 +176,7 @@ export function AgentSidebar({
 			? [
 					{
 						title: t('nav-dispersions'),
-						url: '/equipo/applications?status=authorized&disbursementPending=true',
+						url: '/equipo/applications/queues/dispersiones',
 						icon: Banknote,
 					},
 				]

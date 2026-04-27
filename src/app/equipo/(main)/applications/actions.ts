@@ -1,6 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
 	isApplicationStatus,
@@ -55,10 +54,6 @@ export async function preAuthorizeApplicationFormAction(
 	if (result.error) {
 		return { error: result.error, errorValues: result.errorValues }
 	}
-	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${applicationId}`)
-	revalidatePath('/cuenta/applications')
-	revalidatePath(`/cuenta/applications/${applicationId}`)
 	redirect(`/equipo/applications/${applicationId}`)
 }
 
@@ -77,10 +72,6 @@ export async function updateApplicationStatusFormAction(
 	if (result.error) {
 		return { error: result.error }
 	}
-	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${applicationId}`)
-	revalidatePath('/cuenta/applications')
-	revalidatePath(`/cuenta/applications/${applicationId}`)
 	redirect(`/equipo/applications/${applicationId}`)
 }
 
@@ -106,10 +97,6 @@ export async function updateApplicationStatusWithReasonFormAction(
 	if (result.error) {
 		return { error: result.error }
 	}
-	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${applicationId}`)
-	revalidatePath('/cuenta/applications')
-	revalidatePath(`/cuenta/applications/${applicationId}`)
 	redirect(`/equipo/applications/${applicationId}`)
 }
 
@@ -131,10 +118,6 @@ export async function hrApproveApplicationFormAction(
 	if (result.error) {
 		return { error: result.error }
 	}
-	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${applicationId}`)
-	revalidatePath('/cuenta/applications')
-	revalidatePath(`/cuenta/applications/${applicationId}`)
 	redirect(`/equipo/applications/${applicationId}`)
 }
 
@@ -161,9 +144,5 @@ export async function disburseApplicationFormAction(
 	if (result.error) {
 		return { error: result.error }
 	}
-	revalidatePath('/equipo/applications')
-	revalidatePath(`/equipo/applications/${applicationId}`)
-	revalidatePath('/cuenta/applications')
-	revalidatePath(`/cuenta/applications/${applicationId}`)
 	redirect(`/equipo/applications/${applicationId}`)
 }

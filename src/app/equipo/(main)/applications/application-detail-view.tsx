@@ -1,0 +1,482 @@
+import {
+	AlertCircle,
+	Banknote,
+	CalendarClock,
+	CalendarDays,
+	Clock,
+	FileText,
+	FolderOpen,
+	Receipt,
+	User,
+	Wallet,
+} from 'lucide-react'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
+import { ApplicationStatusHistoryCard } from '~/components/application-status-history'
+import { FormattedDate } from '~/components/formatted-date'
+import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { filterToLatestDocumentsPerType } from '~/lib/application-document-intake'
+import { canTransitionApplicationFrom } from '~/lib/application-rules'
+import { EQUIPO_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
+import {
+	isAuthorizationPackageFullyApproved,
+	isInitialIntakeFullyApproved,
+} from '~/lib/authorization-package-readiness'
+import { ymdForDeductionSchedule } from '~/lib/calendar-date-tz'
+import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
+import {
+	getUpcomingDeductionDateYmd,
+	getValidFirstDiscountDates,
+} from '~/lib/first-discount-date'
+import { formatCurrencyMxn } from '~/lib/utils'
+import { getAbility, subject } from '~/server/auth/ability'
+import type { ApplicationStatus } from '~/server/db/schema'
+import {
+	getApplicationDocuments,
+	getApplicationForReview,
+	getTermOfferingsForCompany,
+} from '~/server/queries'
+import { getEffectiveCompanyScope } from '~/server/scopes'
+import {
+	EQUIPO_DETAIL_CARD_CLASS,
+	EQUIPO_DETAIL_CARD_CONTENT_CLASS,
+	EQUIPO_DETAIL_CARD_HEADER_CLASS,
+	EQUIPO_DETAIL_STAT_CARD_CLASS,
+	EQUIPO_DETAIL_STAT_CONTENT_CLASS,
+} from '../detail-layout-classes'
+import { ApplicationActions } from './application-actions'
+import { ApplicationDocumentsReviewForm } from './application-documents-review-form'
+import { formatApplicationTerm } from './constants'
+import { DisburseForm } from './disburse-form'
+import { HrApproveForm } from './hr-approve-form'
+
+function statusBadgeVariant(
+	status: ApplicationStatus,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+	switch (status) {
+		case 'approved':
+		case 'authorized':
+		case 'pre-authorized':
+		case 'awaiting-authorization':
+			return 'default'
+		case 'denied':
+			return 'destructive'
+		default:
+			return 'secondary'
+	}
+}
+
+export async function AppApplicationDetailView({
+	applicationId,
+	backListHref,
+	backListLabel,
+}: {
+	applicationId: number
+	backListHref?: string
+	backListLabel?: string
+}) {
+	if (!Number.isInteger(applicationId) || applicationId < 1) {
+		notFound()
+	}
+	const scope = await getEffectiveCompanyScope()
+	const [{ ability, isAdmin }, application, documentList] = await Promise.all([
+		getAbility(),
+		getApplicationForReview(applicationId, scope),
+		getApplicationDocuments(applicationId),
+	])
+	if (!application) {
+		notFound()
+	}
+	const now = new Date()
+	const t = await getTranslations('equipo')
+	const canTransition = canTransitionApplicationFrom(application.status)
+	const appSubject = subject('Application', {
+		id: application.id,
+		applicantId: application.applicantId,
+		companyId: application.companyId,
+		status: application.status,
+		firstDiscountDate: application.firstDiscountDate,
+	})
+	const canPreAuthorize = ability.can('setStatusPreAuthorized', appSubject)
+	const canAuthorize = ability.can('setStatusAuthorized', appSubject)
+	const canApprove = ability.can('setStatusApproved', appSubject)
+	const canDeny = ability.can('setStatusDenied', appSubject)
+	const canUpdateDocuments = ability.can('update', appSubject)
+	const canReadApplication = ability.can('read', appSubject)
+	const documentsForDisplay = filterToLatestDocumentsPerType(documentList)
+	const authorizationPackageFullyApproved =
+		isAuthorizationPackageFullyApproved(documentList)
+	const initialIntakeFullyApproved = isInitialIntakeFullyApproved(documentList)
+	const canSetFirstDiscountDate = ability.can(
+		'setFirstDiscountDate',
+		appSubject,
+	)
+	const canDisburse =
+		ability.can('disburse', appSubject) &&
+		application.firstDiscountDate != null &&
+		application.status === 'authorized'
+	const showActionControls = canDeny || canPreAuthorize
+	const termOfferings =
+		canPreAuthorize && application.status === 'approved'
+			? await getTermOfferingsForCompany(application.companyId)
+			: []
+
+	const showBackToQueue =
+		backListHref != null &&
+		backListHref.length > 0 &&
+		backListLabel != null &&
+		backListLabel.length > 0
+
+	return (
+		<section
+			className="mx-auto grid max-w-4xl gap-3 px-1 py-1 sm:px-1.5 sm:py-1.5"
+			aria-labelledby="equipo-application-detail-title"
+		>
+			{showBackToQueue ? (
+				<div className="-mb-1">
+					<Button variant="link" asChild className="h-auto p-0 text-sm">
+						<Link href={backListHref}>
+							{t('applications-detail-back-to-queue', { name: backListLabel })}
+						</Link>
+					</Button>
+				</div>
+			) : null}
+			<h1
+				id="equipo-application-detail-title"
+				className="font-semibold text-2xl text-foreground tracking-tight"
+			>
+				{t('applications-detail-title')}
+			</h1>
+			<div className="-mb-1 flex items-center gap-2">
+				<span className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+					<FileText className="size-3.5" aria-hidden />
+					{t('applications-detail-status')}
+				</span>
+				<div role="status" className="inline-flex shrink-0">
+					<Badge variant={statusBadgeVariant(application.status)}>
+						{t(EQUIPO_APPLICATION_STATUS_KEYS[application.status])}
+					</Badge>
+				</div>
+				{application.status === 'authorized' &&
+				application.firstDiscountDate == null ? (
+					<Badge variant="outline">{t('hr-status-pending')}</Badge>
+				) : null}
+				{application.firstDiscountDate != null ? (
+					<Badge variant="default">{t('hr-status-approved')}</Badge>
+				) : null}
+			</div>
+
+			<Card className={EQUIPO_DETAIL_CARD_CLASS}>
+				<CardHeader
+					className={`grid gap-4 border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS} md:grid-cols-[minmax(0,1fr)_auto] md:items-start`}
+				>
+					<div className="space-y-1">
+						<CardTitle asChild className="flex items-center gap-2 text-base">
+							<h2>
+								<User className="size-4 text-muted-foreground" aria-hidden />
+								{t('applications-detail-applicant')}
+							</h2>
+						</CardTitle>
+						<p className="text-muted-foreground text-sm">
+							{application.applicant.name}
+						</p>
+						<p className="text-muted-foreground text-sm">
+							{application.applicant.email}
+						</p>
+					</div>
+					<div className="grid gap-3 md:justify-items-end">
+						<div className="grid w-full gap-3 md:justify-items-end">
+							<div className="md:text-right">
+								<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider md:justify-end">
+									<Wallet className="size-3.5" aria-hidden />
+									{t('applications-detail-salary')}
+								</p>
+								<p className="mt-1.5 whitespace-nowrap font-medium md:text-right">
+									{formatCurrencyMxn(application.salaryAtApplication)}{' '}
+									<span className="text-muted-foreground text-sm">MXN</span>
+								</p>
+							</div>
+							{application.equipoCreditId != null ? (
+								<Button variant="outline" size="sm" asChild>
+									<Link href={`/equipo/credits/${application.equipoCreditId}`}>
+										<Receipt className="size-4" aria-hidden />
+										{t('applications-detail-related-credit')}
+									</Link>
+								</Button>
+							) : null}
+						</div>
+					</div>
+				</CardHeader>
+				<CardContent
+					className={`space-y-3 pt-2 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}
+				>
+					{application.denialReason ? (
+						<div>
+							<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+								<AlertCircle className="size-3.5" aria-hidden />
+								{t('applications-detail-denial-reason')}
+							</p>
+							<p className="mt-1 rounded-md border border-border/80 bg-muted/30 px-3 py-2 text-sm">
+								{application.denialReason}
+							</p>
+						</div>
+					) : null}
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+						<div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-muted-foreground text-xs">
+							<span className="flex items-center gap-1.5">
+								<CalendarDays className="size-3.5 shrink-0" aria-hidden />
+								{t('applications-detail-created')}:{' '}
+								<FormattedDate
+									value={application.createdAt.toISOString()}
+									format="datetime-short"
+								/>
+							</span>
+							<span className="h-3 w-px shrink-0 bg-border" aria-hidden />
+							<span className="flex items-center gap-1.5">
+								<Clock className="size-3.5 shrink-0" aria-hidden />
+								{t('applications-detail-updated')}:{' '}
+								<FormattedDate
+									value={application.updatedAt.toISOString()}
+									format="datetime-short"
+								/>
+							</span>
+						</div>
+						{(canTransition || canPreAuthorize) && showActionControls ? (
+							<ApplicationActions
+								applicationId={application.id}
+								isAdmin={isAdmin}
+								canPreAuthorize={
+									canPreAuthorize && application.status === 'approved'
+								}
+								canDeny={canDeny}
+								preAuthorizeDialogProps={
+									canPreAuthorize && application.status === 'approved'
+										? {
+												initialCreditAmount: application.creditAmount,
+												initialTermOfferingId: application.termOfferingId,
+												termOfferings,
+												salaryAtApplication: application.salaryAtApplication,
+												salaryFrequency: application.salaryFrequency,
+												companyRate: application.companyRate,
+												companyBorrowingCapacityRate:
+													application.companyBorrowingCapacityRate,
+											}
+										: undefined
+								}
+							/>
+						) : null}
+					</div>
+				</CardContent>
+			</Card>
+
+			<div className="grid gap-3 sm:grid-cols-2">
+				<Card className={EQUIPO_DETAIL_STAT_CARD_CLASS}>
+					<CardContent className={EQUIPO_DETAIL_STAT_CONTENT_CLASS}>
+						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+							<CalendarClock className="size-3.5" aria-hidden />
+							{t('applications-detail-term')}
+						</p>
+						<p className="mt-1.5 font-medium">
+							{application.termOffering
+								? formatApplicationTerm(application.termOffering, t)
+								: t('applications-detail-value-pending')}
+						</p>
+					</CardContent>
+				</Card>
+				<Card className={EQUIPO_DETAIL_STAT_CARD_CLASS}>
+					<CardContent className={EQUIPO_DETAIL_STAT_CONTENT_CLASS}>
+						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+							<Banknote className="size-3.5" aria-hidden />
+							{t('applications-detail-amount')}
+						</p>
+						<p className="mt-1.5 font-semibold text-lg">
+							{application.creditAmount ? (
+								<>
+									{formatCurrencyMxn(application.creditAmount)}{' '}
+									<span className="font-normal text-muted-foreground text-sm">
+										MXN
+									</span>
+								</>
+							) : (
+								t('applications-detail-value-pending')
+							)}
+						</p>
+					</CardContent>
+				</Card>
+			</div>
+
+			<Card
+				id="equipo-application-documents-card"
+				className={EQUIPO_DETAIL_CARD_CLASS}
+				aria-labelledby="equipo-application-documents-heading"
+			>
+				<CardHeader className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}>
+					<CardTitle asChild className="flex items-center gap-2 text-base">
+						<h2 id="equipo-application-documents-heading">
+							<FolderOpen
+								className="size-4 text-muted-foreground"
+								aria-hidden
+							/>
+							{t('applications-detail-documents')}
+						</h2>
+					</CardTitle>
+				</CardHeader>
+				<CardContent className={`pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}>
+					{documentsForDisplay.length > 0 ? (
+						canReadApplication ? (
+							<ApplicationDocumentsReviewForm
+								applicationId={application.id}
+								applicationStatus={application.status}
+								canApplyFollowUpActions={canUpdateDocuments}
+								canFollowUpApprove={
+									canApprove && application.status === 'pending'
+								}
+								canFollowUpAuthorize={
+									canAuthorize &&
+									application.status === 'awaiting-authorization'
+								}
+								authorizationPackageFullyApproved={
+									authorizationPackageFullyApproved
+								}
+								initialIntakeFullyApproved={initialIntakeFullyApproved}
+								documents={documentsForDisplay.map((doc) => ({
+									id: doc.id,
+									documentType: doc.documentType,
+									status: doc.status,
+									fileName: doc.fileName,
+									url: doc.url,
+									hasBlobContent: doc.hasBlobContent,
+									rejectionReason: doc.rejectionReason,
+									createdAt: doc.createdAt,
+									canSetStatus: canSetApplicationDocumentReviewStatus(
+										ability,
+										doc.documentType,
+										application,
+									),
+								}))}
+							/>
+						) : null
+					) : (
+						<div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-8 text-center">
+							<FileText
+								className="size-10 text-muted-foreground/60"
+								aria-hidden
+							/>
+							<p className="text-muted-foreground text-sm">
+								{t('applications-documents-empty')}
+							</p>
+						</div>
+					)}
+				</CardContent>
+			</Card>
+
+			{application.firstDiscountDate != null ? (
+				<Card className={EQUIPO_DETAIL_STAT_CARD_CLASS}>
+					<CardContent className={EQUIPO_DETAIL_STAT_CONTENT_CLASS}>
+						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
+							<CalendarDays className="size-3.5" aria-hidden />
+							{t('hr-first-discount-date')}
+						</p>
+						<p className="mt-1.5 font-medium">
+							<FormattedDate
+								value={application.firstDiscountDate.toISOString()}
+								format="date"
+								showTimeZoneLabel
+							/>
+						</p>
+					</CardContent>
+				</Card>
+			) : canSetFirstDiscountDate ? (
+				<Card className={EQUIPO_DETAIL_CARD_CLASS}>
+					<CardHeader className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}>
+						<CardTitle asChild className="flex items-center gap-2 text-base">
+							<h2>
+								<CalendarDays
+									className="size-4 text-muted-foreground"
+									aria-hidden
+								/>
+								{t('hr-approve-title')}
+							</h2>
+						</CardTitle>
+					</CardHeader>
+					<CardContent className={`pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}>
+						<HrApproveForm
+							applicationId={application.id}
+							validDates={getValidFirstDiscountDates(
+								application.salaryFrequency,
+								now,
+								6,
+							).map((d) => ymdForDeductionSchedule(d))}
+							suggestedDate={getUpcomingDeductionDateYmd(
+								application.salaryFrequency,
+								now,
+							)}
+						/>
+					</CardContent>
+				</Card>
+			) : null}
+
+			{application.status === 'disbursed' &&
+			application.transferReference != null ? (
+				<Card className={EQUIPO_DETAIL_CARD_CLASS}>
+					<CardHeader className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}>
+						<CardTitle asChild className="flex items-center gap-2 text-base">
+							<h2>
+								<Receipt className="size-4 text-muted-foreground" aria-hidden />
+								{t('disburse-readonly-title')}
+							</h2>
+						</CardTitle>
+					</CardHeader>
+					<CardContent
+						className={`space-y-3 pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}
+					>
+						<div>
+							<p className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+								{t('disburse-readonly-transfer-reference')}
+							</p>
+							<p className="mt-1 text-sm">{application.transferReference}</p>
+						</div>
+						{application.receiptFileName != null ? (
+							<div>
+								<p className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+									{t('disburse-readonly-receipt')}
+								</p>
+								<p className="mt-1 text-sm">{application.receiptFileName}</p>
+							</div>
+						) : null}
+					</CardContent>
+				</Card>
+			) : canDisburse && application.creditAmount != null ? (
+				<Card className={EQUIPO_DETAIL_CARD_CLASS}>
+					<CardHeader className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}>
+						<CardTitle asChild className="flex items-center gap-2 text-base">
+							<h2>
+								<Receipt className="size-4 text-muted-foreground" aria-hidden />
+								{t('disburse-title')}
+							</h2>
+						</CardTitle>
+					</CardHeader>
+					<CardContent className={`pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}>
+						<DisburseForm
+							applicationId={application.id}
+							creditAmount={formatCurrencyMxn(application.creditAmount)}
+						/>
+					</CardContent>
+				</Card>
+			) : null}
+
+			<ApplicationStatusHistoryCard
+				title={t('applications-history-title')}
+				description={t('applications-history-description')}
+				emptyMessage={t('applications-history-empty')}
+				setByLabel={t('applications-history-set-by')}
+				systemLabel={t('applications-history-system')}
+				items={application.statusHistory}
+				getStatusLabel={(status) => t(EQUIPO_APPLICATION_STATUS_KEYS[status])}
+			/>
+		</section>
+	)
+}

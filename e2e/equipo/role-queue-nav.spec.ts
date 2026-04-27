@@ -59,7 +59,7 @@ test.describe('Role-based queue navigation', () => {
 			await expect(link).toBeVisible()
 			await expect(link).toHaveAttribute(
 				'href',
-				'/equipo/applications?status=pending',
+				'/equipo/applications/queues/solicitudes',
 			)
 		})
 
@@ -92,7 +92,7 @@ test.describe('Role-based queue navigation', () => {
 			await expect(link).toBeVisible()
 			await expect(link).toHaveAttribute(
 				'href',
-				'/equipo/applications?status=approved',
+				'/equipo/applications/queues/pre-autorizaciones',
 			)
 		})
 
@@ -125,7 +125,7 @@ test.describe('Role-based queue navigation', () => {
 			await expect(link).toBeVisible()
 			await expect(link).toHaveAttribute(
 				'href',
-				'/equipo/applications?status=awaiting-authorization',
+				'/equipo/applications/queues/autorizaciones',
 			)
 		})
 
@@ -155,7 +155,7 @@ test.describe('Role-based queue navigation', () => {
 			await expect(link).toBeVisible()
 			await expect(link).toHaveAttribute(
 				'href',
-				'/equipo/applications?status=authorized&hrPending=true',
+				'/equipo/applications/queues/solicitudes-rh',
 			)
 		})
 
@@ -235,7 +235,7 @@ test.describe('Role-based queue navigation', () => {
 			await expect(sol).toBeVisible()
 			await expect(sol).toHaveAttribute(
 				'href',
-				'/equipo/applications?status=pending',
+				'/equipo/applications/queues/solicitudes',
 			)
 			const authz = nav.getByRole('link', {
 				name: 'Autorizaciones',
@@ -244,7 +244,7 @@ test.describe('Role-based queue navigation', () => {
 			await expect(authz).toBeVisible()
 			await expect(authz).toHaveAttribute(
 				'href',
-				'/equipo/applications?status=awaiting-authorization',
+				'/equipo/applications/queues/autorizaciones',
 			)
 		})
 

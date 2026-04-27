@@ -42,6 +42,7 @@ registerDbSpecGuards()
 
 const agentEmail = agentForReview.email
 const applicantEmail = applicantForReview.email
+const requestsQueueListPath = '/equipo/applications/queues/solicitudes'
 
 test.describe('Requests agents', () => {
 	let seed: SeedApplicationsReviewResult
@@ -219,7 +220,7 @@ test.describe('Requests agents', () => {
 		})
 
 		test('shows applications list with table', async ({ page }) => {
-			await page.goto('/equipo/applications')
+			await page.goto(requestsQueueListPath)
 			const table = mainDataTable(page)
 			await expect(table).toBeVisible()
 			const t = table.filter({ hasText: 'Solicitante' })
@@ -249,7 +250,7 @@ test.describe('Requests agents', () => {
 		test('shows pending applications in the requests queue', async ({
 			page,
 		}) => {
-			await page.goto('/equipo/applications')
+			await page.goto(requestsQueueListPath)
 			await expect(mainDataTable(page)).toBeVisible()
 			const count = await mainDataTable(page).locator('tbody tr').count()
 			expect(count).toBeGreaterThanOrEqual(2)
@@ -259,8 +260,8 @@ test.describe('Requests agents', () => {
 		test('Revisar link targets application detail with expected data', async ({
 			page,
 		}) => {
-			const detailPath = `/equipo/applications/${seed.applicationId}`
-			await page.goto('/equipo/applications')
+			const detailPath = `${requestsQueueListPath}/${seed.applicationId}`
+			await page.goto(requestsQueueListPath)
 			await expect(mainDataTable(page)).toBeVisible()
 			const linkRow = findTableRow(page, '25,000')
 			await linkRow.scrollIntoViewIfNeeded()
@@ -277,7 +278,7 @@ test.describe('Requests agents', () => {
 		test('keeps Solicitudes active on application detail routes', async ({
 			page,
 		}) => {
-			await page.goto(`/equipo/applications/${seed.applicationId}`)
+			await page.goto(`${requestsQueueListPath}/${String(seed.applicationId)}`)
 			await expect(
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()
@@ -290,7 +291,7 @@ test.describe('Requests agents', () => {
 		test('filter by status with no results shows empty state', async ({
 			page,
 		}) => {
-			await page.goto('/equipo/applications?status=authorized')
+			await page.goto(`${requestsQueueListPath}?status=authorized`)
 			await expect(page.getByRole('main')).toBeVisible()
 			await expect(
 				page.getByRole('main').locator('#applications-status-filter').first(),
@@ -301,8 +302,8 @@ test.describe('Requests agents', () => {
 		})
 
 		test('reject requires reason', async ({ page }) => {
-			const detailPath = `/equipo/applications/${seed.applicantA2ApplicationId}`
-			await page.goto('/equipo/applications')
+			const detailPath = `${requestsQueueListPath}/${seed.applicantA2ApplicationId}`
+			await page.goto(requestsQueueListPath)
 			await expect(mainDataTable(page)).toBeVisible()
 			const linkRow = findTableRow(page, '30,000')
 			await linkRow.scrollIntoViewIfNeeded()
@@ -325,8 +326,8 @@ test.describe('Requests agents', () => {
 		})
 
 		test('can reject with reason', async ({ page }) => {
-			const detailPath = `/equipo/applications/${seed.applicantA2ApplicationId}`
-			await page.goto('/equipo/applications')
+			const detailPath = `${requestsQueueListPath}/${seed.applicantA2ApplicationId}`
+			await page.goto(requestsQueueListPath)
 			await expect(mainDataTable(page)).toBeVisible()
 			const linkRow = findTableRow(page, '30,000')
 			await linkRow.scrollIntoViewIfNeeded()
@@ -556,7 +557,7 @@ test.describe('Requests agents', () => {
 		})
 
 		test('filter by status shows matching applications', async ({ page }) => {
-			await page.goto('/equipo/applications')
+			await page.goto(requestsQueueListPath)
 			await expect(mainDataTable(page)).toBeVisible()
 			await selectRadix(page, 'status', 'Pendiente')
 			await expect(
@@ -622,7 +623,7 @@ test.describe('Requests agents', () => {
 			await loginPage(page, agentEmail)
 			await page.goto('/equipo')
 			await clearSelectedCompanyIdCookie(page)
-			await page.goto('/equipo/applications')
+			await page.goto(requestsQueueListPath)
 			await expect(mainDataTable(page)).toBeVisible()
 		})
 
@@ -637,7 +638,7 @@ test.describe('Requests agents', () => {
 		test('picking a company from switcher filters the list', async ({
 			page,
 		}) => {
-			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(10)
+			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(6)
 			await page.locator('#company-switcher-trigger').click()
 			await page.getByRole('menuitem', { name: 'Other Company' }).click()
 			await expect(page.locator('#company-switcher-trigger')).toContainText(
@@ -656,8 +657,8 @@ test.describe('Requests agents', () => {
 			await loginPage(page, agentEmail)
 			await page.goto('/equipo')
 			await setSelectedCompanyId(page, seed.companyDId)
-			await page.goto('/equipo/applications')
-			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(10)
+			await page.goto(requestsQueueListPath)
+			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(6)
 			await expect(page.getByText('inactivecompany.com')).toHaveCount(0)
 			await expect(page.locator('#company-switcher-trigger')).toContainText(
 				'Todas mis empresas',
@@ -668,7 +669,7 @@ test.describe('Requests agents', () => {
 			await loginPage(page, agentEmail)
 			await page.goto('/equipo')
 			await clearSelectedCompanyIdCookie(page)
-			await page.goto('/equipo/applications')
+			await page.goto(requestsQueueListPath)
 			await page.locator('#company-switcher-trigger').click()
 			const menu = page.getByRole('menu')
 			await expect(menu).toBeVisible()
@@ -683,7 +684,7 @@ test.describe('Requests agents', () => {
 			await loginPage(page, agentEmail)
 			await page.goto('/equipo')
 			await clearSelectedCompanyIdCookie(page)
-			await page.goto('/equipo/applications')
+			await page.goto(requestsQueueListPath)
 			await expect(page.getByText('inactivecompany.com')).toHaveCount(0)
 			await expect(mainDataTable(page)).not.toContainText(
 				applicantForReviewD.name,

@@ -12,6 +12,8 @@ import {
 
 registerDbSpecGuards()
 
+const solicitudesRhQueuePath = '/equipo/applications/queues/solicitudes-rh'
+
 test.describe('HR agent flow', () => {
 	let seed: SeedHrReviewResult
 
@@ -31,7 +33,7 @@ test.describe('HR agent flow', () => {
 		})
 
 		test('sees application in the HR queue', async ({ page }) => {
-			await page.goto('/equipo/applications?status=authorized&hrPending=true')
+			await page.goto(solicitudesRhQueuePath)
 			await expect(page.getByRole('main')).toBeVisible()
 			await expect(mainDataTable(page)).toBeVisible()
 			const n = await mainDataTable(page).locator('tbody tr').count()
@@ -41,7 +43,7 @@ test.describe('HR agent flow', () => {
 		test('sees HR approve form on authorized application detail', async ({
 			page,
 		}) => {
-			await page.goto(`/equipo/applications/${seed.applicationId}`)
+			await page.goto(`${solicitudesRhQueuePath}/${seed.applicationId}`)
 			await expect(
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()
@@ -54,7 +56,7 @@ test.describe('HR agent flow', () => {
 		test('sets first discount date and approves with suggested date', async ({
 			page,
 		}) => {
-			await page.goto(`/equipo/applications/${seed.applicationId}`)
+			await page.goto(`${solicitudesRhQueuePath}/${seed.applicationId}`)
 			await expect(
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()
@@ -72,7 +74,9 @@ test.describe('HR agent flow', () => {
 		test('picks a different date than the preset and approves', async ({
 			page,
 		}) => {
-			await page.goto(`/equipo/applications/${seed.differentDateApplicationId}`)
+			await page.goto(
+				`${solicitudesRhQueuePath}/${seed.differentDateApplicationId}`,
+			)
 			await expect(
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()
@@ -96,7 +100,7 @@ test.describe('HR agent flow', () => {
 		})
 
 		test('sees HR approve form and approves as admin', async ({ page }) => {
-			await page.goto(`/equipo/applications/${seed.adminApplicationId}`)
+			await page.goto(`${solicitudesRhQueuePath}/${seed.adminApplicationId}`)
 			await expect(
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()
@@ -118,7 +122,7 @@ test.describe('HR agent flow', () => {
 		test('does not see HR approve form on authorized application', async ({
 			page,
 		}) => {
-			await page.goto(`/equipo/applications/${seed.applicationId}`)
+			await page.goto(`${solicitudesRhQueuePath}/${seed.applicationId}`)
 			await expect(
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()

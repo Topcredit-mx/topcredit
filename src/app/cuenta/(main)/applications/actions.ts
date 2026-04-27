@@ -9,6 +9,7 @@ import {
 } from '~/lib/application-document-intake'
 import { INACTIVE_APPLICATION_STATUSES } from '~/lib/application-rules'
 import { Decimal } from '~/lib/decimal'
+import { revalidateAllEquipoApplicationViews } from '~/lib/equipo-application-queues'
 import { ValidationCode } from '~/lib/validation-codes'
 import { createApplicationWithStatusHistory } from '~/server/application-status-history'
 import {
@@ -288,8 +289,7 @@ export async function uploadApplicationDocumentAction(
 
 		revalidatePath('/cuenta/applications')
 		revalidatePath(`/cuenta/applications/${data.applicationId}`)
-		revalidatePath('/equipo/applications')
-		revalidatePath(`/equipo/applications/${data.applicationId}`)
+		revalidateAllEquipoApplicationViews(data.applicationId)
 	} catch (error) {
 		return fromErrorToFormState(error)
 	}

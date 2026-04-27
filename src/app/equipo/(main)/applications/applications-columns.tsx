@@ -23,6 +23,7 @@ import { formatApplicationTerm } from './constants'
 
 export function useApplicationsColumns(
 	rowCount: number,
+	listBasePath: string,
 ): ColumnDef<ApplicationForReview>[] {
 	const t = useTranslations('equipo')
 	const prefetchStrategy = getPrefetchStrategy(rowCount)
@@ -151,7 +152,7 @@ export function useApplicationsColumns(
 				cell: ({ row }) => (
 					<Button variant="ghost" size="sm" asChild>
 						<ListDetailLink
-							href={`/equipo/applications/${row.original.id}`}
+							href={`${listBasePath}/${String(row.original.id)}`}
 							aria-label={`${t('applications-review')} solicitud`}
 							prefetchStrategy={prefetchStrategy}
 						>
@@ -161,6 +162,6 @@ export function useApplicationsColumns(
 				),
 			},
 		],
-		[prefetchStrategy, t],
+		[listBasePath, prefetchStrategy, t],
 	)
 }

@@ -15,6 +15,8 @@ import {
 
 const SAMPLE_WEBP = join(process.cwd(), 'e2e/fixtures/sample-document.webp')
 
+const dispersionesQueuePath = '/equipo/applications/queues/dispersiones'
+
 registerDbSpecGuards()
 
 test.describe('Disbursement agent flow', () => {
@@ -42,18 +44,13 @@ test.describe('Disbursement agent flow', () => {
 			const nav = page.getByRole('navigation', { name: 'Navegación' })
 			const link = nav.getByRole('link', { name: 'Dispersiones' })
 			await expect(link).toBeVisible()
-			await expect(link).toHaveAttribute(
-				'href',
-				'/equipo/applications?status=authorized&disbursementPending=true',
-			)
+			await expect(link).toHaveAttribute('href', dispersionesQueuePath)
 		})
 
 		test('sees only HR-approved applications in disbursement queue', async ({
 			page,
 		}) => {
-			await page.goto(
-				'/equipo/applications?status=authorized&disbursementPending=true',
-			)
+			await page.goto(dispersionesQueuePath)
 			await expect(page.getByRole('main')).toBeVisible()
 			await expect(mainDataTable(page)).toBeVisible()
 			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(2)
@@ -62,9 +59,7 @@ test.describe('Disbursement agent flow', () => {
 		test('does not show HR-pending application in disbursement queue', async ({
 			page,
 		}) => {
-			await page.goto(
-				'/equipo/applications?status=authorized&disbursementPending=true',
-			)
+			await page.goto(dispersionesQueuePath)
 			await expect(page.getByRole('main')).toBeVisible()
 			await expect(mainDataTable(page)).toBeVisible()
 			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(2)
@@ -96,7 +91,7 @@ test.describe('Disbursement agent flow', () => {
 		test('fills disburse form and application moves to disbursed', async ({
 			page,
 		}) => {
-			await page.goto(`/equipo/applications/${seed.applicationId}`)
+			await page.goto(`${dispersionesQueuePath}/${seed.applicationId}`)
 			await expect(
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()
@@ -117,9 +112,7 @@ test.describe('Disbursement agent flow', () => {
 			).toBeVisible()
 			await expect(page.getByText(/dispersado/i).first()).toBeVisible()
 			await expect(page.getByText('REF-DISB-001').first()).toBeVisible()
-			await page.goto(
-				'/equipo/applications?status=authorized&disbursementPending=true',
-			)
+			await page.goto(dispersionesQueuePath)
 			await expect(page.getByRole('main')).toBeVisible()
 			await expect(mainDataTable(page)).toBeVisible()
 			await expect(mainDataTable(page).locator('tbody tr')).toHaveCount(1)
@@ -130,7 +123,7 @@ test.describe('Disbursement agent flow', () => {
 		}) => {
 			await loginPage(page, nonDispersionsAgent.email)
 			await setSelectedCompanyId(page, seed.companyId)
-			await page.goto(`/equipo/applications/${seed.applicationId}`)
+			await page.goto(`${dispersionesQueuePath}/${seed.applicationId}`)
 			await expect(
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()
