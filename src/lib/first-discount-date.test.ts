@@ -106,7 +106,7 @@ describe('getUpcomingDeductionDate', () => {
 })
 
 describe('getUpcomingDeductionDateYmd', () => {
-	test('matches getUpcomingDeductionAnchorYmd (Mexico business Y-M-D)', () => {
+	test('matches getUpcomingDeductionAnchorYmd (Mexico Y-M-D)', () => {
 		const today = mxYmdInstant(2026, 2, 5) // March 5
 		assert.equal(
 			getUpcomingDeductionDateYmd('monthly', today),

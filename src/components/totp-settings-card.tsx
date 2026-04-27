@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import { SectionCard } from '~/components/ui/section-card'
+import { formatMxDate } from '~/lib/format-mx-date'
 import { shell } from '~/lib/shell'
 import { disableTotpSetup, generateNewBackupCodes } from '~/server/auth/users'
 
@@ -68,7 +69,7 @@ export function TotpSettingsCard({ user }: TotpSettingsCardProps) {
 
 		const content = [
 			t('backup-codes-header'),
-			`Generados: ${new Date().toLocaleDateString()}`,
+			`Generados: ${formatMxDate(new Date())}`,
 			`${t('email-label')}: ${user.email}`,
 			'',
 			t('backup-codes-important'),

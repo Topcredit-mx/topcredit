@@ -40,7 +40,7 @@ test.describe('Applicant views active credits', () => {
 			page.getByRole('heading', { name: /créditos en curso/i }),
 		).toBeVisible()
 		await expect(
-			page.getByRole('heading', { name: /créditos liquidados/i }),
+			page.getByRole('heading', { name: /créditos finalizados/i }),
 		).toBeVisible()
 		const main = cuentaContent(page)
 		await expect(main.getByText('$50,000.00').first()).toBeVisible()
@@ -55,9 +55,31 @@ test.describe('Applicant views active credits', () => {
 		const completedTable = main
 			.locator('section')
 			.filter({
-				has: page.getByRole('heading', { name: /créditos liquidados/i }),
+				has: page.getByRole('heading', { name: /créditos finalizados/i }),
 			})
 			.locator('table')
+
+		const nextDueIso = seedResult.nextDisbursedPaymentDueIso
+		if (nextDueIso === null) {
+			throw new Error('seed must expose next disbursed payment due instant')
+		}
+		const expectedNextPaymentLabel = await page.evaluate((iso) => {
+			const d = new Date(iso)
+			return d.toLocaleDateString('es-MX', {
+				timeZone: 'America/Mexico_City',
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric',
+			})
+		}, nextDueIso)
+		const disbursedRow = activeTable
+			.getByRole('row')
+			.filter({ has: page.getByRole('link', { name: '$50,000.00' }) })
+		const visibleNextPaymentDate = disbursedRow
+			.locator('span[aria-hidden="true"]')
+			.locator('> span.whitespace-nowrap')
+			.first()
+		await expect(visibleNextPaymentDate).toHaveText(expectedNextPaymentLabel)
 
 		await expect(activeTable.getByText(/^Dispersado$/i)).toBeVisible()
 		await expect(completedTable.getByText(/^Liquidado$/i)).toBeVisible()

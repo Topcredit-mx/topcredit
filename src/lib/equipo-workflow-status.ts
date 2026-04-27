@@ -91,10 +91,10 @@ export function resolveQueueWorkflowStatus(params: {
 const YMD_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
 
 /**
- * Y-M-D of the business due, for "deadline" = EOD that day in Mexico.
+ * Y-M-D of the schedule due, for "deadline" = EOD that day in Mexico.
  * Avoids `new Date("YYYY-MM-DD")` (UTC-midnight) vs EOD-CDMX `Date` mismatches.
  */
-function businessYmdForScheduleDue(dueDate: Date | string): string {
+function ymdForScheduleDue(dueDate: Date | string): string {
 	if (typeof dueDate === 'string') {
 		const t = dueDate.trim()
 		if (YMD_ONLY_RE.test(t)) {
@@ -113,7 +113,7 @@ export function isEquipoScheduleConfirmationOnTime(
 	dueDate: Date | string,
 	confirmedAt: Date | string,
 ): boolean {
-	const ymd = businessYmdForScheduleDue(dueDate)
+	const ymd = ymdForScheduleDue(dueDate)
 	const deadline = endOfDayInstantMexicoCity(ymd)
 	const conf =
 		typeof confirmedAt === 'string' ? new Date(confirmedAt) : confirmedAt

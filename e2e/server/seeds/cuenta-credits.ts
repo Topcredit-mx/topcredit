@@ -19,7 +19,10 @@ import {
 } from '~/server/db/schema'
 import { getDb } from '../e2e-db'
 import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
-import { eodNCalendarDaysFromMexicoToday } from '../shared/mexico-seed-dates'
+import {
+	endOfCurrentMonthEodMx,
+	eodNCalendarDaysFromMexicoToday,
+} from '../shared/mexico-seed-dates'
 import { createOrderedSeedStatusHistory } from '../shared/status-history'
 
 // --- Cuenta Credits ---
@@ -34,6 +37,7 @@ export type SeedCuentaCreditsResult = {
 	confirmedPaymentRowIndex: number
 	processingPaymentRowIndex: number
 	pendingPaymentRowIndex: number
+	nextDisbursedPaymentDueIso: string | null
 }
 
 async function seedCuentaCreditsBase(
@@ -121,7 +125,7 @@ async function seedCuentaCreditsBase(
 			salaryAtApplication: '40000',
 			salaryFrequency: creditsCompany.employeeSalaryFrequency,
 			status,
-			firstDiscountDate: eodNCalendarDaysFromMexicoToday(now, 30),
+			firstDiscountDate: endOfCurrentMonthEodMx(now),
 			transferReference: withCredit ? 'REF-DISPersed-SEED' : null,
 			receiptFileName: withCredit ? 'recibo-dispersado.pdf' : null,
 		})
@@ -144,6 +148,7 @@ async function seedCuentaCreditsBase(
 
 	let creditId: number | null = null
 	let settledCreditId: number | null = null
+	let nextDisbursedPaymentDueIso: string | null = null
 	const settledCreditAmount = '30000.00'
 	if (withCredit) {
 		const [credit] = await db
@@ -159,7 +164,7 @@ async function seedCuentaCreditsBase(
 		if (!credit) throw new Error('Seed Credits: credit not created')
 		creditId = credit.id
 
-		const firstDiscountDate = eodNCalendarDaysFromMexicoToday(now, 30)
+		const firstDiscountDate = endOfCurrentMonthEodMx(now)
 		const schedule = generatePaymentSchedule({
 			loanPrincipal: Number(creditAmount),
 			rate: Number(creditsCompany.rate),
@@ -167,6 +172,14 @@ async function seedCuentaCreditsBase(
 			frequency: 'monthly',
 			firstDiscountDate,
 		})
+		// nextDueDate in list query = earliest payment with installmentConfirmedAt null (rows 0–1 confirmed).
+		const firstPendingDue = schedule[2]
+		if (firstPendingDue === undefined) {
+			throw new Error(
+				'Seed Credits: expected third schedule installment (first pending)',
+			)
+		}
+		nextDisbursedPaymentDueIso = firstPendingDue.dueDate.toISOString()
 
 		// Rows 0–1: Fully confirmed ("Confirmado")
 		// Row 2: HR confirmed only ("En proceso" to applicant)
@@ -265,6 +278,7 @@ async function seedCuentaCreditsBase(
 		confirmedPaymentRowIndex: 0,
 		processingPaymentRowIndex: 2,
 		pendingPaymentRowIndex: 3,
+		nextDisbursedPaymentDueIso,
 	}
 }
 

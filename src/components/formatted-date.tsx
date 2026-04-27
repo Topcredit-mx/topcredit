@@ -3,17 +3,13 @@
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
+import { formatMxDate } from '~/lib/format-mx-date'
+
 const LOCALE = 'es-MX'
 
 const PLACEHOLDER = '\u2014'
 
 const MEXICO_TZ = 'America/Mexico_City'
-
-const DATE_ONLY_OPTIONS: Intl.DateTimeFormatOptions = {
-	year: 'numeric',
-	month: 'short',
-	day: 'numeric',
-}
 
 const DATETIME_SHORT_OPTIONS: Intl.DateTimeFormatOptions = {
 	timeZone: MEXICO_TZ,
@@ -55,20 +51,20 @@ function formatDate(
 	value: Date | string,
 	kind: 'date' | 'datetime' | 'datetime-short',
 ): string {
+	if (kind === 'date') {
+		return formatMxDate(value)
+	}
 	const date = toDate(value)
 	if (kind === 'datetime') {
 		return date.toLocaleString(LOCALE, DATETIME_FULL_OPTIONS)
 	}
-	if (kind === 'datetime-short') {
-		return date.toLocaleString(LOCALE, DATETIME_SHORT_OPTIONS)
-	}
-	return date.toLocaleDateString(LOCALE, DATE_ONLY_OPTIONS)
+	return date.toLocaleString(LOCALE, DATETIME_SHORT_OPTIONS)
 }
 
 export interface FormattedDateProps {
 	value: Date | string
 	format?: 'date' | 'datetime' | 'datetime-short'
-	/** When true, appends a short CDMX business-time label (e.g. "· CDMX"). */
+	/** When true, appends a short CDMX time label (e.g. "· CDMX"). */
 	showTimeZoneLabel?: boolean
 	className?: string
 }
@@ -90,7 +86,7 @@ export function FormattedDate({
 		return <span className={className}>{display}</span>
 	}
 
-	const ariaLabel = t('date-business-aria', { date: display })
+	const ariaLabel = t('date-cdmx-aria', { date: display })
 	const suffix = t('date-timezone-suffix')
 
 	return (

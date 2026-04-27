@@ -45,8 +45,8 @@ function nextMonthEndYmd(ymd: string): string {
 }
 
 /**
- * `dueDate` is **23:59:59.999** on the business calendar day in
- * `America/Mexico_City`. Steps YMDs with {@link calendarYmdInMexicoCity} / chain.
+ * `dueDate` is **23:59:59.999** on the calendar day in `America/Mexico_City`.
+ * Steps YMDs with {@link calendarYmdInMexicoCity} / chain.
  */
 export function generatePaymentSchedule(params: {
 	loanPrincipal: number

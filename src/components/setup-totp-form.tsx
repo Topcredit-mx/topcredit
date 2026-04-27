@@ -12,6 +12,7 @@ import {
 	InputOTPGroup,
 	InputOTPSlot,
 } from '~/components/ui/input-otp'
+import { formatMxDate } from '~/lib/format-mx-date'
 import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
 import { initiateTotpSetup, verifyTotpSetup } from '~/server/auth/actions'
@@ -86,7 +87,7 @@ export function SetupTotpForm({
 	}
 
 	const downloadBackupCodes = () => {
-		const codesText = `Códigos de Respaldo TopCredit\nGenerados: ${new Date().toLocaleDateString()}\n\n${backupCodes.join('\n')}\n\n¡Mantén estos códigos seguros! Cada uno solo puede usarse una vez.`
+		const codesText = `Códigos de Respaldo TopCredit\nGenerados: ${formatMxDate(new Date())}\n\n${backupCodes.join('\n')}\n\n¡Mantén estos códigos seguros! Cada uno solo puede usarse una vez.`
 		const blob = new Blob([codesText], { type: 'text/plain' })
 		const url = URL.createObjectURL(blob)
 		const a = document.createElement('a')

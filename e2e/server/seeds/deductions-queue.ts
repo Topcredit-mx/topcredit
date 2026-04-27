@@ -29,12 +29,12 @@ import {
 import { getDb } from '../e2e-db'
 import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
 import {
-	businessDueDateIso,
 	endOfMonthMonthsAgoEodMx,
-	eodBusinessDaysAgo,
+	eodCalendarDaysAgoMx,
 	eodDayOfOffsetMexicoMonth,
 	eodNCalendarDaysFromMexicoToday,
 	eodYmd,
+	mxScheduleDueYmdIso,
 } from '../shared/mexico-seed-dates'
 
 export type SeedDeductionsQueueResult = {
@@ -324,7 +324,7 @@ export const seedDeductionsQueue = async (
 		// Credit 7: recently overdue credit — due 3 days ago (< 7 days).
 		// Appears in the current overdue snapshot but NOT in the 7-day-ago snapshot,
 		// so the overview cards show a measurable week-over-week change.
-		const recentPastDate = eodBusinessDaysAgo(now, 3)
+		const recentPastDate = eodCalendarDaysAgoMx(now, 3)
 		const creditAmountOverdueRecent = '8500.00'
 		const [app7] = await db
 			.insert(applications)
@@ -454,7 +454,7 @@ export const seedDeductionsQueue = async (
 
 	if (!credit4) throw new Error('Seed Deductions: credit 4 not created')
 
-	// On-time history row: due is after EOD of the business due date, hr confirmed
+	// On-time history row: due is after EOD of the schedule due date, hr confirmed
 	// *before* that EOD. Far-future EOD keeps "a tiempo" independent of "now."
 	const credit4HistoryDue = eodNCalendarDaysFromMexicoToday(now, 3650)
 	// credit4 confirmed recently (more recent than credit5) → appears first in history
@@ -579,7 +579,7 @@ export const seedDeductionsQueue = async (
 		lateConfirmedApplicantName: applicantConfirmedLate.name,
 		mxEdgeOnTimeApplicantName: applicantConfirmedMxEdge.name,
 		nextDeductionDateISO,
-		credit4HrConfirmedPaymentDueDateISO: businessDueDateIso(credit4HistoryDue),
+		credit4HrConfirmedPaymentDueDateISO: mxScheduleDueYmdIso(credit4HistoryDue),
 		firstInstallmentForCsv: {
 			payrollNumber: 'DEDUCT001',
 			amount: firstPayment.amount,

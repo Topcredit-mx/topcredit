@@ -1532,17 +1532,17 @@ const creditNotDefaultedSql: SQL = sql`cr.status <> 'defaulted'::credit_status`
 /** Payments in current pay window; `due_date` is `timestamptz` (instant). */
 function payPeriodWindowCondition(
 	upcomingDeductionYmd: string,
-	startOfBusinessDay: Date,
+	startOfTodayMx: Date,
 ): SQL {
 	const eodUpcoming = endOfDayInstantMexicoCity(upcomingDeductionYmd)
 	return sql`
-				AND cp.due_date >= ${startOfBusinessDay}
+				AND cp.due_date >= ${startOfTodayMx}
 				AND cp.due_date <= ${eodUpcoming}
 				AND NOT EXISTS (
 					SELECT 1 FROM credit_payments cp2
 					WHERE cp2.credit_id = cp.credit_id
 					  AND cp2.hr_confirmed_at IS NULL
-					  AND cp2.due_date < ${startOfBusinessDay}
+					  AND cp2.due_date < ${startOfTodayMx}
 				)`
 }
 
@@ -1575,8 +1575,8 @@ export async function getInstallmentsForQueue(params: {
 	upcomingDeductionDate?: string
 }): Promise<InstallmentForQueue[]> {
 	const { scope, queue, upcomingDeductionDate } = params
-	const businessTodayYmd = todayYmdMexicoCity(new Date())
-	const startOfBusinessDay = startOfDayInstantMexicoCity(businessTodayYmd)
+	const todayYmdMx = todayYmdMexicoCity(new Date())
+	const startOfTodayMx = startOfDayInstantMexicoCity(todayYmdMx)
 	const { ability } = await getAbility()
 
 	let companyCondition: SQL
@@ -1610,13 +1610,13 @@ export async function getInstallmentsForQueue(params: {
 
 	const dateCondition: SQL =
 		usePayPeriodWindow && upcomingDeductionDate !== undefined
-			? payPeriodWindowCondition(upcomingDeductionDate, startOfBusinessDay)
+			? payPeriodWindowCondition(upcomingDeductionDate, startOfTodayMx)
 			: sql``
 
 	const installmentsExcludeOverdue: SQL =
 		queue === 'installments'
 			? sql`AND NOT (
-				cp.due_date < ${startOfBusinessDay}
+				cp.due_date < ${startOfTodayMx}
 				AND (
 					cp.hr_confirmed_at IS NULL
 					OR cp.installment_confirmed_at IS NULL
@@ -1788,8 +1788,8 @@ export async function getOverdueInstallments(params: {
 	scope: CompanyScope
 }): Promise<OverdueInstallmentByCredit[]> {
 	const { scope } = params
-	const businessTodayYmd = todayYmdMexicoCity(new Date())
-	const startOfBusinessDay = startOfDayInstantMexicoCity(businessTodayYmd)
+	const todayYmdMx = todayYmdMexicoCity(new Date())
+	const startOfTodayMx = startOfDayInstantMexicoCity(todayYmdMx)
 	const { ability } = await getAbility()
 
 	let companyCondition: SQL
@@ -1839,7 +1839,7 @@ export async function getOverdueInstallments(params: {
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE ${companyCondition}
 		  AND ${creditNotDefaultedSql}
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND cp.due_date < ${startOfTodayMx}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -2095,8 +2095,8 @@ export async function getOldestPendingPaymentAgeDays(
 	screen: PaymentsOverviewPendingScreen,
 	upcomingDeductionDate?: string,
 ): Promise<{ oldestPendingDays: number | null }> {
-	const businessTodayYmd = todayYmdMexicoCity(new Date())
-	const startOfBusinessDay = startOfDayInstantMexicoCity(businessTodayYmd)
+	const todayYmdMx = todayYmdMexicoCity(new Date())
+	const startOfTodayMx = startOfDayInstantMexicoCity(todayYmdMx)
 	const { ability } = await getAbility()
 	if (scope.type === 'single') {
 		requireAbility(ability, 'read', subject('Company', { id: scope.companyId }))
@@ -2116,13 +2116,13 @@ export async function getOldestPendingPaymentAgeDays(
 	if (screen === 'installments-queue') {
 		const dateCondition: SQL =
 			upcomingDeductionDate !== undefined
-				? payPeriodWindowCondition(upcomingDeductionDate, startOfBusinessDay)
+				? payPeriodWindowCondition(upcomingDeductionDate, startOfTodayMx)
 				: sql``
 
 		pendingCondition = sql`
 			cp.installment_confirmed_at IS NULL
 			AND NOT (
-				cp.due_date < ${startOfBusinessDay}
+				cp.due_date < ${startOfTodayMx}
 				AND (
 					cp.hr_confirmed_at IS NULL
 					OR cp.installment_confirmed_at IS NULL
@@ -2132,7 +2132,7 @@ export async function getOldestPendingPaymentAgeDays(
 		`
 	} else {
 		pendingCondition = sql`
-			cp.due_date < ${startOfBusinessDay}
+			cp.due_date < ${startOfTodayMx}
 			AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -2159,7 +2159,7 @@ export async function getOldestPendingPaymentAgeDays(
 
 	const minDueYmd = ymdForDeductionSchedule(minDue)
 	const rawAgeDays = Math.floor(
-		(new Date(`${businessTodayYmd}T00:00:00.000Z`).getTime() -
+		(new Date(`${todayYmdMx}T00:00:00.000Z`).getTime() -
 			new Date(`${minDueYmd}T00:00:00.000Z`).getTime()) /
 			MS_PER_DAY,
 	)
@@ -2177,7 +2177,7 @@ export async function getTotalOverdueAmount(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
-	const startOfBusinessDay = startOfDayInstantMexicoCity(
+	const startOfTodayMx = startOfDayInstantMexicoCity(
 		todayYmdMexicoCity(new Date()),
 	)
 	const { currentStart: cutoff } = getPayPeriodComparisonBounds(
@@ -2198,7 +2198,7 @@ export async function getTotalOverdueAmount(
 					eq(applications.companyId, companyId),
 					ne(credits.status, 'defaulted'),
 					isNull(creditPayments.hrConfirmedAt),
-					lt(creditPayments.dueDate, startOfBusinessDay),
+					lt(creditPayments.dueDate, startOfTodayMx),
 				),
 			),
 		db
@@ -2237,7 +2237,7 @@ export async function getTotalOverdueCredits(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
-	const startOfBusinessDay = startOfDayInstantMexicoCity(
+	const startOfTodayMx = startOfDayInstantMexicoCity(
 		todayYmdMexicoCity(new Date()),
 	)
 	const { currentStart: cutoff } = getPayPeriodComparisonBounds(
@@ -2258,7 +2258,7 @@ export async function getTotalOverdueCredits(
 					eq(applications.companyId, companyId),
 					ne(credits.status, 'defaulted'),
 					isNull(creditPayments.hrConfirmedAt),
-					lt(creditPayments.dueDate, startOfBusinessDay),
+					lt(creditPayments.dueDate, startOfTodayMx),
 				),
 			),
 		db
@@ -2297,7 +2297,7 @@ export async function getOldestOverdueAge(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
-	const startOfBusinessDay = startOfDayInstantMexicoCity(
+	const startOfTodayMx = startOfDayInstantMexicoCity(
 		todayYmdMexicoCity(new Date()),
 	)
 	const [row] = await db
@@ -2312,7 +2312,7 @@ export async function getOldestOverdueAge(
 				eq(applications.companyId, companyId),
 				ne(credits.status, 'defaulted'),
 				isNull(creditPayments.hrConfirmedAt),
-				lt(creditPayments.dueDate, startOfBusinessDay),
+				lt(creditPayments.dueDate, startOfTodayMx),
 			),
 		)
 
@@ -2337,7 +2337,7 @@ export async function getOldestOverdueAge(
 export async function getOverdueDeductionsCount(
 	companyId: number,
 ): Promise<number> {
-	const startOfBusinessDay = startOfDayInstantMexicoCity(
+	const startOfTodayMx = startOfDayInstantMexicoCity(
 		todayYmdMexicoCity(new Date()),
 	)
 	const result = await db.execute(sql`
@@ -2348,7 +2348,7 @@ export async function getOverdueDeductionsCount(
 		WHERE a.company_id = ${companyId}
 		  AND ${creditNotDefaultedSql}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND cp.due_date < ${startOfTodayMx}
 	`)
 	const row = result.rows[0]
 	return row ? Number(row.count) : 0
@@ -2357,7 +2357,7 @@ export async function getOverdueDeductionsCount(
 export async function getOverdueInstallmentsCount(
 	companyId: number,
 ): Promise<number> {
-	const startOfBusinessDay = startOfDayInstantMexicoCity(
+	const startOfTodayMx = startOfDayInstantMexicoCity(
 		todayYmdMexicoCity(new Date()),
 	)
 	const result = await db.execute(sql`
@@ -2367,7 +2367,7 @@ export async function getOverdueInstallmentsCount(
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE a.company_id = ${companyId}
 		  AND ${creditNotDefaultedSql}
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND cp.due_date < ${startOfTodayMx}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -2401,7 +2401,7 @@ export async function getOverdueDeductions(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
-	const startOfBusinessDay = startOfDayInstantMexicoCity(
+	const startOfTodayMx = startOfDayInstantMexicoCity(
 		todayYmdMexicoCity(new Date()),
 	)
 	const rows = await db.execute(sql`
@@ -2432,7 +2432,7 @@ export async function getOverdueDeductions(
 		WHERE a.company_id = ${companyId}
 		  AND ${creditNotDefaultedSql}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND cp.due_date < ${startOfTodayMx}
 		GROUP BY cp.credit_id
 		ORDER BY MIN(cp.due_date) ASC, cp.credit_id ASC
 	`)
@@ -2477,7 +2477,7 @@ export async function getOverdueDeductionsForCredit(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'read', subject('Company', { id: companyId }))
 
-	const startOfBusinessDay = startOfDayInstantMexicoCity(
+	const startOfTodayMx = startOfDayInstantMexicoCity(
 		todayYmdMexicoCity(new Date()),
 	)
 	const rows = await db.execute(sql`
@@ -2492,7 +2492,7 @@ export async function getOverdueDeductionsForCredit(
 		  AND a.company_id = ${companyId}
 		  AND ${creditNotDefaultedSql}
 		  AND cp.hr_confirmed_at IS NULL
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND cp.due_date < ${startOfTodayMx}
 		ORDER BY cp.due_date ASC
 	`)
 

@@ -158,7 +158,7 @@ async function loadCreditKpis(companyId?: number): Promise<{
 }
 
 async function loadGlobalOverdueInstallmentsCount(): Promise<number> {
-	const startOfBusinessDay = startOfDayInstantMexicoCity(
+	const startOfTodayMx = startOfDayInstantMexicoCity(
 		todayYmdMexicoCity(new Date()),
 	)
 	const result = await db.execute(sql`
@@ -167,7 +167,7 @@ async function loadGlobalOverdueInstallmentsCount(): Promise<number> {
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE cr.status <> 'defaulted'::credit_status
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND cp.due_date < ${startOfTodayMx}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -179,7 +179,7 @@ async function loadGlobalOverdueInstallmentsCount(): Promise<number> {
 }
 
 async function loadGlobalOverdueHrDeductionsCount(): Promise<number> {
-	const startOfBusinessDay = startOfDayInstantMexicoCity(
+	const startOfTodayMx = startOfDayInstantMexicoCity(
 		todayYmdMexicoCity(new Date()),
 	)
 	const result = await db.execute(sql`
@@ -189,7 +189,7 @@ async function loadGlobalOverdueHrDeductionsCount(): Promise<number> {
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE cr.status <> 'defaulted'::credit_status
 		  AND cp.hr_confirmed_at IS NULL
-		  AND cp.due_date < ${startOfBusinessDay}
+		  AND cp.due_date < ${startOfTodayMx}
 	`)
 	const row = result.rows[0] as { count: unknown } | undefined
 	if (!row) return 0

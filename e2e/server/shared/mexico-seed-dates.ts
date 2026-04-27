@@ -7,7 +7,7 @@ import {
 } from '~/lib/calendar-date-tz'
 
 /**
- * E2E / seed helpers: business dates use the same **fixed UTC-6** + EOD
+ * E2E / seed helpers: Mexico calendar dates use the same **fixed UTC-6** + EOD
  * semantics as production (`endOfDayInstantMexicoCity`).
  *
  * Do not use `Date.UTC(y, m, lastDay)` alone for `firstDiscountDate` / `dueDate`.
@@ -20,7 +20,7 @@ function lastDayYmdInMonthUTC(year: number, month0: number): string {
 	).padStart(2, '0')}-${String(last.getUTCDate()).padStart(2, '0')}`
 }
 
-/** Last calendar day of the **Mexico business month** that contains `now`. */
+/** Last calendar day of the **Mexico civil month** that contains `now`. */
 export function endOfCurrentMonthEodMx(now: Date): Date {
 	const ymd = todayYmdMexicoCity(now)
 	const { year, month0 } = parseYmd(ymd)
@@ -79,7 +79,7 @@ export function endOfMonthMonthsAgoEodMx(now: Date, monthsBack: number): Date {
 }
 
 /** Calendar day in Mexico, minus `n` civil days, as EOD Mexico. */
-export function eodBusinessDaysAgo(now: Date, n: number): Date {
+export function eodCalendarDaysAgoMx(now: Date, n: number): Date {
 	const ymd = todayYmdMexicoCity(now)
 	const { year, month0, day } = parseYmd(ymd)
 	const noonUtc = new Date(Date.UTC(year, month0, day, 12, 0, 0, 0))
@@ -134,7 +134,7 @@ export function sodYmd(ymd: string): Date {
 	return startOfDayInstantMexicoCity(ymd)
 }
 
-/** Business Y-M-D for CSV / labels (not `toISOString().slice(0, 10)` on EOD instants). */
-export function businessDueDateIso(d: Date): string {
+/** Y-M-D in Mexico for CSV / labels (not `toISOString().slice(0, 10)` on EOD instants). */
+export function mxScheduleDueYmdIso(d: Date): string {
 	return calendarYmdInMexicoCity(d)
 }

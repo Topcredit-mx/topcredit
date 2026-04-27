@@ -13,6 +13,7 @@ import {
 } from '~/components/ui/dialog'
 import { ymdForDeductionSchedule } from '~/lib/calendar-date-tz'
 import { getValidFirstDiscountDates } from '~/lib/first-discount-date'
+import { formatMxDate } from '~/lib/format-mx-date'
 import { exportDeductionsCsvAction } from './actions'
 
 interface ExportDeductionsDialogProps {
@@ -87,7 +88,7 @@ export function ExportDeductionsDialog({
 						>
 							{validDates.map((date) => (
 								<option key={date} value={date}>
-									{date}
+									{formatMxDate(date, { month: 'long' })}
 								</option>
 							))}
 						</select>
