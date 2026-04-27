@@ -5,6 +5,7 @@ import {
 	seedCuentaCredits,
 	seedCuentaCreditsEmpty,
 } from '~/e2e/server/tasks'
+import { formatMxBusinessDate } from '~/lib/format-mx-business-date'
 import { loginPage } from '../helpers/auth'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import { creditsApplicant, creditsOtherApplicant } from './credits.fixtures'
@@ -40,7 +41,7 @@ test.describe('Applicant views active credits', () => {
 			page.getByRole('heading', { name: /créditos en curso/i }),
 		).toBeVisible()
 		await expect(
-			page.getByRole('heading', { name: /créditos liquidados/i }),
+			page.getByRole('heading', { name: /créditos finalizados/i }),
 		).toBeVisible()
 		const main = cuentaContent(page)
 		await expect(main.getByText('$50,000.00').first()).toBeVisible()
@@ -55,9 +56,20 @@ test.describe('Applicant views active credits', () => {
 		const completedTable = main
 			.locator('section')
 			.filter({
-				has: page.getByRole('heading', { name: /créditos liquidados/i }),
+				has: page.getByRole('heading', { name: /créditos finalizados/i }),
 			})
 			.locator('table')
+
+		const nextDueYmd = seedResult.nextDisbursedPaymentDueYmd
+		if (nextDueYmd === null) {
+			throw new Error('seed must expose next disbursed payment due YMD')
+		}
+		const expectedNextPaymentLabel = formatMxBusinessDate(
+			`${nextDueYmd}T12:00:00.000Z`,
+		)
+		await expect(
+			activeTable.getByText(expectedNextPaymentLabel, { exact: true }),
+		).toBeVisible()
 
 		await expect(activeTable.getByText(/^Dispersado$/i)).toBeVisible()
 		await expect(completedTable.getByText(/^Liquidado$/i)).toBeVisible()

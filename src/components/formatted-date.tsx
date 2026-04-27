@@ -3,17 +3,13 @@
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
+import { formatMxBusinessDate } from '~/lib/format-mx-business-date'
+
 const LOCALE = 'es-MX'
 
 const PLACEHOLDER = '\u2014'
 
 const MEXICO_TZ = 'America/Mexico_City'
-
-const DATE_ONLY_OPTIONS: Intl.DateTimeFormatOptions = {
-	year: 'numeric',
-	month: 'short',
-	day: 'numeric',
-}
 
 const DATETIME_SHORT_OPTIONS: Intl.DateTimeFormatOptions = {
 	timeZone: MEXICO_TZ,
@@ -62,7 +58,7 @@ function formatDate(
 	if (kind === 'datetime-short') {
 		return date.toLocaleString(LOCALE, DATETIME_SHORT_OPTIONS)
 	}
-	return date.toLocaleDateString(LOCALE, DATE_ONLY_OPTIONS)
+	return formatMxBusinessDate(date)
 }
 
 export interface FormattedDateProps {
