@@ -51,14 +51,14 @@ function formatDate(
 	value: Date | string,
 	kind: 'date' | 'datetime' | 'datetime-short',
 ): string {
+	if (kind === 'date') {
+		return formatMxBusinessDate(value)
+	}
 	const date = toDate(value)
 	if (kind === 'datetime') {
 		return date.toLocaleString(LOCALE, DATETIME_FULL_OPTIONS)
 	}
-	if (kind === 'datetime-short') {
-		return date.toLocaleString(LOCALE, DATETIME_SHORT_OPTIONS)
-	}
-	return formatMxBusinessDate(date)
+	return date.toLocaleString(LOCALE, DATETIME_SHORT_OPTIONS)
 }
 
 export interface FormattedDateProps {

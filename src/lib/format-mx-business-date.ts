@@ -1,11 +1,14 @@
+import { parseYmd } from './calendar-date-tz'
+
 const LOCALE = 'es-MX'
 
 const MEXICO_TZ = 'America/Mexico_City'
 
-const DATE_ONLY_OPTIONS: Intl.DateTimeFormatOptions = {
+const MEXICO_STANDARD_OFFSET = '-06:00'
+
+const DATE_ONLY_BASE: Omit<Intl.DateTimeFormatOptions, 'month'> = {
 	timeZone: MEXICO_TZ,
 	year: 'numeric',
-	month: 'short',
 	day: 'numeric',
 }
 
@@ -13,15 +16,31 @@ const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
 
 function toDate(value: Date | string): Date {
 	if (typeof value === 'string') {
-		if (DATE_ONLY_RE.test(value)) {
-			const parts = value.split('-').map(Number)
-			return new Date(parts[0] ?? 0, (parts[1] ?? 1) - 1, parts[2] ?? 1)
+		if (DATE_ONLY_RE.test(value.trim())) {
+			const { year, month0, day } = parseYmd(value)
+			const y = String(year).padStart(4, '0')
+			const m = String(month0 + 1).padStart(2, '0')
+			const d = String(day).padStart(2, '0')
+			return new Date(`${y}-${m}-${d}T12:00:00.000${MEXICO_STANDARD_OFFSET}`)
 		}
 		return new Date(value)
 	}
 	return value
 }
 
-export function formatMxBusinessDate(value: Date | string): string {
-	return toDate(value).toLocaleDateString(LOCALE, DATE_ONLY_OPTIONS)
+export type FormatMxBusinessDateOptions = {
+	/** Default `short` (e.g. may); use `long` for full month names in labels. */
+	month?: 'short' | 'long'
+}
+
+export function formatMxBusinessDate(
+	value: Date | string,
+	options?: FormatMxBusinessDateOptions,
+): string {
+	const month = options?.month ?? 'short'
+	const intlOptions: Intl.DateTimeFormatOptions = {
+		...DATE_ONLY_BASE,
+		month,
+	}
+	return toDate(value).toLocaleDateString(LOCALE, intlOptions)
 }
