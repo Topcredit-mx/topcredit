@@ -43,7 +43,7 @@ describe('generatePaymentSchedule monthly', () => {
 		assert.equal(schedule.length, 12)
 	})
 
-	test('all dates are month-end boundaries (business Y-M-D)', () => {
+	test('all dates are month-end boundaries (Mexico Y-M-D)', () => {
 		for (const entry of schedule) {
 			const ymd = ymdForDeductionSchedule(entry.dueDate)
 			const day = Number(ymd.slice(8, 10))

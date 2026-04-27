@@ -1,4 +1,4 @@
-/** US Central Standard Time: business calendar is fixed UTC-6 (matches IANA post-~2022; avoids skew vs {@link endOfDayInstantMexicoCity}). */
+/** US Central Standard Time: Mexico calendar instants use fixed UTC-6 (matches IANA post-~2022; avoids skew vs {@link endOfDayInstantMexicoCity}). */
 const MEXICO_STANDARD_OFFSET = '-06:00'
 const MEXICO_STANDARD_OFFSET_MS = 6 * 60 * 60 * 1000
 
@@ -28,7 +28,7 @@ export function calendarPartsInMexicoCity(d: Date): {
 	return parseYmd(ymd)
 }
 
-/** `todayYmd` / alias for `calendarYmdInMexicoCity` (business "today" in CDMX). */
+/** `todayYmd` / alias for `calendarYmdInMexicoCity` (today’s civil date in CDMX). */
 export function todayYmdMexicoCity(now: Date): string {
 	return calendarYmdInMexicoCity(now)
 }
@@ -61,14 +61,13 @@ export function endOfDayInstantMexicoCity(ymd: string): Date {
 	return new Date(`${ymd.trim()}T23:59:59.999${MEXICO_STANDARD_OFFSET}`)
 }
 
-/** Business calendar Y-M-D for a `dueDate` (EOD `America/Mexico_City` instant). */
+/** Y-M-D in Mexico (fixed UTC-6) for a schedule `dueDate` (EOD CDMX instant). */
 export function ymdForDeductionSchedule(d: Date): string {
-	// `dueDate` = EOD Mexico for that YMD; YMD of instant matches business calendar
 	return calendarYmdInMexicoCity(d)
 }
 
 /**
- * Civil `YYYY-MM-DD` for business logic, using the same fixed **UTC-6** offset as
+ * Civil `YYYY-MM-DD` in Mexico, using the same fixed **UTC-6** offset as
  * {@link startOfDayInstantMexicoCity} / {@link endOfDayInstantMexicoCity}.
  * (IANA `America/Mexico_City` can disagree on historical instants, which would make
  * EOD instants and YMD string round-trips disagree.)

@@ -24,7 +24,7 @@
 	},
 	"common": {
 		"date-timezone-suffix": "· CDMX",
-		"date-business-aria": "{date} (hora Ciudad de México)",
+		"date-cdmx-aria": "{date} (hora Ciudad de México)",
 		"save": "Guardar",
 		"cancel": "Cancelar",
 		"close": "Cerrar",

@@ -18,10 +18,10 @@ export function creditHasLongOverdueForAdminDefault(
 	if (payments.length === 0) {
 		return false
 	}
-	const businessTodayYmd = todayYmdMexicoCity(asOf)
-	const startOfBusinessDay = startOfDayInstantMexicoCity(businessTodayYmd)
+	const todayYmdMx = todayYmdMexicoCity(asOf)
+	const startOfTodayMx = startOfDayInstantMexicoCity(todayYmdMx)
 	const minDueThreshold = new Date(
-		startOfBusinessDay.getTime() -
+		startOfTodayMx.getTime() -
 			CREDIT_ADMIN_DEFAULT_MIN_OVERDUE_DAYS * 86_400_000,
 	)
 	for (const p of payments) {

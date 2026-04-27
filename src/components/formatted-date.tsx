@@ -64,7 +64,7 @@ function formatDate(
 export interface FormattedDateProps {
 	value: Date | string
 	format?: 'date' | 'datetime' | 'datetime-short'
-	/** When true, appends a short CDMX business-time label (e.g. "· CDMX"). */
+	/** When true, appends a short CDMX time label (e.g. "· CDMX"). */
 	showTimeZoneLabel?: boolean
 	className?: string
 }
@@ -86,7 +86,7 @@ export function FormattedDate({
 		return <span className={className}>{display}</span>
 	}
 
-	const ariaLabel = t('date-business-aria', { date: display })
+	const ariaLabel = t('date-cdmx-aria', { date: display })
 	const suffix = t('date-timezone-suffix')
 
 	return (

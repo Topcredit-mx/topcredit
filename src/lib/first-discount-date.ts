@@ -15,7 +15,7 @@ function addOneCalendarDayYmd(ymd: string): string {
 }
 
 /**
- * YYYY-MM-DD of the business anchor for a `Date` (due / first discount).
+ * YYYY-MM-DD of the schedule anchor for a `Date` (due / first discount).
  * Uses Mexico calendar; required when instants are end-of-day CDMX (UTC date may differ).
  */
 function ymdOfScheduleDate(d: Date): string {

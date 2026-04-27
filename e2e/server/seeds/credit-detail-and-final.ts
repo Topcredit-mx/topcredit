@@ -38,7 +38,7 @@ import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
 import {
 	endOfCurrentMonthEodMx,
 	endOfNextMonthEodMx,
-	eodBusinessDaysAgo,
+	eodCalendarDaysAgoMx,
 	eodYmd,
 } from '../shared/mexico-seed-dates'
 import { createOrderedSeedStatusHistory } from '../shared/status-history'
@@ -153,7 +153,7 @@ export const seedCreditDetailPaymentStates =
 		//   upcoming period: Jan 31 2023  (last day of frozen month → getUpcomingDeductionDate result)
 		//   future 1       : Feb 28 2023
 		//   future 2       : Mar 31 2023
-		// Fixed Mexico business EODs (align with frozen E2E clock 2023-01-05).
+		// Fixed Mexico EODs (align with frozen E2E clock 2023-01-05).
 		const confirmedPastDate = eodYmd('2022-11-30')
 		const overdueDate = eodYmd('2022-12-31')
 		const upcomingDate = eodYmd('2023-01-31')
@@ -391,7 +391,7 @@ export const seedCreditDetailInstallmentSchedule =
 			}),
 		)
 
-		// Fixed Mexico business EODs (align with frozen E2E clock 2023-01-05).
+		// Fixed Mexico EODs (align with frozen E2E clock 2023-01-05).
 		const confirmedPastDate = eodYmd('2022-11-30')
 		const overdueDate = eodYmd('2022-12-31')
 		const upcomingDate = eodYmd('2023-01-31')
@@ -613,10 +613,10 @@ export const seedCreditFinalInstallmentSettles =
 			}),
 		)
 
-		// Mexico business EOD; relative to DB seed time (Playwright clock does not change DB)
-		const row0Date = eodBusinessDaysAgo(now, 90)
-		const row1Date = eodBusinessDaysAgo(now, 60)
-		// End of current business month: aligns with monthly `getUpcomingDeductionDate`.
+		// Mexico EOD; relative to DB seed time (Playwright clock does not change DB)
+		const row0Date = eodCalendarDaysAgoMx(now, 90)
+		const row1Date = eodCalendarDaysAgoMx(now, 60)
+		// End of current Mexico month: aligns with monthly `getUpcomingDeductionDate`.
 		const row2Date = endOfCurrentMonthEodMx(now)
 
 		const [app] = await db
@@ -807,8 +807,8 @@ export const seedInstallmentsQueueMixedSettlementAndPartial =
 			}),
 		)
 
-		const row0Date = eodBusinessDaysAgo(now, 90)
-		const row1Date = eodBusinessDaysAgo(now, 60)
+		const row0Date = eodCalendarDaysAgoMx(now, 90)
+		const row1Date = eodCalendarDaysAgoMx(now, 60)
 		const dueThisMonthEnd = endOfCurrentMonthEodMx(now)
 		const dueNextMonthEnd = endOfNextMonthEodMx(now)
 
