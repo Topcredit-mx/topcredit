@@ -314,7 +314,11 @@ export const applicationDocuments = pgTable(
 	],
 )
 
-export const CREDIT_STATUS_VALUES = ['dispersed', 'settled'] as const
+export const CREDIT_STATUS_VALUES = [
+	'dispersed',
+	'settled',
+	'defaulted',
+] as const
 export type CreditStatus = (typeof CREDIT_STATUS_VALUES)[number]
 export const creditStatusEnum = pgEnum('credit_status', CREDIT_STATUS_VALUES)
 

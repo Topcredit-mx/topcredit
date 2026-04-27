@@ -12,6 +12,7 @@ export const BREADCRUMB_LABEL_KEYS = [
 	'equipo-companies-edit',
 	'equipo-users',
 	'equipo-credits',
+	'equipo-credits-defaulted',
 	'equipo-credits-detail',
 	'equipo-deductions',
 	'equipo-deductions-history',
@@ -133,6 +134,16 @@ export function getEquipoBreadcrumbSegments(
 		return [
 			{ href: base, labelKey: 'equipo-home' },
 			{ href: `${base}/credits`, labelKey: 'equipo-credits' },
+		]
+	}
+	if (pathname === `${base}/credits/defaulted`) {
+		return [
+			{ href: base, labelKey: 'equipo-home' },
+			{ href: `${base}/credits`, labelKey: 'equipo-credits' },
+			{
+				href: `${base}/credits/defaulted`,
+				labelKey: 'equipo-credits-defaulted',
+			},
 		]
 	}
 	const creditId = params.id

@@ -40,6 +40,21 @@ describe('getEquipoBreadcrumbSegments - deductions', () => {
 	})
 })
 
+describe('getEquipoBreadcrumbSegments - credits defaulted', () => {
+	test('credits/defaulted shows Home > Créditos > Cartera vencida', () => {
+		const segments = getEquipoBreadcrumbSegments(
+			`${base}/credits/defaulted`,
+			{},
+		)
+		assert.equal(segments.length, 3)
+		assert.equal(segments[0]?.labelKey, 'equipo-home')
+		assert.equal(segments[1]?.labelKey, 'equipo-credits')
+		assert.equal(segments[1]?.href, `${base}/credits`)
+		assert.equal(segments[2]?.labelKey, 'equipo-credits-defaulted')
+		assert.equal(segments[2]?.href, `${base}/credits/defaulted`)
+	})
+})
+
 describe('getEquipoBreadcrumbSegments - installments', () => {
 	test('installments shows Home > Instalaciones', () => {
 		const segments = getEquipoBreadcrumbSegments(`${base}/installments`, {})

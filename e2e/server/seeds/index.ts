@@ -1,5 +1,6 @@
 export * from './admin-and-other-flows'
 export * from './applications-review'
+export * from './credit-default-admin'
 export * from './credit-detail-and-final'
 export * from './cuenta-applications'
 export * from './cuenta-credits'

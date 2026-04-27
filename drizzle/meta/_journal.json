@@ -8,6 +8,13 @@
 			"when": 1777240633617,
 			"tag": "0000_common_plazm",
 			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1777245355930,
+			"tag": "0001_high_sage",
+			"breakpoints": true
 		}
 	]
 }

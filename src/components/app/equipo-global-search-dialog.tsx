@@ -1,11 +1,13 @@
 'use client'
 
 import {
+	Ban,
 	Banknote,
 	Building2,
 	ClipboardList,
 	ExternalLink,
 	Hash,
+	type LucideIcon,
 	Mail,
 	Search,
 	User,
@@ -119,14 +121,41 @@ export function EquipoGlobalSearchDialog() {
 		return t('applications-status-pending')
 	}
 
-	const creditStatusLabel = (row: EquipoGlobalSearchItem) => {
+	type CreditSearchPresentation = {
+		label: string
+		badgeVariant: 'default' | 'secondary' | 'destructive' | 'outline'
+		StatusIcon: LucideIcon
+		statusIconClassName: string
+	}
+
+	const creditStatusPresentation = (
+		row: EquipoGlobalSearchItem,
+	): CreditSearchPresentation | null => {
 		if (row.creditId === null || row.creditStatus === null) {
 			return null
 		}
 		if (row.creditStatus === 'dispersed') {
-			return t('credit-detail-status-dispersed')
+			return {
+				label: t('credit-detail-status-dispersed'),
+				badgeVariant: 'outline',
+				StatusIcon: Wallet,
+				statusIconClassName: 'text-muted-foreground',
+			}
 		}
-		return t('credit-detail-status-settled')
+		if (row.creditStatus === 'defaulted') {
+			return {
+				label: t('credit-detail-status-defaulted'),
+				badgeVariant: 'destructive',
+				StatusIcon: Ban,
+				statusIconClassName: 'text-destructive',
+			}
+		}
+		return {
+			label: t('credit-detail-status-settled'),
+			badgeVariant: 'secondary',
+			StatusIcon: Wallet,
+			statusIconClassName: 'text-muted-foreground',
+		}
 	}
 
 	return (
@@ -184,9 +213,10 @@ export function EquipoGlobalSearchDialog() {
 						<ul className="space-y-0">
 							{results.map((row) => {
 								const appLabel = applicationStatusLabel(row)
-								const credLabel = creditStatusLabel(row)
+								const credPresentation = creditStatusPresentation(row)
 								const showCreditStatusBadge =
-									credLabel !== null && credLabel !== appLabel
+									credPresentation !== null &&
+									credPresentation.label !== appLabel
 
 								return (
 									<li
@@ -244,20 +274,26 @@ export function EquipoGlobalSearchDialog() {
 															{appLabel}
 														</Badge>
 													</div>
-													{showCreditStatusBadge && credLabel !== null ? (
+													{showCreditStatusBadge &&
+													credPresentation !== null ? (
 														<div className="flex items-center gap-1.5">
-															<Wallet
-																className="size-3.5 shrink-0 text-muted-foreground"
-																aria-hidden
-															/>
+															{(() => {
+																const CrStatusIcon = credPresentation.StatusIcon
+																return (
+																	<CrStatusIcon
+																		className={`size-3.5 shrink-0 ${credPresentation.statusIconClassName}`}
+																		aria-hidden
+																	/>
+																)
+															})()}
 															<span className="sr-only">
 																{t('global-search-label-credit')}
 															</span>
 															<Badge
-																variant="outline"
+																variant={credPresentation.badgeVariant}
 																className="font-normal text-xs"
 															>
-																{credLabel}
+																{credPresentation.label}
 															</Badge>
 														</div>
 													) : null}

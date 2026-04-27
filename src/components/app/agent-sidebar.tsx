@@ -67,6 +67,11 @@ export function AgentSidebar({
 					url: '/equipo/companies',
 					icon: Building2,
 				},
+				{
+					title: t('nav-admin-credits-defaulted'),
+					url: '/equipo/credits/defaulted',
+					icon: Wallet,
+				},
 			]
 		: []
 

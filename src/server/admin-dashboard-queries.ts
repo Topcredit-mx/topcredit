@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import {
 	startOfDayInstantMexicoCity,
 	todayYmdMexicoCity,
@@ -123,13 +123,15 @@ async function loadCreditKpis(companyId?: number): Promise<{
 	let dispersedCount = 0
 	let settledCount = 0
 	for (const r of rows) {
-		if (r.status === 'dispersed') {
-			dispersedCount = r.n
+		if (r.status === 'dispersed' || r.status === 'defaulted') {
+			dispersedCount += r.n
 		}
 		if (r.status === 'settled') {
 			settledCount = r.n
 		}
 	}
+
+	const activeCreditStatuses = ['dispersed', 'defaulted'] as const
 
 	const totalSelect = db
 		.select({
@@ -139,9 +141,9 @@ async function loadCreditKpis(companyId?: number): Promise<{
 		.innerJoin(applications, eq(credits.applicationId, applications.id))
 		.where(
 			companyId === undefined
-				? eq(credits.status, 'dispersed')
+				? inArray(credits.status, activeCreditStatuses)
 				: and(
-						eq(credits.status, 'dispersed'),
+						inArray(credits.status, activeCreditStatuses),
 						eq(applications.companyId, companyId),
 					),
 		)
@@ -164,7 +166,8 @@ async function loadGlobalOverdueInstallmentsCount(): Promise<number> {
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
-		WHERE cp.due_date < ${startOfBusinessDay}
+		WHERE cr.status <> 'defaulted'::credit_status
+		  AND cp.due_date < ${startOfBusinessDay}
 		  AND (
 				cp.hr_confirmed_at IS NULL
 				OR cp.installment_confirmed_at IS NULL
@@ -184,7 +187,8 @@ async function loadGlobalOverdueHrDeductionsCount(): Promise<number> {
 		FROM credit_payments cp
 		INNER JOIN credits cr ON cp.credit_id = cr.id
 		INNER JOIN applications a ON cr.application_id = a.id
-		WHERE cp.hr_confirmed_at IS NULL
+		WHERE cr.status <> 'defaulted'::credit_status
+		  AND cp.hr_confirmed_at IS NULL
 		  AND cp.due_date < ${startOfBusinessDay}
 	`)
 	const row = result.rows[0] as { count: unknown } | undefined

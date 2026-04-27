@@ -21,6 +21,7 @@ import { Decimal } from '~/lib/decimal'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
+import type { CreditStatus } from '~/server/db/schema'
 import {
 	getCompanyById,
 	getCreditDetailForEquipoByCreditId,
@@ -34,12 +35,19 @@ import {
 	EQUIPO_DETAIL_STAT_CARD_CLASS,
 	EQUIPO_DETAIL_STAT_CONTENT_CLASS,
 } from '../../detail-layout-classes'
+import { CreditAdminDangerZone } from './credit-admin-danger-zone'
 import { CreditPaymentsTable } from './credit-payments-table'
 
 function creditStatusBadgeVariant(
-	status: 'dispersed' | 'settled',
-): 'default' | 'secondary' {
-	return status === 'settled' ? 'secondary' : 'default'
+	status: CreditStatus,
+): 'default' | 'secondary' | 'destructive' {
+	if (status === 'settled') {
+		return 'secondary'
+	}
+	if (status === 'defaulted') {
+		return 'destructive'
+	}
+	return 'default'
 }
 
 export default async function EquipoCreditDetailPage({
@@ -132,7 +140,9 @@ export default async function EquipoCreditDetailPage({
 					<Badge variant={creditStatusBadgeVariant(credit.status)}>
 						{credit.status === 'settled'
 							? t('credit-detail-status-settled')
-							: t('credit-detail-status-dispersed')}
+							: credit.status === 'defaulted'
+								? t('credit-detail-status-defaulted')
+								: t('credit-detail-status-dispersed')}
 					</Badge>
 				</div>
 			</div>
@@ -158,7 +168,7 @@ export default async function EquipoCreditDetailPage({
 							</p>
 						) : null}
 					</div>
-					<div className="grid gap-3 md:justify-items-end">
+					<div className="flex flex-wrap justify-end gap-2 md:justify-items-end">
 						<Button variant="outline" size="sm" asChild>
 							<Link href={`/equipo/applications/${credit.applicationId}`}>
 								<FileText className="size-4" aria-hidden />
@@ -247,6 +257,13 @@ export default async function EquipoCreditDetailPage({
 					</p>
 				)}
 			</section>
+
+			{isAdmin ? (
+				<CreditAdminDangerZone
+					creditId={credit.id}
+					creditStatus={credit.status}
+				/>
+			) : null}
 		</section>
 	)
 }
