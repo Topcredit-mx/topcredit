@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useActionState, useEffect, useRef } from 'react'
+import { startTransition, useActionState, useEffect, useRef } from 'react'
 import { uploadApplicationDocumentAction } from '~/app/cuenta/(main)/applications/actions'
 import {
 	AuthInlineError,
@@ -65,7 +65,9 @@ export function ApplicationDocumentUploadForm({
 
 	useEffect(() => {
 		if (state.success) {
-			router.refresh()
+			startTransition(() => {
+				router.refresh()
+			})
 		}
 	}, [router, state.success])
 
