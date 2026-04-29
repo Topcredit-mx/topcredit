@@ -168,6 +168,11 @@ test.describe('Requests agents', () => {
 					reason,
 				)
 				await submitEquipoDocumentReviewForm(page)
+				await expect(
+					page
+						.locator('[data-sonner-toast][data-type="success"]')
+						.getByText(/cambios en documentos guardados/i),
+				).toBeVisible()
 				await assertEquipoDocumentRowStatus(
 					page,
 					'reject-with-reason-e2e.pdf',

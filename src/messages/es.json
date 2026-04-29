@@ -578,6 +578,7 @@
 		"applications-documents-review-authorize-only": "Autorizar",
 		"applications-documents-review-approve-only": "Aprobar",
 		"applications-documents-review-decision-label": "Acción sobre este documento",
+		"applications-documents-review-saved": "Cambios en documentos guardados",
 		"document-type-invalid": "Tipo de documento no válido",
 		"document-status-invalid": "Estado de documento no válido",
 		"application-invalid": "Solicitud no válida",
