@@ -15,6 +15,13 @@
 			"when": 1777245355930,
 			"tag": "0001_high_sage",
 			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1777427593754,
+			"tag": "0002_charming_menace",
+			"breakpoints": true
 		}
 	]
 }

@@ -1,6 +1,5 @@
 'use server'
 
-import { NeonDbError } from '@neondatabase/serverless'
 import { and, eq, inArray, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import {
@@ -85,6 +84,7 @@ import {
 	sendApplicationDocumentsRejectedEvent,
 	sendApplicationStatusEvent,
 } from '~/server/email'
+import { getNeonDbCause } from '~/server/errors/errors'
 import { getApplicationDocuments } from '~/server/queries'
 import {
 	applyApplicationDocumentDecisionsSchema,
@@ -156,6 +156,50 @@ export type CreateCompanyData = {
 	}[]
 }
 
+async function getOrCreateTermIdForDuration(params: {
+	durationType: 'monthly' | 'bi-monthly'
+	duration: number
+}): Promise<number> {
+	const existing = await db.query.terms.findFirst({
+		where: and(
+			eq(terms.durationType, params.durationType),
+			eq(terms.duration, params.duration),
+		),
+		columns: { id: true },
+	})
+	if (existing) {
+		return existing.id
+	}
+	try {
+		const [inserted] = await db
+			.insert(terms)
+			.values({
+				durationType: params.durationType,
+				duration: params.duration,
+			})
+			.returning({ id: terms.id })
+		if (!inserted) {
+			throw new Error('No se pudo crear el plazo')
+		}
+		return inserted.id
+	} catch (error) {
+		const neon = getNeonDbCause(error)
+		if (neon?.code === '23505') {
+			const afterRace = await db.query.terms.findFirst({
+				where: and(
+					eq(terms.durationType, params.durationType),
+					eq(terms.duration, params.duration),
+				),
+				columns: { id: true },
+			})
+			if (afterRace) {
+				return afterRace.id
+			}
+		}
+		throw error
+	}
+}
+
 export async function insertTermOfferingForCompanyDb(params: {
 	companyId: number
 	duration: number
@@ -169,28 +213,10 @@ export async function insertTermOfferingForCompanyDb(params: {
 	}
 	const durationType = company.employeeSalaryFrequency
 
-	const existingTerm = await db.query.terms.findFirst({
-		where: and(
-			eq(terms.durationType, durationType),
-			eq(terms.duration, params.duration),
-		),
+	const termId = await getOrCreateTermIdForDuration({
+		durationType,
+		duration: params.duration,
 	})
-	let termId: number
-	if (existingTerm) {
-		termId = existingTerm.id
-	} else {
-		const [inserted] = await db
-			.insert(terms)
-			.values({
-				durationType,
-				duration: params.duration,
-			})
-			.returning({ id: terms.id })
-		if (!inserted) {
-			throw new Error('No se pudo crear el plazo')
-		}
-		termId = inserted.id
-	}
 	try {
 		await db.insert(termOfferings).values({
 			companyId: params.companyId,
@@ -198,7 +224,8 @@ export async function insertTermOfferingForCompanyDb(params: {
 			disabled: false,
 		})
 	} catch (error) {
-		if (error instanceof NeonDbError && error.code === '23505') {
+		const neon = getNeonDbCause(error)
+		if (neon?.code === '23505') {
 			throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
 		}
 		throw error
@@ -394,28 +421,10 @@ export async function updateCompanyTermOffering(
 
 	const durationType = company.employeeSalaryFrequency
 
-	const existingTerm = await db.query.terms.findFirst({
-		where: and(
-			eq(terms.durationType, durationType),
-			eq(terms.duration, data.duration),
-		),
+	const termId = await getOrCreateTermIdForDuration({
+		durationType,
+		duration: data.duration,
 	})
-	let termId: number
-	if (existingTerm) {
-		termId = existingTerm.id
-	} else {
-		const [inserted] = await db
-			.insert(terms)
-			.values({
-				durationType,
-				duration: data.duration,
-			})
-			.returning({ id: terms.id })
-		if (!inserted) {
-			throw new Error('No se pudo crear el plazo')
-		}
-		termId = inserted.id
-	}
 	try {
 		await db
 			.update(termOfferings)
@@ -427,7 +436,8 @@ export async function updateCompanyTermOffering(
 				),
 			)
 	} catch (error) {
-		if (error instanceof NeonDbError && error.code === '23505') {
+		const neon = getNeonDbCause(error)
+		if (neon?.code === '23505') {
 			throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
 		}
 		throw error

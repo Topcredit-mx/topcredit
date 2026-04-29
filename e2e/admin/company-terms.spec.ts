@@ -81,6 +81,28 @@ test.describe('Admin company term management', () => {
 			await expect(page.getByText('18 meses', { exact: true })).toBeVisible()
 		})
 
+		test('admin cannot add the same term duration twice for the company', async ({
+			page,
+		}) => {
+			await loginPage(page, fixture.agentEmail)
+			await page.goto(
+				`/equipo/companies/${encodeURIComponent(companyTermsE2e.domain)}/edit`,
+			)
+
+			await page.getByLabel(/Duración \(número de pagos\)/i).fill('18')
+			await page.getByRole('button', { name: 'Agregar plazo' }).click()
+			await expect(page.getByText('18 meses', { exact: true })).toBeVisible()
+
+			await page.getByLabel(/Duración \(número de pagos\)/i).fill('18')
+			await page.getByRole('button', { name: 'Agregar plazo' }).click()
+
+			await expect(
+				page.getByText(/Esta empresa ya tiene ese plazo/i),
+			).toBeVisible()
+			const rows18 = page.locator('tr', { hasText: '18 meses' })
+			await expect(rows18).toHaveCount(1)
+		})
+
 		test('admin toggles term availability for new applications', async ({
 			page,
 		}) => {

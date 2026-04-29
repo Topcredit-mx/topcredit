@@ -2,6 +2,23 @@ import { NeonDbError } from '@neondatabase/serverless'
 import { ZodError } from 'zod'
 import { ValidationCode } from '~/lib/validation-codes'
 
+function isObjectWithCause(value: unknown): value is { cause: unknown } {
+	return typeof value === 'object' && value !== null && 'cause' in value
+}
+
+export function getNeonDbCause(error: unknown): NeonDbError | undefined {
+	if (error instanceof NeonDbError) {
+		return error
+	}
+	if (isObjectWithCause(error)) {
+		const c = error.cause
+		if (c instanceof NeonDbError) {
+			return c
+		}
+	}
+	return undefined
+}
+
 export function fromErrorToFormState(error: unknown): {
 	errors?: Record<string, string>
 	message?: string
@@ -25,25 +42,34 @@ export function fromErrorToFormState(error: unknown): {
 		return { message: 'Validation error' }
 	}
 
-	if (error instanceof NeonDbError) {
-		switch (error.code) {
+	const neon = getNeonDbCause(error)
+	if (neon !== undefined) {
+		switch (neon.code) {
 			case '23505':
-				if (error.constraint?.includes('domain')) {
+				if (neon.constraint?.includes('domain')) {
 					return {
 						errors: {
 							domain: ValidationCode.COMPANY_DOMAIN_DUPLICATE,
 						},
 					}
 				}
-				if (error.constraint?.includes('email')) {
+				if (neon.constraint?.includes('email')) {
 					return {
 						errors: {
 							email: ValidationCode.AUTH_EMAIL_ALREADY_REGISTERED,
 						},
 					}
 				}
+				if (
+					neon.constraint?.includes('term_offerings_company_id_term_id') ||
+					neon.constraint?.includes('terms_duration_type_duration')
+				) {
+					return {
+						message: ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED,
+					}
+				}
 				return {
-					message: `Este ${error.table || 'item'} ya existe. Debe ser único.`,
+					message: `Este ${neon.table || 'item'} ya existe. Debe ser único.`,
 				}
 
 			case '23514':
@@ -64,7 +90,7 @@ export function fromErrorToFormState(error: unknown): {
 				}
 
 			default:
-				return { message: error.message || 'Error de base de datos' }
+				return { message: neon.message || 'Error de base de datos' }
 		}
 	}
 
