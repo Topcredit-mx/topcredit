@@ -700,7 +700,6 @@ test.describe('Cuenta applications', () => {
 			await official.first().locator('input[name="file"]').setInputFiles(SAMPLE_WEBP)
 			await uploadPromise
 
-			await expect(official.first().getByText(/archivo cargado/i)).toBeVisible()
 			await expect(official.first().getByText(/pendiente/i)).toBeVisible()
 			await expect(official.first().getByText(/sample-document\.webp/i)).toBeVisible()
 		})
@@ -1048,7 +1047,6 @@ test.describe('Cuenta applications', () => {
 			await payroll.locator('input[name="file"]').setInputFiles(SAMPLE_WEBP)
 			await uploadPromise
 
-			await expect(payroll.getByText(/archivo cargado/i)).toBeVisible()
 			await expect(payroll.getByText(/pendiente/i)).toBeVisible()
 			await expect(payroll.getByText(/sample-document\.webp/i)).toBeVisible()
 		})

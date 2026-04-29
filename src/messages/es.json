@@ -1170,7 +1170,6 @@
 			"document-reupload-title": "Reenviar este documento",
 			"document-reupload-description": "Carga una nueva versión para reemplazar el archivo rechazado.",
 			"document-reupload-submit": "Actualizar archivo",
-			"document-upload-success": "Archivo cargado. Actualizando…",
 			"upload-panel-title": "Sube un documento actualizado",
 			"upload-panel-description": "Selecciona el tipo de documento que quieres reemplazar y carga una nueva versión.",
 			"upload-panel-collapsed-description": "Haz clic para elegir el documento que quieres actualizar.",
