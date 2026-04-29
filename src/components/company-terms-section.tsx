@@ -1,5 +1,13 @@
 'use client'
 
+import {
+	CalendarClock,
+	CheckCircle2,
+	Loader2,
+	Pencil,
+	Plus,
+	Timer,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useId, useState } from 'react'
@@ -141,9 +149,17 @@ function AddTermForm({ companyId }: { companyId: number }) {
 					</Select>
 				</Field>
 				<Button type="submit" disabled={pending}>
-					{pending
-						? t('company-terms-add-submitting')
-						: t('company-terms-add-submit')}
+					{pending ? (
+						<>
+							<Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+							{t('company-terms-add-submitting')}
+						</>
+					) : (
+						<>
+							<Plus className="size-4 shrink-0" aria-hidden />
+							{t('company-terms-add-submit')}
+						</>
+					)}
 				</Button>
 			</div>
 			{state.errors?.durationType ? (
@@ -195,6 +211,12 @@ function TermAvailabilityToggle({
 				minHeightClass="min-h-5"
 			/>
 			<div className="flex items-center gap-2">
+				{pending ? (
+					<Loader2
+						className="size-4 shrink-0 animate-spin text-muted-foreground"
+						aria-hidden
+					/>
+				) : null}
 				<Checkbox
 					id={`term-available-${row.id}`}
 					checked={available}
@@ -264,6 +286,7 @@ function TermEditDialog({
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				<Button type="button" variant="outline" size="sm">
+					<Pencil className="size-4 shrink-0" aria-hidden />
 					{t('company-terms-edit-open')}
 				</Button>
 			</DialogTrigger>
@@ -332,9 +355,20 @@ function TermEditDialog({
 					</Field>
 					<DialogFooter>
 						<Button type="submit" disabled={pending}>
-							{pending
-								? t('company-terms-edit-saving')
-								: t('company-terms-edit-save')}
+							{pending ? (
+								<>
+									<Loader2
+										className="size-4 shrink-0 animate-spin"
+										aria-hidden
+									/>
+									{t('company-terms-edit-saving')}
+								</>
+							) : (
+								<>
+									<Pencil className="size-4 shrink-0" aria-hidden />
+									{t('company-terms-edit-save')}
+								</>
+							)}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -355,7 +389,15 @@ function TermRowInner({
 
 	return (
 		<>
-			<TableCell className="font-medium">{label}</TableCell>
+			<TableCell className="font-medium">
+				<span className="inline-flex items-center gap-2">
+					<Timer
+						className="size-4 shrink-0 text-muted-foreground"
+						aria-hidden
+					/>
+					{label}
+				</span>
+			</TableCell>
 			<TableCell>
 				<TermAvailabilityToggle companyId={companyId} row={row} />
 			</TableCell>
@@ -379,7 +421,13 @@ export function CompanyTermsSection({
 		<Card className="mt-8">
 			<CardHeader>
 				<CardTitle asChild>
-					<h2>{t('company-terms-title')}</h2>
+					<h2 className="flex items-center gap-2 font-semibold text-xl leading-none">
+						<CalendarClock
+							className="size-5 shrink-0 text-muted-foreground"
+							aria-hidden
+						/>
+						{t('company-terms-title')}
+					</h2>
 				</CardTitle>
 				<CardDescription>{t('company-terms-description')}</CardDescription>
 			</CardHeader>
@@ -388,10 +436,32 @@ export function CompanyTermsSection({
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>{t('company-terms-col-term')}</TableHead>
-								<TableHead>{t('company-terms-col-available')}</TableHead>
+								<TableHead>
+									<span className="inline-flex items-center gap-2">
+										<Timer
+											className="size-4 shrink-0 text-muted-foreground"
+											aria-hidden
+										/>
+										{t('company-terms-col-term')}
+									</span>
+								</TableHead>
+								<TableHead>
+									<span className="inline-flex items-center gap-2">
+										<CheckCircle2
+											className="size-4 shrink-0 text-muted-foreground"
+											aria-hidden
+										/>
+										{t('company-terms-col-available')}
+									</span>
+								</TableHead>
 								<TableHead className="text-right">
-									{t('company-terms-col-actions')}
+									<span className="inline-flex items-center justify-end gap-2">
+										<Pencil
+											className="size-4 shrink-0 text-muted-foreground"
+											aria-hidden
+										/>
+										{t('company-terms-col-actions')}
+									</span>
 								</TableHead>
 							</TableRow>
 						</TableHeader>
@@ -404,12 +474,23 @@ export function CompanyTermsSection({
 						</TableBody>
 					</Table>
 				) : (
-					<p className="text-muted-foreground text-sm">
-						{t('company-terms-empty')}
-					</p>
+					<div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-10 text-center">
+						<CalendarClock
+							className="size-10 text-muted-foreground"
+							strokeWidth={1.25}
+							aria-hidden
+						/>
+						<p className="max-w-sm text-muted-foreground text-sm">
+							{t('company-terms-empty')}
+						</p>
+					</div>
 				)}
 				<div className="border-t pt-6">
-					<h3 className="mb-3 font-medium text-sm">
+					<h3 className="mb-3 flex items-center gap-2 font-medium text-sm">
+						<Plus
+							className="size-4 shrink-0 text-muted-foreground"
+							aria-hidden
+						/>
 						{t('company-terms-add-heading')}
 					</h3>
 					<AddTermForm
