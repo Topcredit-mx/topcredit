@@ -121,3 +121,11 @@ export const ValidationCode = {
 
 export type ValidationCode =
 	(typeof ValidationCode)[keyof typeof ValidationCode]
+
+const VALIDATION_CODE_VALUE_SET: ReadonlySet<string> = new Set(
+	Object.values(ValidationCode),
+)
+
+export function isValidationCodeMessage(value: string): boolean {
+	return VALIDATION_CODE_VALUE_SET.has(value)
+}

@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useActionState, useEffect, useId, useState } from 'react'
+import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import { formatApplicationTerm } from '~/app/equipo/(main)/applications/constants'
 import {
 	addCompanyTermAction,
@@ -171,13 +171,14 @@ function TermAvailabilityToggle({
 	)
 	useRefreshOnTermSuccess(state)
 	const [available, setAvailable] = useState(!row.disabled)
+	const formRef = useRef<HTMLFormElement>(null)
 
 	useEffect(() => {
 		setAvailable(!row.disabled)
 	}, [row.disabled])
 
 	return (
-		<form id={`term-toggle-form-${row.id}`} action={action}>
+		<form ref={formRef} id={`term-toggle-form-${row.id}`} action={action}>
 			<input type="hidden" name="companyId" value={companyId} />
 			<input type="hidden" name="termOfferingId" value={row.id} />
 			<input
@@ -207,14 +208,10 @@ function TermAvailabilityToggle({
 					onCheckedChange={(checked) => {
 						const next = checked === true
 						setAvailable(next)
-						const form = document.getElementById(
-							`term-toggle-form-${row.id}`,
-						) as HTMLFormElement | null
+						const form = formRef.current
 						if (!form) return
-						const hidden = form.querySelector(
-							'input[name="disabled"]',
-						) as HTMLInputElement | null
-						if (hidden) {
+						const hidden = form.querySelector('input[name="disabled"]')
+						if (hidden instanceof HTMLInputElement) {
 							hidden.value = next ? 'false' : 'true'
 						}
 						form.requestSubmit()

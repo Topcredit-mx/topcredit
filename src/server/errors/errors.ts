@@ -1,6 +1,6 @@
 import { NeonDbError } from '@neondatabase/serverless'
 import { ZodError } from 'zod'
-import { ValidationCode } from '~/lib/validation-codes'
+import { isValidationCodeMessage, ValidationCode } from '~/lib/validation-codes'
 
 function isObjectWithCause(value: unknown): value is { cause: unknown } {
 	return typeof value === 'object' && value !== null && 'cause' in value
@@ -23,11 +23,21 @@ export function fromErrorToFormState(error: unknown): {
 	errors?: Record<string, string>
 	message?: string
 } {
+	if (error instanceof Error && isValidationCodeMessage(error.message)) {
+		return { message: error.message }
+	}
+
 	if (error instanceof ZodError) {
 		if (error.issues && error.issues.length > 0) {
 			const fieldErrors: Record<string, string> = {}
 			for (const issue of error.issues) {
-				const fieldName = issue.path?.[0] as string | undefined
+				const firstPath = issue.path[0]
+				const fieldName =
+					typeof firstPath === 'string'
+						? firstPath
+						: typeof firstPath === 'number'
+							? String(firstPath)
+							: undefined
 				if (fieldName) {
 					if (!fieldErrors[fieldName]) {
 						fieldErrors[fieldName] = issue.message
