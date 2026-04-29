@@ -192,6 +192,7 @@ test.describe('Admin Companies List', () => {
 			'e2e-initialterms.com',
 			'e2e-payroll-block.com',
 			'e2e-bimonth-initial-terms.com',
+			'e2e-dup-initial-terms.com',
 		]
 
 		test.beforeAll(async () => {
@@ -303,6 +304,10 @@ test.describe('Admin Companies List', () => {
 			await page.locator('input[name="rate"]').fill('2.5')
 			await selectRadix(page, 'employeeSalaryFrequency', 'Mensual')
 
+			await expect(
+				page.getByText(/Misma frecuencia que el pago de la empresa/i),
+			).toBeVisible()
+
 			await page.getByRole('button', { name: /definir plazos/i }).click()
 			await page
 				.getByLabel(/Duración \(número de pagos\)/i)
@@ -364,6 +369,38 @@ test.describe('Admin Companies List', () => {
 			await expect(
 				page.getByText('24 quincenas', { exact: true }),
 			).toBeVisible()
+
+			await deleteCompaniesByDomain([newCompany.domain])
+		})
+
+		test('rejects create company when initial terms list has duplicate durations', async ({
+			page,
+		}) => {
+			const newCompany = {
+				name: 'Dup Initial Terms Co',
+				domain: 'e2e-dup-initial-terms.com',
+				rate: '0.0250',
+			}
+
+			await page.goto('/equipo/companies/new')
+
+			await page.locator('input[name="name"]').fill(newCompany.name)
+			await page.locator('input[name="domain"]').fill(newCompany.domain)
+			await page.locator('input[name="rate"]').fill('2.5')
+			await selectRadix(page, 'employeeSalaryFrequency', 'Mensual')
+
+			await page.getByRole('button', { name: /definir plazos/i }).click()
+			const durationInputs = page.getByLabel(/Duración \(número de pagos\)/i)
+			await durationInputs.first().fill('10')
+			await page.getByRole('button', { name: /agregar otro plazo/i }).click()
+			await durationInputs.nth(1).fill('10')
+
+			await page.getByRole('button', { name: /crear empresa/i }).click()
+
+			await expect(
+				page.getByText(/Esta empresa ya tiene ese plazo/i),
+			).toBeVisible()
+			await expect(page).toHaveURL(/\/equipo\/companies\/new/)
 
 			await deleteCompaniesByDomain([newCompany.domain])
 		})
