@@ -186,7 +186,11 @@ test.describe('Admin Companies List', () => {
 	})
 
 	test.describe('Company Creation', () => {
-		const creationTestDomains = ['newtest.com', 'norate.com']
+		const creationTestDomains = [
+			'newtest.com',
+			'norate.com',
+			'e2e-initialterms.com',
+		]
 
 		test.beforeAll(async () => {
 			await deleteCompaniesByDomain(creationTestDomains)
@@ -276,6 +280,51 @@ test.describe('Admin Companies List', () => {
 			await expect(
 				row.getByRole('cell', { name: newCompany.name }),
 			).toBeVisible()
+
+			await deleteCompaniesByDomain([newCompany.domain])
+		})
+
+		test('creates company with optional initial credit terms', async ({
+			page,
+		}) => {
+			const newCompany = {
+				name: 'Company With Initial Terms',
+				domain: 'e2e-initialterms.com',
+				rate: '0.0250',
+				employeeSalaryFrequency: 'monthly' as const,
+			}
+
+			await page.goto('/equipo/companies/new')
+
+			await page.locator('input[name="name"]').fill(newCompany.name)
+			await page.locator('input[name="domain"]').fill(newCompany.domain)
+			await page.locator('input[name="rate"]').fill('2.5')
+			await selectRadix(page, 'employeeSalaryFrequency', 'Mensual')
+
+			await page.getByRole('button', { name: /definir plazos/i }).click()
+			await page
+				.getByLabel(/Duración \(número de pagos\)/i)
+				.first()
+				.fill('6')
+			await page.getByRole('button', { name: /agregar otro plazo/i }).click()
+			const durationInputs = page.getByLabel(/Duración \(número de pagos\)/i)
+			await durationInputs.nth(1).fill('12')
+
+			await page.getByRole('button', { name: /crear|guardar|submit/i }).click()
+
+			await expect(page.locator('main')).toBeVisible()
+			await expect(page.locator('table')).toBeVisible()
+			const row = findTableRow(page, newCompany.name)
+			await row.scrollIntoViewIfNeeded()
+			await expect(
+				row.getByRole('cell', { name: newCompany.name }),
+			).toBeVisible()
+
+			await page.goto(
+				`/equipo/companies/${encodeURIComponent(newCompany.domain)}/edit`,
+			)
+			await expect(page.getByText('6 meses', { exact: true })).toBeVisible()
+			await expect(page.getByText('12 meses', { exact: true })).toBeVisible()
 
 			await deleteCompaniesByDomain([newCompany.domain])
 		})

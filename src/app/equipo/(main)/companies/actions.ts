@@ -15,11 +15,44 @@ import {
 	type UpdateCompanyData,
 	updateCompanyById,
 } from '~/server/mutations'
-import { createCompanySchema, updateCompanySchema } from '~/server/schemas'
+import {
+	createCompanyInitialTermsSchema,
+	createCompanySchema,
+	updateCompanySchema,
+} from '~/server/schemas'
 
 export type CompanyFormState = {
 	errors?: Record<string, string>
 	message?: string
+}
+
+type InitialTermsParse =
+	| { ok: true; terms: NonNullable<CreateCompanyData['initialTerms']> }
+	| { ok: false }
+
+function parseInitialTermsFromFormData(formData: FormData): InitialTermsParse {
+	const raw = formData.get('initialTermsJson')
+	if (raw == null || raw === '') {
+		return { ok: true, terms: [] }
+	}
+	const str = String(raw).trim()
+	if (str === '' || str === '[]') {
+		return { ok: true, terms: [] }
+	}
+	let parsed: unknown
+	try {
+		parsed = JSON.parse(str)
+	} catch {
+		return { ok: false }
+	}
+	if (!Array.isArray(parsed)) {
+		return { ok: false }
+	}
+	const result = createCompanyInitialTermsSchema.safeParse(parsed)
+	if (!result.success) {
+		return { ok: false }
+	}
+	return { ok: true, terms: result.data }
 }
 
 export async function createCompanyAction(
@@ -54,6 +87,13 @@ export async function createCompanyAction(
 			}
 		}
 
+		const initialTermsParsed = parseInitialTermsFromFormData(formData)
+		if (!initialTermsParsed.ok) {
+			return {
+				message: ValidationCode.COMPANY_CREATE_INITIAL_TERMS_INVALID,
+			}
+		}
+
 		const payload: CreateCompanyData = {
 			name: data.name,
 			domain: data.domain,
@@ -61,6 +101,10 @@ export async function createCompanyAction(
 			borrowingCapacityRate: data.borrowingCapacityRate ?? null,
 			employeeSalaryFrequency: data.employeeSalaryFrequency,
 			active: data.active ?? true,
+			initialTerms:
+				initialTermsParsed.terms.length > 0
+					? initialTermsParsed.terms
+					: undefined,
 		}
 		await insertCompany(payload)
 	} catch (error) {

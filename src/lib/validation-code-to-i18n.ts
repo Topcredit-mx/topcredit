@@ -91,6 +91,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'admin',
 		key: 'company-term-already-assigned',
 	},
+	[ValidationCode.COMPANY_CREATE_INITIAL_TERMS_INVALID]: {
+		namespace: 'admin',
+		key: 'company-create-initial-terms-invalid',
+	},
 	[ValidationCode.APPLICATION_TERM_REQUIRED]: {
 		namespace: 'cuenta.applications',
 		key: 'application-term-required',

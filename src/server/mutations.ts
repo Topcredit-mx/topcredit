@@ -80,6 +80,7 @@ import {
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
+import { deleteOrphanTermsWithoutOfferings } from '~/server/delete-orphan-terms'
 import {
 	sendApplicationDocumentsRejectedEvent,
 	sendApplicationStatusEvent,
@@ -150,19 +151,99 @@ export type CreateCompanyData = {
 	borrowingCapacityRate: number | null
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 	active: boolean
+	initialTerms?: readonly {
+		duration: number
+		durationType: 'monthly' | 'bi-monthly'
+	}[]
+}
+
+export async function insertTermOfferingForCompanyDb(params: {
+	companyId: number
+	durationType: 'monthly' | 'bi-monthly'
+	duration: number
+}): Promise<void> {
+	const existingTerm = await db.query.terms.findFirst({
+		where: and(
+			eq(terms.durationType, params.durationType),
+			eq(terms.duration, params.duration),
+		),
+	})
+	let termId: number
+	if (existingTerm) {
+		termId = existingTerm.id
+	} else {
+		const [inserted] = await db
+			.insert(terms)
+			.values({
+				durationType: params.durationType,
+				duration: params.duration,
+			})
+			.returning({ id: terms.id })
+		if (!inserted) {
+			throw new Error('No se pudo crear el plazo')
+		}
+		termId = inserted.id
+	}
+	try {
+		await db.insert(termOfferings).values({
+			companyId: params.companyId,
+			termId,
+			disabled: false,
+		})
+	} catch (error) {
+		if (error instanceof NeonDbError && error.code === '23505') {
+			throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
+		}
+		throw error
+	}
 }
 
 export async function insertCompany(data: CreateCompanyData): Promise<void> {
-	await db.insert(companies).values({
-		name: data.name,
-		domain: data.domain,
-		rate: new Decimal(data.rate).div(100).toFixed(4),
-		borrowingCapacityRate: data.borrowingCapacityRate
-			? new Decimal(data.borrowingCapacityRate).div(100).toFixed(2)
-			: null,
-		employeeSalaryFrequency: data.employeeSalaryFrequency,
-		active: data.active ?? true,
-	})
+	const [created] = await db
+		.insert(companies)
+		.values({
+			name: data.name,
+			domain: data.domain,
+			rate: new Decimal(data.rate).div(100).toFixed(4),
+			borrowingCapacityRate: data.borrowingCapacityRate
+				? new Decimal(data.borrowingCapacityRate).div(100).toFixed(2)
+				: null,
+			employeeSalaryFrequency: data.employeeSalaryFrequency,
+			active: data.active ?? true,
+		})
+		.returning({ id: companies.id })
+
+	if (!created) {
+		throw new Error('No se pudo crear la empresa')
+	}
+
+	const terms = data.initialTerms
+	if (terms !== undefined && terms.length > 0) {
+		const seen = new Set<string>()
+		for (const term of terms) {
+			const key = `${term.duration}:${term.durationType}`
+			if (seen.has(key)) {
+				await db.delete(companies).where(eq(companies.id, created.id))
+				throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
+			}
+			seen.add(key)
+		}
+		try {
+			for (const term of terms) {
+				await insertTermOfferingForCompanyDb({
+					companyId: created.id,
+					durationType: term.durationType,
+					duration: term.duration,
+				})
+			}
+		} catch (e) {
+			await db.delete(companies).where(eq(companies.id, created.id))
+			await deleteOrphanTermsWithoutOfferings()
+			throw e
+		}
+		revalidatePath(`/equipo/companies/${encodeURIComponent(data.domain)}/edit`)
+	}
+
 	revalidatePath('/equipo/companies')
 }
 
@@ -236,40 +317,11 @@ export async function insertCompanyTermOffering(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'update', subject('Company', company))
 
-	const existingTerm = await db.query.terms.findFirst({
-		where: and(
-			eq(terms.durationType, data.durationType),
-			eq(terms.duration, data.duration),
-		),
+	await insertTermOfferingForCompanyDb({
+		companyId: data.companyId,
+		durationType: data.durationType,
+		duration: data.duration,
 	})
-	let termId: number
-	if (existingTerm) {
-		termId = existingTerm.id
-	} else {
-		const [inserted] = await db
-			.insert(terms)
-			.values({
-				durationType: data.durationType,
-				duration: data.duration,
-			})
-			.returning({ id: terms.id })
-		if (!inserted) {
-			throw new Error('No se pudo crear el plazo')
-		}
-		termId = inserted.id
-	}
-	try {
-		await db.insert(termOfferings).values({
-			companyId: data.companyId,
-			termId,
-			disabled: false,
-		})
-	} catch (error) {
-		if (error instanceof NeonDbError && error.code === '23505') {
-			throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
-		}
-		throw error
-	}
 
 	revalidatePath(`/equipo/companies/${company.domain}/edit`)
 }

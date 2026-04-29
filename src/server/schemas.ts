@@ -85,6 +85,19 @@ export const toggleCompanyTermOfferingSchema = z.object({
 	disabled: z.enum(['true', 'false']).transform((v) => v === 'true'),
 })
 
+const initialCompanyTermItemSchema = z.object({
+	duration: z
+		.number()
+		.int(ValidationCode.COMPANY_TERM_DURATION_INTEGER)
+		.min(1, ValidationCode.COMPANY_TERM_DURATION_MIN)
+		.max(120, ValidationCode.COMPANY_TERM_DURATION_MAX),
+	durationType: companyTermDurationTypeSchema,
+})
+
+export const createCompanyInitialTermsSchema = z
+	.array(initialCompanyTermItemSchema)
+	.max(20)
+
 const positiveNumericString = z
 	.string()
 	.min(1, ValidationCode.APPLICATION_VALUE_REQUIRED)

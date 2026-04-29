@@ -12,6 +12,7 @@ import {
 	userRoles,
 	users,
 } from '~/server/db/schema'
+import { deleteOrphanTermsWithoutOfferings } from '~/server/delete-orphan-terms'
 import { getDb } from './e2e-db'
 
 export type SeedPreAuthorizedPackageDocumentsTaskParams = {
@@ -274,6 +275,7 @@ export const deleteCompaniesByDomain = async (
 	for (const domain of domains) {
 		await db.delete(companies).where(eq(companies.domain, domain))
 	}
+	await deleteOrphanTermsWithoutOfferings()
 
 	return null
 }
