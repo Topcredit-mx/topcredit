@@ -69,14 +69,14 @@ const companyTermDurationTypeSchema = z.enum(['monthly', 'bi-monthly'], {
 export const createCompanyTermSchema = z.object({
 	companyId: z.coerce.number().int().positive(),
 	duration: companyTermDurationSchema,
-	durationType: companyTermDurationTypeSchema,
+	durationType: companyTermDurationTypeSchema.optional(),
 })
 
 export const updateCompanyTermOfferingSchema = z.object({
 	companyId: z.coerce.number().int().positive(),
 	termOfferingId: z.coerce.number().int().positive(),
 	duration: companyTermDurationSchema,
-	durationType: companyTermDurationTypeSchema,
+	durationType: companyTermDurationTypeSchema.optional(),
 })
 
 export const toggleCompanyTermOfferingSchema = z.object({
@@ -91,7 +91,6 @@ const initialCompanyTermItemSchema = z.object({
 		.int(ValidationCode.COMPANY_TERM_DURATION_INTEGER)
 		.min(1, ValidationCode.COMPANY_TERM_DURATION_MIN)
 		.max(120, ValidationCode.COMPANY_TERM_DURATION_MAX),
-	durationType: companyTermDurationTypeSchema,
 })
 
 export const createCompanyInitialTermsSchema = z

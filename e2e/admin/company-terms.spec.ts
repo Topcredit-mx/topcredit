@@ -126,7 +126,7 @@ test.describe('Admin company term management', () => {
 			await expect(page.getByText('24 meses', { exact: true })).toBeVisible()
 		})
 
-		test('admin cannot change duration when the term is referenced by an application', async ({
+		test('admin edits term duration in the dialog even when referenced by an application', async ({
 			page,
 		}) => {
 			await seedApplicationUsingTermOffering({
@@ -151,11 +151,7 @@ test.describe('Admin company term management', () => {
 				.getByRole('button', { name: 'Guardar' })
 				.click()
 
-			await expect(
-				page.getByText(
-					/Este plazo ya está asignado a solicitudes; no se puede cambiar la duración/i,
-				),
-			).toBeVisible()
+			await expect(page.getByText('6 meses', { exact: true })).toBeVisible()
 		})
 	})
 })

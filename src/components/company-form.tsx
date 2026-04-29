@@ -249,7 +249,12 @@ export function CompanyForm({ company }: CompanyFormProps) {
 				{t('company-form-inactive-note')}
 			</p>
 
-			{!company ? <CompanyCreateTermsFields /> : null}
+			{!company ? (
+				<CompanyCreateTermsFields
+					key={employeeSalaryFrequency}
+					employeeSalaryFrequency={employeeSalaryFrequency}
+				/>
+			) : null}
 
 			<div className="flex gap-4">
 				<Button type="submit" disabled={pending}>

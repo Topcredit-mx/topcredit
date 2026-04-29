@@ -4,44 +4,43 @@ import { CalendarClock, Plus, Timer, Trash2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useId, useMemo, useState } from 'react'
 import { Button } from '~/components/ui/button'
-import { Field, FieldLabel } from '~/components/ui/field'
+import { Field, FieldDescription, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '~/components/ui/select'
 
 type TermRow = {
 	key: string
 	duration: string
-	durationType: 'monthly' | 'bi-monthly'
 }
 
 function newRow(): TermRow {
 	return {
 		key: crypto.randomUUID(),
 		duration: '',
-		durationType: 'monthly',
 	}
 }
 
-export function CompanyCreateTermsFields() {
+export function CompanyCreateTermsFields({
+	employeeSalaryFrequency,
+}: {
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+}) {
 	const t = useTranslations('admin')
 	const sectionId = useId()
 	const [rows, setRows] = useState<TermRow[]>([])
 
+	const typeLabel =
+		employeeSalaryFrequency === 'monthly'
+			? t('company-form-frequency-monthly')
+			: t('company-form-frequency-bi-monthly')
+
 	const payload = useMemo(() => {
-		const list: { duration: number; durationType: 'monthly' | 'bi-monthly' }[] =
-			[]
+		const list: { duration: number }[] = []
 		for (const row of rows) {
 			const trimmed = row.duration.trim()
 			if (trimmed === '') continue
 			const n = Number.parseInt(trimmed, 10)
 			if (Number.isNaN(n) || n < 1 || n > 120) continue
-			list.push({ duration: n, durationType: row.durationType })
+			list.push({ duration: n })
 		}
 		return list
 	}, [rows])
@@ -66,6 +65,9 @@ export function CompanyCreateTermsFields() {
 			<p className="text-muted-foreground text-sm">
 				{t('company-create-terms-description')}
 			</p>
+			<FieldDescription>
+				{t('company-terms-type-matches-payroll', { label: typeLabel })}
+			</FieldDescription>
 			{rows.length === 0 ? (
 				<Button
 					type="button"
@@ -80,7 +82,6 @@ export function CompanyCreateTermsFields() {
 				<ul className="space-y-4">
 					{rows.map((row, index) => {
 						const durId = `${row.key}-dur`
-						const typeId = `${row.key}-type`
 						return (
 							<li
 								key={row.key}
@@ -110,33 +111,6 @@ export function CompanyCreateTermsFields() {
 										}}
 										placeholder="12"
 									/>
-								</Field>
-								<Field className="w-full sm:w-44">
-									<FieldLabel htmlFor={typeId}>
-										{t('company-terms-add-type')}
-									</FieldLabel>
-									<Select
-										value={row.durationType}
-										onValueChange={(v: 'monthly' | 'bi-monthly') => {
-											setRows((prev) =>
-												prev.map((r) =>
-													r.key === row.key ? { ...r, durationType: v } : r,
-												),
-											)
-										}}
-									>
-										<SelectTrigger id={typeId}>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="monthly">
-												{t('company-form-frequency-monthly')}
-											</SelectItem>
-											<SelectItem value="bi-monthly">
-												{t('company-form-frequency-bi-monthly')}
-											</SelectItem>
-										</SelectContent>
-									</Select>
 								</Field>
 								<Button
 									type="button"

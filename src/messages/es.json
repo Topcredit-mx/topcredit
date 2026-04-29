@@ -177,15 +177,17 @@
 		"company-term-duration-min": "La duración debe ser al menos 1",
 		"company-term-duration-max": "La duración no puede ser mayor a 120",
 		"company-term-type-invalid": "El tipo de plazo no es válido",
-		"company-term-offering-in-use": "Este plazo ya está asignado a solicitudes; no se puede cambiar la duración. Desactívalo y crea un plazo nuevo si necesitas otra duración.",
 		"company-term-already-assigned": "Esta empresa ya tiene ese plazo (duración y tipo). Elige otra combinación o edita el existente.",
-		"company-create-initial-terms-invalid": "Los plazos iniciales no son válidos. Revisa duración (1–120) y tipo, o deja la sección vacía.",
+		"company-create-initial-terms-invalid": "Los plazos iniciales no son válidos. Revisa la duración (1–120) o deja la sección vacía.",
 		"company-create-terms-title": "Plazos de crédito (opcional)",
-		"company-create-terms-description": "Defínelos ahora o agrégalos después al editar la empresa. Cada fila es un plazo activo (meses o quincenas según el tipo).",
+		"company-create-terms-description": "Los plazos usan la misma frecuencia de pago de la empresa (meses si es mensual, quincenas si es quincenal). Puedes definirlos ahora o agregarlos después al editar.",
 		"company-create-terms-add-first": "Definir plazos",
 		"company-create-terms-add-another": "Agregar otro plazo",
 		"company-create-terms-row-label": "Plazo {n}",
-		"company-create-terms-remove-row": "Quitar plazo"
+		"company-create-terms-remove-row": "Quitar plazo",
+		"company-term-type-mismatch-salary-frequency": "El tipo de plazo debe coincidir con la frecuencia de pago de la empresa (mensual → meses, quincenal → quincenas). Cambia la frecuencia de pago de la empresa o ajusta el plazo.",
+		"company-payroll-frequency-conflicts-with-terms": "No puedes cambiar la frecuencia de pago mientras existan plazos con otro tipo. Edita o elimina esos plazos primero (o desactívalos y crea otros acordes a la nueva frecuencia).",
+		"company-terms-type-matches-payroll": "Misma frecuencia que el pago de la empresa: {label}"
 	},
 	"settings": {
 		"title": "Configuración",

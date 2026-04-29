@@ -52,7 +52,11 @@ export default async function EditCompanyPage({
 		<div className="container mx-auto py-6">
 			<div className="max-w-2xl">
 				<CompanyForm company={companyForForm} />
-				<CompanyTermsSection companyId={company.id} rows={termsForClient} />
+				<CompanyTermsSection
+					companyId={company.id}
+					employeeSalaryFrequency={companyForForm.employeeSalaryFrequency}
+					rows={termsForClient}
+				/>
 			</div>
 		</div>
 	)

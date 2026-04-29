@@ -83,13 +83,17 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'admin',
 		key: 'company-term-type-invalid',
 	},
-	[ValidationCode.COMPANY_TERM_OFFERING_IN_USE]: {
-		namespace: 'admin',
-		key: 'company-term-offering-in-use',
-	},
 	[ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED]: {
 		namespace: 'admin',
 		key: 'company-term-already-assigned',
+	},
+	[ValidationCode.COMPANY_TERM_TYPE_MISMATCH_SALARY_FREQUENCY]: {
+		namespace: 'admin',
+		key: 'company-term-type-mismatch-salary-frequency',
+	},
+	[ValidationCode.COMPANY_PAYROLL_FREQUENCY_CONFLICTS_WITH_TERMS]: {
+		namespace: 'admin',
+		key: 'company-payroll-frequency-conflicts-with-terms',
 	},
 	[ValidationCode.COMPANY_CREATE_INITIAL_TERMS_INVALID]: {
 		namespace: 'admin',

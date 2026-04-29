@@ -36,16 +36,14 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from '~/components/ui/dialog'
-import { Field, FieldError, FieldLabel } from '~/components/ui/field'
+import {
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+} from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '~/components/ui/select'
 import {
 	Table,
 	TableBody,
@@ -81,14 +79,16 @@ function useRefreshOnTermSuccess(state: CompanyTermFormState) {
 	}, [state.success, router])
 }
 
-function AddTermForm({ companyId }: { companyId: number }) {
+function AddTermForm({
+	companyId,
+	employeeSalaryFrequency,
+}: {
+	companyId: number
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+}) {
 	const t = useTranslations('admin')
 	const resolveError = useResolveValidationError()
 	const durationId = useId()
-	const durationTypeId = useId()
-	const [durationType, setDurationType] = useState<'monthly' | 'bi-monthly'>(
-		'monthly',
-	)
 	const initialState: CompanyTermFormState = {}
 	const [state, action, pending] = useActionState(
 		addCompanyTermAction,
@@ -96,10 +96,14 @@ function AddTermForm({ companyId }: { companyId: number }) {
 	)
 	useRefreshOnTermSuccess(state)
 
+	const typeLabel =
+		employeeSalaryFrequency === 'monthly'
+			? t('company-form-frequency-monthly')
+			: t('company-form-frequency-bi-monthly')
+
 	return (
 		<form action={action} className="space-y-4">
 			<input type="hidden" name="companyId" value={companyId} />
-			<input type="hidden" name="durationType" value={durationType} />
 			<AuthInlineError
 				message={
 					state.message && !state.errors ? resolveError(state.message) : null
@@ -108,6 +112,9 @@ function AddTermForm({ companyId }: { companyId: number }) {
 				className="px-0"
 				minHeightClass="min-h-5"
 			/>
+			<FieldDescription>
+				{t('company-terms-type-matches-payroll', { label: typeLabel })}
+			</FieldDescription>
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-end">
 				<Field className="min-w-0 flex-1">
 					<FieldLabel htmlFor={durationId}>
@@ -127,27 +134,6 @@ function AddTermForm({ companyId }: { companyId: number }) {
 						<FieldError message={resolveError(state.errors.duration)} />
 					) : null}
 				</Field>
-				<Field className="w-full sm:w-48">
-					<FieldLabel htmlFor={durationTypeId}>
-						{t('company-terms-add-type')}
-					</FieldLabel>
-					<Select
-						value={durationType}
-						onValueChange={(v: 'monthly' | 'bi-monthly') => setDurationType(v)}
-					>
-						<SelectTrigger id={durationTypeId}>
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="monthly">
-								{t('company-form-frequency-monthly')}
-							</SelectItem>
-							<SelectItem value="bi-monthly">
-								{t('company-form-frequency-bi-monthly')}
-							</SelectItem>
-						</SelectContent>
-					</Select>
-				</Field>
 				<Button type="submit" disabled={pending}>
 					{pending ? (
 						<>
@@ -162,9 +148,6 @@ function AddTermForm({ companyId }: { companyId: number }) {
 					)}
 				</Button>
 			</div>
-			{state.errors?.durationType ? (
-				<FieldError message={resolveError(state.errors.durationType)} />
-			) : null}
 			{state.errors?.companyId ? (
 				<FieldError message={resolveError(state.errors.companyId)} />
 			) : null}
@@ -250,18 +233,18 @@ function TermAvailabilityToggle({
 
 function TermEditDialog({
 	companyId,
+	employeeSalaryFrequency,
 	row,
 }: {
 	companyId: number
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 	row: CompanyTermRowInput
 }) {
 	const t = useTranslations('admin')
 	const tEquipo = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
 	const durationId = useId()
-	const durationTypeId = useId()
 	const [open, setOpen] = useState(false)
-	const [durationType, setDurationType] = useState(row.durationType)
 	const initialState: CompanyTermFormState = {}
 	const [state, action, pending] = useActionState(
 		updateCompanyTermRowAction,
@@ -270,17 +253,16 @@ function TermEditDialog({
 	const label = termLabel(row, tEquipo)
 	useRefreshOnTermSuccess(state)
 
+	const typeLabel =
+		employeeSalaryFrequency === 'monthly'
+			? t('company-form-frequency-monthly')
+			: t('company-form-frequency-bi-monthly')
+
 	useEffect(() => {
 		if (state.success) {
 			setOpen(false)
 		}
 	}, [state.success])
-
-	useEffect(() => {
-		if (open) {
-			setDurationType(row.durationType)
-		}
-	}, [open, row.durationType])
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -297,10 +279,17 @@ function TermEditDialog({
 				<form action={action} className="space-y-4">
 					<input type="hidden" name="companyId" value={companyId} />
 					<input type="hidden" name="termOfferingId" value={row.id} />
-					<input type="hidden" name="durationType" value={durationType} />
+					<input
+						type="hidden"
+						name="durationType"
+						value={employeeSalaryFrequency}
+					/>
 					<p className="text-muted-foreground text-sm">
 						{t('company-terms-edit-current')}: {label}
 					</p>
+					<FieldDescription>
+						{t('company-terms-type-matches-payroll', { label: typeLabel })}
+					</FieldDescription>
 					<AuthInlineError
 						message={
 							state.message && !state.errors
@@ -330,29 +319,6 @@ function TermEditDialog({
 							<FieldError message={resolveError(state.errors.duration)} />
 						) : null}
 					</Field>
-					<Field>
-						<FieldLabel htmlFor={durationTypeId}>
-							{t('company-terms-add-type')}
-						</FieldLabel>
-						<Select
-							value={durationType}
-							onValueChange={(v: 'monthly' | 'bi-monthly') =>
-								setDurationType(v)
-							}
-						>
-							<SelectTrigger id={durationTypeId}>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="monthly">
-									{t('company-form-frequency-monthly')}
-								</SelectItem>
-								<SelectItem value="bi-monthly">
-									{t('company-form-frequency-bi-monthly')}
-								</SelectItem>
-							</SelectContent>
-						</Select>
-					</Field>
 					<DialogFooter>
 						<Button type="submit" disabled={pending}>
 							{pending ? (
@@ -379,9 +345,11 @@ function TermEditDialog({
 
 function TermRowInner({
 	companyId,
+	employeeSalaryFrequency,
 	row,
 }: {
 	companyId: number
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 	row: CompanyTermRowInput
 }) {
 	const tEquipo = useTranslations('equipo')
@@ -402,7 +370,11 @@ function TermRowInner({
 				<TermAvailabilityToggle companyId={companyId} row={row} />
 			</TableCell>
 			<TableCell className="text-right">
-				<TermEditDialog companyId={companyId} row={row} />
+				<TermEditDialog
+					companyId={companyId}
+					employeeSalaryFrequency={employeeSalaryFrequency}
+					row={row}
+				/>
 			</TableCell>
 		</>
 	)
@@ -410,9 +382,11 @@ function TermRowInner({
 
 export function CompanyTermsSection({
 	companyId,
+	employeeSalaryFrequency,
 	rows,
 }: {
 	companyId: number
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 	rows: readonly CompanyTermRowInput[]
 }) {
 	const t = useTranslations('admin')
@@ -468,7 +442,11 @@ export function CompanyTermsSection({
 						<TableBody>
 							{rows.map((row) => (
 								<TableRow key={row.id}>
-									<TermRowInner companyId={companyId} row={row} />
+									<TermRowInner
+										companyId={companyId}
+										employeeSalaryFrequency={employeeSalaryFrequency}
+										row={row}
+									/>
 								</TableRow>
 							))}
 						</TableBody>
@@ -500,6 +478,7 @@ export function CompanyTermsSection({
 							)
 							.join('|')}
 						companyId={companyId}
+						employeeSalaryFrequency={employeeSalaryFrequency}
 					/>
 				</div>
 			</CardContent>

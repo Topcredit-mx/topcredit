@@ -11,6 +11,7 @@ import { companies } from '~/server/db/schema'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import {
 	type CreateCompanyData,
+	companyHasTermNotMatchingPayrollFrequency,
 	insertCompany,
 	type UpdateCompanyData,
 	updateCompanyById,
@@ -178,6 +179,23 @@ export async function updateCompanyAction(
 			const parsed = updateCompanySchema
 				.pick({ employeeSalaryFrequency: true })
 				.parse({ employeeSalaryFrequency: formEmployeeSalaryFrequency })
+			if (
+				parsed.employeeSalaryFrequency !== undefined &&
+				parsed.employeeSalaryFrequency !== company.employeeSalaryFrequency
+			) {
+				const hasConflict = await companyHasTermNotMatchingPayrollFrequency(
+					id,
+					parsed.employeeSalaryFrequency,
+				)
+				if (hasConflict) {
+					return {
+						errors: {
+							employeeSalaryFrequency:
+								ValidationCode.COMPANY_PAYROLL_FREQUENCY_CONFLICTS_WITH_TERMS,
+						},
+					}
+				}
+			}
 			updateData.employeeSalaryFrequency = parsed.employeeSalaryFrequency
 		}
 

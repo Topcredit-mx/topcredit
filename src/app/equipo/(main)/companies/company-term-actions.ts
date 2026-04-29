@@ -26,13 +26,13 @@ export async function addCompanyTermAction(
 		const data = createCompanyTermSchema.parse({
 			companyId: formData.get('companyId'),
 			duration: formData.get('duration'),
-			durationType: formData.get('durationType'),
+			durationType: formData.get('durationType') ?? undefined,
 		})
 
 		await insertCompanyTermOffering({
 			companyId: data.companyId,
-			durationType: data.durationType,
 			duration: data.duration,
+			durationType: data.durationType,
 		})
 		return { success: true }
 	} catch (error) {
@@ -49,14 +49,14 @@ export async function updateCompanyTermRowAction(
 			companyId: formData.get('companyId'),
 			termOfferingId: formData.get('termOfferingId'),
 			duration: formData.get('duration'),
-			durationType: formData.get('durationType'),
+			durationType: formData.get('durationType') ?? undefined,
 		})
 
 		await updateCompanyTermOffering({
 			companyId: data.companyId,
 			termOfferingId: data.termOfferingId,
-			durationType: data.durationType,
 			duration: data.duration,
+			durationType: data.durationType,
 		})
 		return { success: true }
 	} catch (error) {

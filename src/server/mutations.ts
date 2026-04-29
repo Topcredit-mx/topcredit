@@ -1,7 +1,7 @@
 'use server'
 
 import { NeonDbError } from '@neondatabase/serverless'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import {
 	filterToLatestDocumentsPerType,
@@ -153,18 +153,25 @@ export type CreateCompanyData = {
 	active: boolean
 	initialTerms?: readonly {
 		duration: number
-		durationType: 'monthly' | 'bi-monthly'
 	}[]
 }
 
 export async function insertTermOfferingForCompanyDb(params: {
 	companyId: number
-	durationType: 'monthly' | 'bi-monthly'
 	duration: number
 }): Promise<void> {
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.id, params.companyId),
+		columns: { employeeSalaryFrequency: true },
+	})
+	if (!company) {
+		throw new Error('Empresa no encontrada')
+	}
+	const durationType = company.employeeSalaryFrequency
+
 	const existingTerm = await db.query.terms.findFirst({
 		where: and(
-			eq(terms.durationType, params.durationType),
+			eq(terms.durationType, durationType),
 			eq(terms.duration, params.duration),
 		),
 	})
@@ -175,7 +182,7 @@ export async function insertTermOfferingForCompanyDb(params: {
 		const [inserted] = await db
 			.insert(terms)
 			.values({
-				durationType: params.durationType,
+				durationType,
 				duration: params.duration,
 			})
 			.returning({ id: terms.id })
@@ -221,7 +228,7 @@ export async function insertCompany(data: CreateCompanyData): Promise<void> {
 	if (terms !== undefined && terms.length > 0) {
 		const seen = new Set<string>()
 		for (const term of terms) {
-			const key = `${term.duration}:${term.durationType}`
+			const key = `${term.duration}`
 			if (seen.has(key)) {
 				await db.delete(companies).where(eq(companies.id, created.id))
 				throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
@@ -232,7 +239,6 @@ export async function insertCompany(data: CreateCompanyData): Promise<void> {
 			for (const term of terms) {
 				await insertTermOfferingForCompanyDb({
 					companyId: created.id,
-					durationType: term.durationType,
 					duration: term.duration,
 				})
 			}
@@ -265,6 +271,24 @@ export async function updateCompanyById(
 	}
 	await db.update(companies).set(updateData).where(eq(companies.id, id))
 	revalidatePath('/equipo/companies')
+}
+
+export async function companyHasTermNotMatchingPayrollFrequency(
+	companyId: number,
+	targetFrequency: 'monthly' | 'bi-monthly',
+): Promise<boolean> {
+	const [row] = await db
+		.select({ id: termOfferings.id })
+		.from(termOfferings)
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.where(
+			and(
+				eq(termOfferings.companyId, companyId),
+				ne(terms.durationType, targetFrequency),
+			),
+		)
+		.limit(1)
+	return row !== undefined
 }
 
 export async function deleteCompany(id: number) {
@@ -301,8 +325,8 @@ export async function deleteCompany(id: number) {
 
 export type CreateCompanyTermData = {
 	companyId: number
-	durationType: 'monthly' | 'bi-monthly'
 	duration: number
+	durationType?: 'monthly' | 'bi-monthly'
 }
 
 export async function insertCompanyTermOffering(
@@ -317,9 +341,15 @@ export async function insertCompanyTermOffering(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'update', subject('Company', company))
 
+	if (
+		data.durationType !== undefined &&
+		data.durationType !== company.employeeSalaryFrequency
+	) {
+		throw new Error(ValidationCode.COMPANY_TERM_TYPE_MISMATCH_SALARY_FREQUENCY)
+	}
+
 	await insertTermOfferingForCompanyDb({
 		companyId: data.companyId,
-		durationType: data.durationType,
 		duration: data.duration,
 	})
 
@@ -329,8 +359,8 @@ export async function insertCompanyTermOffering(
 export type UpdateCompanyTermOfferingData = {
 	companyId: number
 	termOfferingId: number
-	durationType: 'monthly' | 'bi-monthly'
 	duration: number
+	durationType?: 'monthly' | 'bi-monthly'
 }
 
 export async function updateCompanyTermOffering(
@@ -355,19 +385,18 @@ export async function updateCompanyTermOffering(
 		throw new Error('Plazo no encontrado')
 	}
 
-	const [usage] = await db
-		.select({ count: sql<number>`count(*)::int` })
-		.from(applications)
-		.where(eq(applications.termOfferingId, data.termOfferingId))
-	const rawCount = usage?.count ?? 0
-	const usedCount = typeof rawCount === 'number' ? rawCount : Number(rawCount)
-	if (usedCount > 0) {
-		throw new Error(ValidationCode.COMPANY_TERM_OFFERING_IN_USE)
+	if (
+		data.durationType !== undefined &&
+		data.durationType !== company.employeeSalaryFrequency
+	) {
+		throw new Error(ValidationCode.COMPANY_TERM_TYPE_MISMATCH_SALARY_FREQUENCY)
 	}
+
+	const durationType = company.employeeSalaryFrequency
 
 	const existingTerm = await db.query.terms.findFirst({
 		where: and(
-			eq(terms.durationType, data.durationType),
+			eq(terms.durationType, durationType),
 			eq(terms.duration, data.duration),
 		),
 	})
@@ -378,7 +407,7 @@ export async function updateCompanyTermOffering(
 		const [inserted] = await db
 			.insert(terms)
 			.values({
-				durationType: data.durationType,
+				durationType,
 				duration: data.duration,
 			})
 			.returning({ id: terms.id })
