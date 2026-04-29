@@ -1,9 +1,13 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useRef } from 'react'
 import { uploadApplicationDocumentAction } from '~/app/cuenta/(main)/applications/actions'
-import { AuthInlineError } from '~/components/auth/auth-inline-message'
+import {
+	AuthInlineError,
+	AuthInlineMessage,
+} from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import { FieldError } from '~/components/ui/field'
 import { shell } from '~/lib/shell'
@@ -34,7 +38,9 @@ export function ApplicationDocumentUploadForm({
 	compact = false,
 	embedInTileChrome = false,
 }: ApplicationDocumentUploadFormProps) {
+	const router = useRouter()
 	const tCommon = useTranslations('common')
+	const tApps = useTranslations('cuenta.applications')
 	const resolveError = useResolveValidationError()
 
 	const [state, action, pending] = useActionState(
@@ -56,6 +62,12 @@ export function ApplicationDocumentUploadForm({
 			fileInputRef.current.value = ''
 		}
 	}, [state.success])
+
+	useEffect(() => {
+		if (state.success) {
+			router.refresh()
+		}
+	}, [router, state.success])
 
 	function onFileSelected() {
 		const input = fileInputRef.current
@@ -100,16 +112,26 @@ export function ApplicationDocumentUploadForm({
 				</Button>
 
 				<div className="mt-1.5 flex min-h-7 w-full flex-col justify-start gap-1">
-					<AuthInlineError
-						message={
-							state.message && !state.errors
-								? resolveError(state.message)
-								: null
-						}
-						align="start"
-						className="px-0"
-						reserveHeight={false}
-					/>
+					{state.success ? (
+						<AuthInlineMessage
+							message={tApps('document-upload-success')}
+							tone="success"
+							align="start"
+							className="px-0"
+							reserveHeight={false}
+						/>
+					) : (
+						<AuthInlineError
+							message={
+								state.message && !state.errors
+									? resolveError(state.message)
+									: null
+							}
+							align="start"
+							className="px-0"
+							reserveHeight={false}
+						/>
+					)}
 					{state.errors?.file ? (
 						<FieldError message={resolveError(state.errors.file)} />
 					) : null}

@@ -288,6 +288,10 @@ export async function uploadApplicationDocumentAction(
 
 		revalidatePath('/cuenta/applications')
 		revalidatePath(`/cuenta/applications/${data.applicationId}`)
+		revalidatePath(
+			`/cuenta/applications/${data.applicationId}/pre-authorized`,
+			'page',
+		)
 		revalidatePath('/equipo/applications')
 		revalidatePath(`/equipo/applications/${data.applicationId}`)
 	} catch (error) {
