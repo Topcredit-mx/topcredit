@@ -79,6 +79,7 @@ function AddTermForm({ companyId }: { companyId: number }) {
 	const t = useTranslations('admin')
 	const resolveError = useResolveValidationError()
 	const durationId = useId()
+	const durationTypeId = useId()
 	const [durationType, setDurationType] = useState<'monthly' | 'bi-monthly'>(
 		'monthly',
 	)
@@ -123,14 +124,16 @@ function AddTermForm({ companyId }: { companyId: number }) {
 					) : null}
 				</Field>
 				<Field className="w-full sm:w-48">
-					<FieldLabel>{t('company-terms-add-type')}</FieldLabel>
+					<FieldLabel htmlFor={durationTypeId}>
+						{t('company-terms-add-type')}
+					</FieldLabel>
 					<Select
 						value={durationType}
 						onValueChange={(v: 'monthly' | 'bi-monthly') =>
 							setDurationType(v)
 						}
 					>
-						<SelectTrigger>
+						<SelectTrigger id={durationTypeId}>
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -238,6 +241,7 @@ function TermEditDialog({
 	const tEquipo = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
 	const durationId = useId()
+	const durationTypeId = useId()
 	const [open, setOpen] = useState(false)
 	const [durationType, setDurationType] = useState(row.durationType)
 	const initialState: CompanyTermFormState = {}
@@ -307,14 +311,16 @@ function TermEditDialog({
 						) : null}
 					</Field>
 					<Field>
-						<FieldLabel>{t('company-terms-add-type')}</FieldLabel>
+						<FieldLabel htmlFor={durationTypeId}>
+							{t('company-terms-add-type')}
+						</FieldLabel>
 						<Select
 							value={durationType}
 							onValueChange={(v: 'monthly' | 'bi-monthly') =>
 								setDurationType(v)
 							}
 						>
-							<SelectTrigger>
+							<SelectTrigger id={durationTypeId}>
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>

@@ -1,9 +1,5 @@
 'use server'
 
-import { eq } from 'drizzle-orm'
-import { getAbility, requireAbility, subject } from '~/server/auth/ability'
-import { db } from '~/server/db'
-import { companies } from '~/server/db/schema'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import {
 	insertCompanyTermOffering,
@@ -33,16 +29,6 @@ export async function addCompanyTermAction(
 			durationType: formData.get('durationType'),
 		})
 
-		const company = await db.query.companies.findFirst({
-			where: eq(companies.id, data.companyId),
-		})
-		if (!company) {
-			return { message: 'Empresa no encontrada' }
-		}
-
-		const { ability } = await getAbility()
-		requireAbility(ability, 'update', subject('Company', company))
-
 		await insertCompanyTermOffering({
 			companyId: data.companyId,
 			durationType: data.durationType,
@@ -66,16 +52,6 @@ export async function updateCompanyTermRowAction(
 			durationType: formData.get('durationType'),
 		})
 
-		const company = await db.query.companies.findFirst({
-			where: eq(companies.id, data.companyId),
-		})
-		if (!company) {
-			return { message: 'Empresa no encontrada' }
-		}
-
-		const { ability } = await getAbility()
-		requireAbility(ability, 'update', subject('Company', company))
-
 		await updateCompanyTermOffering({
 			companyId: data.companyId,
 			termOfferingId: data.termOfferingId,
@@ -98,16 +74,6 @@ export async function toggleCompanyTermRowAction(
 			termOfferingId: formData.get('termOfferingId'),
 			disabled: formData.get('disabled'),
 		})
-
-		const company = await db.query.companies.findFirst({
-			where: eq(companies.id, data.companyId),
-		})
-		if (!company) {
-			return { message: 'Empresa no encontrada' }
-		}
-
-		const { ability } = await getAbility()
-		requireAbility(ability, 'update', subject('Company', company))
 
 		await setCompanyTermOfferingDisabled({
 			companyId: data.companyId,
