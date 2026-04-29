@@ -63,6 +63,10 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'admin',
 		key: 'company-frequency',
 	},
+	[ValidationCode.COMPANY_TERM_DURATION_REQUIRED]: {
+		namespace: 'admin',
+		key: 'company-term-duration-required',
+	},
 	[ValidationCode.COMPANY_TERM_DURATION_INTEGER]: {
 		namespace: 'admin',
 		key: 'company-term-duration-integer',

@@ -172,6 +172,7 @@
 		"company-terms-edit-current": "Plazo actual",
 		"company-terms-edit-save": "Guardar",
 		"company-terms-edit-saving": "Guardando...",
+		"company-term-duration-required": "La duración es requerida",
 		"company-term-duration-integer": "La duración debe ser un número entero",
 		"company-term-duration-min": "La duración debe ser al menos 1",
 		"company-term-duration-max": "La duración no puede ser mayor a 120",

@@ -236,42 +236,40 @@ export async function insertCompanyTermOffering(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'update', subject('Company', company))
 
-	await db.transaction(async (tx) => {
-		const existingTerm = await tx.query.terms.findFirst({
-			where: and(
-				eq(terms.durationType, data.durationType),
-				eq(terms.duration, data.duration),
-			),
-		})
-		let termId: number
-		if (existingTerm) {
-			termId = existingTerm.id
-		} else {
-			const [inserted] = await tx
-				.insert(terms)
-				.values({
-					durationType: data.durationType,
-					duration: data.duration,
-				})
-				.returning({ id: terms.id })
-			if (!inserted) {
-				throw new Error('No se pudo crear el plazo')
-			}
-			termId = inserted.id
-		}
-		try {
-			await tx.insert(termOfferings).values({
-				companyId: data.companyId,
-				termId,
-				disabled: false,
-			})
-		} catch (error) {
-			if (error instanceof NeonDbError && error.code === '23505') {
-				throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
-			}
-			throw error
-		}
+	const existingTerm = await db.query.terms.findFirst({
+		where: and(
+			eq(terms.durationType, data.durationType),
+			eq(terms.duration, data.duration),
+		),
 	})
+	let termId: number
+	if (existingTerm) {
+		termId = existingTerm.id
+	} else {
+		const [inserted] = await db
+			.insert(terms)
+			.values({
+				durationType: data.durationType,
+				duration: data.duration,
+			})
+			.returning({ id: terms.id })
+		if (!inserted) {
+			throw new Error('No se pudo crear el plazo')
+		}
+		termId = inserted.id
+	}
+	try {
+		await db.insert(termOfferings).values({
+			companyId: data.companyId,
+			termId,
+			disabled: false,
+		})
+	} catch (error) {
+		if (error instanceof NeonDbError && error.code === '23505') {
+			throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
+		}
+		throw error
+	}
 
 	revalidatePath(`/equipo/companies/${company.domain}/edit`)
 }
@@ -315,46 +313,44 @@ export async function updateCompanyTermOffering(
 		throw new Error(ValidationCode.COMPANY_TERM_OFFERING_IN_USE)
 	}
 
-	await db.transaction(async (tx) => {
-		const existingTerm = await tx.query.terms.findFirst({
-			where: and(
-				eq(terms.durationType, data.durationType),
-				eq(terms.duration, data.duration),
-			),
-		})
-		let termId: number
-		if (existingTerm) {
-			termId = existingTerm.id
-		} else {
-			const [inserted] = await tx
-				.insert(terms)
-				.values({
-					durationType: data.durationType,
-					duration: data.duration,
-				})
-				.returning({ id: terms.id })
-			if (!inserted) {
-				throw new Error('No se pudo crear el plazo')
-			}
-			termId = inserted.id
-		}
-		try {
-			await tx
-				.update(termOfferings)
-				.set({ termId })
-				.where(
-					and(
-						eq(termOfferings.id, data.termOfferingId),
-						eq(termOfferings.companyId, data.companyId),
-					),
-				)
-		} catch (error) {
-			if (error instanceof NeonDbError && error.code === '23505') {
-				throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
-			}
-			throw error
-		}
+	const existingTerm = await db.query.terms.findFirst({
+		where: and(
+			eq(terms.durationType, data.durationType),
+			eq(terms.duration, data.duration),
+		),
 	})
+	let termId: number
+	if (existingTerm) {
+		termId = existingTerm.id
+	} else {
+		const [inserted] = await db
+			.insert(terms)
+			.values({
+				durationType: data.durationType,
+				duration: data.duration,
+			})
+			.returning({ id: terms.id })
+		if (!inserted) {
+			throw new Error('No se pudo crear el plazo')
+		}
+		termId = inserted.id
+	}
+	try {
+		await db
+			.update(termOfferings)
+			.set({ termId })
+			.where(
+				and(
+					eq(termOfferings.id, data.termOfferingId),
+					eq(termOfferings.companyId, data.companyId),
+				),
+			)
+	} catch (error) {
+		if (error instanceof NeonDbError && error.code === '23505') {
+			throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
+		}
+		throw error
+	}
 
 	revalidatePath(`/equipo/companies/${company.domain}/edit`)
 }

@@ -2,7 +2,10 @@ import { notFound } from 'next/navigation'
 import { CompanyForm } from '~/components/company-form'
 import { CompanyTermsSection } from '~/components/company-terms-section'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
-import { getAdminTermOfferingsForCompany, getCompanyByDomain } from '~/server/queries'
+import {
+	getAdminTermOfferingsForCompany,
+	getCompanyByDomain,
+} from '~/server/queries'
 
 interface EditCompanyPageProps {
 	params: Promise<{

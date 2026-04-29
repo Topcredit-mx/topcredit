@@ -3,13 +3,13 @@
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useId, useState } from 'react'
+import { formatApplicationTerm } from '~/app/equipo/(main)/applications/constants'
 import {
 	addCompanyTermAction,
 	type CompanyTermFormState,
 	toggleCompanyTermRowAction,
 	updateCompanyTermRowAction,
 } from '~/app/equipo/(main)/companies/company-term-actions'
-import { formatApplicationTerm } from '~/app/equipo/(main)/applications/constants'
 import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import {
@@ -28,11 +28,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from '~/components/ui/dialog'
-import {
-	Field,
-	FieldError,
-	FieldLabel,
-} from '~/components/ui/field'
+import { Field, FieldError, FieldLabel } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import {
@@ -61,7 +57,9 @@ export type CompanyTermRowInput = {
 
 function termLabel(
 	row: Pick<CompanyTermRowInput, 'duration' | 'durationType'>,
-	tEquipo: (key: 'applications-term-months' | 'applications-term-fortnights') => string,
+	tEquipo: (
+		key: 'applications-term-months' | 'applications-term-fortnights',
+	) => string,
 ) {
 	return formatApplicationTerm(row, tEquipo)
 }
@@ -96,9 +94,7 @@ function AddTermForm({ companyId }: { companyId: number }) {
 			<input type="hidden" name="durationType" value={durationType} />
 			<AuthInlineError
 				message={
-					state.message && !state.errors
-						? resolveError(state.message)
-						: null
+					state.message && !state.errors ? resolveError(state.message) : null
 				}
 				align="start"
 				className="px-0"
@@ -129,9 +125,7 @@ function AddTermForm({ companyId }: { companyId: number }) {
 					</FieldLabel>
 					<Select
 						value={durationType}
-						onValueChange={(v: 'monthly' | 'bi-monthly') =>
-							setDurationType(v)
-						}
+						onValueChange={(v: 'monthly' | 'bi-monthly') => setDurationType(v)}
 					>
 						<SelectTrigger id={durationTypeId}>
 							<SelectValue />
@@ -187,12 +181,14 @@ function TermAvailabilityToggle({
 		<form id={`term-toggle-form-${row.id}`} action={action}>
 			<input type="hidden" name="companyId" value={companyId} />
 			<input type="hidden" name="termOfferingId" value={row.id} />
-			<input type="hidden" name="disabled" value={available ? 'false' : 'true'} />
+			<input
+				type="hidden"
+				name="disabled"
+				value={available ? 'false' : 'true'}
+			/>
 			<AuthInlineError
 				message={
-					state.message && !state.errors
-						? resolveError(state.message)
-						: null
+					state.message && !state.errors ? resolveError(state.message) : null
 				}
 				align="start"
 				className="px-0"
@@ -221,7 +217,7 @@ function TermAvailabilityToggle({
 				/>
 				<Label
 					htmlFor={`term-available-${row.id}`}
-					className="cursor-pointer text-sm font-normal"
+					className="cursor-pointer font-normal text-sm"
 				>
 					{t('company-terms-col-available')}
 				</Label>
@@ -250,6 +246,7 @@ function TermEditDialog({
 		initialState,
 	)
 	const label = termLabel(row, tEquipo)
+	useRefreshOnTermSuccess(state)
 
 	useEffect(() => {
 		if (state.success) {
@@ -381,7 +378,9 @@ export function CompanyTermsSection({
 	return (
 		<Card className="mt-8">
 			<CardHeader>
-				<CardTitle>{t('company-terms-title')}</CardTitle>
+				<CardTitle asChild>
+					<h2>{t('company-terms-title')}</h2>
+				</CardTitle>
 				<CardDescription>{t('company-terms-description')}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-6">
@@ -410,11 +409,15 @@ export function CompanyTermsSection({
 					</p>
 				)}
 				<div className="border-t pt-6">
-					<h3 className="mb-3 text-sm font-medium">
+					<h3 className="mb-3 font-medium text-sm">
 						{t('company-terms-add-heading')}
 					</h3>
 					<AddTermForm
-						key={rows.map((r) => `${r.id}-${r.duration}-${r.durationType}-${r.disabled}`).join('|')}
+						key={rows
+							.map(
+								(r) => `${r.id}-${r.duration}-${r.durationType}-${r.disabled}`,
+							)
+							.join('|')}
 						companyId={companyId}
 					/>
 				</div>

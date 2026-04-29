@@ -73,12 +73,12 @@ test.describe('Admin company term management', () => {
 			await expect(
 				page.getByRole('heading', { name: 'Plazos de crédito' }),
 			).toBeVisible()
-			await expect(page.getByText('12 meses')).toBeVisible()
+			await expect(page.getByText('12 meses', { exact: true })).toBeVisible()
 
 			await page.getByLabel(/Duración \(número de pagos\)/i).fill('18')
 			await page.getByRole('button', { name: 'Agregar plazo' }).click()
 
-			await expect(page.getByText('18 meses')).toBeVisible()
+			await expect(page.getByText('18 meses', { exact: true })).toBeVisible()
 		})
 
 		test('admin toggles term availability for new applications', async ({
@@ -114,10 +114,16 @@ test.describe('Admin company term management', () => {
 			await expect(
 				page.getByRole('dialog', { name: 'Editar plazo' }),
 			).toBeVisible()
-			await page.getByRole('dialog').getByLabel(/Duración/i).fill('24')
-			await page.getByRole('dialog').getByRole('button', { name: 'Guardar' }).click()
+			await page
+				.getByRole('dialog')
+				.getByLabel(/Duración/i)
+				.fill('24')
+			await page
+				.getByRole('dialog')
+				.getByRole('button', { name: 'Guardar' })
+				.click()
 
-			await expect(page.getByText('24 meses')).toBeVisible()
+			await expect(page.getByText('24 meses', { exact: true })).toBeVisible()
 		})
 
 		test('admin cannot change duration when the term is referenced by an application', async ({
@@ -136,8 +142,14 @@ test.describe('Admin company term management', () => {
 
 			const row = page.locator('tr', { hasText: '12 meses' })
 			await row.getByRole('button', { name: 'Editar' }).click()
-			await page.getByRole('dialog').getByLabel(/Duración/i).fill('6')
-			await page.getByRole('dialog').getByRole('button', { name: 'Guardar' }).click()
+			await page
+				.getByRole('dialog')
+				.getByLabel(/Duración/i)
+				.fill('6')
+			await page
+				.getByRole('dialog')
+				.getByRole('button', { name: 'Guardar' })
+				.click()
 
 			await expect(
 				page.getByText(

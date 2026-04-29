@@ -8,6 +8,7 @@ import {
 	users,
 } from '~/server/db/schema'
 import { getDb } from '../e2e-db'
+import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
 
 const DOMAIN = 'terms-mgmt-e2e.local'
 const AGENT_EMAIL = 'terms-mgmt-agent@example.com'
@@ -22,18 +23,17 @@ export const seedCompanyTermsManagementFixture = async () => {
 
 	await db.delete(users).where(eq(users.email, AGENT_EMAIL))
 	await db.delete(companies).where(eq(companies.domain, DOMAIN))
+	await deleteOrphanTermsWithoutOfferings(db)
 
 	const now = new Date()
-	const [[agent]] = await Promise.all([
-		db
-			.insert(users)
-			.values({
-				email: AGENT_EMAIL,
-				name: 'Terms Mgmt Agent',
-				emailVerified: now,
-			})
-			.returning(),
-	])
+	const [agent] = await db
+		.insert(users)
+		.values({
+			email: AGENT_EMAIL,
+			name: 'Terms Mgmt Agent',
+			emailVerified: now,
+		})
+		.returning()
 
 	if (!agent) throw new Error('seedCompanyTermsManagement: agent not created')
 
@@ -42,7 +42,7 @@ export const seedCompanyTermsManagementFixture = async () => {
 		{ userId: agent.id, role: 'admin' },
 	])
 
-	const [[company]] = await db
+	const [company] = await db
 		.insert(companies)
 		.values({
 			name: 'E2E Terms Mgmt Co',
@@ -54,16 +54,17 @@ export const seedCompanyTermsManagementFixture = async () => {
 		})
 		.returning()
 
-	if (!company) throw new Error('seedCompanyTermsManagement: company not created')
+	if (!company)
+		throw new Error('seedCompanyTermsManagement: company not created')
 
-	const [[term12]] = await db
+	const [term12] = await db
 		.insert(terms)
 		.values({ durationType: 'monthly', duration: 12 })
 		.returning({ id: terms.id })
 
 	if (!term12) throw new Error('seedCompanyTermsManagement: term not created')
 
-	const [[offering12]] = await db
+	const [offering12] = await db
 		.insert(termOfferings)
 		.values({
 			companyId: company.id,
@@ -97,7 +98,7 @@ export const seedApplicationUsingTermOffering = async (
 	await db.delete(users).where(eq(users.email, params.applicantEmail))
 
 	const now = new Date()
-	const [[applicant]] = await db
+	const [applicant] = await db
 		.insert(users)
 		.values({
 			email: params.applicantEmail,
@@ -106,7 +107,8 @@ export const seedApplicationUsingTermOffering = async (
 		})
 		.returning()
 
-	if (!applicant) throw new Error('seedApplicationUsingTermOffering: no applicant')
+	if (!applicant)
+		throw new Error('seedApplicationUsingTermOffering: no applicant')
 
 	await db.insert(userRoles).values({
 		userId: applicant.id,
@@ -129,9 +131,10 @@ export const seedApplicationUsingTermOffering = async (
 export const cleanupCompanyTermsManagementFixture = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	await db.delete(users).where(eq(users.email, AGENT_EMAIL))
-	await db.delete(users).where(
-		eq(users.email, 'terms-locked-applicant@example.com'),
-	)
+	await db
+		.delete(users)
+		.where(eq(users.email, 'terms-locked-applicant@example.com'))
 	await db.delete(companies).where(eq(companies.domain, DOMAIN))
+	await deleteOrphanTermsWithoutOfferings(db)
 	return null
 }
