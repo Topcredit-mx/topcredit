@@ -8,7 +8,6 @@ import {
 	useActionState,
 	useEffect,
 	useMemo,
-	useRef,
 	useState,
 } from 'react'
 import { toast } from 'sonner'
@@ -167,23 +166,15 @@ export function ApplicationDocumentsReviewForm({
 		return o
 	})
 	const [localError, setLocalError] = useState<string | null>(null)
-	const documentSaveSuccessToastShownRef = useRef(false)
-
-	useEffect(() => {
-		if (pending) {
-			documentSaveSuccessToastShownRef.current = false
-		}
-	}, [pending])
 
 	useEffect(() => {
 		if (pending) {
 			return
 		}
 		if (state != null && !('error' in state)) {
-			if (!documentSaveSuccessToastShownRef.current) {
-				toast.success(t('applications-documents-review-saved'))
-				documentSaveSuccessToastShownRef.current = true
-			}
+			toast.success(t('applications-documents-review-saved'), {
+				id: 'equipo-application-documents-review-saved',
+			})
 			router.refresh()
 		}
 	}, [state, pending, router, t])
