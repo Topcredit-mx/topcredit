@@ -1,13 +1,6 @@
 'use client'
 
-import {
-	CalendarClock,
-	CheckCircle2,
-	Loader2,
-	Pencil,
-	Plus,
-	Timer,
-} from 'lucide-react'
+import { CalendarClock, Loader2, Pencil, Plus, Timer } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useId, useRef, useState } from 'react'
@@ -20,13 +13,6 @@ import {
 } from '~/app/equipo/(main)/companies/company-term-actions'
 import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from '~/components/ui/card'
 import { Checkbox } from '~/components/ui/checkbox'
 import {
 	Dialog,
@@ -44,14 +30,6 @@ import {
 } from '~/components/ui/field'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from '~/components/ui/table'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 
 export type CompanyTermRowInput = {
@@ -340,7 +318,7 @@ function TermEditDialog({
 	)
 }
 
-function TermRowInner({
+function TermRowCard({
 	companyId,
 	employeeSalaryFrequency,
 	row,
@@ -353,27 +331,25 @@ function TermRowInner({
 	const label = termLabel(row, tEquipo)
 
 	return (
-		<>
-			<TableCell className="font-medium">
-				<span className="inline-flex items-center gap-2">
+		<li className="flex flex-col gap-4 rounded-lg border p-4">
+			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex min-w-0 flex-1 items-center gap-2">
 					<Timer
 						className="size-4 shrink-0 text-muted-foreground"
 						aria-hidden
 					/>
-					{label}
-				</span>
-			</TableCell>
-			<TableCell>
-				<TermAvailabilityToggle companyId={companyId} row={row} />
-			</TableCell>
-			<TableCell className="text-right">
-				<TermEditDialog
-					companyId={companyId}
-					employeeSalaryFrequency={employeeSalaryFrequency}
-					row={row}
-				/>
-			</TableCell>
-		</>
+					<span className="font-medium">{label}</span>
+				</div>
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
+					<TermAvailabilityToggle companyId={companyId} row={row} />
+					<TermEditDialog
+						companyId={companyId}
+						employeeSalaryFrequency={employeeSalaryFrequency}
+						row={row}
+					/>
+				</div>
+			</div>
+		</li>
 	)
 }
 
@@ -387,98 +363,54 @@ export function CompanyTermsSection({
 	rows: readonly CompanyTermRowInput[]
 }) {
 	const t = useTranslations('admin')
+	const sectionId = useId()
+
+	const addFormKey = rows
+		.map((r) => `${r.id}-${r.duration}-${r.durationType}-${r.disabled}`)
+		.join('|')
 
 	return (
-		<Card className="mt-8">
-			<CardHeader>
-				<CardTitle asChild>
-					<h2 className="flex items-center gap-2 font-semibold text-xl leading-none">
-						<CalendarClock
-							className="size-5 shrink-0 text-muted-foreground"
-							aria-hidden
+		<section className="space-y-4 border-t pt-6" aria-labelledby={sectionId}>
+			<h2
+				id={sectionId}
+				className="flex items-center gap-2 font-semibold text-base"
+			>
+				<CalendarClock
+					className="size-5 shrink-0 text-muted-foreground"
+					aria-hidden
+				/>
+				{t('company-terms-title')}
+			</h2>
+			<p className="text-muted-foreground text-sm">
+				{t('company-terms-description')}
+			</p>
+			{rows.length > 0 ? (
+				<ul className="space-y-4">
+					{rows.map((row) => (
+						<TermRowCard
+							key={row.id}
+							companyId={companyId}
+							employeeSalaryFrequency={employeeSalaryFrequency}
+							row={row}
 						/>
-						{t('company-terms-title')}
-					</h2>
-				</CardTitle>
-				<CardDescription>{t('company-terms-description')}</CardDescription>
-			</CardHeader>
-			<CardContent className="space-y-6">
-				{rows.length > 0 ? (
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>
-									<span className="inline-flex items-center gap-2">
-										<Timer
-											className="size-4 shrink-0 text-muted-foreground"
-											aria-hidden
-										/>
-										{t('company-terms-col-term')}
-									</span>
-								</TableHead>
-								<TableHead>
-									<span className="inline-flex items-center gap-2">
-										<CheckCircle2
-											className="size-4 shrink-0 text-muted-foreground"
-											aria-hidden
-										/>
-										{t('company-terms-col-available')}
-									</span>
-								</TableHead>
-								<TableHead className="text-right">
-									<span className="inline-flex items-center justify-end gap-2">
-										<Pencil
-											className="size-4 shrink-0 text-muted-foreground"
-											aria-hidden
-										/>
-										{t('company-terms-col-actions')}
-									</span>
-								</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{rows.map((row) => (
-								<TableRow key={row.id}>
-									<TermRowInner
-										companyId={companyId}
-										employeeSalaryFrequency={employeeSalaryFrequency}
-										row={row}
-									/>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				) : (
-					<div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-10 text-center">
-						<CalendarClock
-							className="size-10 text-muted-foreground"
-							strokeWidth={1.25}
-							aria-hidden
-						/>
-						<p className="max-w-sm text-muted-foreground text-sm">
-							{t('company-terms-empty')}
-						</p>
-					</div>
-				)}
-				<div className="border-t pt-6">
-					<h3 className="mb-3 flex items-center gap-2 font-medium text-sm">
-						<Plus
-							className="size-4 shrink-0 text-muted-foreground"
-							aria-hidden
-						/>
-						{t('company-terms-add-heading')}
-					</h3>
-					<AddTermForm
-						key={rows
-							.map(
-								(r) => `${r.id}-${r.duration}-${r.durationType}-${r.disabled}`,
-							)
-							.join('|')}
-						companyId={companyId}
-						employeeSalaryFrequency={employeeSalaryFrequency}
-					/>
-				</div>
-			</CardContent>
-		</Card>
+					))}
+				</ul>
+			) : (
+				<p className="text-muted-foreground text-sm">
+					{t('company-terms-empty')}
+				</p>
+			)}
+			<div className="space-y-4 rounded-lg border p-4">
+				<h3 className="flex items-center gap-2 font-medium text-sm">
+					<Plus className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+					{t('company-terms-add-heading')}
+				</h3>
+				<AddTermForm
+					key={addFormKey}
+					companyId={companyId}
+					employeeSalaryFrequency={employeeSalaryFrequency}
+				/>
+			</div>
+		</section>
 	)
 }

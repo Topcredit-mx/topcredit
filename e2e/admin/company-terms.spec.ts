@@ -101,7 +101,7 @@ test.describe('Admin company term management', () => {
 			})
 		})
 
-		test('admin adds a new company term and it appears in the table', async ({
+		test('admin adds a new company term and it appears in the list', async ({
 			page,
 		}) => {
 			await loginPage(page, fixture.agentEmail)
@@ -141,7 +141,7 @@ test.describe('Admin company term management', () => {
 			await expect(
 				page.getByText(/Esta empresa ya tiene ese plazo/i),
 			).toBeVisible()
-			const rows18 = page.locator('tr', { hasText: '18 meses' })
+			const rows18 = page.getByRole('listitem').filter({ hasText: '18 meses' })
 			await expect(rows18).toHaveCount(1)
 		})
 
@@ -153,7 +153,7 @@ test.describe('Admin company term management', () => {
 				`/equipo/companies/${encodeURIComponent(companyTermsE2e.domain)}/edit`,
 			)
 
-			const row = page.locator('tr', { hasText: '12 meses' })
+			const row = page.getByRole('listitem').filter({ hasText: '12 meses' })
 			const checkbox = row.getByRole('checkbox', {
 				name: /Disponible para nuevas solicitudes/i,
 			})
@@ -172,7 +172,7 @@ test.describe('Admin company term management', () => {
 				`/equipo/companies/${encodeURIComponent(companyTermsE2e.domain)}/edit`,
 			)
 
-			const row = page.locator('tr', { hasText: '12 meses' })
+			const row = page.getByRole('listitem').filter({ hasText: '12 meses' })
 			await row.getByRole('button', { name: 'Editar' }).click()
 
 			await expect(
@@ -204,7 +204,7 @@ test.describe('Admin company term management', () => {
 				`/equipo/companies/${encodeURIComponent(companyTermsE2e.domain)}/edit`,
 			)
 
-			const row = page.locator('tr', { hasText: '12 meses' })
+			const row = page.getByRole('listitem').filter({ hasText: '12 meses' })
 			await row.getByRole('button', { name: 'Editar' }).click()
 			await page
 				.getByRole('dialog')
@@ -233,7 +233,7 @@ test.describe('Admin company term management', () => {
 				`/equipo/companies/${encodeURIComponent(companyTermsEditConflictE2e.domain)}/edit`,
 			)
 
-			const row118 = page.locator('tr', { hasText: '118 meses' })
+			const row118 = page.getByRole('listitem').filter({ hasText: '118 meses' })
 			await row118.getByRole('button', { name: 'Editar' }).click()
 			await page
 				.getByRole('dialog')

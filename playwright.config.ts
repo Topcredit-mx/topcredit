@@ -13,6 +13,16 @@ const ciWorkers =
 		? Number.parseInt(ciWorkersEnv, 10)
 		: 4
 
+function parseSlowMoMs(): number | undefined {
+	const raw = process.env.PW_SLOW_MO
+	if (raw === undefined || raw === '') return undefined
+	const n = Number.parseInt(raw, 10)
+	if (!Number.isFinite(n) || n < 0) return undefined
+	return n
+}
+
+const slowMoMs = parseSlowMoMs()
+
 export default defineConfig({
 	testDir: './e2e',
 	globalSetup: hasE2eDb ? './e2e/global-setup.ts' : undefined,
@@ -36,6 +46,7 @@ export default defineConfig({
 		trace: 'retain-on-failure',
 		video: 'retain-on-failure',
 		screenshot: 'only-on-failure',
+		...(slowMoMs !== undefined ? { launchOptions: { slowMo: slowMoMs } } : {}),
 	},
 	projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 })
