@@ -1,6 +1,7 @@
 'use server'
 
-import { and, eq, inArray } from 'drizzle-orm'
+import { NeonDbError } from '@neondatabase/serverless'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import {
 	filterToLatestDocumentsPerType,
@@ -215,6 +216,179 @@ export async function deleteCompany(id: number) {
 			error: 'Error al eliminar la empresa. Por favor intenta de nuevo.',
 		}
 	}
+}
+
+export type CreateCompanyTermData = {
+	companyId: number
+	durationType: 'monthly' | 'bi-monthly'
+	duration: number
+}
+
+export async function insertCompanyTermOffering(
+	data: CreateCompanyTermData,
+): Promise<void> {
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.id, data.companyId),
+	})
+	if (!company) {
+		throw new Error('Empresa no encontrada')
+	}
+	const { ability } = await getAbility()
+	requireAbility(ability, 'update', subject('Company', company))
+
+	await db.transaction(async (tx) => {
+		const existingTerm = await tx.query.terms.findFirst({
+			where: and(
+				eq(terms.durationType, data.durationType),
+				eq(terms.duration, data.duration),
+			),
+		})
+		let termId: number
+		if (existingTerm) {
+			termId = existingTerm.id
+		} else {
+			const [inserted] = await tx
+				.insert(terms)
+				.values({
+					durationType: data.durationType,
+					duration: data.duration,
+				})
+				.returning({ id: terms.id })
+			if (!inserted) {
+				throw new Error('No se pudo crear el plazo')
+			}
+			termId = inserted.id
+		}
+		try {
+			await tx.insert(termOfferings).values({
+				companyId: data.companyId,
+				termId,
+				disabled: false,
+			})
+		} catch (error) {
+			if (error instanceof NeonDbError && error.code === '23505') {
+				throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
+			}
+			throw error
+		}
+	})
+
+	revalidatePath(`/equipo/companies/${company.domain}/edit`)
+}
+
+export type UpdateCompanyTermOfferingData = {
+	companyId: number
+	termOfferingId: number
+	durationType: 'monthly' | 'bi-monthly'
+	duration: number
+}
+
+export async function updateCompanyTermOffering(
+	data: UpdateCompanyTermOfferingData,
+): Promise<void> {
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.id, data.companyId),
+	})
+	if (!company) {
+		throw new Error('Empresa no encontrada')
+	}
+	const { ability } = await getAbility()
+	requireAbility(ability, 'update', subject('Company', company))
+
+	const offering = await db.query.termOfferings.findFirst({
+		where: and(
+			eq(termOfferings.id, data.termOfferingId),
+			eq(termOfferings.companyId, data.companyId),
+		),
+	})
+	if (!offering) {
+		throw new Error('Plazo no encontrado')
+	}
+
+	const [usage] = await db
+		.select({ count: sql<number>`count(*)::int` })
+		.from(applications)
+		.where(eq(applications.termOfferingId, data.termOfferingId))
+	const rawCount = usage?.count ?? 0
+	const usedCount = typeof rawCount === 'number' ? rawCount : Number(rawCount)
+	if (usedCount > 0) {
+		throw new Error(ValidationCode.COMPANY_TERM_OFFERING_IN_USE)
+	}
+
+	await db.transaction(async (tx) => {
+		const existingTerm = await tx.query.terms.findFirst({
+			where: and(
+				eq(terms.durationType, data.durationType),
+				eq(terms.duration, data.duration),
+			),
+		})
+		let termId: number
+		if (existingTerm) {
+			termId = existingTerm.id
+		} else {
+			const [inserted] = await tx
+				.insert(terms)
+				.values({
+					durationType: data.durationType,
+					duration: data.duration,
+				})
+				.returning({ id: terms.id })
+			if (!inserted) {
+				throw new Error('No se pudo crear el plazo')
+			}
+			termId = inserted.id
+		}
+		try {
+			await tx
+				.update(termOfferings)
+				.set({ termId })
+				.where(
+					and(
+						eq(termOfferings.id, data.termOfferingId),
+						eq(termOfferings.companyId, data.companyId),
+					),
+				)
+		} catch (error) {
+			if (error instanceof NeonDbError && error.code === '23505') {
+				throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
+			}
+			throw error
+		}
+	})
+
+	revalidatePath(`/equipo/companies/${company.domain}/edit`)
+}
+
+export async function setCompanyTermOfferingDisabled(params: {
+	companyId: number
+	termOfferingId: number
+	disabled: boolean
+}): Promise<void> {
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.id, params.companyId),
+	})
+	if (!company) {
+		throw new Error('Empresa no encontrada')
+	}
+	const { ability } = await getAbility()
+	requireAbility(ability, 'update', subject('Company', company))
+
+	const updated = await db
+		.update(termOfferings)
+		.set({ disabled: params.disabled })
+		.where(
+			and(
+				eq(termOfferings.id, params.termOfferingId),
+				eq(termOfferings.companyId, params.companyId),
+			),
+		)
+		.returning({ id: termOfferings.id })
+
+	if (updated.length === 0) {
+		throw new Error('Plazo no encontrado')
+	}
+
+	revalidatePath(`/equipo/companies/${company.domain}/edit`)
 }
 
 // ---- Application (solicitud) ----

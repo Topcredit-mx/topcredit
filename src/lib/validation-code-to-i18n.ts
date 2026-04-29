@@ -63,6 +63,30 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'admin',
 		key: 'company-frequency',
 	},
+	[ValidationCode.COMPANY_TERM_DURATION_INTEGER]: {
+		namespace: 'admin',
+		key: 'company-term-duration-integer',
+	},
+	[ValidationCode.COMPANY_TERM_DURATION_MIN]: {
+		namespace: 'admin',
+		key: 'company-term-duration-min',
+	},
+	[ValidationCode.COMPANY_TERM_DURATION_MAX]: {
+		namespace: 'admin',
+		key: 'company-term-duration-max',
+	},
+	[ValidationCode.COMPANY_TERM_TYPE_INVALID]: {
+		namespace: 'admin',
+		key: 'company-term-type-invalid',
+	},
+	[ValidationCode.COMPANY_TERM_OFFERING_IN_USE]: {
+		namespace: 'admin',
+		key: 'company-term-offering-in-use',
+	},
+	[ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED]: {
+		namespace: 'admin',
+		key: 'company-term-already-assigned',
+	},
 	[ValidationCode.APPLICATION_TERM_REQUIRED]: {
 		namespace: 'cuenta.applications',
 		key: 'application-term-required',

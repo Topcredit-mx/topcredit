@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import { CompanyForm } from '~/components/company-form'
+import { CompanyTermsSection } from '~/components/company-terms-section'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
-import { getCompanyByDomain } from '~/server/queries'
+import { getAdminTermOfferingsForCompany, getCompanyByDomain } from '~/server/queries'
 
 interface EditCompanyPageProps {
 	params: Promise<{
@@ -24,6 +25,8 @@ export default async function EditCompanyPage({
 	const { ability } = await getAbility()
 	requireAbility(ability, 'update', subject('Company', company))
 
+	const termRows = await getAdminTermOfferingsForCompany(company.id)
+
 	// Pass only plain fields – Date objects (createdAt, updatedAt) can't be serialized to Client Components
 	const companyForForm = {
 		id: company.id,
@@ -35,10 +38,18 @@ export default async function EditCompanyPage({
 		active: company.active,
 	}
 
+	const termsForClient = termRows.map((r) => ({
+		id: r.id,
+		disabled: r.disabled,
+		durationType: r.durationType,
+		duration: r.duration,
+	}))
+
 	return (
 		<div className="container mx-auto py-6">
 			<div className="max-w-2xl">
 				<CompanyForm company={companyForForm} />
+				<CompanyTermsSection companyId={company.id} rows={termsForClient} />
 			</div>
 		</div>
 	)

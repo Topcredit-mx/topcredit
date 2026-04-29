@@ -1104,6 +1104,37 @@ export async function getTermOfferingsForCompany(
 	return list
 }
 
+export type AdminTermOfferingRow = {
+	id: number
+	companyId: number
+	termId: number
+	disabled: boolean
+	durationType: 'bi-monthly' | 'monthly'
+	duration: number
+	createdAt: Date
+}
+
+export async function getAdminTermOfferingsForCompany(
+	companyId: number,
+): Promise<AdminTermOfferingRow[]> {
+	const list = await db
+		.select({
+			id: termOfferings.id,
+			companyId: termOfferings.companyId,
+			termId: termOfferings.termId,
+			disabled: termOfferings.disabled,
+			durationType: terms.durationType,
+			duration: terms.duration,
+			createdAt: termOfferings.createdAt,
+		})
+		.from(termOfferings)
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.where(eq(termOfferings.companyId, companyId))
+		.orderBy(termOfferings.id)
+
+	return list
+}
+
 export type AdminOverviewStats = {
 	companiesTotal: number
 	companiesActive: number
