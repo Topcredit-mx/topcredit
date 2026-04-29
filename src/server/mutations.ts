@@ -1,6 +1,6 @@
 'use server'
 
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import {
 	filterToLatestDocumentsPerType,
@@ -79,10 +79,12 @@ import {
 	userCompanies,
 	userRoles,
 } from '~/server/db/schema'
+import { deleteOrphanTermsWithoutOfferings } from '~/server/delete-orphan-terms'
 import {
 	sendApplicationDocumentsRejectedEvent,
 	sendApplicationStatusEvent,
 } from '~/server/email'
+import { getNeonDbCause } from '~/server/errors/errors'
 import { getApplicationDocuments } from '~/server/queries'
 import {
 	applyApplicationDocumentDecisionsSchema,
@@ -149,19 +151,132 @@ export type CreateCompanyData = {
 	borrowingCapacityRate: number | null
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 	active: boolean
+	initialTerms?: readonly {
+		duration: number
+	}[]
+}
+
+async function getOrCreateTermIdForDuration(params: {
+	durationType: 'monthly' | 'bi-monthly'
+	duration: number
+}): Promise<number> {
+	const existing = await db.query.terms.findFirst({
+		where: and(
+			eq(terms.durationType, params.durationType),
+			eq(terms.duration, params.duration),
+		),
+		columns: { id: true },
+	})
+	if (existing) {
+		return existing.id
+	}
+	try {
+		const [inserted] = await db
+			.insert(terms)
+			.values({
+				durationType: params.durationType,
+				duration: params.duration,
+			})
+			.returning({ id: terms.id })
+		if (!inserted) {
+			throw new Error('No se pudo crear el plazo')
+		}
+		return inserted.id
+	} catch (error) {
+		const neon = getNeonDbCause(error)
+		if (neon?.code === '23505') {
+			const afterRace = await db.query.terms.findFirst({
+				where: and(
+					eq(terms.durationType, params.durationType),
+					eq(terms.duration, params.duration),
+				),
+				columns: { id: true },
+			})
+			if (afterRace) {
+				return afterRace.id
+			}
+		}
+		throw error
+	}
+}
+
+export async function insertTermOfferingForCompanyDb(params: {
+	companyId: number
+	duration: number
+}): Promise<void> {
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.id, params.companyId),
+		columns: { employeeSalaryFrequency: true },
+	})
+	if (!company) {
+		throw new Error('Empresa no encontrada')
+	}
+	const durationType = company.employeeSalaryFrequency
+
+	const termId = await getOrCreateTermIdForDuration({
+		durationType,
+		duration: params.duration,
+	})
+	try {
+		await db.insert(termOfferings).values({
+			companyId: params.companyId,
+			termId,
+			disabled: false,
+		})
+	} catch (error) {
+		const neon = getNeonDbCause(error)
+		if (neon?.code === '23505') {
+			throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
+		}
+		throw error
+	}
 }
 
 export async function insertCompany(data: CreateCompanyData): Promise<void> {
-	await db.insert(companies).values({
-		name: data.name,
-		domain: data.domain,
-		rate: new Decimal(data.rate).div(100).toFixed(4),
-		borrowingCapacityRate: data.borrowingCapacityRate
-			? new Decimal(data.borrowingCapacityRate).div(100).toFixed(2)
-			: null,
-		employeeSalaryFrequency: data.employeeSalaryFrequency,
-		active: data.active ?? true,
-	})
+	const [created] = await db
+		.insert(companies)
+		.values({
+			name: data.name,
+			domain: data.domain,
+			rate: new Decimal(data.rate).div(100).toFixed(4),
+			borrowingCapacityRate: data.borrowingCapacityRate
+				? new Decimal(data.borrowingCapacityRate).div(100).toFixed(2)
+				: null,
+			employeeSalaryFrequency: data.employeeSalaryFrequency,
+			active: data.active ?? true,
+		})
+		.returning({ id: companies.id })
+
+	if (!created) {
+		throw new Error('No se pudo crear la empresa')
+	}
+
+	const terms = data.initialTerms
+	if (terms !== undefined && terms.length > 0) {
+		const seen = new Set<string>()
+		for (const term of terms) {
+			const key = `${term.duration}`
+			if (seen.has(key)) {
+				await db.delete(companies).where(eq(companies.id, created.id))
+				throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
+			}
+			seen.add(key)
+		}
+		try {
+			for (const term of terms) {
+				await insertTermOfferingForCompanyDb({
+					companyId: created.id,
+					duration: term.duration,
+				})
+			}
+		} catch (e) {
+			await db.delete(companies).where(eq(companies.id, created.id))
+			await deleteOrphanTermsWithoutOfferings()
+			throw e
+		}
+		revalidatePath(`/equipo/companies/${encodeURIComponent(data.domain)}/edit`)
+	}
+
 	revalidatePath('/equipo/companies')
 }
 
@@ -183,6 +298,24 @@ export async function updateCompanyById(
 	}
 	await db.update(companies).set(updateData).where(eq(companies.id, id))
 	revalidatePath('/equipo/companies')
+}
+
+export async function companyHasTermNotMatchingPayrollFrequency(
+	companyId: number,
+	targetFrequency: 'monthly' | 'bi-monthly',
+): Promise<boolean> {
+	const [row] = await db
+		.select({ id: termOfferings.id })
+		.from(termOfferings)
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.where(
+			and(
+				eq(termOfferings.companyId, companyId),
+				ne(terms.durationType, targetFrequency),
+			),
+		)
+		.limit(1)
+	return row !== undefined
 }
 
 export async function deleteCompany(id: number) {
@@ -215,6 +348,134 @@ export async function deleteCompany(id: number) {
 			error: 'Error al eliminar la empresa. Por favor intenta de nuevo.',
 		}
 	}
+}
+
+export type CreateCompanyTermData = {
+	companyId: number
+	duration: number
+	durationType?: 'monthly' | 'bi-monthly'
+}
+
+export async function insertCompanyTermOffering(
+	data: CreateCompanyTermData,
+): Promise<void> {
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.id, data.companyId),
+	})
+	if (!company) {
+		throw new Error('Empresa no encontrada')
+	}
+	const { ability } = await getAbility()
+	requireAbility(ability, 'update', subject('Company', company))
+
+	if (
+		data.durationType !== undefined &&
+		data.durationType !== company.employeeSalaryFrequency
+	) {
+		throw new Error(ValidationCode.COMPANY_TERM_TYPE_MISMATCH_SALARY_FREQUENCY)
+	}
+
+	await insertTermOfferingForCompanyDb({
+		companyId: data.companyId,
+		duration: data.duration,
+	})
+
+	revalidatePath(`/equipo/companies/${company.domain}/edit`)
+}
+
+export type UpdateCompanyTermOfferingData = {
+	companyId: number
+	termOfferingId: number
+	duration: number
+	durationType?: 'monthly' | 'bi-monthly'
+}
+
+export async function updateCompanyTermOffering(
+	data: UpdateCompanyTermOfferingData,
+): Promise<void> {
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.id, data.companyId),
+	})
+	if (!company) {
+		throw new Error('Empresa no encontrada')
+	}
+	const { ability } = await getAbility()
+	requireAbility(ability, 'update', subject('Company', company))
+
+	const offering = await db.query.termOfferings.findFirst({
+		where: and(
+			eq(termOfferings.id, data.termOfferingId),
+			eq(termOfferings.companyId, data.companyId),
+		),
+	})
+	if (!offering) {
+		throw new Error('Plazo no encontrado')
+	}
+
+	if (
+		data.durationType !== undefined &&
+		data.durationType !== company.employeeSalaryFrequency
+	) {
+		throw new Error(ValidationCode.COMPANY_TERM_TYPE_MISMATCH_SALARY_FREQUENCY)
+	}
+
+	const durationType = company.employeeSalaryFrequency
+
+	const termId = await getOrCreateTermIdForDuration({
+		durationType,
+		duration: data.duration,
+	})
+	try {
+		await db
+			.update(termOfferings)
+			.set({ termId })
+			.where(
+				and(
+					eq(termOfferings.id, data.termOfferingId),
+					eq(termOfferings.companyId, data.companyId),
+				),
+			)
+	} catch (error) {
+		const neon = getNeonDbCause(error)
+		if (neon?.code === '23505') {
+			throw new Error(ValidationCode.COMPANY_TERM_ALREADY_ASSIGNED)
+		}
+		throw error
+	}
+
+	revalidatePath(`/equipo/companies/${company.domain}/edit`)
+}
+
+export async function setCompanyTermOfferingDisabled(params: {
+	companyId: number
+	termOfferingId: number
+	disabled: boolean
+}): Promise<void> {
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.id, params.companyId),
+	})
+	if (!company) {
+		throw new Error('Empresa no encontrada')
+	}
+	const { ability } = await getAbility()
+	requireAbility(ability, 'update', subject('Company', company))
+
+	const updated = await db
+		.update(termOfferings)
+		.set({ disabled: params.disabled })
+		.where(
+			and(
+				eq(termOfferings.id, params.termOfferingId),
+				eq(termOfferings.companyId, params.companyId),
+			),
+		)
+		.returning({ id: termOfferings.id })
+
+	if (updated.length === 0) {
+		throw new Error('Plazo no encontrado')
+	}
+
+	revalidatePath(`/equipo/companies/${company.domain}/edit`)
 }
 
 // ---- Application (solicitud) ----

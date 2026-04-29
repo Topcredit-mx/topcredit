@@ -21,7 +21,6 @@ import {
 	creditPayments,
 	credits,
 	termOfferings,
-	terms,
 	userCompanies,
 	userRoles,
 	users,
@@ -36,6 +35,7 @@ import {
 	eodYmd,
 	mxScheduleDueYmdIso,
 } from '../shared/mexico-seed-dates'
+import { getOrInsertTermByShape } from '../shared/terms'
 
 export type SeedDeductionsQueueResult = {
 	companyId: number
@@ -116,12 +116,10 @@ export const seedDeductionsQueue = async (
 		return u
 	}
 
-	const [term] = await db
-		.insert(terms)
-		.values({ durationType: 'monthly', duration: 4 })
-		.returning()
-
-	if (!term) throw new Error('Seed Deductions: term not created')
+	const term = await getOrInsertTermByShape(db, {
+		durationType: 'monthly',
+		duration: 4,
+	})
 
 	const [offering] = await db
 		.insert(termOfferings)

@@ -1,10 +1,10 @@
-import { eq, inArray, notExists } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import {
 	applicationDocuments,
 	applications,
 	termOfferings,
-	terms,
 } from '~/server/db/schema'
+import { deleteOrphanTermsWithoutOfferings as deleteOrphanTermsGlobal } from '~/server/delete-orphan-terms'
 import { deleteBlob, isBlobStorageKey } from '~/server/storage'
 import type { getDb } from '../e2e-db'
 
@@ -38,16 +38,7 @@ export async function deleteBlobsForTerm(
 }
 
 export async function deleteOrphanTermsWithoutOfferings(
-	db: E2eDb,
+	_db: E2eDb,
 ): Promise<void> {
-	await db
-		.delete(terms)
-		.where(
-			notExists(
-				db
-					.select({ id: termOfferings.id })
-					.from(termOfferings)
-					.where(eq(termOfferings.termId, terms.id)),
-			),
-		)
+	await deleteOrphanTermsGlobal()
 }

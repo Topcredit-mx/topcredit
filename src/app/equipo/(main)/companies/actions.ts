@@ -11,15 +11,49 @@ import { companies } from '~/server/db/schema'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import {
 	type CreateCompanyData,
+	companyHasTermNotMatchingPayrollFrequency,
 	insertCompany,
 	type UpdateCompanyData,
 	updateCompanyById,
 } from '~/server/mutations'
-import { createCompanySchema, updateCompanySchema } from '~/server/schemas'
+import {
+	createCompanyInitialTermsSchema,
+	createCompanySchema,
+	updateCompanySchema,
+} from '~/server/schemas'
 
 export type CompanyFormState = {
 	errors?: Record<string, string>
 	message?: string
+}
+
+type InitialTermsParse =
+	| { ok: true; terms: NonNullable<CreateCompanyData['initialTerms']> }
+	| { ok: false }
+
+function parseInitialTermsFromFormData(formData: FormData): InitialTermsParse {
+	const raw = formData.get('initialTermsJson')
+	if (raw == null || raw === '') {
+		return { ok: true, terms: [] }
+	}
+	const str = String(raw).trim()
+	if (str === '' || str === '[]') {
+		return { ok: true, terms: [] }
+	}
+	let parsed: unknown
+	try {
+		parsed = JSON.parse(str)
+	} catch {
+		return { ok: false }
+	}
+	if (!Array.isArray(parsed)) {
+		return { ok: false }
+	}
+	const result = createCompanyInitialTermsSchema.safeParse(parsed)
+	if (!result.success) {
+		return { ok: false }
+	}
+	return { ok: true, terms: result.data }
 }
 
 export async function createCompanyAction(
@@ -54,6 +88,13 @@ export async function createCompanyAction(
 			}
 		}
 
+		const initialTermsParsed = parseInitialTermsFromFormData(formData)
+		if (!initialTermsParsed.ok) {
+			return {
+				message: ValidationCode.COMPANY_CREATE_INITIAL_TERMS_INVALID,
+			}
+		}
+
 		const payload: CreateCompanyData = {
 			name: data.name,
 			domain: data.domain,
@@ -61,6 +102,10 @@ export async function createCompanyAction(
 			borrowingCapacityRate: data.borrowingCapacityRate ?? null,
 			employeeSalaryFrequency: data.employeeSalaryFrequency,
 			active: data.active ?? true,
+			initialTerms:
+				initialTermsParsed.terms.length > 0
+					? initialTermsParsed.terms
+					: undefined,
 		}
 		await insertCompany(payload)
 	} catch (error) {
@@ -134,6 +179,23 @@ export async function updateCompanyAction(
 			const parsed = updateCompanySchema
 				.pick({ employeeSalaryFrequency: true })
 				.parse({ employeeSalaryFrequency: formEmployeeSalaryFrequency })
+			if (
+				parsed.employeeSalaryFrequency !== undefined &&
+				parsed.employeeSalaryFrequency !== company.employeeSalaryFrequency
+			) {
+				const hasConflict = await companyHasTermNotMatchingPayrollFrequency(
+					id,
+					parsed.employeeSalaryFrequency,
+				)
+				if (hasConflict) {
+					return {
+						errors: {
+							employeeSalaryFrequency:
+								ValidationCode.COMPANY_PAYROLL_FREQUENCY_CONFLICTS_WITH_TERMS,
+						},
+					}
+				}
+			}
 			updateData.employeeSalaryFrequency = parsed.employeeSalaryFrequency
 		}
 

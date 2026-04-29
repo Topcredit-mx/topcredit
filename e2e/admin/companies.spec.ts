@@ -186,7 +186,14 @@ test.describe('Admin Companies List', () => {
 	})
 
 	test.describe('Company Creation', () => {
-		const creationTestDomains = ['newtest.com', 'norate.com']
+		const creationTestDomains = [
+			'newtest.com',
+			'norate.com',
+			'e2e-initialterms.com',
+			'e2e-payroll-block.com',
+			'e2e-bimonth-initial-terms.com',
+			'e2e-dup-initial-terms.com',
+		]
 
 		test.beforeAll(async () => {
 			await deleteCompaniesByDomain(creationTestDomains)
@@ -275,6 +282,164 @@ test.describe('Admin Companies List', () => {
 			await row.scrollIntoViewIfNeeded()
 			await expect(
 				row.getByRole('cell', { name: newCompany.name }),
+			).toBeVisible()
+
+			await deleteCompaniesByDomain([newCompany.domain])
+		})
+
+		test('creates company with optional initial credit terms', async ({
+			page,
+		}) => {
+			const newCompany = {
+				name: 'Company With Initial Terms',
+				domain: 'e2e-initialterms.com',
+				rate: '0.0250',
+				employeeSalaryFrequency: 'monthly' as const,
+			}
+
+			await page.goto('/equipo/companies/new')
+
+			await page.locator('input[name="name"]').fill(newCompany.name)
+			await page.locator('input[name="domain"]').fill(newCompany.domain)
+			await page.locator('input[name="rate"]').fill('2.5')
+			await selectRadix(page, 'employeeSalaryFrequency', 'Mensual')
+
+			await expect(
+				page.getByText(/Misma frecuencia que el pago de la empresa/i),
+			).toBeVisible()
+
+			await page.getByRole('button', { name: /definir plazos/i }).click()
+			await page
+				.getByLabel(/Duración \(número de pagos\)/i)
+				.first()
+				.fill('6')
+			await page.getByRole('button', { name: /agregar otro plazo/i }).click()
+			const durationInputs = page.getByLabel(/Duración \(número de pagos\)/i)
+			await durationInputs.nth(1).fill('12')
+
+			await page.getByRole('button', { name: /crear|guardar|submit/i }).click()
+
+			await expect(page.locator('main')).toBeVisible()
+			await expect(page.locator('table')).toBeVisible()
+			const row = findTableRow(page, newCompany.name)
+			await row.scrollIntoViewIfNeeded()
+			await expect(
+				row.getByRole('cell', { name: newCompany.name }),
+			).toBeVisible()
+
+			await page.goto(
+				`/equipo/companies/${encodeURIComponent(newCompany.domain)}/edit`,
+			)
+			await expect(page.getByText('6 meses', { exact: true })).toBeVisible()
+			await expect(page.getByText('12 meses', { exact: true })).toBeVisible()
+
+			await deleteCompaniesByDomain([newCompany.domain])
+		})
+
+		test('creates bi-monthly company with initial terms in quincenas', async ({
+			page,
+		}) => {
+			const newCompany = {
+				name: 'Bi-Monthly Initial Terms Co',
+				domain: 'e2e-bimonth-initial-terms.com',
+				rate: '0.0250',
+			}
+
+			await page.goto('/equipo/companies/new')
+
+			await page.locator('input[name="name"]').fill(newCompany.name)
+			await page.locator('input[name="domain"]').fill(newCompany.domain)
+			await page.locator('input[name="rate"]').fill('2.5')
+			await selectRadix(page, 'employeeSalaryFrequency', 'Quincenal')
+
+			await page.getByRole('button', { name: /definir plazos/i }).click()
+			await page
+				.getByLabel(/Duración \(número de pagos\)/i)
+				.first()
+				.fill('24')
+
+			await page.getByRole('button', { name: /crear|guardar|submit/i }).click()
+
+			await expect(page.locator('main')).toBeVisible()
+			await expect(page.locator('table')).toBeVisible()
+
+			await page.goto(
+				`/equipo/companies/${encodeURIComponent(newCompany.domain)}/edit`,
+			)
+			await expect(
+				page.getByText('24 quincenas', { exact: true }),
+			).toBeVisible()
+
+			await deleteCompaniesByDomain([newCompany.domain])
+		})
+
+		test('rejects create company when initial terms list has duplicate durations', async ({
+			page,
+		}) => {
+			const newCompany = {
+				name: 'Dup Initial Terms Co',
+				domain: 'e2e-dup-initial-terms.com',
+				rate: '0.0250',
+			}
+
+			await page.goto('/equipo/companies/new')
+
+			await page.locator('input[name="name"]').fill(newCompany.name)
+			await page.locator('input[name="domain"]').fill(newCompany.domain)
+			await page.locator('input[name="rate"]').fill('2.5')
+			await selectRadix(page, 'employeeSalaryFrequency', 'Mensual')
+
+			await page.getByRole('button', { name: /definir plazos/i }).click()
+			const durationInputs = page.getByLabel(/Duración \(número de pagos\)/i)
+			await durationInputs.first().fill('10')
+			await page.getByRole('button', { name: /agregar otro plazo/i }).click()
+			await durationInputs.nth(1).fill('10')
+
+			await page.getByRole('button', { name: /crear empresa/i }).click()
+
+			await expect(
+				page.getByText(/Esta empresa ya tiene ese plazo/i),
+			).toBeVisible()
+			await expect(page).toHaveURL(/\/equipo\/companies\/new/)
+
+			await deleteCompaniesByDomain([newCompany.domain])
+		})
+
+		test('blocks changing payroll frequency when company has mismatched-term risk', async ({
+			page,
+		}) => {
+			const newCompany = {
+				name: 'Payroll Block Co',
+				domain: 'e2e-payroll-block.com',
+				rate: '0.0250',
+			}
+
+			await page.goto('/equipo/companies/new')
+
+			await page.locator('input[name="name"]').fill(newCompany.name)
+			await page.locator('input[name="domain"]').fill(newCompany.domain)
+			await page.locator('input[name="rate"]').fill('2.5')
+			await selectRadix(page, 'employeeSalaryFrequency', 'Mensual')
+
+			await page.getByRole('button', { name: /definir plazos/i }).click()
+			await page
+				.getByLabel(/Duración \(número de pagos\)/i)
+				.first()
+				.fill('12')
+
+			await page.getByRole('button', { name: /crear|guardar|submit/i }).click()
+			await expect(page.locator('table')).toBeVisible()
+
+			await page.goto(
+				`/equipo/companies/${encodeURIComponent(newCompany.domain)}/edit`,
+			)
+			await selectRadix(page, 'employeeSalaryFrequency', 'Quincenal')
+			await page.getByRole('button', { name: /guardar|save/i }).click()
+
+			await expect(
+				page.getByText(
+					/No puedes cambiar la frecuencia de pago mientras existan plazos/i,
+				),
 			).toBeVisible()
 
 			await deleteCompaniesByDomain([newCompany.domain])

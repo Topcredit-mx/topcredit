@@ -1,3 +1,4 @@
+import { webcrypto } from 'node:crypto'
 import { and, desc, eq } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import type { SeedPreAuthorizedPackageVariant } from '~/e2e/fixtures/pre-authorized-package'
@@ -11,6 +12,7 @@ import {
 	userRoles,
 	users,
 } from '~/server/db/schema'
+import { deleteOrphanTermsWithoutOfferings } from '~/server/delete-orphan-terms'
 import { getDb } from './e2e-db'
 
 export type SeedPreAuthorizedPackageDocumentsTaskParams = {
@@ -42,8 +44,9 @@ export const login = async (email: LoginTaskParams) => {
 		throw new Error('AUTH_SECRET is not defined')
 	}
 
+	const subtle = webcrypto.subtle
 	const encoder = new TextEncoder()
-	const keyMaterial = await crypto.subtle.importKey(
+	const keyMaterial = await subtle.importKey(
 		'raw',
 		encoder.encode(secret),
 		'HKDF',
@@ -51,7 +54,7 @@ export const login = async (email: LoginTaskParams) => {
 		['deriveBits'],
 	)
 
-	const derivedBits = await crypto.subtle.deriveBits(
+	const derivedBits = await subtle.deriveBits(
 		{
 			name: 'HKDF',
 			hash: 'SHA-256',
@@ -74,7 +77,7 @@ export const login = async (email: LoginTaskParams) => {
 		roles: rolesList,
 		iat: now,
 		exp: now + 60 * 60 * 24 * 30,
-		jti: crypto.randomUUID(),
+		jti: webcrypto.randomUUID(),
 	})
 		.setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
 		.encrypt(encryptionKey)
@@ -272,6 +275,7 @@ export const deleteCompaniesByDomain = async (
 	for (const domain of domains) {
 		await db.delete(companies).where(eq(companies.domain, domain))
 	}
+	await deleteOrphanTermsWithoutOfferings()
 
 	return null
 }

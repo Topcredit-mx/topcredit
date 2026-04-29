@@ -27,7 +27,6 @@ import {
 	creditPayments,
 	credits,
 	termOfferings,
-	terms,
 	userCompanies,
 	userRoles,
 	users,
@@ -39,6 +38,7 @@ import {
 	endOfPreviousMonthEodMx,
 	eodYmd,
 } from '../shared/mexico-seed-dates'
+import { getOrInsertTermByShape } from '../shared/terms'
 
 export type SeedInstallmentsQueueResult = {
 	companyId: number
@@ -119,12 +119,10 @@ export const seedInstallmentsQueue =
 			return u
 		}
 
-		const [term] = await db
-			.insert(terms)
-			.values({ durationType: 'monthly', duration: 4 })
-			.returning()
-
-		if (!term) throw new Error('Seed Installments Queue: term not created')
+		const term = await getOrInsertTermByShape(db, {
+			durationType: 'monthly',
+			duration: 4,
+		})
 
 		const [offering] = await db
 			.insert(termOfferings)
@@ -461,12 +459,10 @@ export const seedInstallmentsOverdue =
 			return u
 		}
 
-		const [term] = await db
-			.insert(terms)
-			.values({ durationType: 'monthly', duration: 4 })
-			.returning()
-
-		if (!term) throw new Error('Seed Installments Overdue: term not created')
+		const term = await getOrInsertTermByShape(db, {
+			durationType: 'monthly',
+			duration: 4,
+		})
 
 		const [offering] = await db
 			.insert(termOfferings)
@@ -716,12 +712,10 @@ export const seedInstallmentsQueueTwentyPending =
 			return u
 		}
 
-		const [term] = await db
-			.insert(terms)
-			.values({ durationType: 'monthly', duration: 4 })
-			.returning()
-
-		if (!term) throw new Error('Seed Installments Bulk Queue: term not created')
+		const term = await getOrInsertTermByShape(db, {
+			durationType: 'monthly',
+			duration: 4,
+		})
 
 		const [offering] = await db
 			.insert(termOfferings)

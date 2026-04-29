@@ -7,6 +7,7 @@ import {
 	updateCompanyAction,
 } from '~/app/equipo/(main)/companies/actions'
 import { AuthInlineError } from '~/components/auth/auth-inline-message'
+import { CompanyCreateTermsFields } from '~/components/company-create-terms-fields'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import {
@@ -247,6 +248,13 @@ export function CompanyForm({ company }: CompanyFormProps) {
 			<p className="text-muted-foreground text-sm">
 				{t('company-form-inactive-note')}
 			</p>
+
+			{!company ? (
+				<CompanyCreateTermsFields
+					key={employeeSalaryFrequency}
+					employeeSalaryFrequency={employeeSalaryFrequency}
+				/>
+			) : null}
 
 			<div className="flex gap-4">
 				<Button type="submit" disabled={pending}>

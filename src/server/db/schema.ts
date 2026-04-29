@@ -181,14 +181,18 @@ export const userCompanies = pgTable(
 	}),
 )
 
-export const terms = pgTable('terms', {
-	id: serial('id').primaryKey(),
-	durationType: durationTypeEnum('duration_type').notNull(),
-	duration: integer('duration').notNull(), // e.g. months
-	createdAt: timestamp('created_at', { withTimezone: true })
-		.defaultNow()
-		.notNull(),
-})
+export const terms = pgTable(
+	'terms',
+	{
+		id: serial('id').primaryKey(),
+		durationType: durationTypeEnum('duration_type').notNull(),
+		duration: integer('duration').notNull(), // e.g. months
+		createdAt: timestamp('created_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [unique().on(table.durationType, table.duration)],
+)
 
 export const termOfferings = pgTable(
 	'term_offerings',
