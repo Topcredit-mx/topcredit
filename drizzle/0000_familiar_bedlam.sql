@@ -1,5 +1,5 @@
 CREATE TYPE "public"."application_status" AS ENUM('pending', 'approved', 'invalid-documentation', 'pre-authorized', 'awaiting-authorization', 'authorized', 'disbursed', 'denied');--> statement-breakpoint
-CREATE TYPE "public"."credit_status" AS ENUM('dispersed', 'settled');--> statement-breakpoint
+CREATE TYPE "public"."credit_status" AS ENUM('dispersed', 'settled', 'defaulted');--> statement-breakpoint
 CREATE TYPE "public"."document_status" AS ENUM('pending', 'approved', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."document_type" AS ENUM('official-id', 'proof-of-address', 'bank-statement', 'authorization', 'contract', 'payroll-receipt');--> statement-breakpoint
 CREATE TYPE "public"."duration_type" AS ENUM('bi-monthly', 'monthly');--> statement-breakpoint
@@ -121,7 +121,8 @@ CREATE TABLE "terms" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"duration_type" "duration_type" NOT NULL,
 	"duration" integer NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "terms_duration_type_duration_unique" UNIQUE("duration_type","duration")
 );
 --> statement-breakpoint
 CREATE TABLE "user_companies" (

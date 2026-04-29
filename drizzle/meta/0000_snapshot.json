@@ -1,5 +1,5 @@
 {
-	"id": "cdde390e-f38e-46d2-a6ef-6608d88d4ce7",
+	"id": "94cff4f5-e10c-4113-b944-9fc1b0a31bae",
 	"prevId": "00000000-0000-0000-0000-000000000000",
 	"version": "7",
 	"dialect": "postgresql",
@@ -862,7 +862,13 @@
 			"indexes": {},
 			"foreignKeys": {},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
+			"uniqueConstraints": {
+				"terms_duration_type_duration_unique": {
+					"name": "terms_duration_type_duration_unique",
+					"nullsNotDistinct": false,
+					"columns": ["duration_type", "duration"]
+				}
+			},
 			"policies": {},
 			"checkConstraints": {},
 			"isRLSEnabled": false
@@ -1092,7 +1098,7 @@
 		"public.credit_status": {
 			"name": "credit_status",
 			"schema": "public",
-			"values": ["dispersed", "settled"]
+			"values": ["dispersed", "settled", "defaulted"]
 		},
 		"public.document_status": {
 			"name": "document_status",
