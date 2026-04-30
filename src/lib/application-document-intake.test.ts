@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+	applicationDocumentsListFingerprint,
 	filterDocumentsWithUploadedFile,
 	filterToLatestDocumentsPerType,
 	getLatestDocumentByType,
@@ -133,6 +134,31 @@ test('getRequiredInitialDocumentFieldName maps initial document types', () => {
 	assert.equal(
 		getRequiredInitialDocumentFieldName('bank-statement'),
 		'bankStatementFile',
+	)
+})
+
+test('applicationDocumentsListFingerprint: order-independent and reflects identity fields', () => {
+	const a = {
+		id: 2,
+		documentType: 'contract' as const,
+		status: 'pending' as const,
+		fileName: 'b.pdf',
+		createdAt: t2,
+	}
+	const b = {
+		id: 1,
+		documentType: 'official-id' as const,
+		status: 'approved' as const,
+		fileName: 'a.webp',
+		createdAt: t1,
+	}
+	assert.equal(
+		applicationDocumentsListFingerprint([a, b]),
+		applicationDocumentsListFingerprint([b, a]),
+	)
+	assert.notEqual(
+		applicationDocumentsListFingerprint([{ ...b, status: 'pending' }, a]),
+		applicationDocumentsListFingerprint([b, a]),
 	)
 })
 

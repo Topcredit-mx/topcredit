@@ -22,6 +22,7 @@ import { Button } from '~/components/ui/button'
 import { SectionCard, SectionTitleRow } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
 import {
+	applicationDocumentsListFingerprint,
 	filterDocumentsWithUploadedFile,
 	REQUIRED_INITIAL_APPLICATION_DOCUMENTS,
 } from '~/lib/application-document-intake'
@@ -412,9 +413,10 @@ export default async function CuentaApplicationDetailPage({
 					title={t('section-documents-card')}
 				/>
 				<ApplicantDocumentSlots
+					key={`${applicationId}:${applicationDocumentsListFingerprint(documentList)}`}
 					applicationId={applicationId}
 					documentTypes={initialDocumentTypes}
-					documents={documentsWithUploadedFile}
+					documents={documentList}
 					reuploadWhenLatestNotRejected={false}
 				/>
 			</section>

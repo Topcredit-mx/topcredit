@@ -1,4 +1,27 @@
-import type { DocumentType } from '~/server/db/schema'
+import type { DocumentStatus, DocumentType } from '~/server/db/schema'
+
+export type ApplicationDocumentListFingerprintRow = {
+	id: number
+	documentType: DocumentType
+	status: DocumentStatus
+	fileName: string
+	createdAt: Date
+}
+
+export function applicationDocumentsListFingerprint(
+	documents: readonly ApplicationDocumentListFingerprintRow[],
+): string {
+	return documents
+		.map((d) => {
+			const ts =
+				d.createdAt instanceof Date
+					? d.createdAt.toISOString()
+					: String(d.createdAt)
+			return `${d.id}:${d.documentType}:${d.status}:${d.fileName}:${ts}`
+		})
+		.sort()
+		.join('|')
+}
 
 export const APPLICATION_DOCUMENT_MAX_BYTES = 15 * 1024 * 1024 // 15 MB
 

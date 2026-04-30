@@ -678,6 +678,37 @@ test.describe('Cuenta applications', () => {
 			)
 		})
 
+		test('shows pending official ID on application detail right after upload without leaving the page', async ({
+			page,
+		}) => {
+			const app = await resetApplicantApplication({
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '15000',
+				salaryAtApplication: '100000',
+			})
+			await page.goto(`/cuenta/applications/${app.id}`)
+			await expect(
+				page.getByRole('heading', { name: /resumen de tu solicitud/i }),
+			).toBeVisible()
+
+			const official = page.locator(
+				'section[aria-labelledby="cuenta-application-doc-official-id"]',
+			)
+			await official.first().scrollIntoViewIfNeeded()
+			const uploadPromise = waitForPostToCuentaApplications(page)
+			await official
+				.first()
+				.locator('input[name="file"]')
+				.setInputFiles(SAMPLE_WEBP)
+			await uploadPromise
+
+			await expect(official.first().getByText(/pendiente/i)).toBeVisible()
+			await expect(
+				official.first().getByText(/sample-document\.webp/i),
+			).toBeVisible()
+		})
+
 		test('shows document in list when one is seeded via DB (no real upload)', async ({
 			page,
 		}) => {
@@ -989,6 +1020,40 @@ test.describe('Cuenta applications', () => {
 					/Los tres documentos deben estar cargados y en estado pendiente de revisión/i,
 				),
 			).toBeVisible()
+		})
+
+		test('shows pending payroll receipt on pre-authorized screen right after upload without leaving the page', async ({
+			page,
+		}) => {
+			const app = await resetApplicantApplication({
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '15000',
+				salaryAtApplication: '100000',
+				status: 'pre-authorized',
+			})
+			await seedPreAuthorizedPackageDocuments({
+				applicationId: app.id,
+				variant: 'initialIntakeApprovedOnly',
+			})
+			await page.goto(`/cuenta/applications/${app.id}/pre-authorized`)
+			await expect(
+				page.getByRole('heading', { name: /oferta preautorizada/i }),
+			).toBeVisible()
+
+			const payroll = page.locator(
+				'section[aria-labelledby="cuenta-application-doc-payroll-receipt"]',
+			)
+			await payroll.scrollIntoViewIfNeeded()
+			const uploadPromise = waitForPostMatchingPath(
+				page,
+				postToApplicationUrl(app.id),
+			)
+			await payroll.locator('input[name="file"]').setInputFiles(SAMPLE_WEBP)
+			await uploadPromise
+
+			await expect(payroll.getByText(/pendiente/i)).toBeVisible()
+			await expect(payroll.getByText(/sample-document\.webp/i)).toBeVisible()
 		})
 
 		test('submits a complete pending package for review and shows awaiting-authorization after reload', async ({

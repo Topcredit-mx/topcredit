@@ -24,7 +24,10 @@ import { sendApplicationSubmittedEvent } from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import { detectAllowedMime } from '~/server/file-validation'
 import { submitApplicationForAuthorizationReview } from '~/server/mutations'
-import { getCompanyByEmailDomain } from '~/server/queries'
+import {
+	type ApplicationDocumentForList,
+	getCompanyByEmailDomain,
+} from '~/server/queries'
 import {
 	createApplicationSchema,
 	uploadApplicationDocumentSchema,
@@ -45,6 +48,7 @@ export type UploadDocumentFormState = {
 	errors?: Record<string, string>
 	message?: string
 	success?: boolean
+	uploadedDocument?: ApplicationDocumentForList
 }
 
 export type SubmitAuthorizationPackageFormState = {
@@ -279,7 +283,7 @@ export async function uploadApplicationDocumentAction(
 				.where(eq(applicationDocuments.id, existing.id))
 		}
 
-		await uploadAndInsertApplicationDocumentRow({
+		const inserted = await uploadAndInsertApplicationDocumentRow({
 			applicationId: data.applicationId,
 			documentType: data.documentType,
 			file,
@@ -288,11 +292,27 @@ export async function uploadApplicationDocumentAction(
 
 		revalidatePath('/cuenta/applications')
 		revalidatePath(`/cuenta/applications/${data.applicationId}`)
+		revalidatePath(
+			`/cuenta/applications/${data.applicationId}/pre-authorized`,
+			'page',
+		)
 		revalidatePath('/equipo/applications')
 		revalidatePath(`/equipo/applications/${data.applicationId}`)
+
+		const uploadedDocument: ApplicationDocumentForList = {
+			id: inserted.id,
+			applicationId: data.applicationId,
+			documentType: data.documentType,
+			status: 'pending',
+			fileName: inserted.fileName,
+			url: `/api/application-documents/${inserted.id}/file`,
+			hasBlobContent: isBlobStorageKey(inserted.storedPathname),
+			createdAt: inserted.createdAt,
+			rejectionReason: null,
+		}
+
+		return { success: true, uploadedDocument }
 	} catch (error) {
 		return fromErrorToFormState(error)
 	}
-
-	return { success: true }
 }

@@ -10,6 +10,7 @@ import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { DocumentType } from '~/server/db/schema'
+import type { ApplicationDocumentForList } from '~/server/queries'
 
 const FILE_INPUT_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp'
 
@@ -19,12 +20,22 @@ interface ApplicationDocumentUploadFormProps {
 	pickFileButtonLabel: string
 	compact?: boolean
 	embedInTileChrome?: boolean
+	onUploadSuccess?: (document: ApplicationDocumentForList) => void
 }
 
 const initialFormState = {
 	errors: undefined as Record<string, string> | undefined,
 	message: undefined as string | undefined,
 	success: undefined as boolean | undefined,
+	uploadedDocument: undefined as ApplicationDocumentForList | undefined,
+}
+
+function normalizeDocumentFromAction(
+	row: ApplicationDocumentForList,
+): ApplicationDocumentForList {
+	const createdAt =
+		row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt)
+	return { ...row, createdAt }
 }
 
 export function ApplicationDocumentUploadForm({
@@ -33,6 +44,7 @@ export function ApplicationDocumentUploadForm({
 	pickFileButtonLabel,
 	compact = false,
 	embedInTileChrome = false,
+	onUploadSuccess,
 }: ApplicationDocumentUploadFormProps) {
 	const tCommon = useTranslations('common')
 	const resolveError = useResolveValidationError()
@@ -44,6 +56,7 @@ export function ApplicationDocumentUploadForm({
 
 	const formRef = useRef<HTMLFormElement>(null)
 	const fileInputRef = useRef<HTMLInputElement>(null)
+	const lastNotifiedUploadIdRef = useRef<number | null>(null)
 
 	useEffect(() => {
 		if (state.errors?.file && fileInputRef.current) {
@@ -52,10 +65,20 @@ export function ApplicationDocumentUploadForm({
 	}, [state.errors?.file])
 
 	useEffect(() => {
-		if (state.success && fileInputRef.current) {
-			fileInputRef.current.value = ''
+		if (!state.success || fileInputRef.current == null) {
+			return
 		}
-	}, [state.success])
+		fileInputRef.current.value = ''
+
+		if (!state.uploadedDocument || !onUploadSuccess) {
+			return
+		}
+		if (lastNotifiedUploadIdRef.current === state.uploadedDocument.id) {
+			return
+		}
+		lastNotifiedUploadIdRef.current = state.uploadedDocument.id
+		onUploadSuccess(normalizeDocumentFromAction(state.uploadedDocument))
+	}, [onUploadSuccess, state.success, state.uploadedDocument])
 
 	function onFileSelected() {
 		const input = fileInputRef.current
