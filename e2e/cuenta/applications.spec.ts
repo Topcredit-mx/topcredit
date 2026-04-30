@@ -697,11 +697,16 @@ test.describe('Cuenta applications', () => {
 			)
 			await official.first().scrollIntoViewIfNeeded()
 			const uploadPromise = waitForPostToCuentaApplications(page)
-			await official.first().locator('input[name="file"]').setInputFiles(SAMPLE_WEBP)
+			await official
+				.first()
+				.locator('input[name="file"]')
+				.setInputFiles(SAMPLE_WEBP)
 			await uploadPromise
 
 			await expect(official.first().getByText(/pendiente/i)).toBeVisible()
-			await expect(official.first().getByText(/sample-document\.webp/i)).toBeVisible()
+			await expect(
+				official.first().getByText(/sample-document\.webp/i),
+			).toBeVisible()
 		})
 
 		test('shows document in list when one is seeded via DB (no real upload)', async ({
