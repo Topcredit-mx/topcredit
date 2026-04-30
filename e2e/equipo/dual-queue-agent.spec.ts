@@ -10,8 +10,8 @@ import {
 	assertEquipoApplicationShowsAppStatus,
 	assertEquipoDocumentRowStatus,
 	clickEquipoDocumentReviewSubmitByName,
+	documentsReviewSubmitButton,
 	EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
-	EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE,
 	EQUIPO_DOCUMENTS_CARD_SCOPE,
 	selectDocumentDecisionInRow,
 	submitEquipoDocumentReviewForm,
@@ -71,16 +71,11 @@ test.describe('Dual queue agent (requests + authorizations)', () => {
 		await expect(
 			page.locator(`${EQUIPO_DOCUMENTS_CARD_SCOPE} ul > li`),
 		).toHaveCount(EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT)
-		await expect(
-			page
-				.locator(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
-				.locator('.border-t.pt-4 button[type="submit"]')
-				.first(),
-		).toBeDisabled()
+		await expect(documentsReviewSubmitButton(page)).toBeDisabled()
 		await selectDocumentDecisionInRow(page, packageAuthorization, 'approve')
 		await selectDocumentDecisionInRow(page, packageContract, 'approve')
 		await selectDocumentDecisionInRow(page, packagePayroll, 'approve')
-		await clickEquipoDocumentReviewSubmitByName(page, /guardar y autorizar/i)
+		await clickEquipoDocumentReviewSubmitByName(page, /autorizar la solicitud/i)
 		await assertEquipoDocumentRowStatus(page, packageAuthorization, 'approved')
 		await assertEquipoDocumentRowStatus(page, packageContract, 'approved')
 		await assertEquipoDocumentRowStatus(page, packagePayroll, 'approved')

@@ -1,6 +1,16 @@
 'use client'
 
-import { CheckCircle2, Eye, FileText, XCircle } from 'lucide-react'
+import {
+	CheckCircle2,
+	Eye,
+	FileText,
+	Loader2,
+	type LucideIcon,
+	Save,
+	Send,
+	ShieldCheck,
+	XCircle,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import {
@@ -8,8 +18,10 @@ import {
 	useActionState,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from 'react'
+import { toast } from 'sonner'
 import {
 	type ApplyDocumentDecisionsState,
 	applyDocumentDecisionsAction,
@@ -47,6 +59,18 @@ export type ReviewFormDocument = {
 	rejectionReason: string | null
 	createdAt: Date
 	canSetStatus: boolean
+}
+
+function computeDocumentsStateKey(
+	documents: readonly ReviewFormDocument[],
+): string {
+	const sorted = [...documents].sort((a, b) => a.id - b.id)
+	return sorted
+		.map(
+			(d) =>
+				`${d.id}:${d.status}:${(d.rejectionReason ?? '').trim()}:${d.canSetStatus ? 1 : 0}`,
+		)
+		.join('|')
 }
 
 function effectiveStatusForRow(
@@ -166,11 +190,82 @@ export function ApplicationDocumentsReviewForm({
 	})
 	const [localError, setLocalError] = useState<string | null>(null)
 
+	const documentsStateKey = useMemo(
+		() => computeDocumentsStateKey(documents),
+		[documents],
+	)
+
+	const prevDocumentsStateKeyRef = useRef<string | null>(null)
+	const documentsRef = useRef(documents)
+	documentsRef.current = documents
+
 	useEffect(() => {
-		if (state != null && !('error' in state)) {
-			router.refresh()
+		if (prevDocumentsStateKeyRef.current === documentsStateKey) {
+			return
 		}
-	}, [state, router])
+		const isInitial = prevDocumentsStateKeyRef.current === null
+		prevDocumentsStateKeyRef.current = documentsStateKey
+		if (isInitial) {
+			return
+		}
+		const scheduledKey = documentsStateKey
+		const frameHandles = { outer: 0, inner: 0 }
+		frameHandles.outer = requestAnimationFrame(() => {
+			frameHandles.inner = requestAnimationFrame(() => {
+				if (prevDocumentsStateKeyRef.current !== scheduledKey) {
+					return
+				}
+				if (computeDocumentsStateKey(documentsRef.current) !== scheduledKey) {
+					return
+				}
+				const docs = documentsRef.current
+				setDecisionById(() => {
+					const o: Record<number, 'unchanged' | 'approve' | 'reject'> = {}
+					for (const d of docs) {
+						o[d.id] = 'unchanged'
+					}
+					return o
+				})
+				setReasonById(() => {
+					const o: Record<number, string> = {}
+					for (const d of docs) {
+						o[d.id] = d.rejectionReason ?? ''
+					}
+					return o
+				})
+				setLocalError(null)
+			})
+		})
+		return () => {
+			cancelAnimationFrame(frameHandles.outer)
+			cancelAnimationFrame(frameHandles.inner)
+		}
+	}, [documentsStateKey])
+
+	const tRef = useRef(t)
+	tRef.current = t
+
+	const saveSuccessHandledRef = useRef(false)
+
+	useEffect(() => {
+		if (pending) {
+			saveSuccessHandledRef.current = false
+			return
+		}
+		if (
+			state != null &&
+			!('error' in state) &&
+			!saveSuccessHandledRef.current
+		) {
+			saveSuccessHandledRef.current = true
+			toast.success(tRef.current('applications-documents-review-saved'), {
+				id: 'equipo-application-documents-review-saved',
+			})
+			queueMicrotask(() => {
+				router.refresh()
+			})
+		}
+	}, [state, pending, router])
 
 	const displayError = getResolvedError(state, resolveError)
 	const serverError = displayError ?? undefined
@@ -389,25 +484,53 @@ export function ApplicationDocumentsReviewForm({
 		}
 	}, [documents, locale, t])
 
-	const buttonLabel = (() => {
+	const submitPresentation = useMemo((): {
+		visible: string
+		aria: string
+		Icon: LucideIcon
+	} => {
 		const { plan } = submitPlan
 		if (plan.kind === 'request-changes') {
-			return t('applications-documents-review-request-changes')
+			return {
+				visible: t('applications-documents-review-request-changes'),
+				aria: t('applications-documents-review-request-changes-aria'),
+				Icon: Send,
+			}
 		}
 		if (plan.kind === 'authorize-only') {
-			return t('applications-documents-review-authorize-only')
+			return {
+				visible: t('applications-documents-review-authorize-only'),
+				aria: t('applications-documents-review-authorize-only-aria'),
+				Icon: ShieldCheck,
+			}
 		}
 		if (plan.kind === 'approve-only') {
-			return t('applications-documents-review-approve-only')
+			return {
+				visible: t('applications-documents-review-approve-only'),
+				aria: t('applications-documents-review-approve-only-aria'),
+				Icon: CheckCircle2,
+			}
 		}
 		if (plan.kind === 'save-and-authorize') {
-			return t('applications-documents-review-save-and-authorize')
+			return {
+				visible: t('applications-documents-review-save-and-authorize'),
+				aria: t('applications-documents-review-save-and-authorize-aria'),
+				Icon: ShieldCheck,
+			}
 		}
 		if (plan.kind === 'save-and-approve') {
-			return t('applications-documents-review-save-and-approve')
+			return {
+				visible: t('applications-documents-review-save-and-approve'),
+				aria: t('applications-documents-review-save-and-approve-aria'),
+				Icon: CheckCircle2,
+			}
 		}
-		return t('applications-documents-review-submit')
-	})()
+		return {
+			visible: t('applications-documents-review-submit'),
+			aria: t('applications-documents-review-submit-aria'),
+			Icon: Save,
+		}
+	}, [submitPlan, t])
 
 	const buttonVariant = (() => {
 		const { plan } = submitPlan
@@ -424,6 +547,8 @@ export function ApplicationDocumentsReviewForm({
 		}
 		return 'secondary' as const
 	})()
+
+	const SubmitActionIcon = submitPresentation.Icon
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-4">
@@ -521,17 +646,38 @@ export function ApplicationDocumentsReviewForm({
 					</div>
 				) : null}
 			</div>
-			<div className="flex justify-end border-border/60 border-t pt-4">
+			<fieldset
+				className={cn(
+					'm-0 min-w-0 border-0 p-0',
+					'flex justify-end border-border/60 border-t pt-4',
+				)}
+			>
+				<legend className="sr-only">
+					{t('applications-documents-review-action-group')}
+				</legend>
 				<Button
 					type="submit"
 					variant={buttonVariant}
 					disabled={pending || !submitPlan.submitEnabled}
+					aria-label={
+						pending
+							? t('applications-documents-review-submitting-aria')
+							: submitPresentation.aria
+					}
 				>
-					{pending
-						? t('applications-documents-review-submitting')
-						: buttonLabel}
+					{pending ? (
+						<>
+							<Loader2 className="size-4 animate-spin" aria-hidden />
+							<span>{t('applications-documents-review-submitting')}</span>
+						</>
+					) : (
+						<>
+							<SubmitActionIcon className="size-4" aria-hidden />
+							<span>{submitPresentation.visible}</span>
+						</>
+					)}
 				</Button>
-			</div>
+			</fieldset>
 		</form>
 	)
 }

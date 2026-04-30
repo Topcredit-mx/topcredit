@@ -24,7 +24,28 @@ function detailReviewForm(page: Page) {
 }
 
 function documentsReviewActionBar(page: Page) {
-	return detailReviewForm(page).locator('.border-t.pt-4')
+	return detailReviewForm(page).getByRole('group', {
+		name: /acciones de revisión de documentos/i,
+	})
+}
+
+export function documentsReviewSubmitButton(page: Page) {
+	return documentsReviewActionBar(page).locator('button[type="submit"]').first()
+}
+
+export async function expectEquipoDocumentsReviewSavedToast(
+	page: Page,
+): Promise<void> {
+	const toaster = page.locator('[data-sonner-toaster]')
+	await expect(
+		toaster.getByText(/cambios en documentos guardados/i).first(),
+	).toBeVisible()
+}
+
+export async function expectDocumentReviewBarSubmitDisabled(
+	page: Page,
+): Promise<void> {
+	await expect(documentsReviewSubmitButton(page)).toBeDisabled()
 }
 
 export async function assertEquipoApplicationDetailLoaded(
@@ -159,9 +180,7 @@ export async function typeDocumentRejectionReasonInRow(
 export async function submitEquipoDocumentReviewForm(
 	page: Page,
 ): Promise<void> {
-	const submit = documentsReviewActionBar(page)
-		.locator('button[type="submit"]')
-		.first()
+	const submit = documentsReviewSubmitButton(page)
 	await expect(submit).toBeVisible()
 	await expect(submit).toBeEnabled()
 	await submit.click()
@@ -182,13 +201,10 @@ export async function clickEquipoDocumentReviewSubmitByName(
 export async function clickDocumentReviewAuthorizeOnly(
 	page: Page,
 ): Promise<void> {
-	const submit = documentsReviewActionBar(page)
-		.locator('button[type="submit"]')
-		.first()
+	const submit = documentsReviewSubmitButton(page)
 	await expect(submit).toBeVisible()
 	await expect(submit).toBeEnabled()
-	const t = (await submit.textContent())?.replace(/\s+/g, ' ').trim() ?? ''
-	expect(t).toMatch(/^autorizar$/i)
+	await expect(submit).toHaveAccessibleName(/autorizar la solicitud/i)
 	await submit.click()
 }
 
@@ -196,9 +212,6 @@ export async function expectDocumentReviewBarSubmitName(
 	page: Page,
 	pattern: RegExp,
 ): Promise<void> {
-	const submit = documentsReviewActionBar(page)
-		.locator('button[type="submit"]')
-		.first()
-	const t = (await submit.textContent())?.replace(/\s+/g, ' ').trim() ?? ''
-	expect(t).toMatch(pattern)
+	const submit = documentsReviewSubmitButton(page)
+	await expect(submit).toHaveAccessibleName(pattern)
 }

@@ -58,7 +58,7 @@ test.describe('HR agent flow', () => {
 			await expect(
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()
-			const sel = page.locator('select[name="firstDiscountDate"]')
+			const sel = page.locator('select[name="firstDiscountDate"]').last()
 			await expect(sel).toBeVisible()
 			const optCount = await sel.locator('option').count()
 			expect(optCount).toBeGreaterThanOrEqual(2)
@@ -76,7 +76,7 @@ test.describe('HR agent flow', () => {
 			await expect(
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()
-			const sel = page.locator('select[name="firstDiscountDate"]')
+			const sel = page.locator('select[name="firstDiscountDate"]').last()
 			await expect(sel).toBeVisible()
 			const secondVal = await sel.locator('option').nth(1).getAttribute('value')
 			expect(secondVal).toBeTruthy()

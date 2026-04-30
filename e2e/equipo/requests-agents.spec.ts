@@ -16,9 +16,10 @@ import {
 	assertEquipoDocumentRowStatus,
 	clickEquipoDocumentReviewSubmitByName,
 	EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
-	EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE,
 	EQUIPO_DOCUMENTS_CARD_SCOPE,
+	expectDocumentReviewBarSubmitDisabled,
 	expectDocumentReviewBarSubmitName,
+	expectEquipoDocumentsReviewSavedToast,
 	openEquipoApplicationActions,
 	selectDocumentDecisionInRow,
 	submitEquipoDocumentReviewForm,
@@ -168,12 +169,18 @@ test.describe('Requests agents', () => {
 					reason,
 				)
 				await submitEquipoDocumentReviewForm(page)
+				await expectEquipoDocumentsReviewSavedToast(page)
 				await assertEquipoDocumentRowStatus(
 					page,
 					'reject-with-reason-e2e.pdf',
 					'rejected',
 					reason,
 				)
+				await expectDocumentReviewBarSubmitName(
+					page,
+					/guardar cambios en documentos/i,
+				)
+				await expectDocumentReviewBarSubmitDisabled(page)
 			})
 
 			test('allows agent to reject a document then approve it again', async ({
@@ -199,6 +206,7 @@ test.describe('Requests agents', () => {
 					rejectReason,
 				)
 				await submitEquipoDocumentReviewForm(page)
+				await expectEquipoDocumentsReviewSavedToast(page)
 				await assertEquipoDocumentRowStatus(
 					page,
 					'deny-then-approve-e2e.pdf',
@@ -506,7 +514,7 @@ test.describe('Requests agents', () => {
 				'e2e-a5-re-review-bank.pdf',
 				'approve',
 			)
-			await clickEquipoDocumentReviewSubmitByName(page, /guardar y aprobar/i)
+			await clickEquipoDocumentReviewSubmitByName(page, /aprobar la solicitud/i)
 			await assertEquipoDocumentRowStatus(
 				page,
 				'e2e-a5-re-review-ine.pdf',
@@ -758,11 +766,7 @@ test.describe('Requests admin', () => {
 			'e2e-admin-requests-intake-bank.pdf',
 			'approve',
 		)
-		await page
-			.locator(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
-			.locator('.border-t.pt-4')
-			.getByRole('button', { name: /guardar y aprobar/i })
-			.click()
+		await clickEquipoDocumentReviewSubmitByName(page, /aprobar la solicitud/i)
 		await assertEquipoDocumentRowStatus(
 			page,
 			'e2e-admin-requests-intake-ine.pdf',
