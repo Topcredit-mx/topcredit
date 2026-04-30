@@ -42,10 +42,41 @@ Defaults for how agents write and test code in this repository.
 
 ## Commits (Husky vs. cloud agents)
 
-The repo’s Husky `pre-commit` hook runs `pnpm check && pnpm typecheck` before every commit when Git is using the hooks from `pnpm install` (the `prepare` script installs Husky into `.husky`).
+The repo's Husky `pre-commit` hook runs `pnpm check && pnpm typecheck` before every commit when Git is using the hooks from `pnpm install` (the `prepare` script installs Husky into `.husky`).
 
-Some environments (including Cursor agents) set Git’s `core.hooksPath` to a separate hook directory, so **Husky’s `.husky/pre-commit` does not run** even though the project is configured for it. In those environments you must run the same checks yourself **before** `git commit`:
+Some environments (including Cursor agents) set Git's `core.hooksPath` to a separate hook directory, so **Husky's `.husky/pre-commit` does not run** even though the project is configured for it. In those environments you must run the same checks yourself **before** `git commit`:
 
 `pnpm validate`
 
-That matches what `.husky/pre-commit` runs and catches the same Biome/typecheck failures as CI’s lint and type-check steps.
+That matches what `.husky/pre-commit` runs and catches the same Biome/typecheck failures as CI's lint and type-check steps.
+
+## Cursor Cloud specific instructions
+
+### Environment
+
+- **Node.js 24.15.0** is required (pinned in `.node-version`). Installed via nvm; the update script handles this.
+- **pnpm 10.33.2** is managed via corepack (pinned in `package.json` `packageManager` field). The update script enables corepack and prepares the correct version.
+- `.env` must exist with `DATABASE_URL`, `AUTH_SECRET`, `EMAIL_FROM`, `RESEND_API_KEY`. Set `E2E_OTP_CODE=123456` to bypass real emails (E2E mode uses a fixed OTP). Secrets are injected as environment variables by the Cloud Agent; write them to `.env` before starting the dev server.
+
+### Running services
+
+- **Dev server:** `pnpm dev` (port 3000). Reads `.env` automatically.
+- **DB migrations:** `pnpm db:migrate` applies pending Drizzle migrations against the Neon Postgres instance.
+- **DB seed:** `pnpm db:seed` populates test data (users, companies, applications, credits). Admin login: `admin@topcredit.mx` with OTP `123456`.
+
+### Key commands
+
+| Task | Command |
+|------|---------|
+| Lint | `pnpm check` (Biome) |
+| Typecheck | `pnpm typecheck` |
+| Both (pre-commit equivalent) | `pnpm validate` |
+| Unit tests | `pnpm test:unit` |
+| E2E tests | `pnpm test:e2e` (requires dev server on port 3000 + Playwright browsers) |
+| Playwright install | `pnpm exec playwright install chromium --with-deps` |
+
+### Gotchas
+
+- The `pnpm-workspace.yaml` `onlyBuiltDependencies` allowlist controls which native packages build during install. If new native deps are added and pnpm warns about "ignored build scripts", add them to that list rather than running `pnpm approve-builds` (which is interactive).
+- The app validates env vars at startup via `src/env.js` (Zod + `@t3-oss/env-nextjs`). Set `SKIP_ENV_VALIDATION=1` to bypass if needed for tooling that doesn't require a running app.
+- The database is remote (Neon serverless Postgres) — no local Postgres needed.
