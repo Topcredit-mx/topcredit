@@ -95,15 +95,30 @@ export async function uploadAndInsertApplicationDocumentRow(params: {
 		contentType: params.mime,
 	})
 
-	await db.insert(applicationDocuments).values({
-		applicationId: params.applicationId,
-		documentType: params.documentType,
-		status: 'pending',
-		storageKey: storedPathname,
-		fileName,
-	})
+	const [inserted] = await db
+		.insert(applicationDocuments)
+		.values({
+			applicationId: params.applicationId,
+			documentType: params.documentType,
+			status: 'pending',
+			storageKey: storedPathname,
+			fileName,
+		})
+		.returning({
+			id: applicationDocuments.id,
+			createdAt: applicationDocuments.createdAt,
+		})
 
-	return { storedPathname, fileName }
+	if (inserted == null) {
+		throw new Error('Failed to insert application document row')
+	}
+
+	return {
+		storedPathname,
+		fileName,
+		id: inserted.id,
+		createdAt: inserted.createdAt,
+	}
 }
 
 export async function cleanupApplicationWithUploadedBlobs(params: {

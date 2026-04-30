@@ -7,11 +7,11 @@ import { Card } from '~/components/ui/card'
 import { SectionTitleRow } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
 import {
+	applicationDocumentsListFingerprint,
 	filterDocumentsWithUploadedFile,
 	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
 } from '~/lib/application-document-intake'
 import { CUENTA_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
-import { isAuthorizationPackageReadyForSubmit } from '~/lib/authorization-package-readiness'
 import { cuentaHeroSurfaceStyle } from '~/lib/cuenta-hero-surface-style'
 import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
@@ -23,7 +23,6 @@ import {
 } from '~/server/queries'
 import { formatApplicationTerm } from '../../constants'
 import { ApplicantDocumentSlots } from '../applicant-document-slots'
-import { SubmitAuthorizationPackageForm } from '../submit-authorization-package-form'
 
 function packageHasRejectedAuthorizationDocs(
 	documentList: Awaited<ReturnType<typeof getApplicationDocuments>>,
@@ -91,8 +90,6 @@ export default async function CuentaPreAuthorizedOfferPage({
 	const hasRejectedPackageDocs = packageHasRejectedAuthorizationDocs(
 		documentsWithUploadedFile,
 	)
-	const packageReadyForSubmit =
-		isAuthorizationPackageReadyForSubmit(documentList)
 	const t = await getTranslations('cuenta.applications')
 	const detailHref = `/cuenta/applications/${applicationId}`
 	const documentsSectionTitleId = `cuenta-application-${applicationId}-preauth-docs`
@@ -223,17 +220,15 @@ export default async function CuentaPreAuthorizedOfferPage({
 					</p>
 				) : null}
 				<ApplicantDocumentSlots
+					key={`${applicationId}:${applicationDocumentsListFingerprint(documentList)}`}
 					applicationId={applicationId}
 					documentTypes={PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES}
-					documents={documentsWithUploadedFile}
+					documents={documentList}
 					reuploadWhenLatestNotRejected
+					authorizationPackageSubmitEnabled={
+						application.status === 'pre-authorized'
+					}
 				/>
-				{application.status === 'pre-authorized' ? (
-					<SubmitAuthorizationPackageForm
-						applicationId={applicationId}
-						canSubmit={packageReadyForSubmit}
-					/>
-				) : null}
 			</section>
 
 			<ApplicantPageFooter className="mt-16" />
