@@ -475,6 +475,7 @@
 		"hr-status-approved": "Aprobado RH",
 		"hr-first-discount-date": "Fecha de primer descuento",
 		"hr-approve-title": "Aprobación RH",
+		"hr-approve-first-discount-summary": "Fecha de primer descuento sugerida según la periodicidad de nómina de la empresa.",
 		"hr-approve": "Aprobar RH",
 		"hr-approving": "Aprobando…",
 		"HR_FIRST_DISCOUNT_DATE_REQUIRED": "La fecha de primer descuento es obligatoria.",

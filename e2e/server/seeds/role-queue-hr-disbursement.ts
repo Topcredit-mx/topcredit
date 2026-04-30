@@ -20,6 +20,7 @@ import { getDb } from '../e2e-db'
 import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
 import { eodNCalendarDaysFromMexicoToday } from '../shared/mexico-seed-dates'
 import { createOrderedSeedStatusHistory } from '../shared/status-history'
+import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 
 export type SeedRoleQueueNavResult = {
 	companyId: number
@@ -101,9 +102,16 @@ export type SeedHrReviewResult = {
 	adminApplicationId: number
 	differentDateApplicationId: number
 	termId: number
+	expectedSuggestedFirstDiscountYmd: string
 }
 
-export const seedHrReview = async (): Promise<SeedHrReviewResult> => {
+export type SeedHrReviewParams = {
+	employeeSalaryFrequency?: 'monthly' | 'bi-monthly'
+}
+
+export const seedHrReview = async (
+	params?: SeedHrReviewParams,
+): Promise<SeedHrReviewResult> => {
 	const db = getDb(process.env.DATABASE_URL || '')
 
 	// Cleanup first
@@ -113,6 +121,12 @@ export const seedHrReview = async (): Promise<SeedHrReviewResult> => {
 	await db.delete(companies).where(eq(companies.domain, hrCompany.domain))
 
 	const now = new Date()
+	const employeeSalaryFrequency =
+		params?.employeeSalaryFrequency ?? hrCompany.employeeSalaryFrequency
+	const expectedSuggestedFirstDiscountYmd = getUpcomingDeductionDateYmd(
+		employeeSalaryFrequency,
+		now,
+	)
 
 	// Create company, users, and term in parallel
 	const [[company], createdUsers] = await Promise.all([
@@ -122,7 +136,7 @@ export const seedHrReview = async (): Promise<SeedHrReviewResult> => {
 				name: hrCompany.name,
 				domain: hrCompany.domain,
 				rate: hrCompany.rate,
-				employeeSalaryFrequency: hrCompany.employeeSalaryFrequency,
+				employeeSalaryFrequency,
 				active: hrCompany.active,
 			})
 			.returning(),
@@ -150,7 +164,8 @@ export const seedHrReview = async (): Promise<SeedHrReviewResult> => {
 	const [term] = await db
 		.insert(terms)
 		.values({
-			durationType: 'monthly',
+			durationType:
+				employeeSalaryFrequency === 'bi-monthly' ? 'bi-monthly' : 'monthly',
 			duration: 12,
 		})
 		.returning()
@@ -209,7 +224,7 @@ export const seedHrReview = async (): Promise<SeedHrReviewResult> => {
 				termOfferingId: offering.id,
 				creditAmount: v.creditAmount,
 				salaryAtApplication: v.salaryAtApplication,
-				salaryFrequency: hrCompany.employeeSalaryFrequency,
+				salaryFrequency: employeeSalaryFrequency,
 				status: 'authorized' as const,
 			})),
 		)
@@ -263,6 +278,7 @@ export const seedHrReview = async (): Promise<SeedHrReviewResult> => {
 		adminApplicationId: adminApp.id,
 		differentDateApplicationId: differentDateApp.id,
 		termId: term.id,
+		expectedSuggestedFirstDiscountYmd,
 	}
 }
 
