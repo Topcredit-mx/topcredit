@@ -19,6 +19,9 @@ const preAuthAgentEmail = preAuthAgentForReview.email
 
 const EXPECTED_PREAUTH_MAX_MXN = '$139,941.69'
 
+/** Matches submit `aria-label` (`applications-pre-authorize-submit-aria`), not only visible "Pre-autorizar". */
+const preAuthSubmitName = /pre-autorizar la solicitud/i
+
 test.describe('Pre-authorizations agents', () => {
 	let seed: SeedApplicationsReviewResult
 
@@ -58,7 +61,7 @@ test.describe('Pre-authorizations agents', () => {
 		await expect(withinDialog.getByRole('alert')).toBeVisible()
 		await expect(withinDialog.getByRole('alert')).toContainText('139,941')
 		await expect(
-			dialog.getByRole('button', { name: /^pre-autorizar$/i }),
+			dialog.getByRole('button', { name: preAuthSubmitName }),
 		).toBeDisabled()
 	})
 
@@ -67,9 +70,9 @@ test.describe('Pre-authorizations agents', () => {
 	}) => {
 		await page.goto(`/equipo/applications/${seed.preAuthApplicationId}`)
 		await assertEquipoApplicationShowsAppStatus(page, /aprobada/i)
-		const history = page.locator(
-			'section[aria-labelledby="application-status-history-heading"]',
-		)
+		const history = page
+			.locator('section[aria-labelledby="application-status-history-heading"]')
+			.last()
 		await expect(history).toBeVisible()
 		await expect(
 			history.getByRole('heading', { name: /historial de estado/i }),
@@ -92,7 +95,7 @@ test.describe('Pre-authorizations agents', () => {
 			EXPECTED_PREAUTH_MAX_MXN,
 		)
 		await dialog.locator('input[name="creditAmount"]').fill('18000')
-		await dialog.getByRole('button', { name: /^pre-autorizar$/i }).click()
+		await dialog.getByRole('button', { name: preAuthSubmitName }).click()
 		await assertEquipoApplicationShowsAppStatus(page, /preautorizado/i)
 		await expect(history.locator('ol li')).toHaveCount(3)
 		await expect(history).toContainText('Preautorizado')
@@ -132,7 +135,7 @@ test.describe('Pre-authorizations admin', () => {
 		await expect(dialog).toBeVisible()
 		await selectRadix(page, 'label:Plazo', '12 meses')
 		await dialog.locator('input[name="creditAmount"]').fill('9999999')
-		const submitPre = dialog.getByRole('button', { name: /pre-autorizar/i })
+		const submitPre = dialog.getByRole('button', { name: preAuthSubmitName })
 		await expect(submitPre).toBeEnabled()
 		await submitPre.click()
 		await expect(page.getByRole('dialog')).toBeHidden({ timeout: 30_000 })

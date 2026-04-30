@@ -20,6 +20,10 @@ import { findTableRow, mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import { clickRoleCheckbox, findRoleCheckbox } from '../helpers/users'
 
+function adminUsersSearchInput(page: Page) {
+	return page.locator('input[type="search"]').last()
+}
+
 registerDbSpecGuards()
 
 test.describe('Admin Users', () => {
@@ -44,9 +48,7 @@ test.describe('Admin Users', () => {
 		test('allows admin users to access users page', async ({ page }) => {
 			await loginPage(page, adminUser.email)
 			await page.goto('/equipo/users')
-			await expect(
-				page.locator('input[aria-label="Filtrar usuarios..."]'),
-			).toBeVisible()
+			await expect(adminUsersSearchInput(page)).toBeVisible()
 		})
 
 		test('does not allow requests-only users to access admin users page', async ({
@@ -78,8 +80,9 @@ test.describe('Admin Users', () => {
 		})
 
 		test('displays users table with correct columns', async ({ page }) => {
+			const usersTable = mainDataTable(page)
 			const th = (rx: RegExp) =>
-				page.locator('table thead th').filter({ hasText: rx }).first()
+				usersTable.locator('thead th').filter({ hasText: rx }).first()
 			await expect(th(/nombre/i)).toBeAttached()
 			await expect(
 				th(/nombre/i)
@@ -96,24 +99,24 @@ test.describe('Admin Users', () => {
 					.locator('svg[aria-hidden="true"]')
 					.first(),
 			).toBeAttached()
-			const preauthTh = page
-				.locator('table thead th')
+			const preauthTh = usersTable
+				.locator('thead th')
 				.filter({ hasText: /^Preautorizaciones$/ })
 				.first()
 			await expect(preauthTh).toBeAttached()
 			await expect(
 				preauthTh.locator('svg[aria-hidden="true"]').first(),
 			).toBeAttached()
-			const authTh = page
-				.locator('table thead th')
+			const authTh = usersTable
+				.locator('thead th')
 				.filter({ hasText: /^Autorizaciones$/ })
 				.first()
 			await expect(authTh).toBeAttached()
 			await expect(
 				authTh.locator('svg[aria-hidden="true"]').first(),
 			).toBeAttached()
-			const rhTh = page
-				.locator('table thead th')
+			const rhTh = usersTable
+				.locator('thead th')
 				.filter({ hasText: /^RH$/ })
 				.first()
 			await expect(rhTh).toBeAttached()
@@ -148,9 +151,7 @@ test.describe('Admin Users', () => {
 				createdTh.locator('svg[aria-hidden="true"]').first(),
 			).toBeAttached()
 			await expect(
-				page
-					.locator('table')
-					.getByRole('columnheader', { name: /solicitante/i }),
+				usersTable.getByRole('columnheader', { name: /solicitante/i }),
 			).toHaveCount(0)
 		})
 
@@ -175,26 +176,27 @@ test.describe('Admin Users', () => {
 		})
 
 		test('filters users by name', async ({ page }) => {
-			await page.locator('input[type="search"]').fill('Jane')
+			await adminUsersSearchInput(page).fill('Jane')
 			await expect(page).toHaveURL(/search=/)
 			await expect(page.getByText(users.jane.name)).toBeAttached()
 			await expect(page.getByText(users.bob.name)).toHaveCount(0)
 		})
 
 		test('filters users by email', async ({ page }) => {
-			await page.locator('input[type="search"]').clear()
-			await page.locator('input[type="search"]').fill('requests')
+			const search = adminUsersSearchInput(page)
+			await search.clear()
+			await search.fill('requests')
 			await expect(page).toHaveURL(/search=/)
 			await expect(page.getByText(users.jane.email)).toBeAttached()
 			await expect(page.getByText(users.bob.email)).toHaveCount(0)
 		})
 
 		test('shows empty message when no users match filter', async ({ page }) => {
-			await page.locator('input[type="search"]').fill('nonexistentuser')
+			await adminUsersSearchInput(page).fill('nonexistentuser')
 			await expect(
 				page.getByText(/no hay usuarios con estos criterios/i),
 			).toBeVisible()
-			await expect(page.locator('table')).toHaveCount(0)
+			await expect(page.getByRole('main').getByRole('table')).toHaveCount(0)
 		})
 	})
 
@@ -207,7 +209,7 @@ test.describe('Admin Users', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/users?limit=2')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 			await expect(page.locator('table tbody tr')).toHaveCount(2)
 			await expect(page.getByText(users.jane.name)).toHaveCount(0)
 		})
@@ -216,14 +218,14 @@ test.describe('Admin Users', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/users?limit=2')
-			await expect(page.locator('table')).toBeVisible()
-			await expect(
-				page.locator('table').getByText(users.jane.name),
-			).toHaveCount(0)
+			await expect(mainDataTable(page)).toBeVisible()
+			await expect(mainDataTable(page).getByText(users.jane.name)).toHaveCount(
+				0,
+			)
 
 			await page.getByRole('button', { name: /siguiente/i }).click()
 			await expect(page).toHaveURL(/page=2/)
-			const table = page.locator('table')
+			const table = mainDataTable(page)
 			await expect(table.getByText(users.charlie.name)).toBeAttached()
 			await expect(table.getByText(users.jane.name)).toBeAttached()
 			await expect(table.getByText(adminUser.name)).toHaveCount(0)
@@ -231,8 +233,8 @@ test.describe('Admin Users', () => {
 
 		test('opens a deep-linked page from the URL', async ({ page }) => {
 			await page.goto('/equipo/users?page=3&limit=2')
-			await expect(page.locator('table')).toBeVisible()
-			const table = page.locator('table')
+			await expect(mainDataTable(page)).toBeVisible()
+			const table = mainDataTable(page)
 			await expect(table.getByText(agentOnlyUser.name)).toBeAttached()
 			await expect(table.locator('tbody tr')).toHaveCount(1)
 			await expect(table.getByText(adminUser.name)).toHaveCount(0)
@@ -286,12 +288,11 @@ test.describe('Admin Users', () => {
 		test.beforeEach(async ({ page }) => {
 			await loginPage(page, adminUser.email)
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 		})
 
 		test('toggles column visibility via View dropdown', async ({ page }) => {
-			await page
-				.locator('input[type="search"]')
+			await adminUsersSearchInput(page)
 				.locator('..')
 				.locator('..')
 				.locator('button[aria-haspopup="menu"]')
@@ -299,7 +300,7 @@ test.describe('Admin Users', () => {
 				.click()
 			await page.getByRole('menu').getByText(/email/i).click()
 			await expect(
-				page.locator('table').getByRole('columnheader', { name: /email/i }),
+				mainDataTable(page).getByRole('columnheader', { name: /email/i }),
 			).toHaveCount(0)
 		})
 	})
@@ -308,7 +309,7 @@ test.describe('Admin Users', () => {
 		test.beforeEach(async ({ page }) => {
 			await loginPage(page, adminUser.email)
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 		})
 
 		test('shows confirmation dialog when admin tries to remove their own admin role', async ({
@@ -379,7 +380,7 @@ test.describe('Admin Users', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			await removeRole({ email: adminUser.email, role: 'admin' })
 
@@ -396,7 +397,7 @@ test.describe('Admin Users', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			await removeRole({ email: adminUser.email, role: 'admin' })
 
@@ -425,7 +426,7 @@ test.describe('Admin Users', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			const row = findTableRow(page, agentOnlyUser.name)
 			await expect(
@@ -440,7 +441,7 @@ test.describe('Admin Users', () => {
 			})
 
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			const row = findTableRow(page, agentOnlyUser.name)
 			await expect(row.getByText(companies.acme.name)).toBeAttached()
@@ -452,7 +453,7 @@ test.describe('Admin Users', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			await openCompanyAssignmentsDialog(page)
 
@@ -464,7 +465,7 @@ test.describe('Admin Users', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			await openCompanyAssignmentsDialog(page)
 
@@ -478,7 +479,7 @@ test.describe('Admin Users', () => {
 
 		test('assigns single company to agent', async ({ page }) => {
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			await openCompanyAssignmentsDialog(page)
 
@@ -492,7 +493,7 @@ test.describe('Admin Users', () => {
 
 		test('assigns multiple companies to agent', async ({ page }) => {
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			await openCompanyAssignmentsDialog(page)
 
@@ -514,7 +515,7 @@ test.describe('Admin Users', () => {
 			})
 
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			await openCompanyAssignmentsDialog(page)
 
@@ -539,7 +540,7 @@ test.describe('Admin Users', () => {
 			})
 
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			await openCompanyAssignmentsDialog(page)
 
@@ -563,7 +564,7 @@ test.describe('Admin Users', () => {
 			})
 
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			await openCompanyAssignmentsDialog(page)
 
@@ -587,7 +588,7 @@ test.describe('Admin Users', () => {
 			})
 
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			await openCompanyAssignmentsDialog(page)
 
@@ -610,7 +611,7 @@ test.describe('Admin Users', () => {
 			})
 
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 
 			await openCompanyAssignmentsDialog(page)
 
@@ -633,7 +634,7 @@ test.describe('Admin Users', () => {
 			})
 
 			await page.goto('/equipo/users')
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 			const row = findTableRow(page, agentOnlyUser.name)
 			await expect(row.getByText(companies.acme.name)).toBeAttached()
 
@@ -659,7 +660,7 @@ test.describe('Admin Users', () => {
 
 			// Stale table row from before the dialog; reload to assert server state unchanged.
 			await page.reload()
-			await expect(page.locator('table')).toBeVisible()
+			await expect(mainDataTable(page)).toBeVisible()
 			const rowAfter = findTableRow(page, agentOnlyUser.name)
 			await expect(rowAfter.getByText(companies.acme.name)).toBeAttached()
 
