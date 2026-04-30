@@ -1,5 +1,6 @@
 'use client'
 
+import { AlertTriangle, Loader2, ShieldCheck } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useId, useMemo, useState } from 'react'
 import {
@@ -341,10 +342,23 @@ export function PreAuthorizeApplicationDialog({
 										type="submit"
 										variant="destructive"
 										disabled={submitDisabled}
+										aria-label={
+											pending
+												? t('applications-submit-saving-aria')
+												: t('applications-pre-authorize-submit-aria')
+										}
 									>
-										{pending
-											? t('applications-submit-saving')
-											: t('applications-pre-authorize-submit')}
+										{pending ? (
+											<>
+												<Loader2 className="size-4 animate-spin" aria-hidden />
+												<span>{t('applications-submit-saving')}</span>
+											</>
+										) : (
+											<>
+												<AlertTriangle className="size-4" aria-hidden />
+												<span>{t('applications-pre-authorize-submit')}</span>
+											</>
+										)}
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent>
@@ -352,10 +366,26 @@ export function PreAuthorizeApplicationDialog({
 								</TooltipContent>
 							</Tooltip>
 						) : (
-							<Button type="submit" disabled={submitDisabled}>
-								{pending
-									? t('applications-submit-saving')
-									: t('applications-pre-authorize-submit')}
+							<Button
+								type="submit"
+								disabled={submitDisabled}
+								aria-label={
+									pending
+										? t('applications-submit-saving-aria')
+										: t('applications-pre-authorize-submit-aria')
+								}
+							>
+								{pending ? (
+									<>
+										<Loader2 className="size-4 animate-spin" aria-hidden />
+										<span>{t('applications-submit-saving')}</span>
+									</>
+								) : (
+									<>
+										<ShieldCheck className="size-4" aria-hidden />
+										<span>{t('applications-pre-authorize-submit')}</span>
+									</>
+								)}
 							</Button>
 						)}
 					</DialogFooter>

@@ -11,8 +11,8 @@ import {
 	assertEquipoDocumentRowStatus,
 	clickDocumentReviewAuthorizeOnly,
 	clickEquipoDocumentReviewSubmitByName,
+	documentsReviewSubmitButton,
 	EQUIPO_AUTHZ_STAGE_TOTAL_DOCUMENT_ROW_COUNT,
-	EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE,
 	EQUIPO_DOCUMENTS_CARD_SCOPE,
 	openEquipoApplicationActions,
 	selectDocumentDecisionInRow,
@@ -84,16 +84,14 @@ test.describe('Authorizations agents', () => {
 			await expect(card).toContainText(packageAuthorization)
 			await expect(card).toContainText(packageContract)
 			await expect(card).toContainText(packagePayroll)
-			await expect(
-				page
-					.locator(EQUIPO_DETAIL_DOCUMENTS_REVIEW_SCOPE)
-					.locator('.border-t.pt-4 button[type="submit"]')
-					.first(),
-			).toBeDisabled()
+			await expect(documentsReviewSubmitButton(page)).toBeDisabled()
 			await selectDocumentDecisionInRow(page, packageAuthorization, 'approve')
 			await selectDocumentDecisionInRow(page, packageContract, 'approve')
 			await selectDocumentDecisionInRow(page, packagePayroll, 'approve')
-			await clickEquipoDocumentReviewSubmitByName(page, /guardar y autorizar/i)
+			await clickEquipoDocumentReviewSubmitByName(
+				page,
+				/autorizar la solicitud/i,
+			)
 			await assertEquipoDocumentRowStatus(
 				page,
 				packageAuthorization,
@@ -122,7 +120,10 @@ test.describe('Authorizations agents', () => {
 			await selectDocumentDecisionInRow(page, packageAuthorization, 'approve')
 			await selectDocumentDecisionInRow(page, contractFile, 'approve')
 			await selectDocumentDecisionInRow(page, packagePayroll, 'approve')
-			await clickEquipoDocumentReviewSubmitByName(page, /guardar y autorizar/i)
+			await clickEquipoDocumentReviewSubmitByName(
+				page,
+				/autorizar la solicitud/i,
+			)
 			await assertEquipoDocumentRowStatus(
 				page,
 				packageAuthorization,
