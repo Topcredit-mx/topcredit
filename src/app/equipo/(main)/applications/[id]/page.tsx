@@ -117,10 +117,9 @@ export default async function AppApplicationDetailPage({
 		ability.can('disburse', appSubject) &&
 		application.firstDiscountDate != null &&
 		application.status === 'authorized'
-	const hrSuggestedFirstDiscountYmd =
-		application.firstDiscountDate == null && canSetFirstDiscountDate
-			? getUpcomingDeductionDateYmd(application.salaryFrequency, now)
-			: null
+	const hrApproveSuggestedFirstDiscountYmd = canSetFirstDiscountDate
+		? getUpcomingDeductionDateYmd(application.salaryFrequency, now)
+		: null
 	const showActionControls = canDeny || canPreAuthorize
 	const termOfferings =
 		canPreAuthorize && application.status === 'approved'
@@ -395,10 +394,14 @@ export default async function AppApplicationDetailPage({
 						</CardTitle>
 					</CardHeader>
 					<CardContent className={`space-y-6 pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}>
-						<HrApproveScheduleSummary
-							suggestedFirstDiscountDateYmd={hrSuggestedFirstDiscountYmd ?? ''}
-							employeeSalaryFrequency={application.salaryFrequency}
-						/>
+						{hrApproveSuggestedFirstDiscountYmd != null ? (
+							<HrApproveScheduleSummary
+								suggestedFirstDiscountDateYmd={
+									hrApproveSuggestedFirstDiscountYmd
+								}
+								employeeSalaryFrequency={application.salaryFrequency}
+							/>
+						) : null}
 						<HrApproveForm
 							applicationId={application.id}
 							validDates={getValidFirstDiscountDates(
@@ -406,7 +409,13 @@ export default async function AppApplicationDetailPage({
 								now,
 								6,
 							).map((d) => ymdForDeductionSchedule(d))}
-							suggestedDate={hrSuggestedFirstDiscountYmd ?? ''}
+							suggestedDate={
+								hrApproveSuggestedFirstDiscountYmd ??
+								getUpcomingDeductionDateYmd(
+									application.salaryFrequency,
+									now,
+								)
+							}
 						/>
 					</CardContent>
 				</Card>
