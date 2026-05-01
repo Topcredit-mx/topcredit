@@ -101,7 +101,7 @@ To compare against a previous CI run instead of `origin/main`, pass that run's h
 pnpm playwright:changed-videos --base-ref <previous-run-sha> --output changed-playwright-videos.md
 ```
 
-In CI, the workflow runs this command with `--artifact-dir changed-playwright-videos` after Playwright finishes, then uploads that directory with `retention-days: 1`. The artifact includes up to 5 videos for changed specs and up to 5 videos from any retained Playwright errors. Locally, omitting `--artifact-dir` prints absolute paths to the ignored `test-results/` files.
+In CI, the workflow runs this command with `--artifact-dir changed-playwright-videos` after Playwright finishes, then uploads that directory with `retention-days: 1`. The artifact includes up to 5 videos for changed specs and up to 5 videos from any retained Playwright errors. On pushes to a branch with an open PR, the workflow also **upserts a PR comment** with the merged shard summaries and a link to the workflow run (videos stay in the artifact ZIP; GitHub does not embed video in comments). Locally, omitting `--artifact-dir` prints absolute paths to the ignored `test-results/` files.
 
 ## CI/CD
 
