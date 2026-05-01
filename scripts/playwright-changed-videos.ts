@@ -24,8 +24,13 @@ export type ChangedTestVideo = {
 	videoPath: string
 }
 
+export type ErrorVideo = {
+	label: string
+	videoPath: string
+}
+
 type MarkdownVideo = {
-	specFile: string
+	label: string
 	src: string
 }
 
@@ -43,17 +48,36 @@ async function main(): Promise<void> {
 		videoPaths: videos,
 		maxVideos: options.maxVideos,
 	})
+	const errorVideos = selectAnyErrorVideos({
+		videoPaths: videos,
+		maxVideos: options.maxVideos,
+	})
 	const markdownVideos =
 		options.artifactDir === undefined
-			? selectedVideos.map((video) => ({
-					specFile: video.specFile,
-					src: normalizePath(resolve(video.videoPath)),
-				}))
-			: await copyVideosToArtifactDir(selectedVideos, options.artifactDir)
+			? {
+					changed: toLocalMarkdownVideos(
+						selectedVideos.map((video) => ({
+							label: video.specFile,
+							videoPath: video.videoPath,
+						})),
+					),
+					errors: toLocalMarkdownVideos(
+						errorVideos.map((video) => ({
+							label: video.label,
+							videoPath: video.videoPath,
+						})),
+					),
+				}
+			: await copyVideosToArtifactDir({
+					changedVideos: selectedVideos,
+					errorVideos,
+					artifactDir: options.artifactDir,
+				})
 	const markdown = renderMarkdown({
 		baseRef: options.baseRef,
 		changedSpecs: changedSpecs.map((spec) => spec.path),
-		videos: markdownVideos,
+		changedVideos: markdownVideos.changed,
+		errorVideos: markdownVideos.errors,
 		artifactDir: options.artifactDir,
 	})
 
@@ -245,23 +269,72 @@ export function selectChangedTestVideos({
 	return selected
 }
 
-async function copyVideosToArtifactDir(
-	selectedVideos: readonly ChangedTestVideo[],
-	artifactDir: string,
-): Promise<MarkdownVideo[]> {
+export function selectAnyErrorVideos({
+	videoPaths,
+	maxVideos = DEFAULT_MAX_VIDEOS,
+}: {
+	videoPaths: readonly string[]
+	maxVideos?: number
+}): ErrorVideo[] {
+	if (maxVideos <= 0) return []
+	return videoPaths.slice(0, maxVideos).map((videoPath) => ({
+		label: basename(dirname(videoPath)),
+		videoPath,
+	}))
+}
+
+async function copyVideosToArtifactDir({
+	changedVideos,
+	errorVideos,
+	artifactDir,
+}: {
+	changedVideos: readonly ChangedTestVideo[]
+	errorVideos: readonly ErrorVideo[]
+	artifactDir: string
+}): Promise<{ changed: MarkdownVideo[]; errors: MarkdownVideo[] }> {
 	await mkdir(artifactDir, { recursive: true })
-	const videosDir = join(artifactDir, 'videos')
+
+	return {
+		changed: await copyVideoSectionToArtifactDir({
+			videos: changedVideos.map((video) => ({
+				label: video.specFile,
+				videoPath: video.videoPath,
+			})),
+			artifactDir,
+			sectionDir: 'changed-videos',
+		}),
+		errors: await copyVideoSectionToArtifactDir({
+			videos: errorVideos.map((video) => ({
+				label: video.label,
+				videoPath: video.videoPath,
+			})),
+			artifactDir,
+			sectionDir: 'error-videos',
+		}),
+	}
+}
+
+async function copyVideoSectionToArtifactDir({
+	videos,
+	artifactDir,
+	sectionDir,
+}: {
+	videos: readonly { label: string; videoPath: string }[]
+	artifactDir: string
+	sectionDir: string
+}): Promise<MarkdownVideo[]> {
+	const videosDir = join(artifactDir, sectionDir)
 	await mkdir(videosDir, { recursive: true })
 
 	const copiedVideos: MarkdownVideo[] = []
-	for (const [index, video] of selectedVideos.entries()) {
+	for (const [index, video] of videos.entries()) {
 		const filename = `${String(index + 1).padStart(2, '0')}-${sanitizeFilename(
 			basename(dirname(video.videoPath)),
 		)}.webm`
 		const destination = join(videosDir, filename)
 		await copyFile(video.videoPath, destination)
 		copiedVideos.push({
-			specFile: video.specFile,
+			label: video.label,
 			src: normalizePath(relative(artifactDir, destination)),
 		})
 	}
@@ -269,15 +342,26 @@ async function copyVideosToArtifactDir(
 	return copiedVideos
 }
 
+function toLocalMarkdownVideos(
+	videos: readonly { label: string; videoPath: string }[],
+): MarkdownVideo[] {
+	return videos.map((video) => ({
+		label: video.label,
+		src: normalizePath(resolve(video.videoPath)),
+	}))
+}
+
 function renderMarkdown({
 	baseRef,
 	changedSpecs,
-	videos,
+	changedVideos,
+	errorVideos,
 	artifactDir,
 }: {
 	baseRef: string
 	changedSpecs: readonly string[]
-	videos: readonly MarkdownVideo[]
+	changedVideos: readonly MarkdownVideo[]
+	errorVideos: readonly MarkdownVideo[]
 	artifactDir?: string
 }): string {
 	const lines = [
@@ -289,14 +373,13 @@ function renderMarkdown({
 
 	if (changedSpecs.length === 0) {
 		lines.push('No changed Playwright spec files were found under `e2e/`.', '')
-		return `${lines.join('\n')}\n`
+	} else {
+		lines.push('Changed specs:', '')
+		for (const spec of changedSpecs) {
+			lines.push(`- \`${spec}\``)
+		}
+		lines.push('')
 	}
-
-	lines.push('Changed specs:', '')
-	for (const spec of changedSpecs) {
-		lines.push(`- \`${spec}\``)
-	}
-	lines.push('')
 
 	if (artifactDir !== undefined) {
 		lines.push(
@@ -305,19 +388,28 @@ function renderMarkdown({
 		)
 	}
 
-	if (videos.length === 0) {
+	if (changedVideos.length === 0) {
 		lines.push(
 			'No matching retained Playwright failure videos were found in `test-results/`.',
 			'',
 		)
-		return `${lines.join('\n')}\n`
+	} else {
+		lines.push('Changed spec videos:', '')
+		for (const video of changedVideos) {
+			lines.push(`- ${video.label}: <video src="${video.src}"></video>`)
+		}
+		lines.push('')
 	}
 
-	lines.push('Selected videos:', '')
-	for (const video of videos) {
-		lines.push(`- ${video.specFile}: <video src="${video.src}"></video>`)
+	if (errorVideos.length === 0) {
+		lines.push('No retained Playwright error videos were found.', '')
+	} else {
+		lines.push('Error videos:', '')
+		for (const video of errorVideos) {
+			lines.push(`- ${video.label}: <video src="${video.src}"></video>`)
+		}
+		lines.push('')
 	}
-	lines.push('')
 
 	return `${lines.join('\n')}\n`
 }
@@ -362,7 +454,7 @@ function isNodeErrorCode(error: unknown, code: string): boolean {
 function printHelp(): void {
 	console.log(`Usage: pnpm playwright:changed-videos [options]
 
-Find changed Playwright spec files and print up to five matching retained videos.
+Find changed Playwright spec videos and up to five retained error videos.
 
 Options:
   --base-ref <ref>      Git ref to compare against (default: origin/main)

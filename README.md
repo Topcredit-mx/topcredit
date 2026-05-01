@@ -70,7 +70,7 @@ Copy `.env.example` to `.env` and set:
 | `pnpm check` | Run Biome lint |
 | `pnpm test:e2e` | Run Playwright E2E |
 | `pnpm test:e2e:ui` | Playwright UI mode |
-| `pnpm playwright:changed-videos` | List changed Playwright specs and up to 5 matching retained videos |
+| `pnpm playwright:changed-videos` | List changed Playwright specs and up to 5 matching retained videos, plus up to 5 error videos |
 
 ## CI E2E (Neon)
 
@@ -80,7 +80,7 @@ If branch protection uses required status checks, register the check name **`E2E
 
 ### Changed Playwright videos for PRs
 
-Playwright writes videos only for failures (`video: 'retain-on-failure'`) under the ignored `test-results/` directory. The videos are not committed. CI uploads `test-results/` as a GitHub Actions artifact for 14 days, and also uploads a smaller `changed-playwright-videos-*` artifact with only the selected videos for 7 days.
+Playwright writes videos only for failures (`video: 'retain-on-failure'`) under the ignored `test-results/` directory. The videos are not committed. CI uploads `test-results/` as a GitHub Actions artifact for 14 days, and also uploads a smaller `changed-playwright-videos-*` artifact with selected changed-spec videos and error videos for 7 days.
 
 After an E2E run, generate a markdown summary for spec files changed since `origin/main`:
 
@@ -92,7 +92,7 @@ Options:
 
 - `--base-ref <ref>`: compare against another ref instead of `origin/main`.
 - `--results-dir <dir>`: read videos from another Playwright results directory.
-- `--max-videos <n>`: cap the list, default `5`.
+- `--max-videos <n>`: cap each video section, default `5`.
 - `--artifact-dir <dir>`: copy the selected videos and summary into a directory that can be uploaded as an expiring CI artifact.
 
 To compare against a previous CI run instead of `origin/main`, pass that run's head SHA or branch ref:
@@ -101,7 +101,7 @@ To compare against a previous CI run instead of `origin/main`, pass that run's h
 pnpm playwright:changed-videos --base-ref <previous-run-sha> --output changed-playwright-videos.md
 ```
 
-In CI, the workflow runs this command with `--artifact-dir changed-playwright-videos` after Playwright finishes, then uploads that directory with `retention-days: 7`. Locally, omitting `--artifact-dir` prints absolute paths to the ignored `test-results/` files.
+In CI, the workflow runs this command with `--artifact-dir changed-playwright-videos` after Playwright finishes, then uploads that directory with `retention-days: 7`. The artifact includes up to 5 videos for changed specs and up to 5 videos from any retained Playwright errors. Locally, omitting `--artifact-dir` prints absolute paths to the ignored `test-results/` files.
 
 ## CI/CD
 

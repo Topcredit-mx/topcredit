@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 
 import {
 	parseGitNameStatus,
+	selectAnyErrorVideos,
 	selectChangedTestVideos,
 } from '../../scripts/playwright-changed-videos'
 
@@ -31,6 +32,40 @@ describe('parseGitNameStatus', () => {
 		assert.deepEqual(specs, [
 			{ path: 'e2e/other/login.spec.ts', status: 'R100' },
 		])
+	})
+})
+
+describe('selectAnyErrorVideos', () => {
+	it('keeps at most the requested number of videos in input order', () => {
+		const selected = selectAnyErrorVideos({
+			maxVideos: 2,
+			videoPaths: [
+				'test-results/e2e-other-login-1-chromium/video.webm',
+				'test-results/e2e-equipo-installments-history-1-chromium/video.webm',
+				'test-results/e2e-other-login-2-chromium/video.webm',
+			],
+		})
+
+		assert.deepEqual(selected, [
+			{
+				label: 'e2e-other-login-1-chromium',
+				videoPath: 'test-results/e2e-other-login-1-chromium/video.webm',
+			},
+			{
+				label: 'e2e-equipo-installments-history-1-chromium',
+				videoPath:
+					'test-results/e2e-equipo-installments-history-1-chromium/video.webm',
+			},
+		])
+	})
+
+	it('returns no videos when the maximum is zero', () => {
+		const selected = selectAnyErrorVideos({
+			maxVideos: 0,
+			videoPaths: ['test-results/e2e-other-login-1-chromium/video.webm'],
+		})
+
+		assert.deepEqual(selected, [])
 	})
 })
 
