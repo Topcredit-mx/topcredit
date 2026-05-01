@@ -39,6 +39,14 @@ const DEFAULT_RESULTS_DIR = 'test-results'
 const DEFAULT_MAX_VIDEOS = 5
 const PLAYWRIGHT_SPEC_PATTERN = /^e2e\/.+\.spec\.ts$/
 
+export function revisionRangeForE2eSpecDiff(baseRef: string): string {
+	const trimmed = baseRef.trim()
+	if (trimmed === '') {
+		throw new Error('base-ref cannot be empty')
+	}
+	return `${trimmed}..HEAD`
+}
+
 async function main(): Promise<void> {
 	const options = parseArgs(process.argv.slice(2))
 	const changedSpecs = await getChangedSpecs(options.baseRef)
@@ -74,7 +82,7 @@ async function main(): Promise<void> {
 					artifactDir: options.artifactDir,
 				})
 	const markdown = renderMarkdown({
-		baseRef: options.baseRef,
+		diffRevisionRange: revisionRangeForE2eSpecDiff(options.baseRef),
 		changedSpecs: changedSpecs.map((spec) => spec.path),
 		changedVideos: markdownVideos.changed,
 		errorVideos: markdownVideos.errors,
@@ -168,7 +176,7 @@ async function getChangedSpecs(baseRef: string): Promise<{ path: string }[]> {
 	const { stdout } = await execFile('git', [
 		'diff',
 		'--name-status',
-		`${baseRef}...HEAD`,
+		revisionRangeForE2eSpecDiff(baseRef),
 		'--',
 		'e2e',
 	])
@@ -352,13 +360,13 @@ function toLocalMarkdownVideos(
 }
 
 function renderMarkdown({
-	baseRef,
+	diffRevisionRange,
 	changedSpecs,
 	changedVideos,
 	errorVideos,
 	artifactDir,
 }: {
-	baseRef: string
+	diffRevisionRange: string
 	changedSpecs: readonly string[]
 	changedVideos: readonly MarkdownVideo[]
 	errorVideos: readonly MarkdownVideo[]
@@ -367,7 +375,7 @@ function renderMarkdown({
 	const lines = [
 		'## Changed Playwright videos',
 		'',
-		`Compared specs against \`${baseRef}...HEAD\`.`,
+		`Compared specs: \`git diff --name-status ${diffRevisionRange} -- e2e\` (two-dot tree diff; works when the base ref is not an ancestor of HEAD, e.g. after a force-push).`,
 		'',
 	]
 
