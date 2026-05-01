@@ -1,6 +1,6 @@
 import { execFile as execFileWithCallback } from 'node:child_process'
-import { readdir, writeFile } from 'node:fs/promises'
-import { join, relative, resolve } from 'node:path'
+import { copyFile, mkdir, readdir, writeFile } from 'node:fs/promises'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
@@ -10,6 +10,7 @@ type CliOptions = {
 	baseRef: string
 	resultsDir: string
 	maxVideos: number
+	artifactDir?: string
 	output?: string
 }
 
@@ -21,6 +22,11 @@ export type ChangedSpecFile = {
 export type ChangedTestVideo = {
 	specFile: string
 	videoPath: string
+}
+
+type MarkdownVideo = {
+	specFile: string
+	src: string
 }
 
 const DEFAULT_BASE_REF = 'origin/main'
@@ -37,10 +43,18 @@ async function main(): Promise<void> {
 		videoPaths: videos,
 		maxVideos: options.maxVideos,
 	})
+	const markdownVideos =
+		options.artifactDir === undefined
+			? selectedVideos.map((video) => ({
+					specFile: video.specFile,
+					src: normalizePath(resolve(video.videoPath)),
+				}))
+			: await copyVideosToArtifactDir(selectedVideos, options.artifactDir)
 	const markdown = renderMarkdown({
 		baseRef: options.baseRef,
 		changedSpecs: changedSpecs.map((spec) => spec.path),
-		selectedVideos,
+		videos: markdownVideos,
+		artifactDir: options.artifactDir,
 	})
 
 	if (options.output === undefined) {
@@ -48,6 +62,7 @@ async function main(): Promise<void> {
 		return
 	}
 
+	await mkdir(dirname(options.output), { recursive: true })
 	await writeFile(options.output, markdown)
 	console.log(`Wrote ${options.output}`)
 }
@@ -85,6 +100,12 @@ function parseArgs(args: readonly string[]): CliOptions {
 
 		if (arg === '--max-videos') {
 			options.maxVideos = parsePositiveInt(readFlagValue(args, i, arg), 1)
+			i += 1
+			continue
+		}
+
+		if (arg === '--artifact-dir') {
+			options.artifactDir = readFlagValue(args, i, arg)
 			i += 1
 			continue
 		}
@@ -224,14 +245,40 @@ export function selectChangedTestVideos({
 	return selected
 }
 
+async function copyVideosToArtifactDir(
+	selectedVideos: readonly ChangedTestVideo[],
+	artifactDir: string,
+): Promise<MarkdownVideo[]> {
+	await mkdir(artifactDir, { recursive: true })
+	const videosDir = join(artifactDir, 'videos')
+	await mkdir(videosDir, { recursive: true })
+
+	const copiedVideos: MarkdownVideo[] = []
+	for (const [index, video] of selectedVideos.entries()) {
+		const filename = `${String(index + 1).padStart(2, '0')}-${sanitizeFilename(
+			basename(dirname(video.videoPath)),
+		)}.webm`
+		const destination = join(videosDir, filename)
+		await copyFile(video.videoPath, destination)
+		copiedVideos.push({
+			specFile: video.specFile,
+			src: normalizePath(relative(artifactDir, destination)),
+		})
+	}
+
+	return copiedVideos
+}
+
 function renderMarkdown({
 	baseRef,
 	changedSpecs,
-	selectedVideos,
+	videos,
+	artifactDir,
 }: {
 	baseRef: string
 	changedSpecs: readonly string[]
-	selectedVideos: readonly { specFile: string; videoPath: string }[]
+	videos: readonly MarkdownVideo[]
+	artifactDir?: string
 }): string {
 	const lines = [
 		'## Changed Playwright videos',
@@ -251,7 +298,14 @@ function renderMarkdown({
 	}
 	lines.push('')
 
-	if (selectedVideos.length === 0) {
+	if (artifactDir !== undefined) {
+		lines.push(
+			`Selected files are staged under \`${artifactDir}/\` for upload as an expiring GitHub Actions artifact.`,
+			'',
+		)
+	}
+
+	if (videos.length === 0) {
 		lines.push(
 			'No matching retained Playwright failure videos were found in `test-results/`.',
 			'',
@@ -259,11 +313,9 @@ function renderMarkdown({
 		return `${lines.join('\n')}\n`
 	}
 
-	lines.push('Videos to include in the PR summary:', '')
-	for (const video of selectedVideos) {
-		lines.push(
-			`- ${video.specFile}: <video src="${normalizePath(resolve(video.videoPath))}"></video>`,
-		)
+	lines.push('Selected videos:', '')
+	for (const video of videos) {
+		lines.push(`- ${video.specFile}: <video src="${video.src}"></video>`)
 	}
 	lines.push('')
 
@@ -289,6 +341,15 @@ function hasTokenMatch(value: string, token: string): boolean {
 	)
 }
 
+function sanitizeFilename(value: string): string {
+	return (
+		value
+			.toLowerCase()
+			.replace(/[^a-z0-9._-]+/g, '-')
+			.replace(/^-+|-+$/g, '') || 'video'
+	)
+}
+
 function isNodeErrorCode(error: unknown, code: string): boolean {
 	return (
 		typeof error === 'object' &&
@@ -307,6 +368,7 @@ Options:
   --base-ref <ref>      Git ref to compare against (default: origin/main)
   --results-dir <dir>   Playwright test-results directory (default: test-results)
   --max-videos <n>      Maximum videos to list (default: 5)
+  --artifact-dir <dir>   Copy selected videos into this directory for artifact upload
   --output <file>       Write markdown to a file instead of stdout
 `)
 }
