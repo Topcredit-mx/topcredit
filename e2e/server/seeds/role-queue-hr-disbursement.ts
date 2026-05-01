@@ -5,6 +5,7 @@ import {
 } from '~/e2e/equipo/disbursement-agents.fixtures'
 import { allHrUsers, hrCompany } from '~/e2e/equipo/hr-agents.fixtures'
 import { allNavAgents, navCompany } from '~/e2e/equipo/role-queue-nav.fixtures'
+import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import {
 	applicationDocuments,
 	applicationStatusHistory,
@@ -20,7 +21,6 @@ import { getDb } from '../e2e-db'
 import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
 import { eodNCalendarDaysFromMexicoToday } from '../shared/mexico-seed-dates'
 import { createOrderedSeedStatusHistory } from '../shared/status-history'
-import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 
 export type SeedRoleQueueNavResult = {
 	companyId: number

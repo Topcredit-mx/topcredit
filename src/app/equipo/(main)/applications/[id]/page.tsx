@@ -393,7 +393,9 @@ export default async function AppApplicationDetailPage({
 							</h2>
 						</CardTitle>
 					</CardHeader>
-					<CardContent className={`space-y-6 pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}>
+					<CardContent
+						className={`space-y-6 pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}
+					>
 						{hrApproveSuggestedFirstDiscountYmd != null ? (
 							<HrApproveScheduleSummary
 								suggestedFirstDiscountDateYmd={
@@ -411,10 +413,7 @@ export default async function AppApplicationDetailPage({
 							).map((d) => ymdForDeductionSchedule(d))}
 							suggestedDate={
 								hrApproveSuggestedFirstDiscountYmd ??
-								getUpcomingDeductionDateYmd(
-									application.salaryFrequency,
-									now,
-								)
+								getUpcomingDeductionDateYmd(application.salaryFrequency, now)
 							}
 						/>
 					</CardContent>
