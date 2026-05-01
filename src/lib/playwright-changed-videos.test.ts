@@ -3,9 +3,28 @@ import { describe, it } from 'node:test'
 
 import {
 	parseGitNameStatus,
+	revisionRangeForE2eSpecDiff,
 	selectAnyErrorVideos,
 	selectChangedTestVideos,
 } from '../../scripts/playwright-changed-videos'
+
+describe('revisionRangeForE2eSpecDiff', () => {
+	it('uses two-dot range so git diff does not require a merge base', () => {
+		assert.equal(revisionRangeForE2eSpecDiff('abc123'), 'abc123..HEAD')
+	})
+
+	it('trims whitespace from the base ref', () => {
+		assert.equal(
+			revisionRangeForE2eSpecDiff('  origin/main  '),
+			'origin/main..HEAD',
+		)
+	})
+
+	it('rejects an empty base ref', () => {
+		assert.throws(() => revisionRangeForE2eSpecDiff(''), /empty/)
+		assert.throws(() => revisionRangeForE2eSpecDiff('   '), /empty/)
+	})
+})
 
 describe('parseGitNameStatus', () => {
 	it('returns changed Playwright specs and ignores deleted specs', () => {
