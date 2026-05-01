@@ -169,7 +169,7 @@ jobs:
         with:
           name: changed-playwright-videos-${{ github.run_id }}-${{ matrix.shard }}
           path: changed-playwright-videos/
-          retention-days: 7
+          retention-days: 1
           if-no-files-found: ignore
 
       - name: Upload E2E completion marker
