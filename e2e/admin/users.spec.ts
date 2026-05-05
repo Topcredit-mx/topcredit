@@ -202,6 +202,8 @@ test.describe('Admin Users', () => {
 
 	test.describe('Pagination (server)', () => {
 		test.beforeEach(async ({ page }) => {
+			await cleanupAdminUsers()
+			await seedAdminUsers()
 			await loginPage(page, adminUser.email)
 		})
 
