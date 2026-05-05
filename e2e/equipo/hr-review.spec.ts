@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { SeedHrReviewResult } from '~/e2e/server/tasks'
 import { cleanupHrReview, seedHrReview } from '~/e2e/server/tasks'
+import { formatMxDate } from '~/lib/format-mx-date'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
 import { mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
@@ -11,6 +12,36 @@ import {
 } from './hr-agents.fixtures'
 
 registerDbSpecGuards()
+
+test.describe('HR approval shows first discount from company payroll frequency', () => {
+	let seed: SeedHrReviewResult
+
+	test.beforeAll(async () => {
+		await cleanupHrReview()
+		seed = await seedHrReview({ employeeSalaryFrequency: 'bi-monthly' })
+	})
+
+	test.afterAll(async () => {
+		await cleanupHrReview()
+	})
+
+	test('shows suggested first discount date and quincenal payroll label on the RH approval card', async ({
+		page,
+	}) => {
+		await loginPage(page, hrAgentForReview.email)
+		await setSelectedCompanyId(page, seed.companyId)
+		await page.goto(`/equipo/applications/${seed.applicationId}`)
+		await expect(
+			page.getByRole('heading', { name: /detalle de solicitud/i }),
+		).toBeVisible()
+		const rhSection = page.getByRole('region', { name: /aprobación rh/i })
+		await expect(rhSection).toBeVisible()
+		await expect(rhSection.getByText(/periodicidad de nómina/i)).toBeVisible()
+		const expectedLabel = formatMxDate(seed.expectedSuggestedFirstDiscountYmd)
+		await expect(rhSection.getByText(expectedLabel)).toBeVisible()
+		await expect(rhSection.getByText(/nómina:\s*quincenal/i)).toBeVisible()
+	})
+})
 
 test.describe('HR agent flow', () => {
 	let seed: SeedHrReviewResult
