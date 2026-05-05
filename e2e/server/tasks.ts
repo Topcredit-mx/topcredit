@@ -243,6 +243,10 @@ export const resetCompany = async (params: ResetCompanyTaskParams) => {
 				borrowingCapacityRate: params.borrowingCapacityRate ?? null,
 				employeeSalaryFrequency: params.employeeSalaryFrequency,
 				active: params.active ?? true,
+				authorizationTemplateStorageKey: null,
+				authorizationTemplateFileName: null,
+				contractTemplateStorageKey: null,
+				contractTemplateFileName: null,
 			})
 			.where(eq(companies.domain, params.domain))
 			.returning()

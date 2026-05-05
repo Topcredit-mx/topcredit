@@ -1,6 +1,8 @@
-import { expect, test } from '@playwright/test'
+import { join } from 'node:path'
+import { expect, type Page, test } from '@playwright/test'
 import { adminUser, companies } from '~/e2e/admin/companies.fixtures'
 import {
+	assignCompanyToUser,
 	cleanupAdminCompanies,
 	deleteCompaniesByDomain,
 	deleteUsersByEmail,
@@ -13,6 +15,26 @@ import { findTableRow, selectRadix } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 
 registerDbSpecGuards()
+
+async function waitForPostMatchingPath(
+	page: Page,
+	pattern: RegExp,
+): Promise<void> {
+	await page.waitForResponse((res) => {
+		if (res.request().method() !== 'POST') {
+			return false
+		}
+		let pathname: string
+		try {
+			pathname = new URL(res.url()).pathname
+		} catch {
+			return false
+		}
+		return pattern.test(pathname)
+	})
+}
+
+const SAMPLE_WEBP = join(process.cwd(), 'e2e/fixtures/sample-document.webp')
 
 test.describe('Admin Companies List', () => {
 	test.beforeAll(async () => {
@@ -551,17 +573,26 @@ test.describe('Admin Companies List', () => {
 			await loginPage(page, adminUser.email)
 		})
 
-		test('row edit link targets company edit page', async ({ page }) => {
-			const editHref = `/equipo/companies/${encodeURIComponent(editCompany.domain)}/edit`
+		test('row links include company detail and edit for admins', async ({
+			page,
+		}) => {
+			const detailHref = `/equipo/companies/${encodeURIComponent(editCompany.domain)}`
+			const editHref = `${detailHref}/edit`
 			await page.goto('/equipo/companies')
 			await expect(page.locator('table')).toBeVisible()
 			const row = findTableRow(page, editCompany.name)
 			await row.scrollIntoViewIfNeeded()
-			const editLink = row.locator('a[href*="/edit"]')
-			await expect(editLink).toBeAttached()
-			await expect(editLink).toHaveAttribute('href', editHref)
-			await page.goto(editHref)
-			await expect(page.getByText(/editar|edit/i)).toBeVisible()
+			await expect(row.getByRole('link', { name: /^ver$/i })).toHaveAttribute(
+				'href',
+				detailHref,
+			)
+			await expect(
+				row.getByRole('link', { name: /^editar$/i }),
+			).toHaveAttribute('href', editHref)
+			await page.goto(detailHref)
+			await expect(
+				page.getByRole('heading', { name: editCompany.name }),
+			).toBeVisible()
 		})
 
 		test('loads existing company data in form', async ({ page }) => {
@@ -659,6 +690,111 @@ test.describe('Admin Companies List', () => {
 			await expect(page.locator('input[name="domain"]')).toBeDisabled()
 			await expect(
 				page.getByText(/el dominio no puede ser modificado/i),
+			).toBeVisible()
+		})
+	})
+
+	test.describe('Company authorization templates', () => {
+		const templateCompany = {
+			name: 'Templates Test Company',
+			domain: 'e2e-company-templates.com',
+			rate: '0.0250',
+			borrowingCapacityRate: '0.30',
+			employeeSalaryFrequency: 'monthly' as const,
+			active: true,
+		}
+
+		const agentTemplatesUser = {
+			name: 'Agent Templates Reader',
+			email: 'agent.company.templates@example.com',
+			roles: ['agent', 'requests'] as const,
+		}
+
+		test.beforeAll(async () => {
+			await deleteCompaniesByDomain([templateCompany.domain])
+			await resetCompany(templateCompany)
+		})
+
+		test.afterAll(async () => {
+			await deleteCompaniesByDomain([templateCompany.domain])
+			await deleteUsersByEmail([agentTemplatesUser.email])
+		})
+
+		test('admin uploads authorization and contract templates from edit screen', async ({
+			page,
+		}) => {
+			await loginPage(page, adminUser.email)
+			await page.goto(
+				`/equipo/companies/${encodeURIComponent(templateCompany.domain)}/edit`,
+			)
+			await expect(
+				page.getByRole('heading', { name: /plantillas de autorización/i }),
+			).toBeVisible()
+
+			const tmpl = page.locator(
+				'section[aria-labelledby="company-templates-heading"]',
+			)
+			const postPattern = /\/equipo\/companies\/.+\/edit/
+
+			const firstPost = waitForPostMatchingPath(page, postPattern)
+			await tmpl
+				.locator('input[type="file"]')
+				.first()
+				.setInputFiles(SAMPLE_WEBP)
+			await tmpl
+				.getByRole('button', { name: /^subir archivo$/i })
+				.first()
+				.click()
+			await firstPost
+
+			const secondPost = waitForPostMatchingPath(page, postPattern)
+			await tmpl.locator('input[type="file"]').nth(1).setInputFiles(SAMPLE_WEBP)
+			await tmpl
+				.getByRole('button', { name: /^subir archivo$/i })
+				.nth(1)
+				.click()
+			await secondPost
+
+			await expect(
+				tmpl.getByText(/sample-document\.webp/i).first(),
+			).toBeVisible()
+			await expect(
+				tmpl.getByText(/sample-document\.webp/i).nth(1),
+			).toBeVisible()
+		})
+
+		test('assigned agent downloads templates from company detail and cannot open edit', async ({
+			page,
+		}) => {
+			await resetUser({
+				name: agentTemplatesUser.name,
+				email: agentTemplatesUser.email,
+				roles: [...agentTemplatesUser.roles],
+			})
+			await assignCompanyToUser({
+				userEmail: agentTemplatesUser.email,
+				companyDomain: templateCompany.domain,
+			})
+
+			await loginPage(page, agentTemplatesUser.email)
+			await page.goto('/equipo/companies')
+			await expect(page.locator('table')).toBeVisible()
+			const row = findTableRow(page, templateCompany.name)
+			await row.scrollIntoViewIfNeeded()
+			await row.getByRole('link', { name: /^ver$/i }).click()
+
+			await expect(
+				page.getByRole('heading', { name: templateCompany.name }),
+			).toBeVisible()
+			await expect(
+				page.getByRole('link', { name: /^descargar$/i }),
+			).toHaveCount(2)
+
+			await page.goto(
+				`/equipo/companies/${encodeURIComponent(templateCompany.domain)}/edit`,
+			)
+			await expect(
+				page.getByRole('heading', { name: '403 - No Autorizado' }),
 			).toBeVisible()
 		})
 	})

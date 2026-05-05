@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { statusRequiresReason } from '~/lib/application-rules'
+import { COMPANY_TEMPLATE_KIND_VALUES } from '~/lib/company-templates'
 import { validateClabe, validateIndividualRfc } from '~/lib/mexico-identifiers'
 import { MEXICAN_STATE_VALUES } from '~/lib/mexico-states'
 import { ValidationCode } from '~/lib/validation-codes'
@@ -96,6 +97,11 @@ const initialCompanyTermItemSchema = z.object({
 export const createCompanyInitialTermsSchema = z
 	.array(initialCompanyTermItemSchema)
 	.max(20)
+
+export const uploadCompanyTemplateSchema = z.object({
+	companyId: z.coerce.number().int().positive(),
+	kind: z.enum(COMPANY_TEMPLATE_KIND_VALUES),
+})
 
 const positiveNumericString = z
 	.string()

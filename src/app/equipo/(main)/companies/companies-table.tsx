@@ -24,9 +24,10 @@ type CompanyForTable = Omit<Company, 'createdAt' | 'updatedAt'> & {
 
 interface CompaniesTableProps {
 	companies: CompanyForTable[]
+	isAdmin: boolean
 }
 
-export function CompaniesTable({ companies }: CompaniesTableProps) {
+export function CompaniesTable({ companies, isAdmin }: CompaniesTableProps) {
 	const t = useTranslations('admin')
 	const columns: ColumnDef<CompanyForTable>[] = [
 		{
@@ -151,15 +152,24 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 			header: t('companies-actions'),
 			cell: ({ row }) => {
 				const company = row.original
+				const detailHref = `/equipo/companies/${encodeURIComponent(company.domain)}`
+				const editHref = `${detailHref}/edit`
+				const prefetch = getPrefetchStrategy(companies.length)
 				return (
-					<Button variant="ghost" size="sm" asChild>
-						<ListDetailLink
-							href={`/equipo/companies/${encodeURIComponent(company.domain)}/edit`}
-							prefetchStrategy={getPrefetchStrategy(companies.length)}
-						>
-							{t('companies-edit')}
-						</ListDetailLink>
-					</Button>
+					<div className="flex flex-wrap items-center gap-1">
+						<Button variant="ghost" size="sm" asChild>
+							<ListDetailLink href={detailHref} prefetchStrategy={prefetch}>
+								{t('companies-view')}
+							</ListDetailLink>
+						</Button>
+						{isAdmin ? (
+							<Button variant="ghost" size="sm" asChild>
+								<ListDetailLink href={editHref} prefetchStrategy={prefetch}>
+									{t('companies-edit')}
+								</ListDetailLink>
+							</Button>
+						) : null}
+					</div>
 				)
 			},
 		},
@@ -172,7 +182,7 @@ export function CompaniesTable({ companies }: CompaniesTableProps) {
 				data={companies}
 				schema="companies"
 				label={t('companies-title')}
-				createLink="/equipo/companies/new"
+				createLink={isAdmin ? undefined : null}
 				createButtonText={t('companies-new')}
 				filterPlaceholder={t('table-filter-companies')}
 			>

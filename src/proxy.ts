@@ -54,12 +54,16 @@ const withAuthMiddleware = withAuth(
 			}
 			// /settings allowed - user can see they have no roles
 		}
-		if (
-			(path.startsWith('/equipo/users') ||
-				path.startsWith('/equipo/companies')) &&
-			!roles.includes('admin')
-		) {
+		if (path.startsWith('/equipo/users') && !roles.includes('admin')) {
 			return NextResponse.redirect(new URL('/unauthorized', req.url))
+		}
+		if (!roles.includes('admin')) {
+			if (
+				path === '/equipo/companies/new' ||
+				(path.startsWith('/equipo/companies/') && path.endsWith('/edit'))
+			) {
+				return NextResponse.redirect(new URL('/unauthorized', req.url))
+			}
 		}
 		if (path.startsWith('/equipo') && !isAgent) {
 			return NextResponse.redirect(new URL('/unauthorized', req.url))

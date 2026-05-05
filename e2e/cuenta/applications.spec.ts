@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { expect, type Page, test } from '@playwright/test'
+import { adminUser } from '~/e2e/admin/companies.fixtures'
 import type { SeedCuentaApplicationsResult } from '~/e2e/server/tasks'
 import {
 	cleanupCuentaApplications,
@@ -8,6 +9,7 @@ import {
 	getUserIdByEmail,
 	insertApplicationDocument,
 	resetApplicantApplication,
+	resetCompany,
 	resetUser,
 	seedCuentaApplications,
 	seedPreAuthorizedPackageDocuments,
@@ -23,6 +25,7 @@ import {
 	applicantWithCompany,
 	applicantWithCompanyWithoutCapacityRate,
 	applicantWithCompanyWithoutTermOfferings,
+	companyWithTerms,
 } from './applications.fixtures'
 
 registerDbSpecGuards()
@@ -986,6 +989,75 @@ test.describe('Cuenta applications', () => {
 	test.describe('Pre-authorized authorization package', () => {
 		test.beforeEach(async ({ page }) => {
 			await loginPage(page, applicantWithCompany.email)
+		})
+
+		test('shows company template downloads after admin uploads templates', async ({
+			page,
+		}) => {
+			const app = await resetApplicantApplication({
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '15000',
+				salaryAtApplication: '100000',
+				status: 'pre-authorized',
+			})
+
+			await resetUser({
+				name: adminUser.name,
+				email: adminUser.email,
+				roles: [...adminUser.roles],
+			})
+
+			const editPattern = /\/equipo\/companies\/.+\/edit/
+			await loginPage(page, adminUser.email)
+			await page.goto(
+				`/equipo/companies/${encodeURIComponent(companyWithTerms.domain)}/edit`,
+			)
+			const tmpl = page.locator(
+				'section[aria-labelledby="company-templates-heading"]',
+			)
+			const up1 = waitForPostMatchingPath(page, editPattern)
+			await tmpl
+				.locator('input[type="file"]')
+				.first()
+				.setInputFiles(SAMPLE_WEBP)
+			await tmpl
+				.getByRole('button', { name: /^subir archivo$/i })
+				.first()
+				.click()
+			await up1
+			const up2 = waitForPostMatchingPath(page, editPattern)
+			await tmpl.locator('input[type="file"]').nth(1).setInputFiles(SAMPLE_WEBP)
+			await tmpl
+				.getByRole('button', { name: /^subir archivo$/i })
+				.nth(1)
+				.click()
+			await up2
+
+			await loginPage(page, applicantWithCompany.email)
+			await page.goto(`/cuenta/applications/${app.id}/pre-authorized`)
+			await expect(
+				page.getByRole('heading', { name: /oferta preautorizada/i }),
+			).toBeVisible()
+			await expect(
+				page.getByRole('link', { name: /descargar carta de autorización/i }),
+			).toBeVisible()
+			await expect(
+				page.getByRole('link', { name: /descargar contrato/i }),
+			).toBeVisible()
+
+			const authRes = await page.request.get(
+				`http://localhost:3000/api/applications/${app.id}/company-templates/authorization/file`,
+			)
+			expect(authRes.status()).toBe(200)
+			const contractRes = await page.request.get(
+				`http://localhost:3000/api/applications/${app.id}/company-templates/contract/file`,
+			)
+			expect(contractRes.status()).toBe(200)
+
+			await loginPage(page, adminUser.email)
+			await resetCompany(companyWithTerms)
+			await deleteUsersByEmail([adminUser.email])
 		})
 
 		test('keeps submit disabled with a hint until all three package documents exist as pending', async ({

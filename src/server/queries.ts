@@ -348,6 +348,10 @@ export type Company = {
 	borrowingCapacityRate: string | null
 	employeeSalaryFrequency: 'bi-monthly' | 'monthly'
 	active: boolean
+	authorizationTemplateStorageKey: string | null
+	authorizationTemplateFileName: string | null
+	contractTemplateStorageKey: string | null
+	contractTemplateFileName: string | null
 	createdAt: Date
 	updatedAt: Date
 }
@@ -622,6 +626,7 @@ export async function getApplicationsByApplicantId(
 
 export type ApplicationDetailForApplicant = {
 	id: number
+	companyId: number
 	creditId: number | null
 	status: ApplicationStatus
 	creditAmount: string | null
@@ -671,6 +676,7 @@ export async function getApplicationByApplicantId(
 	const rows = await db
 		.select({
 			id: applications.id,
+			companyId: applications.companyId,
 			creditId: credits.id,
 			status: applications.status,
 			creditAmount: applications.creditAmount,
@@ -717,6 +723,7 @@ export async function getApplicationByApplicantId(
 
 	return {
 		id: row.id,
+		companyId: row.companyId,
 		creditId: row.creditId,
 		status: row.status,
 		creditAmount: row.creditAmount,
