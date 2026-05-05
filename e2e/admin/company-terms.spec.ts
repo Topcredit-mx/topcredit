@@ -315,21 +315,23 @@ test.describe('Admin company term management', () => {
 				roles: ['agent', 'admin'],
 			})
 
-			await loginPage(page, companyTermsPayrollMismatchE2e.agentEmail)
-			await page.goto(
-				`/equipo/companies/${encodeURIComponent(companyTermsPayrollMismatchE2e.domain)}/edit`,
-			)
+			try {
+				await loginPage(page, companyTermsPayrollMismatchE2e.agentEmail)
+				await page.goto(
+					`/equipo/companies/${encodeURIComponent(companyTermsPayrollMismatchE2e.domain)}/edit`,
+				)
 
-			await selectRadix(page, 'employeeSalaryFrequency', 'Quincenal')
-			await page.getByRole('button', { name: /guardar cambios/i }).click()
+				await selectRadix(page, 'employeeSalaryFrequency', 'Quincenal')
+				await page.getByRole('button', { name: /guardar cambios/i }).click()
 
-			await expect(
-				page.getByText(
-					/No puedes cambiar la frecuencia de pago mientras existan plazos/i,
-				),
-			).toBeVisible()
-
-			await cleanupCompanyTermsPayrollMismatchFixture()
+				await expect(
+					page.getByText(
+						/No puedes cambiar la frecuencia de pago mientras existan plazos/i,
+					),
+				).toBeVisible()
+			} finally {
+				await cleanupCompanyTermsPayrollMismatchFixture()
+			}
 		})
 	})
 })

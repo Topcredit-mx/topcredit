@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 import { expect, type Page, test } from '@playwright/test'
 import { adminUser, companies } from '~/e2e/admin/companies.fixtures'
+import { applicantOnlyUser } from '~/e2e/admin/users.fixtures'
 import {
 	assignCompanyToUser,
 	cleanupAdminCompanies,
@@ -9,6 +10,7 @@ import {
 	resetCompany,
 	resetUser,
 	seedAdminCompanies,
+	seedCompanyDocumentTemplates,
 } from '~/e2e/server/tasks'
 import { loginPage } from '../helpers/auth'
 import { findTableRow, selectRadix } from '../helpers/interactions'
@@ -47,24 +49,23 @@ test.describe('Admin Companies List', () => {
 	})
 
 	test.describe('Access Control', () => {
-		test('redirects non-admin users to unauthorized page', async ({ page }) => {
-			const agentUser = {
-				name: 'Agent User',
-				email: 'agent.companies@example.com',
-				roles: ['agent', 'requests'] as const,
-			}
+		test('redirects applicant users away from equipo companies', async ({
+			page,
+		}) => {
 			await resetUser({
-				name: agentUser.name,
-				email: agentUser.email,
-				roles: [...agentUser.roles],
+				name: applicantOnlyUser.name,
+				email: applicantOnlyUser.email,
+				roles: [...applicantOnlyUser.roles],
 			})
-			await loginPage(page, agentUser.email)
-			await page.goto('/equipo/companies')
-			await expect(
-				page.getByRole('heading', { name: '403 - No Autorizado' }),
-			).toBeVisible()
-
-			await deleteUsersByEmail([agentUser.email])
+			try {
+				await loginPage(page, applicantOnlyUser.email)
+				await page.goto('/equipo/companies')
+				await expect(
+					page.getByRole('heading', { name: '403 - No Autorizado' }),
+				).toBeVisible()
+			} finally {
+				await deleteUsersByEmail([applicantOnlyUser.email])
+			}
 		})
 
 		test('allows admin users to access companies page', async ({ page }) => {
@@ -713,6 +714,7 @@ test.describe('Admin Companies List', () => {
 		test.beforeAll(async () => {
 			await deleteCompaniesByDomain([templateCompany.domain])
 			await resetCompany(templateCompany)
+			await seedCompanyDocumentTemplates({ domain: templateCompany.domain })
 		})
 
 		test.afterAll(async () => {

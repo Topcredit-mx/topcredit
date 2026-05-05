@@ -635,38 +635,41 @@ test.describe('Admin Users', () => {
 				companyDomain: companies.acme.domain,
 			})
 
-			await page.goto('/equipo/users')
-			await expect(mainDataTable(page)).toBeVisible()
-			const row = findTableRow(page, agentOnlyUser.name)
-			await expect(row.getByText(companies.acme.name)).toBeAttached()
+			try {
+				await page.goto('/equipo/users')
+				await expect(mainDataTable(page)).toBeVisible()
+				const row = findTableRow(page, agentOnlyUser.name)
+				await expect(row.getByText(companies.acme.name)).toBeAttached()
 
-			// Server Actions: POST with Next-Action header. Avoid blocking RSC/GET fetches.
-			await page.route('**/*', (route) => {
-				const r = route.request()
-				if (r.method() !== 'POST' || r.headerValue('next-action') == null) {
-					return route.continue()
-				}
-				return route.abort()
-			})
+				// Server Actions: POST with Next-Action header. Avoid blocking RSC/GET fetches.
+				await page.route('**/*', (route) => {
+					const r = route.request()
+					if (r.method() !== 'POST' || r.headerValue('next-action') == null) {
+						return route.continue()
+					}
+					return route.abort()
+				})
 
-			await openCompanyAssignmentsDialog(page)
+				await openCompanyAssignmentsDialog(page)
 
-			const dialog = page.getByRole('dialog')
-			await dialog.getByText(companies.acme.name, { exact: true }).click()
-			await dialog.getByRole('button', { name: 'Guardar' }).click()
+				const dialog = page.getByRole('dialog')
+				await dialog.getByText(companies.acme.name, { exact: true }).click()
+				await dialog.getByRole('button', { name: 'Guardar' }).click()
 
-			await expect(page.getByRole('dialog')).toBeVisible()
-			await expect(
-				page.locator('[data-sonner-toast][data-type="error"]'),
-			).toBeAttached()
+				await expect(page.getByRole('dialog')).toBeVisible()
+				await expect(
+					page.locator('[data-sonner-toast][data-type="error"]'),
+				).toBeAttached()
 
-			// Stale table row from before the dialog; reload to assert server state unchanged.
-			await page.reload()
-			await expect(mainDataTable(page)).toBeVisible()
-			const rowAfter = findTableRow(page, agentOnlyUser.name)
-			await expect(rowAfter.getByText(companies.acme.name)).toBeAttached()
-
-			await deleteUserCompanyAssignmentsByEmail([agentOnlyUser.email])
+				// Stale table row from before the dialog; reload to assert server state unchanged.
+				await page.reload()
+				await expect(mainDataTable(page)).toBeVisible()
+				const rowAfter = findTableRow(page, agentOnlyUser.name)
+				await expect(rowAfter.getByText(companies.acme.name)).toBeAttached()
+			} finally {
+				await page.unroute('**/*')
+				await deleteUserCompanyAssignmentsByEmail([agentOnlyUser.email])
+			}
 		})
 	})
 })
