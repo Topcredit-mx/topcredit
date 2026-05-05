@@ -46,8 +46,6 @@ cypress/downloads
 /test-results/
 /playwright-report/
 /blob-report/
-/changed-playwright-videos/
-/changed-playwright-videos.md
 /playwright/.cache/
 
 # vercel

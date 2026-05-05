@@ -21,7 +21,6 @@
 		"preview": "next build && next start",
 		"start": "next start",
 		"test:unit": "node --import tsx --test \"src/lib/**/*.test.ts\"",
-		"playwright:changed-videos": "tsx scripts/playwright-changed-videos.ts",
 		"typecheck": "tsc --noEmit",
 		"validate": "pnpm check && pnpm typecheck",
 		"prepare": "husky"
