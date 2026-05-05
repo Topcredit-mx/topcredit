@@ -51,6 +51,10 @@ import { ApplicationActions } from '../application-actions'
 import { ApplicationDocumentsReviewForm } from '../application-documents-review-form'
 import { formatApplicationTerm } from '../constants'
 import { DisburseForm } from '../disburse-form'
+import {
+	EQUIPO_HR_APPROVE_CARD_HEADING_ID,
+	HR_APPROVE_SCHEDULE_SUMMARY_DOM_ID,
+} from '../hr-approve-dom-ids'
 import { HrApproveForm } from '../hr-approve-form'
 import { HrApproveScheduleSummary } from '../hr-approve-schedule-summary'
 
@@ -117,9 +121,6 @@ export default async function AppApplicationDetailPage({
 		ability.can('disburse', appSubject) &&
 		application.firstDiscountDate != null &&
 		application.status === 'authorized'
-	const hrApproveSuggestedFirstDiscountYmd = canSetFirstDiscountDate
-		? getUpcomingDeductionDateYmd(application.salaryFrequency, now)
-		: null
 	const showActionControls = canDeny || canPreAuthorize
 	const termOfferings =
 		canPreAuthorize && application.status === 'approved'
@@ -381,41 +382,59 @@ export default async function AppApplicationDetailPage({
 					</CardContent>
 				</Card>
 			) : canSetFirstDiscountDate ? (
-				<Card className={EQUIPO_DETAIL_CARD_CLASS}>
-					<CardHeader className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}>
-						<CardTitle asChild className="flex items-center gap-2 text-base">
-							<h2>
-								<CalendarDays
-									className="size-4 text-muted-foreground"
-									aria-hidden
-								/>
-								{t('hr-approve-title')}
-							</h2>
-						</CardTitle>
-					</CardHeader>
-					<CardContent className={`pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}>
-						{hrApproveSuggestedFirstDiscountYmd != null ? (
-							<HrApproveScheduleSummary
-								suggestedFirstDiscountDateYmd={
-									hrApproveSuggestedFirstDiscountYmd
-								}
-								employeeSalaryFrequency={application.salaryFrequency}
-							/>
-						) : null}
-						<HrApproveForm
-							applicationId={application.id}
-							validDates={getValidFirstDiscountDates(
-								application.salaryFrequency,
-								now,
-								6,
-							).map((d) => ymdForDeductionSchedule(d))}
-							suggestedDate={
-								hrApproveSuggestedFirstDiscountYmd ??
-								getUpcomingDeductionDateYmd(application.salaryFrequency, now)
-							}
-						/>
-					</CardContent>
-				</Card>
+				(() => {
+					const payrollFrequency = application.companyEmployeeSalaryFrequency
+					const suggestedYmd = getUpcomingDeductionDateYmd(
+						payrollFrequency,
+						now,
+					)
+					const validYmDs = getValidFirstDiscountDates(
+						payrollFrequency,
+						now,
+						6,
+					).map((d) => ymdForDeductionSchedule(d))
+					return (
+						<Card className={EQUIPO_DETAIL_CARD_CLASS}>
+							<CardHeader
+								className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}
+							>
+								<CardTitle
+									asChild
+									className="flex items-center gap-2 text-base"
+								>
+									<h2 id={EQUIPO_HR_APPROVE_CARD_HEADING_ID}>
+										<CalendarDays
+											className="size-4 text-muted-foreground"
+											aria-hidden
+										/>
+										{t('hr-approve-title')}
+									</h2>
+								</CardTitle>
+							</CardHeader>
+							<CardContent
+								className={`pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}
+							>
+								<section
+									aria-labelledby={EQUIPO_HR_APPROVE_CARD_HEADING_ID}
+									className="space-y-3"
+								>
+									<HrApproveScheduleSummary
+										suggestedFirstDiscountDateYmd={suggestedYmd}
+										employeeSalaryFrequency={payrollFrequency}
+									/>
+									<HrApproveForm
+										applicationId={application.id}
+										validDates={validYmDs}
+										suggestedDate={suggestedYmd}
+										scheduleSummaryDescriptionId={
+											HR_APPROVE_SCHEDULE_SUMMARY_DOM_ID
+										}
+									/>
+								</section>
+							</CardContent>
+						</Card>
+					)
+				})()
 			) : null}
 
 			{/* Disbursement: form or read-only info */}

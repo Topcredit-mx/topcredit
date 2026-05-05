@@ -832,6 +832,7 @@ export type ApplicationForReview = {
 	equipoCreditId: number | null
 	salaryAtApplication: string
 	salaryFrequency: 'monthly' | 'bi-monthly'
+	companyEmployeeSalaryFrequency: 'monthly' | 'bi-monthly'
 	companyRate: string
 	companyBorrowingCapacityRate: string | null
 	status: ApplicationStatus
@@ -885,6 +886,7 @@ export async function getApplicationsForReview(params: {
 			equipoCreditId: credits.id,
 			salaryAtApplication: applications.salaryAtApplication,
 			salaryFrequency: applications.salaryFrequency,
+			companyEmployeeSalaryFrequency: companies.employeeSalaryFrequency,
 			companyRate: companies.rate,
 			companyBorrowingCapacityRate: companies.borrowingCapacityRate,
 			status: applications.status,
@@ -934,6 +936,7 @@ export async function getApplicationsForReview(params: {
 		equipoCreditId: row.equipoCreditId,
 		salaryAtApplication: row.salaryAtApplication,
 		salaryFrequency: row.salaryFrequency,
+		companyEmployeeSalaryFrequency: row.companyEmployeeSalaryFrequency,
 		companyRate: row.companyRate,
 		companyBorrowingCapacityRate: row.companyBorrowingCapacityRate,
 		status: row.status,
@@ -989,6 +992,7 @@ export async function getApplicationForReview(
 			equipoCreditId: credits.id,
 			salaryAtApplication: applications.salaryAtApplication,
 			salaryFrequency: applications.salaryFrequency,
+			companyEmployeeSalaryFrequency: companies.employeeSalaryFrequency,
 			companyRate: companies.rate,
 			companyBorrowingCapacityRate: companies.borrowingCapacityRate,
 			status: applications.status,
@@ -1033,6 +1037,7 @@ export async function getApplicationForReview(
 		equipoCreditId: row.equipoCreditId,
 		salaryAtApplication: row.salaryAtApplication,
 		salaryFrequency: row.salaryFrequency,
+		companyEmployeeSalaryFrequency: row.companyEmployeeSalaryFrequency,
 		companyRate: row.companyRate,
 		companyBorrowingCapacityRate: row.companyBorrowingCapacityRate,
 		status: row.status,

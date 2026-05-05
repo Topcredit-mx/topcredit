@@ -1202,11 +1202,13 @@ export async function hrApproveApplication(payload: {
 			companyId: applications.companyId,
 			status: applications.status,
 			salaryFrequency: applications.salaryFrequency,
+			companyEmployeeSalaryFrequency: companies.employeeSalaryFrequency,
 			firstDiscountDate: applications.firstDiscountDate,
 			termOfferingId: applications.termOfferingId,
 			creditAmount: applications.creditAmount,
 		})
 		.from(applications)
+		.innerJoin(companies, eq(applications.companyId, companies.id))
 		.where(eq(applications.id, applicationId))
 
 	const app = rows[0]
@@ -1224,7 +1226,13 @@ export async function hrApproveApplication(payload: {
 
 	const { isValidFirstDiscountDate } = await import('~/lib/first-discount-date')
 
-	if (!isValidFirstDiscountDate(app.salaryFrequency, parsed, new Date())) {
+	if (
+		!isValidFirstDiscountDate(
+			app.companyEmployeeSalaryFrequency,
+			parsed,
+			new Date(),
+		)
+	) {
 		return { error: ValidationCode.HR_FIRST_DISCOUNT_DATE_INVALID }
 	}
 

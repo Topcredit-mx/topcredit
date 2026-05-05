@@ -34,18 +34,12 @@ test.describe('HR approval shows first discount from company payroll frequency',
 		await expect(
 			page.getByRole('heading', { name: /detalle de solicitud/i }),
 		).toBeVisible()
-		const main = page.getByRole('main')
-		await expect(
-			main.getByRole('heading', { name: /aprobación rh/i }),
-		).toBeVisible()
-		await expect(
-			main.getByText(
-				/Fecha de primer descuento sugerida según la periodicidad de nómina de la empresa/i,
-			),
-		).toBeVisible()
+		const rhSection = page.getByRole('region', { name: /aprobación rh/i })
+		await expect(rhSection).toBeVisible()
+		await expect(rhSection.getByText(/periodicidad de nómina/i)).toBeVisible()
 		const expectedLabel = formatMxDate(seed.expectedSuggestedFirstDiscountYmd)
-		await expect(main.getByText(expectedLabel)).toBeVisible()
-		await expect(main.getByText(/nómina:\s*quincenal/i)).toBeVisible()
+		await expect(rhSection.getByText(expectedLabel)).toBeVisible()
+		await expect(rhSection.getByText(/nómina:\s*quincenal/i)).toBeVisible()
 	})
 })
 

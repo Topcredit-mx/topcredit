@@ -17,12 +17,14 @@ interface HrApproveFormProps {
 	applicationId: number
 	validDates: readonly string[]
 	suggestedDate: string
+	scheduleSummaryDescriptionId?: string
 }
 
 export function HrApproveForm({
 	applicationId,
 	validDates,
 	suggestedDate,
+	scheduleSummaryDescriptionId,
 }: HrApproveFormProps) {
 	const t = useTranslations('equipo')
 	const resolveError = useResolveValidationError()
@@ -47,6 +49,7 @@ export function HrApproveForm({
 					id="firstDiscountDate"
 					name="firstDiscountDate"
 					defaultValue={suggestedDate}
+					aria-describedby={scheduleSummaryDescriptionId}
 					className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 				>
 					{validDates.map((d) => (

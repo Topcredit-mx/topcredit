@@ -164,8 +164,7 @@ export const seedHrReview = async (
 	const [term] = await db
 		.insert(terms)
 		.values({
-			durationType:
-				employeeSalaryFrequency === 'bi-monthly' ? 'bi-monthly' : 'monthly',
+			durationType: 'monthly',
 			duration: 12,
 		})
 		.returning()
