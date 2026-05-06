@@ -17,8 +17,6 @@ const totpUser = {
 	roles: ['applicant'] as const,
 }
 
-registerDbSpecGuards()
-
 test.beforeAll(async () => {
 	await cleanupSecurity()
 	await seedSecurity()
@@ -27,6 +25,8 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
 	await cleanupSecurity()
 })
+
+registerDbSpecGuards()
 
 test('redirects to login when accessing applicant settings security unauthenticated', async ({
 	page,

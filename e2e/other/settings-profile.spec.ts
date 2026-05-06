@@ -6,8 +6,6 @@ import { registerDbSpecGuards } from '../helpers/spec-hooks'
 
 const applicantSettingsProfile = '/cuenta/settings/profile'
 
-registerDbSpecGuards()
-
 test.beforeAll(async () => {
 	await cleanupProfile()
 	await seedProfile()
@@ -16,6 +14,8 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
 	await cleanupProfile()
 })
+
+registerDbSpecGuards()
 
 test('redirects to login when accessing applicant settings profile unauthenticated', async ({
 	page,

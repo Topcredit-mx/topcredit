@@ -3,9 +3,8 @@ import { assertDbEmptyIfConfigured } from './db-guard'
 
 /**
  * Registers a file-scope `afterAll` that asserts the tracked tables are empty.
- * Call `registerDbSpecGuards()` before each file’s outer `test.describe` so Playwright
- * registers this hook first and runs it last; nested-suite `afterAll` cleanup hooks
- * (registered afterward) teardown seed data before the empty check runs.
+ * Register same-scope cleanup hooks before this guard. If cleanup lives inside
+ * `test.describe`, keep this guard at file scope so nested cleanup runs before it.
  */
 export function registerDbSpecGuards(): void {
 	test.afterAll(async () => {
