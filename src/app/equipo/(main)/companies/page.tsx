@@ -52,7 +52,7 @@ export default async function CompaniesPage({
 
 	return (
 		<div className="container mx-auto py-6">
-			<CompaniesTable companies={companiesForTable} />
+			<CompaniesTable companies={companiesForTable} isAdmin={isAdmin} />
 		</div>
 	)
 }

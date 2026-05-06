@@ -1,5 +1,6 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { CompanyForm } from '~/components/company-form'
+import { CompanyTemplateUploadSection } from '~/components/company-template-upload-section'
 import { CompanyTermsSection } from '~/components/company-terms-section'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import {
@@ -25,7 +26,10 @@ export default async function EditCompanyPage({
 		notFound()
 	}
 
-	const { ability } = await getAbility()
+	const { ability, isAdmin } = await getAbility()
+	if (!isAdmin) {
+		redirect('/unauthorized')
+	}
 	requireAbility(ability, 'update', subject('Company', company))
 
 	const termRows = await getAdminTermOfferingsForCompany(company.id)
@@ -39,6 +43,14 @@ export default async function EditCompanyPage({
 		borrowingCapacityRate: company.borrowingCapacityRate,
 		employeeSalaryFrequency: company.employeeSalaryFrequency,
 		active: company.active,
+	}
+
+	const companyForTemplates = {
+		id: company.id,
+		authorizationTemplateStorageKey: company.authorizationTemplateStorageKey,
+		authorizationTemplateFileName: company.authorizationTemplateFileName,
+		contractTemplateStorageKey: company.contractTemplateStorageKey,
+		contractTemplateFileName: company.contractTemplateFileName,
 	}
 
 	const termsForClient = termRows.map((r) => ({
@@ -57,6 +69,7 @@ export default async function EditCompanyPage({
 					employeeSalaryFrequency={companyForForm.employeeSalaryFrequency}
 					rows={termsForClient}
 				/>
+				<CompanyTemplateUploadSection company={companyForTemplates} />
 			</div>
 		</div>
 	)

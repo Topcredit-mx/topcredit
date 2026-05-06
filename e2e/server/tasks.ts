@@ -1,7 +1,11 @@
 import { webcrypto } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { and, desc, eq } from 'drizzle-orm'
 import { EncryptJWT } from 'jose'
 import type { SeedPreAuthorizedPackageVariant } from '~/e2e/fixtures/pre-authorized-package'
+import { sanitizeApplicationDocumentFileName } from '~/lib/application-document-intake'
+import { COMPANY_TEMPLATE_KIND_VALUES } from '~/lib/company-templates'
 import type { Role } from '~/server/auth/session'
 import type { DocumentType } from '~/server/db/schema'
 import {
@@ -13,6 +17,7 @@ import {
 	users,
 } from '~/server/db/schema'
 import { deleteOrphanTermsWithoutOfferings } from '~/server/delete-orphan-terms'
+import { COMPANY_DOCUMENT_TEMPLATES_PREFIX, uploadBlob } from '~/server/storage'
 import { getDb } from './e2e-db'
 
 export type SeedPreAuthorizedPackageDocumentsTaskParams = {
@@ -243,6 +248,10 @@ export const resetCompany = async (params: ResetCompanyTaskParams) => {
 				borrowingCapacityRate: params.borrowingCapacityRate ?? null,
 				employeeSalaryFrequency: params.employeeSalaryFrequency,
 				active: params.active ?? true,
+				authorizationTemplateStorageKey: null,
+				authorizationTemplateFileName: null,
+				contractTemplateStorageKey: null,
+				contractTemplateFileName: null,
 			})
 			.where(eq(companies.domain, params.domain))
 			.returning()
@@ -428,6 +437,69 @@ export const updateLatestApplicationDocumentByType = async (
 			updatedAt: new Date(),
 		})
 		.where(eq(applicationDocuments.id, latest.id))
+	return null
+}
+
+export type SeedCompanyDocumentTemplatesTaskParams = {
+	domain: string
+}
+
+export const seedCompanyDocumentTemplates = async (
+	params: SeedCompanyDocumentTemplatesTaskParams,
+) => {
+	const db = getDb(process.env.DATABASE_URL || '')
+
+	const company = await db.query.companies.findFirst({
+		where: eq(companies.domain, params.domain),
+	})
+	if (!company) {
+		throw new Error(`Company with domain ${params.domain} not found`)
+	}
+
+	const rawFileName = 'sample-document.webp'
+	const storedFileName = sanitizeApplicationDocumentFileName(rawFileName)
+	const bytes = await readFile(join(process.cwd(), 'e2e/fixtures', rawFileName))
+
+	let authorizationTemplateStorageKey: string | undefined
+	let authorizationTemplateFileName: string | undefined
+	let contractTemplateStorageKey: string | undefined
+	let contractTemplateFileName: string | undefined
+
+	for (const kind of COMPANY_TEMPLATE_KIND_VALUES) {
+		const pathname = `${COMPANY_DOCUMENT_TEMPLATES_PREFIX}${company.id}/${kind}/${storedFileName}`
+		const { pathname: storedPathname } = await uploadBlob(pathname, bytes, {
+			contentType: 'image/webp',
+		})
+
+		if (kind === 'authorization') {
+			authorizationTemplateStorageKey = storedPathname
+			authorizationTemplateFileName = storedFileName
+		} else {
+			contractTemplateStorageKey = storedPathname
+			contractTemplateFileName = storedFileName
+		}
+	}
+
+	if (
+		authorizationTemplateStorageKey === undefined ||
+		authorizationTemplateFileName === undefined ||
+		contractTemplateStorageKey === undefined ||
+		contractTemplateFileName === undefined
+	) {
+		throw new Error('seedCompanyDocumentTemplates: missing template fields')
+	}
+
+	await db
+		.update(companies)
+		.set({
+			authorizationTemplateStorageKey,
+			authorizationTemplateFileName,
+			contractTemplateStorageKey,
+			contractTemplateFileName,
+			updatedAt: new Date(),
+		})
+		.where(eq(companies.id, company.id))
+
 	return null
 }
 

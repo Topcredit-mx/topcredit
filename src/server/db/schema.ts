@@ -155,6 +155,10 @@ export const companies = pgTable('companies', {
 		'employee_salary_frequency',
 	).notNull(),
 	active: boolean('active').default(true).notNull(),
+	authorizationTemplateStorageKey: text('authorization_template_storage_key'),
+	authorizationTemplateFileName: text('authorization_template_file_name'),
+	contractTemplateStorageKey: text('contract_template_storage_key'),
+	contractTemplateFileName: text('contract_template_file_name'),
 	createdAt: timestamp('created_at', { withTimezone: true })
 		.defaultNow()
 		.notNull(),

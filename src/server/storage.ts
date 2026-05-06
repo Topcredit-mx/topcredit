@@ -1,13 +1,15 @@
 import { del, get, list, put } from '@vercel/blob'
 
 export const APPLICATION_DOCUMENTS_PREFIX = 'application-documents/'
+export const COMPANY_DOCUMENT_TEMPLATES_PREFIX = 'company-document-templates/'
 
 const VERCEL_BLOB_URL_HOST = 'blob.vercel-storage.com'
 
 export function isBlobStorageKey(key: string): boolean {
 	return (
 		key.includes(VERCEL_BLOB_URL_HOST) ||
-		key.startsWith(APPLICATION_DOCUMENTS_PREFIX)
+		key.startsWith(APPLICATION_DOCUMENTS_PREFIX) ||
+		key.startsWith(COMPANY_DOCUMENT_TEMPLATES_PREFIX)
 	)
 }
 

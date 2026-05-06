@@ -72,7 +72,7 @@ That matches what `.husky/pre-commit` runs and catches the same Biome/typecheck 
 | Typecheck | `pnpm typecheck` |
 | Both (pre-commit equivalent) | `pnpm validate` |
 | Unit tests | `pnpm test:unit` |
-| E2E tests | `pnpm test:e2e` (requires dev server on port 3000 + Playwright browsers) |
+| E2E tests | `pnpm test:e2e` (start `pnpm dev` on port 3000 first; `DATABASE_URL` set → global setup runs `db:nuke:migrate` before tests) |
 | Playwright install | `pnpm exec playwright install chromium --with-deps` |
 
 ### Gotchas
@@ -80,3 +80,4 @@ That matches what `.husky/pre-commit` runs and catches the same Biome/typecheck 
 - The `pnpm-workspace.yaml` `onlyBuiltDependencies` allowlist controls which native packages build during install. If new native deps are added and pnpm warns about "ignored build scripts", add them to that list rather than running `pnpm approve-builds` (which is interactive).
 - The app validates env vars at startup via `src/env.js` (Zod + `@t3-oss/env-nextjs`). Set `SKIP_ENV_VALIDATION=1` to bypass if needed for tooling that doesn't require a running app.
 - The database is remote (Neon serverless Postgres) — no local Postgres needed.
+- E2E with `DATABASE_URL`: Playwright global setup nukes and migrates the DB before tests. Use a **single** `pnpm dev` on port 3000; if a dev server is stuck or duplicated, stop it and start again before `pnpm test:e2e`.

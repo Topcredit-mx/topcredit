@@ -1,8 +1,10 @@
+import { eq } from 'drizzle-orm'
 import { Banknote, CalendarClock, FileText } from 'lucide-react'
 import { notFound, redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { ApplicantPageFooter } from '~/components/app/applicant-page-footer'
 import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
 import { Card } from '~/components/ui/card'
 import { SectionTitleRow } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
@@ -16,11 +18,13 @@ import { cuentaHeroSurfaceStyle } from '~/lib/cuenta-hero-surface-style'
 import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
-import type { ApplicationStatus } from '~/server/db/schema'
+import { db } from '~/server/db'
+import { type ApplicationStatus, companies } from '~/server/db/schema'
 import {
 	getApplicationByApplicantId,
 	getApplicationDocuments,
 } from '~/server/queries'
+import { isBlobStorageKey } from '~/server/storage'
 import { formatApplicationTerm } from '../../constants'
 import { ApplicantDocumentSlots } from '../applicant-document-slots'
 
@@ -90,6 +94,30 @@ export default async function CuentaPreAuthorizedOfferPage({
 	const hasRejectedPackageDocs = packageHasRejectedAuthorizationDocs(
 		documentsWithUploadedFile,
 	)
+
+	const companyTemplates = await db.query.companies.findFirst({
+		where: eq(companies.id, application.companyId),
+		columns: {
+			authorizationTemplateStorageKey: true,
+			authorizationTemplateFileName: true,
+			contractTemplateStorageKey: true,
+			contractTemplateFileName: true,
+		},
+	})
+
+	const authorizationTemplateHref = `/api/applications/${applicationId}/company-templates/authorization/file`
+	const contractTemplateHref = `/api/applications/${applicationId}/company-templates/contract/file`
+
+	const canDownloadAuthorization =
+		companyTemplates?.authorizationTemplateStorageKey != null &&
+		companyTemplates.authorizationTemplateFileName != null &&
+		isBlobStorageKey(companyTemplates.authorizationTemplateStorageKey)
+
+	const canDownloadContract =
+		companyTemplates?.contractTemplateStorageKey != null &&
+		companyTemplates.contractTemplateFileName != null &&
+		isBlobStorageKey(companyTemplates.contractTemplateStorageKey)
+
 	const t = await getTranslations('cuenta.applications')
 	const detailHref = `/cuenta/applications/${applicationId}`
 	const documentsSectionTitleId = `cuenta-application-${applicationId}-preauth-docs`
@@ -181,6 +209,51 @@ export default async function CuentaPreAuthorizedOfferPage({
 								<p className="mt-2 text-slate-600 text-sm leading-relaxed">
 									{t('pre-authorized-offer-step-1-body')}
 								</p>
+								<div className="mt-4 rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+									<p className="font-medium text-slate-900 text-sm">
+										{t('pre-authorized-offer-templates-block-title')}
+									</p>
+									<ul className="mt-3 list-none space-y-3">
+										<li>
+											{canDownloadAuthorization ? (
+												<Button variant="outline" size="sm" asChild>
+													<a
+														href={authorizationTemplateHref}
+														target="_blank"
+														rel="noopener noreferrer"
+													>
+														{t('pre-authorized-download-authorization')}
+													</a>
+												</Button>
+											) : (
+												<p className="text-muted-foreground text-sm leading-snug">
+													{t('pre-authorized-template-missing-short', {
+														label: t('document-type-authorization'),
+													})}
+												</p>
+											)}
+										</li>
+										<li>
+											{canDownloadContract ? (
+												<Button variant="outline" size="sm" asChild>
+													<a
+														href={contractTemplateHref}
+														target="_blank"
+														rel="noopener noreferrer"
+													>
+														{t('pre-authorized-download-contract')}
+													</a>
+												</Button>
+											) : (
+												<p className="text-muted-foreground text-sm leading-snug">
+													{t('pre-authorized-template-missing-short', {
+														label: t('document-type-contract'),
+													})}
+												</p>
+											)}
+										</li>
+									</ul>
+								</div>
 							</div>
 						</div>
 						<div className="mt-5 border-slate-100 border-t pt-5">

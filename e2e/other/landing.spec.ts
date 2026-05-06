@@ -5,8 +5,6 @@ import { agentUser, applicantUser } from '../fixtures/login.fixtures'
 import { loginPage } from '../helpers/auth'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 
-registerDbSpecGuards()
-
 let seed: SeedLoginFlowResult
 
 test.beforeAll(async () => {
@@ -16,6 +14,8 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
 	await cleanupLoginFlow({ termId: seed.termId })
 })
+
+registerDbSpecGuards()
 
 test('shows landing page to unauthenticated users', async ({ page }) => {
 	await page.goto('/')

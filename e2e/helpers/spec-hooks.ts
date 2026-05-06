@@ -2,13 +2,12 @@ import { test } from '@playwright/test'
 import { assertDbEmptyIfConfigured } from './db-guard'
 
 /**
- * After hooks run in registration order. Defer the empty-DB check so the spec file’s
- * own `test.afterAll` (cleanup/seed tear-down) can register first and run first.
+ * Registers a file-scope `afterAll` that asserts the tracked tables are empty.
+ * Register same-scope cleanup hooks before this guard. If cleanup lives inside
+ * `test.describe`, keep this guard at file scope so nested cleanup runs before it.
  */
 export function registerDbSpecGuards(): void {
-	queueMicrotask(() => {
-		test.afterAll(async () => {
-			await assertDbEmptyIfConfigured()
-		})
+	test.afterAll(async () => {
+		await assertDbEmptyIfConfigured()
 	})
 }

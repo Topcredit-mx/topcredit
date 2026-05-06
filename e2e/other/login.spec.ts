@@ -14,8 +14,6 @@ import {
 import { loginPage } from '../helpers/auth'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 
-registerDbSpecGuards()
-
 let seed: SeedLoginFlowResult
 
 test.beforeAll(async () => {
@@ -25,6 +23,8 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
 	await cleanupLoginFlow({ termId: seed.termId })
 })
+
+registerDbSpecGuards()
 
 test('accesses applicant cuenta after login', async ({ page }) => {
 	await loginPage(page, applicantUser.email)
