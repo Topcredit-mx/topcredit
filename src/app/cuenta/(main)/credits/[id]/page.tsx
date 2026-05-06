@@ -20,15 +20,19 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { SectionCard } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
+import { liquidationOutstandingFromPaymentRows } from '~/lib/credit-liquidation-preview'
 import { Decimal } from '~/lib/decimal'
 import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import {
+	getAcceptedLiquidationSnapshotForApplicantCredit,
 	getCreditDetailByApplicantId,
 	getCreditPaymentsByCreditId,
+	getPendingLiquidationRequestIdForApplicantCredit,
 } from '~/server/queries'
 import { formatApplicationTerm } from '../../applications/constants'
+import { CreditLiquidationSection } from './credit-liquidation-section'
 
 const statCardClass =
 	'group flex gap-3 rounded-2xl border border-slate-100/90 bg-gradient-to-br from-white to-slate-50/90 p-4 shadow-sm ring-1 ring-slate-100/50 transition hover:border-slate-200/90 hover:shadow-md'
@@ -108,11 +112,22 @@ export default async function CuentaCreditDetailPage({
 		notFound()
 	}
 
-	const [t, tApp, payments] = await Promise.all([
-		getTranslations('cuenta.credits'),
-		getTranslations('cuenta.applications'),
-		getCreditPaymentsByCreditId(creditId, user.id),
-	])
+	const [t, tApp, payments, pendingLiquidationId, acceptedLiquidation] =
+		await Promise.all([
+			getTranslations('cuenta.credits'),
+			getTranslations('cuenta.applications'),
+			getCreditPaymentsByCreditId(creditId, user.id),
+			getPendingLiquidationRequestIdForApplicantCredit({
+				creditId,
+				applicantId: user.id,
+			}),
+			getAcceptedLiquidationSnapshotForApplicantCredit({
+				creditId,
+				applicantId: user.id,
+			}),
+		])
+
+	const liquidationPreview = liquidationOutstandingFromPaymentRows(payments)
 
 	return (
 		<main className={cn(shell.applicantMainMax, 'pb-8')}>
@@ -232,6 +247,19 @@ export default async function CuentaCreditDetailPage({
 				</div>
 			</SectionCard>
 
+			{credit.status === 'dispersed' ? (
+				<CreditLiquidationSection
+					creditId={creditId}
+					pendingRequestId={pendingLiquidationId}
+					acceptedLiquidation={acceptedLiquidation}
+					outstandingPrincipal={liquidationPreview.outstandingPrincipal}
+					outstandingFinancing={liquidationPreview.outstandingFinancing}
+					outstandingScheduledTotal={
+						liquidationPreview.outstandingScheduledTotal
+					}
+				/>
+			) : null}
+
 			<SectionCard
 				className="mt-6"
 				icon={Building2}
@@ -279,6 +307,10 @@ export default async function CuentaCreditDetailPage({
 											{payment.installmentConfirmedAt !== null ? (
 												<Badge variant="default">
 													{t('payment-status-confirmed')}
+												</Badge>
+											) : payment.closedByLiquidationAt !== null ? (
+												<Badge variant="secondary">
+													{t('payment-status-liquidation-settled')}
 												</Badge>
 											) : payment.hrConfirmedAt !== null ? (
 												<Badge

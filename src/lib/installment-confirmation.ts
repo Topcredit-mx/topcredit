@@ -7,15 +7,19 @@ import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 export type CreditPaymentTimestamps = {
 	hrConfirmedAt: Date | null
 	installmentConfirmedAt: Date | null
+	closedByLiquidationAt?: Date | null
 }
 
-export function canHrConfirm(
-	p: Pick<CreditPaymentTimestamps, 'hrConfirmedAt'>,
-): boolean {
+export function canHrConfirm(p: {
+	hrConfirmedAt: Date | null
+	closedByLiquidationAt?: Date | null
+}): boolean {
+	if (p.closedByLiquidationAt != null) return false
 	return p.hrConfirmedAt === null
 }
 
 export function canConfirmInstallment(p: CreditPaymentTimestamps): boolean {
+	if (p.closedByLiquidationAt != null) return false
 	return p.hrConfirmedAt !== null && p.installmentConfirmedAt === null
 }
 
@@ -105,6 +109,7 @@ export function isInstallmentOverdueFromDb(
 }
 
 export function isFullyConfirmed(p: CreditPaymentTimestamps): boolean {
+	if (p.closedByLiquidationAt != null) return true
 	return p.hrConfirmedAt !== null && p.installmentConfirmedAt !== null
 }
 

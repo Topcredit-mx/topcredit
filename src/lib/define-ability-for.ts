@@ -13,7 +13,11 @@ import {
 	type ApplicantEligibilityData,
 	isEligibleForNewApplication,
 } from '~/lib/application-rules'
-import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
+import type {
+	ApplicationStatus,
+	CreditStatus,
+	DocumentType,
+} from '~/server/db/schema'
 
 export { subject }
 
@@ -35,6 +39,9 @@ export type AppAction =
 	| 'disburse'
 	| 'confirmHrDeduction'
 	| 'confirmInstallment'
+	| 'requestLiquidation'
+	| 'acceptLiquidationRequest'
+	| 'denyLiquidationRequest'
 export type AppSubject =
 	| 'Company'
 	| 'User'
@@ -43,6 +50,7 @@ export type AppSubject =
 	| 'ApplicationDocument'
 	| 'Credit'
 	| 'CreditPayment'
+	| 'CreditLiquidationRequest'
 	| 'all'
 
 export type CompanySubject = { id: number } & ForcedSubject<'Company'>
@@ -67,12 +75,21 @@ export type CreditSubject = {
 	id: number
 	applicantId: number
 	companyId?: number
+	status?: CreditStatus
 } & ForcedSubject<'Credit'>
 
 export type CreditPaymentSubject = {
 	id: number
 	companyId: number
 } & ForcedSubject<'CreditPayment'>
+
+export type CreditLiquidationRequestSubject = {
+	id: number
+	creditId: number
+	applicantId: number
+	companyId: number
+	status: 'pending' | 'accepted' | 'denied'
+} & ForcedSubject<'CreditLiquidationRequest'>
 
 export type AppAbility = MongoAbility<
 	[
@@ -85,6 +102,7 @@ export type AppAbility = MongoAbility<
 			| ApplicationDocumentSubject
 			| CreditSubject
 			| CreditPaymentSubject
+			| CreditLiquidationRequestSubject
 		),
 	]
 >
@@ -122,6 +140,11 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		}
 		can('read', 'Application', { applicantId: ctx.userId })
 		can('read', 'Credit', { applicantId: ctx.userId })
+		can('read', 'CreditLiquidationRequest', { applicantId: ctx.userId })
+		can('requestLiquidation', 'Credit', {
+			applicantId: ctx.userId,
+			status: 'dispersed',
+		})
 		can('uploadDocument', 'Application', { applicantId: ctx.userId })
 		can('setStatusAwaitingAuthorization', 'Application', {
 			applicantId: ctx.userId,
@@ -134,6 +157,13 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		can('manage', 'all')
 		can('confirmHrDeduction', 'CreditPayment')
 		can('confirmInstallment', 'CreditPayment')
+		can('read', 'CreditLiquidationRequest')
+		can('acceptLiquidationRequest', 'CreditLiquidationRequest', {
+			status: 'pending',
+		})
+		can('denyLiquidationRequest', 'CreditLiquidationRequest', {
+			status: 'pending',
+		})
 		can('reopenAuthorizationReview', 'Application')
 		can('setFirstDiscountDate', 'Application', {
 			status: 'authorized',
@@ -249,6 +279,24 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		})
 	}
 
+	const isLiquidations = ctx.roles.includes('liquidations')
+
+	if (isLiquidations && isAgent && hasCompanyAssignments) {
+		can('read', 'Company', { id: { $in: ctx.assignedCompanyIds } })
+		can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
+		can('read', 'CreditLiquidationRequest', {
+			companyId: { $in: ctx.assignedCompanyIds },
+		})
+		can('acceptLiquidationRequest', 'CreditLiquidationRequest', {
+			companyId: { $in: ctx.assignedCompanyIds },
+			status: 'pending',
+		})
+		can('denyLiquidationRequest', 'CreditLiquidationRequest', {
+			companyId: { $in: ctx.assignedCompanyIds },
+			status: 'pending',
+		})
+	}
+
 	if (isAuthorizations && isAgent && hasCompanyAssignments) {
 		can('read', 'Company', { id: { $in: ctx.assignedCompanyIds } })
 		can('read', 'Application', { companyId: { $in: ctx.assignedCompanyIds } })
@@ -287,7 +335,8 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 			isAuthorizations ||
 			isHr ||
 			isInstallments ||
-			isDispersions)
+			isDispersions ||
+			isLiquidations)
 	) {
 		can('read', 'Credit', { companyId: { $in: ctx.assignedCompanyIds } })
 	}

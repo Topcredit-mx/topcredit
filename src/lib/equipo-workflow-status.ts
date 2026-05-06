@@ -28,6 +28,7 @@ export type EquipoWorkflowMessageKey =
 	| 'equipo-credit-detail-deduction-pending'
 	| 'equipo-credit-detail-collection-awaiting-deduction'
 	| 'equipo-credit-detail-collection-confirmed'
+	| 'equipo-credit-detail-collection-liquidation-settled'
 	| 'equipo-credit-detail-collection-delayed'
 	| 'equipo-credit-detail-collection-pending'
 
@@ -59,6 +60,11 @@ export type CreditDetailStatusContext =
 			dateIso: string
 			confirmedLate: boolean
 			confirmedAtIso: string
+	  }
+	| {
+			kind: 'liquidationSettled'
+			dateIso: string
+			clearedAtIso: string
 	  }
 
 export type CreditDetailPaymentStatus = WorkflowStatusResolution & {
@@ -165,6 +171,7 @@ export function resolveCreditDetailDeductionStatus(params: {
 export function resolveCreditDetailCollectionStatus(params: {
 	hrConfirmedAt: Date | null
 	installmentConfirmedAt: Date | null
+	closedByLiquidationAt?: Date | null
 	dueDate: Date
 	todayYmd: string | undefined
 	now?: Date
@@ -183,6 +190,18 @@ export function resolveCreditDetailCollectionStatus(params: {
 				dateIso: confirmedYmd,
 				confirmedLate,
 				confirmedAtIso: params.installmentConfirmedAt.toISOString(),
+			},
+		}
+	}
+	if (params.closedByLiquidationAt != null) {
+		const clearedYmd = calendarYmdInMexicoCity(params.closedByLiquidationAt)
+		return {
+			tone: 'gray',
+			messageKey: 'equipo-credit-detail-collection-liquidation-settled',
+			context: {
+				kind: 'liquidationSettled',
+				dateIso: clearedYmd,
+				clearedAtIso: params.closedByLiquidationAt.toISOString(),
 			},
 		}
 	}

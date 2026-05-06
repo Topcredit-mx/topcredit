@@ -235,4 +235,43 @@ describe('resolveCreditDetailCollectionStatus', () => {
 			dateIso: '2023-01-30',
 		})
 	})
+
+	test('late installment confirmation is not relabeled as liquidation settled', () => {
+		const dueDate = endOfDayInstantMexicoCity('2022-11-30')
+		const instAt = new Date('2022-12-02T10:00:00.000Z')
+		const liqAt = new Date('2022-12-05T10:00:00.000Z')
+		const now = new Date('2022-12-15T00:00:00.000Z')
+		const got = resolveCreditDetailCollectionStatus({
+			hrConfirmedAt: new Date('2022-11-15T12:00:00.000Z'),
+			installmentConfirmedAt: instAt,
+			closedByLiquidationAt: liqAt,
+			dueDate,
+			todayYmd,
+			now,
+		})
+		assert.equal(got.messageKey, 'equipo-credit-detail-collection-confirmed')
+		assert.equal(got.tone, 'amber')
+		assert.equal(got.context.kind, 'installmentConfirmed')
+	})
+
+	test('liquidation settled when installment still pending and closed by liquidation', () => {
+		const clearedAt = new Date('2022-12-05T10:00:00.000Z')
+		const now = new Date('2022-12-15T00:00:00.000Z')
+		const got = resolveCreditDetailCollectionStatus({
+			hrConfirmedAt: new Date('2022-11-15T12:00:00.000Z'),
+			installmentConfirmedAt: null,
+			closedByLiquidationAt: clearedAt,
+			dueDate: endOfDayInstantMexicoCity('2022-11-30'),
+			todayYmd,
+			now,
+		})
+		assert.equal(
+			got.messageKey,
+			'equipo-credit-detail-collection-liquidation-settled',
+		)
+		assert.equal(got.context.kind, 'liquidationSettled')
+		if (got.context.kind === 'liquidationSettled') {
+			assert.equal(got.context.clearedAtIso, clearedAt.toISOString())
+		}
+	})
 })

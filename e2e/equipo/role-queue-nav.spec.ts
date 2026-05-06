@@ -8,6 +8,7 @@ import {
 	dualQueueAgent,
 	hrAgent,
 	installmentAgent,
+	liquidationsAgent,
 	preAuthAgent,
 	requestsAgent,
 } from './role-queue-nav.fixtures'
@@ -219,6 +220,24 @@ test.describe('Role-based queue navigation', () => {
 			await expect(
 				nav.getByRole('link', { name: 'Autorizaciones', exact: true }),
 			).toHaveCount(0)
+		})
+	})
+
+	test.describe('Liquidations agent', () => {
+		test.beforeEach(async ({ page }) => {
+			await loginWithCompany(page, liquidationsAgent.email)
+		})
+
+		test('sees Liquidaciones nav link pointing to /equipo/liquidations', async ({
+			page,
+		}) => {
+			const nav = navScope(page)
+			const link = nav.getByRole('link', {
+				name: 'Liquidaciones',
+				exact: true,
+			})
+			await expect(link).toBeVisible()
+			await expect(link).toHaveAttribute('href', '/equipo/liquidations')
 		})
 	})
 

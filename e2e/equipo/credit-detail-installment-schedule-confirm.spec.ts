@@ -33,6 +33,40 @@ test.describe('Credit detail — confirm installment from schedule', () => {
 			await setSelectedCompanyId(page, seed.companyId)
 		})
 
+		test('payment schedule table shows capital, financing, and total columns', async ({
+			page,
+		}, testInfo) => {
+			await page.goto(`/equipo/credits/${seed.creditId}`)
+			await expect(
+				page.getByRole('heading', { name: /detalle del crédito/i }),
+			).toBeVisible()
+			const table = mainDataTable(page)
+			await expect(table).toBeVisible()
+
+			await expect(
+				table.getByRole('columnheader', { name: /capital/i }),
+			).toHaveCount(1)
+			await expect(
+				table.getByRole('columnheader', { name: /financiamiento/i }),
+			).toHaveCount(1)
+			await expect(
+				table.getByRole('columnheader', { name: /^total$/i }),
+			).toHaveCount(1)
+
+			const firstRow = table.locator('tbody tr').first()
+			await expect(firstRow.locator('td')).toHaveCount(8)
+
+			const liquidationRow = table.locator('tbody tr').last()
+			await expect(
+				liquidationRow.getByText(/saldado por liquidación/i),
+			).toBeVisible()
+
+			await testInfo.attach('equipo-credit-schedule-split-columns.png', {
+				body: await table.screenshot(),
+				contentType: 'image/png',
+			})
+		})
+
 		test('shows 5 schedule rows with buttons only for delayed and upcoming-period installments', async ({
 			page,
 		}) => {
@@ -72,6 +106,9 @@ test.describe('Credit detail — confirm installment from schedule', () => {
 			await expect(
 				r4.getByRole('button', { name: /confirmar instalación/i }),
 			).toHaveCount(0)
+			await expect(
+				r4.getByText(/saldado por liquidación/i).first(),
+			).toBeVisible()
 		})
 
 		test('confirms installment on a delayed row, updates the badge, and removes the button', async ({
@@ -109,6 +146,12 @@ test.describe('Credit detail — confirm installment from schedule', () => {
 			await expect(
 				page.getByRole('button', { name: /confirmar instalación/i }),
 			).toHaveCount(0)
+			await expect(
+				mainDataTable(page)
+					.locator('tbody tr')
+					.last()
+					.getByText(/saldado por liquidación/i),
+			).toBeVisible()
 		})
 	})
 })

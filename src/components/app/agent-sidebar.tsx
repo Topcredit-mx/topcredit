@@ -7,6 +7,7 @@ import {
 	CheckSquare,
 	CreditCard,
 	FileText,
+	HandCoins,
 	History,
 	Home,
 	ShieldCheck,
@@ -178,6 +179,15 @@ export function AgentSidebar({
 						title: t('nav-dispersions'),
 						url: '/equipo/applications?status=authorized&disbursementPending=true',
 						icon: Banknote,
+					},
+				]
+			: []),
+		...(canAccess('liquidations')
+			? [
+					{
+						title: t('nav-liquidations'),
+						url: '/equipo/liquidations',
+						icon: HandCoins,
 					},
 				]
 			: []),

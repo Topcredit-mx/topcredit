@@ -11,6 +11,7 @@ export type Role =
 	| 'hr'
 	| 'dispersions'
 	| 'installments'
+	| 'liquidations'
 	| 'admin'
 
 export async function requireAuth() {

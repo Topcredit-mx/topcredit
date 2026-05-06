@@ -9,12 +9,14 @@ const CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE_BULK_PREFIX = `${Validation
 
 type AdminKey = keyof (typeof messages)['admin']
 type CuentaApplicationsKey = keyof (typeof messages)['cuenta']['applications']
+type CuentaCreditsKey = keyof (typeof messages)['cuenta']['credits']
 type EquipoKey = keyof (typeof messages)['equipo']
 type AuthKey = keyof (typeof messages)['auth']
 
 type CodeMapping =
 	| { namespace: 'admin'; key: AdminKey }
 	| { namespace: 'cuenta.applications'; key: CuentaApplicationsKey }
+	| { namespace: 'cuenta.credits'; key: CuentaCreditsKey }
 	| { namespace: 'equipo'; key: EquipoKey }
 	| { namespace: 'auth'; key: AuthKey }
 
@@ -387,6 +389,26 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'CREDIT_RESTORE_NOT_DEFAULTED',
 	},
+	[ValidationCode.LIQUIDATION_CREDIT_INVALID]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidation-credit-invalid',
+	},
+	[ValidationCode.LIQUIDATION_REQUEST_PENDING_EXISTS]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidation-request-pending-exists',
+	},
+	[ValidationCode.LIQUIDATION_REQUEST_NOT_FOUND]: {
+		namespace: 'equipo',
+		key: 'LIQUIDATION_REQUEST_NOT_FOUND',
+	},
+	[ValidationCode.LIQUIDATION_REQUEST_NOT_PENDING]: {
+		namespace: 'equipo',
+		key: 'LIQUIDATION_REQUEST_NOT_PENDING',
+	},
+	[ValidationCode.LIQUIDATION_DECISION_FORBIDDEN]: {
+		namespace: 'equipo',
+		key: 'LIQUIDATION_DECISION_FORBIDDEN',
+	},
 }
 
 function isValidationCode(s: string): s is ValidationCodeType {
@@ -410,6 +432,7 @@ export function getResolvedError(
 export function useResolveValidationError(): (code: string) => string {
 	const tAdmin = useTranslations('admin')
 	const tCuentaApplications = useTranslations('cuenta.applications')
+	const tCuentaCredits = useTranslations('cuenta.credits')
 	const tEquipo = useTranslations('equipo')
 	const tAuth = useTranslations('auth')
 
@@ -436,6 +459,7 @@ export function useResolveValidationError(): (code: string) => string {
 		const { namespace, key } = CODE_TO_I18N[code]
 		if (namespace === 'admin') return tAdmin(key)
 		if (namespace === 'cuenta.applications') return tCuentaApplications(key)
+		if (namespace === 'cuenta.credits') return tCuentaCredits(key)
 		if (namespace === 'auth') return tAuth(key)
 		return tEquipo(key)
 	}

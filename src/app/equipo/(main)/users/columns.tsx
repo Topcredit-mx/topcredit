@@ -7,6 +7,7 @@ import {
 	CalendarDays,
 	ClipboardList,
 	FileSignature,
+	HandCoins,
 	LayoutList,
 	Loader2,
 	Mail,
@@ -73,6 +74,7 @@ function RoleCheckbox({
 		hr: t('users-role-hr'),
 		dispersions: t('users-role-dispersions'),
 		installments: t('users-role-installments'),
+		liquidations: t('users-role-liquidations'),
 		admin: t('users-role-admin'),
 	}
 	const roleLabel = roleLabels[role]
@@ -297,6 +299,8 @@ export function createColumns(
 				return <Wallet aria-hidden />
 			case 'installments':
 				return <LayoutList aria-hidden />
+			case 'liquidations':
+				return <HandCoins aria-hidden />
 			case 'admin':
 				return <Shield aria-hidden />
 			default:
@@ -313,6 +317,7 @@ export function createColumns(
 		hr: t('users-role-hr'),
 		dispersions: t('users-role-dispersions'),
 		installments: t('users-role-installments'),
+		liquidations: t('users-role-liquidations'),
 		admin: t('users-role-admin'),
 	}
 

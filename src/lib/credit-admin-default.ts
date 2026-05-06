@@ -9,6 +9,7 @@ export type CreditPaymentDueLike = {
 	dueDate: Date
 	hrConfirmedAt: Date | null
 	installmentConfirmedAt: Date | null
+	closedByLiquidationAt?: Date | null
 }
 
 export function creditHasLongOverdueForAdminDefault(
@@ -26,6 +27,9 @@ export function creditHasLongOverdueForAdminDefault(
 	)
 	for (const p of payments) {
 		if (p.dueDate >= minDueThreshold) {
+			continue
+		}
+		if (p.closedByLiquidationAt != null) {
 			continue
 		}
 		if (p.hrConfirmedAt === null || p.installmentConfirmedAt === null) {

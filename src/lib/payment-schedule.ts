@@ -5,7 +5,12 @@ import {
 import { Decimal } from './decimal'
 import { financedCreditAmount } from './pre-authorization-capacity'
 
-export type PaymentScheduleEntry = { dueDate: Date; amount: string }
+export type PaymentScheduleEntry = {
+	dueDate: Date
+	amount: string
+	principalAmount: string
+	financingAmount: string
+}
 
 function lastDayOfMonthYmd(year: number, month0: number): string {
 	const last = new Date(Date.UTC(year, month0 + 1, 0))
@@ -58,8 +63,17 @@ export function generatePaymentSchedule(params: {
 	const { loanPrincipal, rate, totalPayments, frequency, firstDiscountDate } =
 		params
 
-	const total = new Decimal(financedCreditAmount(loanPrincipal, rate))
-	const perPayment = total.div(totalPayments).todp(2, Decimal.ROUND_DOWN)
+	const totalFinanced = new Decimal(financedCreditAmount(loanPrincipal, rate))
+	const principalDec = new Decimal(loanPrincipal)
+	const financingTotal = totalFinanced.minus(principalDec)
+
+	const perPrincipal = principalDec
+		.div(totalPayments)
+		.todp(2, Decimal.ROUND_DOWN)
+	const perFinancing = financingTotal
+		.div(totalPayments)
+		.todp(2, Decimal.ROUND_DOWN)
+	const perPaymentCombined = perPrincipal.plus(perFinancing)
 
 	const startYmd = calendarYmdInMexicoCity(firstDiscountDate)
 	const dates: string[] = [startYmd]
@@ -80,11 +94,24 @@ export function generatePaymentSchedule(params: {
 		const dueDate = endOfDayInstantMexicoCity(ymd)
 
 		if (i < totalPayments - 1) {
-			schedule.push({ dueDate, amount: perPayment.toFixed(2) })
+			schedule.push({
+				dueDate,
+				amount: perPaymentCombined.toFixed(2),
+				principalAmount: perPrincipal.toFixed(2),
+				financingAmount: perFinancing.toFixed(2),
+			})
 		} else {
-			const paid = perPayment.mul(totalPayments - 1)
-			const lastAmount = total.minus(paid)
-			schedule.push({ dueDate, amount: lastAmount.toFixed(2) })
+			const principalPaid = perPrincipal.mul(totalPayments - 1)
+			const financingPaid = perFinancing.mul(totalPayments - 1)
+			const lastPrincipal = principalDec.minus(principalPaid)
+			const lastFinancing = financingTotal.minus(financingPaid)
+			const lastAmount = lastPrincipal.plus(lastFinancing)
+			schedule.push({
+				dueDate,
+				amount: lastAmount.toFixed(2),
+				principalAmount: lastPrincipal.toFixed(2),
+				financingAmount: lastFinancing.toFixed(2),
+			})
 		}
 	}
 

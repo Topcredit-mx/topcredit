@@ -66,7 +66,8 @@ export function EquipoWorkflowStatusPresentation({
 		variant === 'credit_detail' &&
 		detailContext !== undefined &&
 		(detailContext.kind === 'hrConfirmed' ||
-			detailContext.kind === 'installmentConfirmed')
+			detailContext.kind === 'installmentConfirmed' ||
+			detailContext.kind === 'liquidationSettled')
 
 	return (
 		<div
@@ -121,6 +122,17 @@ export function EquipoWorkflowStatusPresentation({
 					<Clock className="size-3 shrink-0" aria-hidden />
 					<FormattedDate
 						value={detailContext.confirmedAtIso}
+						format="datetime-short"
+					/>
+				</p>
+			) : null}
+			{showConfirmedAtSubline &&
+			detailContext !== undefined &&
+			detailContext.kind === 'liquidationSettled' ? (
+				<p className="flex min-w-0 items-center gap-1 text-muted-foreground text-xs">
+					<Clock className="size-3 shrink-0" aria-hidden />
+					<FormattedDate
+						value={detailContext.clearedAtIso}
 						format="datetime-short"
 					/>
 				</p>

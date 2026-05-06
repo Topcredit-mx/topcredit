@@ -32,7 +32,7 @@ import { useCreditPaymentScheduleColumns } from './credit-payment-schedule-colum
 function closesCreditWhenConfirmed(
 	p: Pick<
 		CreditPaymentRowForEquipo,
-		'id' | 'hrConfirmedAt' | 'installmentConfirmedAt'
+		'id' | 'hrConfirmedAt' | 'installmentConfirmedAt' | 'closedByLiquidationAt'
 	>,
 	creditPayments: CreditPaymentRowForEquipo[],
 ): boolean {
@@ -92,6 +92,7 @@ export function CreditPaymentsTable({
 				{
 					hrConfirmedAt: creditPayment.hrConfirmedAt,
 					installmentConfirmedAt: creditPayment.installmentConfirmedAt,
+					closedByLiquidationAt: creditPayment.closedByLiquidationAt,
 					dueDate: creditPayment.dueDate,
 					employeeSalaryFrequency: creditPayment.employeeSalaryFrequency,
 				},

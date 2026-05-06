@@ -89,6 +89,8 @@ export async function insertCreditForSeededDisbursedApp(
 				creditId,
 				dueDate: row.dueDate,
 				amount: row.amount,
+				principalAmount: row.principalAmount,
+				financingAmount: row.financingAmount,
 				hrConfirmedAt: null,
 				hrConfirmedByUserId: null,
 				installmentConfirmedAt: null,
@@ -105,6 +107,8 @@ export async function insertCreditForSeededDisbursedApp(
 					creditId,
 					dueDate: row.dueDate,
 					amount: row.amount,
+					principalAmount: row.principalAmount,
+					financingAmount: row.financingAmount,
 					hrConfirmedAt: rh0,
 					hrConfirmedByUserId:
 						index === 0 && due0 != null ? params.adminUserId : null,
@@ -119,6 +123,8 @@ export async function insertCreditForSeededDisbursedApp(
 				creditId,
 				dueDate: row.dueDate,
 				amount: row.amount,
+				principalAmount: row.principalAmount,
+				financingAmount: row.financingAmount,
 				hrConfirmedAt: null,
 				hrConfirmedByUserId: null,
 				installmentConfirmedAt: null,
@@ -137,6 +143,8 @@ export async function insertCreditForSeededDisbursedApp(
 					creditId,
 					dueDate: row.dueDate,
 					amount: row.amount,
+					principalAmount: row.principalAmount,
+					financingAmount: row.financingAmount,
 					hrConfirmedAt: duePast ? hrConfirmAfterDue(row.dueDate, 2) : null,
 					hrConfirmedByUserId: duePast ? params.adminUserId : null,
 					installmentConfirmedAt: null,
@@ -153,6 +161,8 @@ export async function insertCreditForSeededDisbursedApp(
 					creditId,
 					dueDate: row.dueDate,
 					amount: row.amount,
+					principalAmount: row.principalAmount,
+					financingAmount: row.financingAmount,
 					hrConfirmedAt: hrAt,
 					hrConfirmedByUserId: params.adminUserId,
 					installmentConfirmedAt: instAt,
@@ -349,6 +359,8 @@ export async function bulkRefreshSeededDisbursedCredits(
 		creditId: number
 		dueDate: Date
 		amount: string
+		principalAmount: string
+		financingAmount: string
 		hrConfirmedAt: Date | null
 		hrConfirmedByUserId: number | null
 		installmentConfirmedAt: Date | null
@@ -372,6 +384,8 @@ export async function bulkRefreshSeededDisbursedCredits(
 					creditId,
 					dueDate: row.dueDate,
 					amount: row.amount,
+					principalAmount: row.principalAmount,
+					financingAmount: row.financingAmount,
 					hrConfirmedAt: null,
 					hrConfirmedByUserId: null,
 					installmentConfirmedAt: null,
@@ -389,6 +403,8 @@ export async function bulkRefreshSeededDisbursedCredits(
 						creditId,
 						dueDate: row.dueDate,
 						amount: row.amount,
+						principalAmount: row.principalAmount,
+						financingAmount: row.financingAmount,
 						hrConfirmedAt: rh0,
 						hrConfirmedByUserId:
 							index === 0 && due0 != null ? params.adminUserId : null,
@@ -404,6 +420,8 @@ export async function bulkRefreshSeededDisbursedCredits(
 					creditId,
 					dueDate: row.dueDate,
 					amount: row.amount,
+					principalAmount: row.principalAmount,
+					financingAmount: row.financingAmount,
 					hrConfirmedAt: null,
 					hrConfirmedByUserId: null,
 					installmentConfirmedAt: null,
@@ -423,6 +441,8 @@ export async function bulkRefreshSeededDisbursedCredits(
 						creditId,
 						dueDate: row.dueDate,
 						amount: row.amount,
+						principalAmount: row.principalAmount,
+						financingAmount: row.financingAmount,
 						hrConfirmedAt: duePast ? hrConfirmAfterDue(row.dueDate, 2) : null,
 						hrConfirmedByUserId: duePast ? params.adminUserId : null,
 						installmentConfirmedAt: null,
@@ -440,6 +460,8 @@ export async function bulkRefreshSeededDisbursedCredits(
 						creditId,
 						dueDate: row.dueDate,
 						amount: row.amount,
+						principalAmount: row.principalAmount,
+						financingAmount: row.financingAmount,
 						hrConfirmedAt: hrAt,
 						hrConfirmedByUserId: params.adminUserId,
 						installmentConfirmedAt: instAt,

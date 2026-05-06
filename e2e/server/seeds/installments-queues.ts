@@ -20,6 +20,7 @@ import {
 	installmentsOverdueCompany,
 } from '~/e2e/equipo/installments-overdue.fixtures'
 import { ymdForDeductionSchedule } from '~/lib/calendar-date-tz'
+import { approximatePrincipalFinancingForPaymentAmount } from '~/lib/credit-payment-amount-split'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
 	applications,
@@ -256,6 +257,8 @@ export const seedInstallmentsQueue =
 						creditId: credit1.id,
 						dueDate: entry.dueDate,
 						amount: entry.amount,
+						principalAmount: entry.principalAmount,
+						financingAmount: entry.financingAmount,
 						hrConfirmedAt: new Date(now.getTime() - 10 * 24 * 60 * 60_000),
 						hrConfirmedByUserId: hrQueueAgent.id,
 						installmentConfirmedAt: new Date(entry.dueDate.getTime()),
@@ -266,6 +269,8 @@ export const seedInstallmentsQueue =
 					creditId: credit1.id,
 					dueDate: entry.dueDate,
 					amount: entry.amount,
+					principalAmount: entry.principalAmount,
+					financingAmount: entry.financingAmount,
 					hrConfirmedAt: null,
 				}
 			}),
@@ -284,16 +289,25 @@ export const seedInstallmentsQueue =
 				creditId: credit2.id,
 				dueDate: entry.dueDate,
 				amount: entry.amount,
+				principalAmount: entry.principalAmount,
+				financingAmount: entry.financingAmount,
 				hrConfirmedAt: new Date(now.getTime() - 5 * 24 * 60 * 60_000),
 			})),
 		)
 
 		// Extra installment on credit2: installment confirmed after due date (history: late badge)
 		const late2019 = eodYmd('2019-06-30')
+		const lateSplit = approximatePrincipalFinancingForPaymentAmount({
+			paymentAmount: '100.00',
+			loanPrincipal: Number(creditAmount2),
+			annualRate: Number(installmentsQueueCompany.rate),
+		})
 		await db.insert(creditPayments).values({
 			creditId: credit2.id,
 			dueDate: late2019,
 			amount: '100.00',
+			principalAmount: lateSplit.principalAmount,
+			financingAmount: lateSplit.financingAmount,
 			hrConfirmedAt: late2019,
 			hrConfirmedByUserId: hrQueueAgent.id,
 			installmentConfirmedAt: eodYmd('2019-07-31'),
@@ -345,6 +359,8 @@ export const seedInstallmentsQueue =
 				creditId: credit3.id,
 				dueDate: entry.dueDate,
 				amount: entry.amount,
+				principalAmount: entry.principalAmount,
+				financingAmount: entry.financingAmount,
 				hrConfirmedAt: new Date(now.getTime() - 4 * 24 * 60 * 60_000),
 			})),
 		)
@@ -558,6 +574,8 @@ export const seedInstallmentsOverdue =
 				creditId: creditInstallmentsBlocked.id,
 				dueDate: entry.dueDate,
 				amount: entry.amount,
+				principalAmount: entry.principalAmount,
+				financingAmount: entry.financingAmount,
 				hrConfirmedAt: hrAt,
 				hrConfirmedByUserId: hrAgent.id,
 			})),
@@ -612,6 +630,8 @@ export const seedInstallmentsOverdue =
 				creditId: creditHrBlocked.id,
 				dueDate: entry.dueDate,
 				amount: entry.amount,
+				principalAmount: entry.principalAmount,
+				financingAmount: entry.financingAmount,
 			})),
 		)
 
@@ -817,6 +837,8 @@ export const seedInstallmentsQueueTwentyPending =
 				creditId: credit.id,
 				dueDate: scheduleEntry.dueDate,
 				amount: scheduleEntry.amount,
+				principalAmount: scheduleEntry.principalAmount,
+				financingAmount: scheduleEntry.financingAmount,
 				hrConfirmedAt: new Date(now.getTime() - (i + 1) * 60 * 60_000),
 				hrConfirmedByUserId: hrAgent.id,
 			})
