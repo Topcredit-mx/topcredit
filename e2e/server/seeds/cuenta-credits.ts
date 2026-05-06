@@ -5,7 +5,9 @@ import {
 	creditsCompany,
 	creditsOtherApplicant,
 } from '~/e2e/cuenta/credits.fixtures'
+import { sumLiquidationWithoutPrincipal } from '~/lib/credit-liquidation-without-principal'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
+import { formatCurrencyMxn } from '~/lib/utils'
 import {
 	applicationStatusHistory,
 	applications,
@@ -32,6 +34,9 @@ export type SeedCuentaCreditsResult = {
 	applicationId: number
 	creditAmount: string
 	creditId: number | null
+	liquidationTestCreditId: number | null
+	liquidationAmountWithoutPrincipalFormatted: string | null
+	outstandingPrincipalFormatted: string | null
 	settledCreditId: number | null
 	settledCreditAmount: string | null
 	confirmedPaymentRowIndex: number
@@ -149,6 +154,9 @@ async function seedCuentaCreditsBase(
 	let creditId: number | null = null
 	let settledCreditId: number | null = null
 	let nextDisbursedPaymentDueIso: string | null = null
+	let liquidationTestCreditId: number | null = null
+	let liquidationAmountWithoutPrincipalFormatted: string | null = null
+	let outstandingPrincipalFormatted: string | null = null
 	const settledCreditAmount = '30000.00'
 	if (withCredit) {
 		const [credit] = await db
@@ -195,6 +203,85 @@ async function seedCuentaCreditsBase(
 					index <= 1 ? new Date(now.getTime() - 5 * 24 * 60 * 60_000) : null,
 			})),
 		)
+
+		const liquidationCreditAmount = '36000.00'
+		const [appLiq] = await db
+			.insert(applications)
+			.values({
+				applicantId: applicantUser.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: liquidationCreditAmount,
+				salaryAtApplication: '40000',
+				salaryFrequency: creditsCompany.employeeSalaryFrequency,
+				status: 'disbursed',
+				firstDiscountDate: endOfCurrentMonthEodMx(now),
+				transferReference: 'REF-LIQUID-SEED',
+				receiptFileName: 'recibo-liquidacion.pdf',
+			})
+			.returning()
+		if (!appLiq)
+			throw new Error('Seed Credits: liquidation application not created')
+
+		const liqTimeline = createOrderedSeedStatusHistory({
+			finalStatus: 'disbursed',
+			defaultActorUserId: applicantUser.id,
+		})
+		const liqBaseTime = new Date(now.getTime() - 45 * 60 * 60_000)
+		await db.insert(applicationStatusHistory).values(
+			liqTimeline.map((entry, index) => ({
+				applicationId: appLiq.id,
+				status: entry.status,
+				setByUserId: entry.setByUserId,
+				createdAt: new Date(liqBaseTime.getTime() + index * 60_000),
+			})),
+		)
+
+		const [creditLiq] = await db
+			.insert(credits)
+			.values({
+				applicationId: appLiq.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: liquidationCreditAmount,
+				disbursedByUserId: applicantUser.id,
+			})
+			.returning()
+		if (!creditLiq)
+			throw new Error('Seed Credits: liquidation credit not created')
+		liquidationTestCreditId = creditLiq.id
+
+		const scheduleLiq = generatePaymentSchedule({
+			loanPrincipal: Number(liquidationCreditAmount),
+			rate: Number(creditsCompany.rate),
+			totalPayments: 12,
+			frequency: 'monthly',
+			firstDiscountDate: endOfCurrentMonthEodMx(now),
+		})
+		const liqHrTs = new Date(now.getTime() - 8 * 24 * 60 * 60_000)
+		const liqInstTs = new Date(now.getTime() - 4 * 24 * 60 * 60_000)
+		await db.insert(creditPayments).values(
+			scheduleLiq.map((entry, index) => ({
+				creditId: creditLiq.id,
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+				hrConfirmedAt: liqHrTs,
+				installmentConfirmedAt: index === 0 ? liqInstTs : null,
+			})),
+		)
+
+		const pendingForLiquidation = scheduleLiq.slice(1)
+		const liqAmountStr = sumLiquidationWithoutPrincipal({
+			loanPrincipal: Number(liquidationCreditAmount),
+			rate: Number(creditsCompany.rate),
+			totalScheduledPayments: scheduleLiq.length,
+			pendingPayments: pendingForLiquidation,
+		})
+		liquidationAmountWithoutPrincipalFormatted = formatCurrencyMxn(liqAmountStr)
+		const principalRemaining =
+			(Number(liquidationCreditAmount) * pendingForLiquidation.length) /
+			scheduleLiq.length
+		outstandingPrincipalFormatted = formatCurrencyMxn(principalRemaining)
 
 		const settledStatus = 'disbursed' as const
 		const [appSettled] = await db
@@ -273,6 +360,13 @@ async function seedCuentaCreditsBase(
 		applicationId: app.id,
 		creditAmount,
 		creditId,
+		liquidationTestCreditId: withCredit ? liquidationTestCreditId : null,
+		liquidationAmountWithoutPrincipalFormatted: withCredit
+			? liquidationAmountWithoutPrincipalFormatted
+			: null,
+		outstandingPrincipalFormatted: withCredit
+			? outstandingPrincipalFormatted
+			: null,
 		settledCreditId,
 		settledCreditAmount: withCredit ? settledCreditAmount : null,
 		confirmedPaymentRowIndex: 0,

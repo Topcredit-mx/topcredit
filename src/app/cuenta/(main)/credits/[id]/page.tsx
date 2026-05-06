@@ -20,7 +20,9 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { SectionCard } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
+import { sumLiquidationWithoutPrincipal } from '~/lib/credit-liquidation-without-principal'
 import { Decimal } from '~/lib/decimal'
+import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import { shell } from '~/lib/shell'
 import { cn, formatCurrencyMxn } from '~/lib/utils'
 import { getRequiredApplicantUser } from '~/server/auth/session'
@@ -29,6 +31,7 @@ import {
 	getCreditPaymentsByCreditId,
 } from '~/server/queries'
 import { formatApplicationTerm } from '../../applications/constants'
+import { CreditLiquidateEarlyCard } from './credit-liquidate-early-card'
 
 const statCardClass =
 	'group flex gap-3 rounded-2xl border border-slate-100/90 bg-gradient-to-br from-white to-slate-50/90 p-4 shadow-sm ring-1 ring-slate-100/50 transition hover:border-slate-200/90 hover:shadow-md'
@@ -113,6 +116,49 @@ export default async function CuentaCreditDetailPage({
 		getTranslations('cuenta.applications'),
 		getCreditPaymentsByCreditId(creditId, user.id),
 	])
+
+	const pendingInstallmentSide = payments.filter(
+		(p) => p.installmentConfirmedAt === null,
+	)
+	const canRequestEarlyLiquidation =
+		credit.status === 'dispersed' &&
+		pendingInstallmentSide.length > 0 &&
+		pendingInstallmentSide.every((p) => p.hrConfirmedAt !== null) &&
+		credit.firstDiscountDate !== null
+
+	let earlyLiquidationCard: ReactNode = null
+	if (canRequestEarlyLiquidation && credit.firstDiscountDate) {
+		const schedule = generatePaymentSchedule({
+			loanPrincipal: Number(credit.transferAmount),
+			rate: Number(credit.rate),
+			totalPayments: credit.duration,
+			frequency: credit.durationType,
+			firstDiscountDate: credit.firstDiscountDate,
+		})
+		if (schedule.length === payments.length) {
+			const liquidationAmountStr = sumLiquidationWithoutPrincipal({
+				loanPrincipal: Number(credit.transferAmount),
+				rate: Number(credit.rate),
+				totalScheduledPayments: schedule.length,
+				pendingPayments: pendingInstallmentSide,
+			})
+			const principalEach = new Decimal(credit.transferAmount).div(
+				schedule.length,
+			)
+			const outstandingPrincipalStr = principalEach
+				.mul(pendingInstallmentSide.length)
+				.toFixed(2)
+			earlyLiquidationCard = (
+				<CreditLiquidateEarlyCard
+					creditId={creditId}
+					liquidationAmountFormatted={formatCurrencyMxn(liquidationAmountStr)}
+					outstandingPrincipalFormatted={formatCurrencyMxn(
+						outstandingPrincipalStr,
+					)}
+				/>
+			)
+		}
+	}
 
 	return (
 		<main className={cn(shell.applicantMainMax, 'pb-8')}>
@@ -304,6 +350,8 @@ export default async function CuentaCreditDetailPage({
 					</p>
 				)}
 			</SectionCard>
+
+			{earlyLiquidationCard}
 
 			<ApplicantPageFooter className="mt-16" />
 		</main>

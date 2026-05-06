@@ -35,6 +35,7 @@ export type AppAction =
 	| 'disburse'
 	| 'confirmHrDeduction'
 	| 'confirmInstallment'
+	| 'liquidateCreditEarly'
 export type AppSubject =
 	| 'Company'
 	| 'User'
@@ -122,6 +123,7 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 		}
 		can('read', 'Application', { applicantId: ctx.userId })
 		can('read', 'Credit', { applicantId: ctx.userId })
+		can('liquidateCreditEarly', 'Credit', { applicantId: ctx.userId })
 		can('uploadDocument', 'Application', { applicantId: ctx.userId })
 		can('setStatusAwaitingAuthorization', 'Application', {
 			applicantId: ctx.userId,

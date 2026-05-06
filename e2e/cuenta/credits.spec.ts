@@ -14,6 +14,8 @@ registerDbSpecGuards()
 const cuentaContent = (page: Page) => page.getByRole('main')
 
 test.describe('Applicant views active credits', () => {
+	test.describe.configure({ mode: 'serial' })
+
 	let seedResult: SeedCuentaCreditsResult
 
 	test.beforeAll(async () => {
@@ -81,7 +83,7 @@ test.describe('Applicant views active credits', () => {
 			.first()
 		await expect(visibleNextPaymentDate).toHaveText(expectedNextPaymentLabel)
 
-		await expect(activeTable.getByText(/^Dispersado$/i)).toBeVisible()
+		await expect(activeTable.getByText(/^Dispersado$/i)).toHaveCount(2)
 		await expect(completedTable.getByText(/^Liquidado$/i)).toBeVisible()
 	})
 
@@ -231,6 +233,38 @@ test.describe('Applicant views active credits', () => {
 		await expect(row.getByText(/pendiente/i)).toBeVisible()
 	})
 
+	test('hides early liquidation when any remaining installment lacks HR confirmation', async ({
+		page,
+	}) => {
+		await page.goto(`/cuenta/credits/${seedResult.creditId}`)
+		await expect(
+			page.getByRole('heading', { name: /detalle de tu crédito/i }),
+		).toBeVisible()
+		await expect(
+			page.getByRole('button', { name: /solicitar liquidación anticipada/i }),
+		).toHaveCount(0)
+	})
+
+	test('shows early liquidation amounts without capital and principal remaining', async ({
+		page,
+	}) => {
+		const liqId = seedResult.liquidationTestCreditId
+		const withoutCapital = seedResult.liquidationAmountWithoutPrincipalFormatted
+		const principalRem = seedResult.outstandingPrincipalFormatted
+		if (liqId == null || withoutCapital == null || principalRem == null) {
+			throw new Error('seed must expose liquidation test credit and amounts')
+		}
+		await page.goto(`/cuenta/credits/${liqId}`)
+		await expect(
+			page.getByRole('heading', { name: /detalle de tu crédito/i }),
+		).toBeVisible()
+		await expect(
+			page.getByRole('heading', { name: /liquidación anticipada/i }),
+		).toBeVisible()
+		await expect(page.getByText(withoutCapital).first()).toBeVisible()
+		await expect(page.getByText(principalRem).first()).toBeVisible()
+	})
+
 	test('shows HR-only confirmed payment as En proceso to the applicant', async ({
 		page,
 	}) => {
@@ -244,6 +278,33 @@ test.describe('Applicant views active credits', () => {
 			.nth(seedResult.processingPaymentRowIndex)
 		await row.scrollIntoViewIfNeeded()
 		await expect(row.getByText(/en proceso/i)).toBeVisible()
+	})
+
+	test('applicant confirms early liquidation and credit shows as settled', async ({
+		page,
+	}) => {
+		const liqId = seedResult.liquidationTestCreditId
+		if (liqId == null) {
+			throw new Error('seed must expose liquidation test credit id')
+		}
+		await page.goto(`/cuenta/credits/${liqId}`)
+		await expect(
+			page.getByRole('heading', { name: /detalle de tu crédito/i }),
+		).toBeVisible()
+		await page
+			.getByRole('button', { name: /solicitar liquidación anticipada/i })
+			.click()
+		const dialog = page.getByRole('alertdialog')
+		await expect(dialog).toBeVisible()
+		await dialog
+			.getByRole('button', { name: /^confirmar liquidación$/i })
+			.click()
+		await expect(dialog).toBeHidden()
+		const main = cuentaContent(page)
+		await expect(main.getByText(/liquidado/i).first()).toBeVisible()
+		await expect(
+			page.getByRole('button', { name: /solicitar liquidación anticipada/i }),
+		).toHaveCount(0)
 	})
 
 	test('shows empty state when applicant has no credits', async ({ page }) => {

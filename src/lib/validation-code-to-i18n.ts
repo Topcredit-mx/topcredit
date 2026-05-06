@@ -9,12 +9,14 @@ const CREDIT_PAYMENT_INSTALLMENT_PERIOD_NOT_ELIGIBLE_BULK_PREFIX = `${Validation
 
 type AdminKey = keyof (typeof messages)['admin']
 type CuentaApplicationsKey = keyof (typeof messages)['cuenta']['applications']
+type CuentaCreditsKey = keyof (typeof messages)['cuenta']['credits']
 type EquipoKey = keyof (typeof messages)['equipo']
 type AuthKey = keyof (typeof messages)['auth']
 
 type CodeMapping =
 	| { namespace: 'admin'; key: AdminKey }
 	| { namespace: 'cuenta.applications'; key: CuentaApplicationsKey }
+	| { namespace: 'cuenta.credits'; key: CuentaCreditsKey }
 	| { namespace: 'equipo'; key: EquipoKey }
 	| { namespace: 'auth'; key: AuthKey }
 
@@ -387,6 +389,58 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'equipo',
 		key: 'CREDIT_RESTORE_NOT_DEFAULTED',
 	},
+	[ValidationCode.CREDIT_ID_INVALID]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-id-invalid',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_FORBIDDEN]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-forbidden',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_INVALID_STATUS]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-invalid-status',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_NOTHING_PENDING]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-nothing-pending',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_SCHEDULE_MISMATCH]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-schedule-mismatch',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_CREDIT_NOT_FOUND]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-not-found',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_TERMS_MISSING]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-terms-missing',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_HR_PENDING]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-hr-pending',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_PAYMENT_NOT_FOUND]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-payment-not-found',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_PAYMENT_DEFAULTED]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-defaulted',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_PAYMENT_ALREADY_DONE]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-already-confirmed',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_PAYMENT_PERIOD_NOT_ELIGIBLE]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-period-not-eligible',
+	},
+	[ValidationCode.CREDIT_LIQUIDATE_EARLY_FAILED]: {
+		namespace: 'cuenta.credits',
+		key: 'liquidate-error-failed',
+	},
 }
 
 function isValidationCode(s: string): s is ValidationCodeType {
@@ -410,6 +464,7 @@ export function getResolvedError(
 export function useResolveValidationError(): (code: string) => string {
 	const tAdmin = useTranslations('admin')
 	const tCuentaApplications = useTranslations('cuenta.applications')
+	const tCuentaCredits = useTranslations('cuenta.credits')
 	const tEquipo = useTranslations('equipo')
 	const tAuth = useTranslations('auth')
 
@@ -436,6 +491,7 @@ export function useResolveValidationError(): (code: string) => string {
 		const { namespace, key } = CODE_TO_I18N[code]
 		if (namespace === 'admin') return tAdmin(key)
 		if (namespace === 'cuenta.applications') return tCuentaApplications(key)
+		if (namespace === 'cuenta.credits') return tCuentaCredits(key)
 		if (namespace === 'auth') return tAuth(key)
 		return tEquipo(key)
 	}

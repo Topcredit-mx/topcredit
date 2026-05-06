@@ -1,6 +1,6 @@
 'use server'
 
-import { and, eq, inArray, ne } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import {
 	filterToLatestDocumentsPerType,
@@ -22,6 +22,7 @@ import {
 	ymdForDeductionSchedule,
 } from '~/lib/calendar-date-tz'
 import { creditHasLongOverdueForAdminDefault } from '~/lib/credit-admin-default'
+import { sumLiquidationWithoutPrincipal } from '~/lib/credit-liquidation-without-principal'
 import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
@@ -1562,6 +1563,169 @@ async function settleCreditsIfFullyConfirmed(
 		}
 	}
 	return settled
+}
+
+export async function liquidateCreditEarlyAsApplicant(
+	creditId: number,
+): Promise<{
+	error?: string
+	settled?: true
+	liquidationAmount?: string
+}> {
+	const { ability } = await getAbility()
+	const user = await getRequiredApplicantUser()
+
+	const creditSubject = subject('Credit', {
+		id: creditId,
+		applicantId: user.id,
+	})
+	if (!ability.can('liquidateCreditEarly', creditSubject)) {
+		return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_FORBIDDEN }
+	}
+
+	const [creditRow] = await db
+		.select({
+			status: credits.status,
+			transferAmount: credits.transferAmount,
+			firstDiscountDate: applications.firstDiscountDate,
+			rate: companies.rate,
+			duration: terms.duration,
+			durationType: terms.durationType,
+		})
+		.from(credits)
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.innerJoin(companies, eq(applications.companyId, companies.id))
+		.innerJoin(termOfferings, eq(applications.termOfferingId, termOfferings.id))
+		.innerJoin(terms, eq(termOfferings.termId, terms.id))
+		.where(and(eq(credits.id, creditId), eq(applications.applicantId, user.id)))
+		.limit(1)
+
+	if (!creditRow) {
+		return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_CREDIT_NOT_FOUND }
+	}
+	if (creditRow.status !== 'dispersed') {
+		return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_INVALID_STATUS }
+	}
+	if (creditRow.firstDiscountDate == null) {
+		return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_TERMS_MISSING }
+	}
+
+	const paymentRows = await db
+		.select({
+			id: creditPayments.id,
+			amount: creditPayments.amount,
+			dueDate: creditPayments.dueDate,
+			hrConfirmedAt: creditPayments.hrConfirmedAt,
+			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
+		})
+		.from(creditPayments)
+		.where(eq(creditPayments.creditId, creditId))
+		.orderBy(asc(creditPayments.dueDate))
+
+	if (paymentRows.length === 0) {
+		return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_NOTHING_PENDING }
+	}
+
+	const pendingOpenOnInstallmentSide = paymentRows.filter(
+		(p) => p.installmentConfirmedAt === null,
+	)
+	if (pendingOpenOnInstallmentSide.length === 0) {
+		return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_NOTHING_PENDING }
+	}
+
+	const schedule = generatePaymentSchedule({
+		loanPrincipal: Number(creditRow.transferAmount),
+		rate: Number(creditRow.rate),
+		totalPayments: creditRow.duration,
+		frequency: creditRow.durationType,
+		firstDiscountDate: creditRow.firstDiscountDate,
+	})
+	if (schedule.length !== paymentRows.length) {
+		return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_SCHEDULE_MISMATCH }
+	}
+
+	const pendingHrConfirmedOnly = pendingOpenOnInstallmentSide.filter(
+		(p) => p.hrConfirmedAt !== null,
+	)
+	if (pendingHrConfirmedOnly.length !== pendingOpenOnInstallmentSide.length) {
+		return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_HR_PENDING }
+	}
+
+	const liquidationAmount = sumLiquidationWithoutPrincipal({
+		loanPrincipal: Number(creditRow.transferAmount),
+		rate: Number(creditRow.rate),
+		totalScheduledPayments: schedule.length,
+		pendingPayments: pendingOpenOnInstallmentSide,
+	})
+
+	const now = new Date()
+	const rowsForContext = await fetchPaymentsWithContext(
+		pendingHrConfirmedOnly.map((p) => p.id),
+	)
+	if (rowsForContext.length !== pendingHrConfirmedOnly.length) {
+		return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_PAYMENT_NOT_FOUND }
+	}
+
+	for (const ctx of rowsForContext) {
+		if (ctx.creditId !== creditId) {
+			return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_PAYMENT_NOT_FOUND }
+		}
+		if (paymentBelongsToDefaultedCredit(ctx)) {
+			return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_PAYMENT_DEFAULTED }
+		}
+		if (!canConfirmInstallment(ctx)) {
+			return ctx.hrConfirmedAt === null
+				? { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_HR_PENDING }
+				: {
+						error: ValidationCode.CREDIT_LIQUIDATE_EARLY_PAYMENT_ALREADY_DONE,
+					}
+		}
+	}
+
+	for (const p of pendingHrConfirmedOnly) {
+		await db
+			.update(creditPayments)
+			.set({
+				installmentConfirmedAt: now,
+				installmentConfirmedByUserId: user.id,
+			})
+			.where(
+				and(
+					eq(creditPayments.id, p.id),
+					isNull(creditPayments.installmentConfirmedAt),
+				),
+			)
+	}
+
+	const remaining = await db
+		.select({
+			hrConfirmedAt: creditPayments.hrConfirmedAt,
+			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
+		})
+		.from(creditPayments)
+		.where(eq(creditPayments.creditId, creditId))
+
+	if (!allInstallmentsFullyConfirmed(remaining)) {
+		return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_FAILED }
+	}
+
+	const [updated] = await db
+		.update(credits)
+		.set({ status: 'settled', updatedAt: now })
+		.where(and(eq(credits.id, creditId), eq(credits.status, 'dispersed')))
+		.returning({ id: credits.id })
+
+	if (!updated) {
+		return { error: ValidationCode.CREDIT_LIQUIDATE_EARLY_FAILED }
+	}
+
+	revalidatePath('/cuenta/credits')
+	revalidatePath(`/cuenta/credits/${creditId}`)
+	revalidatePath('/equipo/credits')
+	revalidatePath(`/equipo/credits/${creditId}`)
+	revalidatePath('/equipo/installments')
+
+	return { settled: true, liquidationAmount }
 }
 
 function toCreditPaymentSubject(
