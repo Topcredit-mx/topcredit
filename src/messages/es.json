@@ -1048,7 +1048,6 @@
 			"liquidate-error-payment-not-found": "No pudimos actualizar un pago. Vuelve a intentar.",
 			"liquidate-error-defaulted": "Este crédito no admite esta acción.",
 			"liquidate-error-already-confirmed": "Un pago ya fue confirmado. Actualiza la página e inténtalo de nuevo.",
-			"liquidate-error-period-not-eligible": "Por el calendario de confirmaciones, esta liquidación no está disponible en este momento. Intenta más adelante o contacta a soporte.",
 			"liquidate-error-failed": "No se pudo completar la liquidación. Actualiza la página e inténtalo de nuevo."
 		},
 		"applications": {

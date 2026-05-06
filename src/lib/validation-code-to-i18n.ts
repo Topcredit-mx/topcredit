@@ -433,10 +433,6 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'cuenta.credits',
 		key: 'liquidate-error-already-confirmed',
 	},
-	[ValidationCode.CREDIT_LIQUIDATE_EARLY_PAYMENT_PERIOD_NOT_ELIGIBLE]: {
-		namespace: 'cuenta.credits',
-		key: 'liquidate-error-period-not-eligible',
-	},
 	[ValidationCode.CREDIT_LIQUIDATE_EARLY_FAILED]: {
 		namespace: 'cuenta.credits',
 		key: 'liquidate-error-failed',
