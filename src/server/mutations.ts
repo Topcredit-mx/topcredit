@@ -1,7 +1,8 @@
 'use server'
 
-import { and, eq, inArray, ne } from 'drizzle-orm'
+import { and, eq, inArray, isNull, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import {
 	filterToLatestDocumentsPerType,
 	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
@@ -22,6 +23,7 @@ import {
 	ymdForDeductionSchedule,
 } from '~/lib/calendar-date-tz'
 import { creditHasLongOverdueForAdminDefault } from '~/lib/credit-admin-default'
+import { liquidationOutstandingFromPaymentRows } from '~/lib/credit-liquidation-preview'
 import { Decimal } from '~/lib/decimal'
 import { canSetApplicationDocumentReviewStatus } from '~/lib/document-review-ability'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
@@ -72,6 +74,7 @@ import {
 	applicationDocuments,
 	applications,
 	companies,
+	creditLiquidationRequests,
 	creditPayments,
 	credits,
 	termOfferings,
@@ -85,7 +88,10 @@ import {
 	sendApplicationStatusEvent,
 } from '~/server/email'
 import { getNeonDbCause } from '~/server/errors/errors'
-import { getApplicationDocuments } from '~/server/queries'
+import {
+	getApplicationDocuments,
+	getCreditPaymentsForEquipo,
+} from '~/server/queries'
 import {
 	applyApplicationDocumentDecisionsSchema,
 	confirmHrDeductionsBulkSchema,
@@ -1353,6 +1359,8 @@ export async function disburseApplication(payload: {
 						creditId: credit.id,
 						dueDate: entry.dueDate,
 						amount: entry.amount,
+						principalAmount: entry.principalAmount,
+						financingAmount: entry.financingAmount,
 					})),
 				)
 			}
@@ -1395,6 +1403,7 @@ export async function defaultCreditAsAdmin(
 			dueDate: creditPayments.dueDate,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
 			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
+			closedByLiquidationAt: creditPayments.closedByLiquidationAt,
 		})
 		.from(creditPayments)
 		.where(eq(creditPayments.creditId, creditId))
@@ -1462,6 +1471,7 @@ type PaymentWithContext = {
 	paymentId: number
 	hrConfirmedAt: Date | null
 	installmentConfirmedAt: Date | null
+	closedByLiquidationAt: Date | null
 	creditId: number
 	creditStatus: 'dispersed' | 'settled' | 'defaulted'
 	companyId: number
@@ -1477,6 +1487,7 @@ async function fetchPaymentsWithContext(
 			paymentId: creditPayments.id,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
 			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
+			closedByLiquidationAt: creditPayments.closedByLiquidationAt,
 			creditId: creditPayments.creditId,
 			creditStatus: credits.status,
 			companyId: applications.companyId,
@@ -1492,6 +1503,7 @@ async function fetchPaymentsWithContext(
 		paymentId: r.paymentId,
 		hrConfirmedAt: r.hrConfirmedAt,
 		installmentConfirmedAt: r.installmentConfirmedAt,
+		closedByLiquidationAt: r.closedByLiquidationAt,
 		creditId: r.creditId,
 		creditStatus: r.creditStatus,
 		companyId: r.companyId,
@@ -1520,6 +1532,7 @@ function canConfirmInstallmentWithinPeriod(
 		PaymentWithContext,
 		| 'hrConfirmedAt'
 		| 'installmentConfirmedAt'
+		| 'closedByLiquidationAt'
 		| 'dueDate'
 		| 'employeeSalaryFrequency'
 	>,
@@ -1529,6 +1542,7 @@ function canConfirmInstallmentWithinPeriod(
 		{
 			hrConfirmedAt: payment.hrConfirmedAt,
 			installmentConfirmedAt: payment.installmentConfirmedAt,
+			closedByLiquidationAt: payment.closedByLiquidationAt,
 			dueDate: payment.dueDate,
 			employeeSalaryFrequency: payment.employeeSalaryFrequency,
 		},
@@ -1546,6 +1560,7 @@ async function settleCreditsIfFullyConfirmed(
 			.select({
 				hrConfirmedAt: creditPayments.hrConfirmedAt,
 				installmentConfirmedAt: creditPayments.installmentConfirmedAt,
+				closedByLiquidationAt: creditPayments.closedByLiquidationAt,
 			})
 			.from(creditPayments)
 			.where(eq(creditPayments.creditId, creditId))
@@ -2346,6 +2361,7 @@ export async function confirmInstallmentsFromCsv(
 			paymentId: creditPayments.id,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
 			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
+			closedByLiquidationAt: creditPayments.closedByLiquidationAt,
 			creditId: creditPayments.creditId,
 			companyId: applications.companyId,
 			payrollNumber: applications.payrollNumber,
@@ -2401,6 +2417,7 @@ export async function confirmInstallmentsFromCsv(
 			{
 				hrConfirmedAt: r.hrConfirmedAt,
 				installmentConfirmedAt: r.installmentConfirmedAt,
+				closedByLiquidationAt: r.closedByLiquidationAt,
 				dueDate: r.dueDate,
 				employeeSalaryFrequency: employeeSalaryFrequencyFromDb(
 					r.companySalaryFrequency,
@@ -2457,4 +2474,257 @@ export async function confirmInstallmentsFromCsv(
 		unmatched,
 		settledCredits: settledCreditIds.length,
 	}
+}
+
+export async function requestCreditLiquidation(
+	_prevState: { message?: string } | undefined,
+	formData: FormData,
+): Promise<{ message?: string }> {
+	const rawId = formData.get('creditId')
+	const creditId =
+		typeof rawId === 'string' ? Number.parseInt(rawId, 10) : Number.NaN
+	if (!Number.isInteger(creditId) || creditId < 1) {
+		return { message: ValidationCode.CREDIT_NOT_FOUND }
+	}
+
+	const user = await getRequiredApplicantUser()
+	const { ability } = await getAbility()
+
+	const [creditRow] = await db
+		.select({
+			status: credits.status,
+			companyId: applications.companyId,
+		})
+		.from(credits)
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.where(and(eq(credits.id, creditId), eq(applications.applicantId, user.id)))
+		.limit(1)
+
+	if (!creditRow) {
+		return { message: ValidationCode.CREDIT_NOT_FOUND }
+	}
+
+	if (creditRow.status !== 'dispersed') {
+		return { message: ValidationCode.LIQUIDATION_CREDIT_INVALID }
+	}
+
+	if (
+		!ability.can(
+			'requestLiquidation',
+			subject('Credit', {
+				id: creditId,
+				applicantId: user.id,
+				status: creditRow.status,
+			}),
+		)
+	) {
+		return { message: ValidationCode.LIQUIDATION_CREDIT_INVALID }
+	}
+
+	const [existingPending] = await db
+		.select({ id: creditLiquidationRequests.id })
+		.from(creditLiquidationRequests)
+		.where(
+			and(
+				eq(creditLiquidationRequests.creditId, creditId),
+				eq(creditLiquidationRequests.applicantId, user.id),
+				eq(creditLiquidationRequests.status, 'pending'),
+			),
+		)
+		.limit(1)
+
+	if (existingPending) {
+		return { message: ValidationCode.LIQUIDATION_REQUEST_PENDING_EXISTS }
+	}
+
+	await db.insert(creditLiquidationRequests).values({
+		creditId,
+		applicantId: user.id,
+		companyId: creditRow.companyId,
+		status: 'pending',
+	})
+
+	revalidatePath(`/cuenta/credits/${creditId}`)
+	revalidatePath('/equipo/liquidations')
+
+	return {}
+}
+
+export async function acceptCreditLiquidationRequest(
+	_prevState: { error?: string } | undefined,
+	formData: FormData,
+): Promise<{ error?: string }> {
+	const user = await getRequiredUser()
+	const { ability } = await getAbility()
+
+	const rawId = formData.get('requestId')
+	const requestId =
+		typeof rawId === 'string' ? Number.parseInt(rawId, 10) : Number.NaN
+	if (!Number.isInteger(requestId) || requestId < 1) {
+		return { error: ValidationCode.LIQUIDATION_REQUEST_NOT_FOUND }
+	}
+
+	const [row] = await db
+		.select({
+			id: creditLiquidationRequests.id,
+			creditId: creditLiquidationRequests.creditId,
+			applicantId: creditLiquidationRequests.applicantId,
+			companyId: creditLiquidationRequests.companyId,
+			status: creditLiquidationRequests.status,
+		})
+		.from(creditLiquidationRequests)
+		.where(eq(creditLiquidationRequests.id, requestId))
+		.limit(1)
+
+	if (!row) {
+		return { error: ValidationCode.LIQUIDATION_REQUEST_NOT_FOUND }
+	}
+
+	if (
+		!ability.can(
+			'acceptLiquidationRequest',
+			subject('CreditLiquidationRequest', {
+				id: row.id,
+				creditId: row.creditId,
+				applicantId: row.applicantId,
+				companyId: row.companyId,
+				status: row.status,
+			}),
+		)
+	) {
+		return { error: ValidationCode.LIQUIDATION_DECISION_FORBIDDEN }
+	}
+
+	const now = new Date()
+
+	const payments = await getCreditPaymentsForEquipo(row.creditId, row.companyId)
+	const liquidatedPreview = liquidationOutstandingFromPaymentRows(payments)
+
+	const [updated] = await db
+		.update(creditLiquidationRequests)
+		.set({
+			status: 'accepted',
+			decidedAt: now,
+			decidedByUserId: user.id,
+			denialReason: null,
+			updatedAt: now,
+			liquidatedPrincipal: liquidatedPreview.outstandingPrincipal,
+			liquidatedFinancing: liquidatedPreview.outstandingFinancing,
+			liquidatedScheduledTotal: liquidatedPreview.outstandingScheduledTotal,
+		})
+		.where(
+			and(
+				eq(creditLiquidationRequests.id, requestId),
+				eq(creditLiquidationRequests.status, 'pending'),
+			),
+		)
+		.returning({ id: creditLiquidationRequests.id })
+
+	if (!updated) {
+		return { error: ValidationCode.LIQUIDATION_REQUEST_NOT_PENDING }
+	}
+
+	await db
+		.update(creditPayments)
+		.set({ closedByLiquidationAt: now })
+		.where(
+			and(
+				eq(creditPayments.creditId, row.creditId),
+				isNull(creditPayments.installmentConfirmedAt),
+			),
+		)
+
+	const settledCreditIds = await settleCreditsIfFullyConfirmed(
+		[row.creditId],
+		now,
+	)
+
+	revalidatePath('/equipo/liquidations')
+	revalidatePath(`/equipo/liquidations/${requestId}`)
+	revalidatePath(`/cuenta/credits/${row.creditId}`)
+	revalidatePath('/equipo/credits')
+	revalidatePath(`/equipo/credits/${row.creditId}`)
+	if (settledCreditIds.length > 0) {
+		revalidatePath('/cuenta/credits')
+	}
+	redirect('/equipo/liquidations')
+}
+
+export async function denyCreditLiquidationRequest(
+	_prevState: { error?: string } | undefined,
+	formData: FormData,
+): Promise<{ error?: string }> {
+	const user = await getRequiredUser()
+	const { ability } = await getAbility()
+
+	const rawId = formData.get('requestId')
+	const requestId =
+		typeof rawId === 'string' ? Number.parseInt(rawId, 10) : Number.NaN
+	if (!Number.isInteger(requestId) || requestId < 1) {
+		return { error: ValidationCode.LIQUIDATION_REQUEST_NOT_FOUND }
+	}
+
+	const rawReason = formData.get('denialReason')
+	const denialReason =
+		typeof rawReason === 'string' && rawReason.trim().length > 0
+			? rawReason.trim()
+			: null
+
+	const [row] = await db
+		.select({
+			id: creditLiquidationRequests.id,
+			creditId: creditLiquidationRequests.creditId,
+			applicantId: creditLiquidationRequests.applicantId,
+			companyId: creditLiquidationRequests.companyId,
+			status: creditLiquidationRequests.status,
+		})
+		.from(creditLiquidationRequests)
+		.where(eq(creditLiquidationRequests.id, requestId))
+		.limit(1)
+
+	if (!row) {
+		return { error: ValidationCode.LIQUIDATION_REQUEST_NOT_FOUND }
+	}
+
+	if (
+		!ability.can(
+			'denyLiquidationRequest',
+			subject('CreditLiquidationRequest', {
+				id: row.id,
+				creditId: row.creditId,
+				applicantId: row.applicantId,
+				companyId: row.companyId,
+				status: row.status,
+			}),
+		)
+	) {
+		return { error: ValidationCode.LIQUIDATION_DECISION_FORBIDDEN }
+	}
+
+	const now = new Date()
+	const [updated] = await db
+		.update(creditLiquidationRequests)
+		.set({
+			status: 'denied',
+			decidedAt: now,
+			decidedByUserId: user.id,
+			denialReason,
+			updatedAt: now,
+		})
+		.where(
+			and(
+				eq(creditLiquidationRequests.id, requestId),
+				eq(creditLiquidationRequests.status, 'pending'),
+			),
+		)
+		.returning({ id: creditLiquidationRequests.id })
+
+	if (!updated) {
+		return { error: ValidationCode.LIQUIDATION_REQUEST_NOT_PENDING }
+	}
+
+	revalidatePath('/equipo/liquidations')
+	revalidatePath(`/equipo/liquidations/${requestId}`)
+	revalidatePath(`/cuenta/credits/${row.creditId}`)
+	redirect('/equipo/liquidations')
 }

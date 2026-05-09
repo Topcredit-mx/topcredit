@@ -166,3 +166,74 @@ test('admin can both confirmHrDeduction and confirmInstallment on any company', 
 	assert.equal(ability.can('confirmInstallment', paymentCompany10), true)
 	assert.equal(ability.can('confirmInstallment', paymentCompany99), true)
 })
+
+const creditDispersedOwn = subject('Credit', {
+	id: 5,
+	applicantId: 7,
+	status: 'dispersed' as const,
+})
+
+const creditSettledOwn = subject('Credit', {
+	id: 6,
+	applicantId: 7,
+	status: 'settled' as const,
+})
+
+const creditDispersedOther = subject('Credit', {
+	id: 8,
+	applicantId: 99,
+	status: 'dispersed' as const,
+})
+
+const liqReqCompany10 = subject('CreditLiquidationRequest', {
+	id: 1,
+	creditId: 5,
+	applicantId: 2,
+	companyId: 10,
+	status: 'pending' as const,
+})
+
+const liqReqCompany99 = subject('CreditLiquidationRequest', {
+	id: 2,
+	creditId: 6,
+	applicantId: 3,
+	companyId: 99,
+	status: 'pending' as const,
+})
+
+test('applicant can request liquidation only on own dispersed credit', () => {
+	const ability = defineAbilityFor({
+		roles: ['applicant'],
+		assignedCompanyIds: [],
+		userId: 7,
+	})
+	assert.equal(ability.can('requestLiquidation', creditDispersedOwn), true)
+	assert.equal(ability.can('requestLiquidation', creditSettledOwn), false)
+	assert.equal(ability.can('requestLiquidation', creditDispersedOther), false)
+})
+
+test('liquidations+agent can read and decide pending requests for assigned company', () => {
+	const ability = defineAbilityFor({
+		roles: ['agent', 'liquidations'],
+		assignedCompanyIds: [10],
+		userId: 42,
+	})
+	assert.equal(ability.can('read', liqReqCompany10), true)
+	assert.equal(ability.can('acceptLiquidationRequest', liqReqCompany10), true)
+	assert.equal(ability.can('denyLiquidationRequest', liqReqCompany10), true)
+	assert.equal(ability.can('read', liqReqCompany99), false)
+	assert.equal(ability.can('acceptLiquidationRequest', liqReqCompany99), false)
+	assert.equal(ability.can('denyLiquidationRequest', liqReqCompany99), false)
+})
+
+test('admin can read and decide any liquidation request', () => {
+	const ability = defineAbilityFor({
+		roles: ['admin'],
+		assignedCompanyIds: [],
+		userId: 1,
+	})
+	assert.equal(ability.can('read', liqReqCompany10), true)
+	assert.equal(ability.can('read', liqReqCompany99), true)
+	assert.equal(ability.can('acceptLiquidationRequest', liqReqCompany99), true)
+	assert.equal(ability.can('denyLiquidationRequest', liqReqCompany99), true)
+})

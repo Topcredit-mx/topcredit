@@ -13,6 +13,7 @@ import {
 	hrAgentDeductions,
 } from '~/e2e/equipo/deductions-queue.fixtures'
 import { ymdForDeductionSchedule } from '~/lib/calendar-date-tz'
+import { approximatePrincipalFinancingForPaymentAmount } from '~/lib/credit-payment-amount-split'
 import { getUpcomingDeductionDate } from '~/lib/first-discount-date'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
@@ -178,6 +179,16 @@ export const seedDeductionsQueue = async (
 	const creditAmount1 = '40000.00'
 	const creditAmount2 = '30000.00'
 	const creditAmountOverdue = '20000.00'
+	const deductionAnnualRate = Number(deductionsCompany.rate)
+	const paymentPrincipalFinancing = (
+		paymentAmount: string,
+		loanPrincipal: string,
+	) =>
+		approximatePrincipalFinancingForPaymentAmount({
+			paymentAmount,
+			loanPrincipal: Number(loanPrincipal),
+			annualRate: deductionAnnualRate,
+		})
 
 	// Credit 1: upcoming installment on nextDeductionDate (should appear)
 	const [app1] = await db
@@ -258,6 +269,8 @@ export const seedDeductionsQueue = async (
 			creditId: credit1.id,
 			dueDate: entry.dueDate,
 			amount: entry.amount,
+			principalAmount: entry.principalAmount,
+			financingAmount: entry.financingAmount,
 		})),
 	)
 
@@ -274,6 +287,8 @@ export const seedDeductionsQueue = async (
 			creditId: credit2.id,
 			dueDate: entry.dueDate,
 			amount: entry.amount,
+			principalAmount: entry.principalAmount,
+			financingAmount: entry.financingAmount,
 		})),
 	)
 
@@ -311,11 +326,14 @@ export const seedDeductionsQueue = async (
 		if (!credit3) throw new Error('Seed Deductions: credit 3 not created')
 
 		// 1 overdue installment for credit3 (past due, unconfirmed)
+		const p3 = paymentPrincipalFinancing('20500.00', creditAmountOverdue)
 		await db.insert(creditPayments).values([
 			{
 				creditId: credit3.id,
 				dueDate: pastDate,
 				amount: '20500.00',
+				principalAmount: p3.principalAmount,
+				financingAmount: p3.financingAmount,
 			},
 		])
 
@@ -354,11 +372,14 @@ export const seedDeductionsQueue = async (
 
 		if (!credit7) throw new Error('Seed Deductions: credit 7 not created')
 
+		const p7 = paymentPrincipalFinancing('8713.00', creditAmountOverdueRecent)
 		await db.insert(creditPayments).values([
 			{
 				creditId: credit7.id,
 				dueDate: recentPastDate,
 				amount: '8713.00',
+				principalAmount: p7.principalAmount,
+				financingAmount: p7.financingAmount,
 			},
 		])
 	}
@@ -399,21 +420,30 @@ export const seedDeductionsQueue = async (
 		if (!credit6) throw new Error('Seed Deductions: credit 6 not created')
 
 		// 3 overdue installments for credit6 (past due, unconfirmed) — ordered by due date
+		const p6a = paymentPrincipalFinancing('6200.00', creditAmountMultiOverdue)
+		const p6b = paymentPrincipalFinancing('6200.00', creditAmountMultiOverdue)
+		const p6c = paymentPrincipalFinancing('6200.00', creditAmountMultiOverdue)
 		await db.insert(creditPayments).values([
 			{
 				creditId: credit6.id,
 				dueDate: pastDate2,
 				amount: '6200.00',
+				principalAmount: p6a.principalAmount,
+				financingAmount: p6a.financingAmount,
 			},
 			{
 				creditId: credit6.id,
 				dueDate: pastDateMiddle,
 				amount: '6200.00',
+				principalAmount: p6b.principalAmount,
+				financingAmount: p6b.financingAmount,
 			},
 			{
 				creditId: credit6.id,
 				dueDate: pastDate,
 				amount: '6200.00',
+				principalAmount: p6c.principalAmount,
+				financingAmount: p6c.financingAmount,
 			},
 		])
 	}
@@ -457,11 +487,14 @@ export const seedDeductionsQueue = async (
 	const credit4HistoryDue = eodNCalendarDaysFromMexicoToday(now, 3650)
 	// credit4 confirmed recently (more recent than credit5) → appears first in history
 	const credit4ConfirmedAt = new Date(now.getTime() - 2 * 60_000)
+	const p4 = paymentPrincipalFinancing('15375.00', creditAmountConfirmed)
 	await db.insert(creditPayments).values([
 		{
 			creditId: credit4.id,
 			dueDate: credit4HistoryDue,
 			amount: '15375.00',
+			principalAmount: p4.principalAmount,
+			financingAmount: p4.financingAmount,
 			hrConfirmedAt: credit4ConfirmedAt,
 			hrConfirmedByUserId: hrAgent.id,
 		},
@@ -501,11 +534,14 @@ export const seedDeductionsQueue = async (
 
 	// confirmed at an older timestamp than credit4 → should appear second in history
 	const credit5ConfirmedAt = new Date(now.getTime() - 10 * 60_000)
+	const p5 = paymentPrincipalFinancing('12300.00', creditAmountLate)
 	await db.insert(creditPayments).values([
 		{
 			creditId: credit5.id,
 			dueDate: pastDate,
 			amount: '12300.00',
+			principalAmount: p5.principalAmount,
+			financingAmount: p5.financingAmount,
 			hrConfirmedAt: credit5ConfirmedAt,
 			hrConfirmedByUserId: hrAgent.id,
 		},
@@ -544,11 +580,14 @@ export const seedDeductionsQueue = async (
 
 	if (!credit8) throw new Error('Seed Deductions: credit 8 not created')
 
+	const p8 = paymentPrincipalFinancing('11275.00', creditAmountMxEdge)
 	await db.insert(creditPayments).values([
 		{
 			creditId: credit8.id,
 			dueDate: mxEdgeDueEod,
 			amount: '11275.00',
+			principalAmount: p8.principalAmount,
+			financingAmount: p8.financingAmount,
 			hrConfirmedAt: new Date('2022-12-01T05:00:00.000Z'),
 			hrConfirmedByUserId: hrAgent.id,
 		},

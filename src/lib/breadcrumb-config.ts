@@ -4,6 +4,7 @@ export const BREADCRUMB_LABEL_KEYS = [
 	'cuenta-applications-new',
 	'cuenta-applications-detail',
 	'cuenta-credits',
+	'cuenta-credits-detail',
 	'equipo-home',
 	'equipo-applications',
 	'equipo-applications-detail',
@@ -20,6 +21,8 @@ export const BREADCRUMB_LABEL_KEYS = [
 	'equipo-installments',
 	'equipo-installments-history',
 	'equipo-installments-overdue',
+	'equipo-liquidations',
+	'equipo-liquidations-detail',
 ] as const
 
 export type BreadcrumbLabelKey = (typeof BREADCRUMB_LABEL_KEYS)[number]
@@ -40,6 +43,17 @@ export function getCuentaBreadcrumbSegments(
 		return [
 			{ href: base, labelKey: 'cuenta-home' },
 			{ href: `${base}/credits`, labelKey: 'cuenta-credits' },
+		]
+	}
+	const creditId = params.id
+	if (creditId && pathname === `${base}/credits/${creditId}`) {
+		return [
+			{ href: base, labelKey: 'cuenta-home' },
+			{ href: `${base}/credits`, labelKey: 'cuenta-credits' },
+			{
+				href: `${base}/credits/${creditId}`,
+				labelKey: 'cuenta-credits-detail',
+			},
 		]
 	}
 	if (pathname === `${base}/applications`) {
@@ -206,6 +220,26 @@ export function getEquipoBreadcrumbSegments(
 			{
 				href: `${base}/installments/overdue`,
 				labelKey: 'equipo-installments-overdue',
+			},
+		]
+	}
+	if (pathname === `${base}/liquidations`) {
+		return [
+			{ href: base, labelKey: 'equipo-home' },
+			{ href: `${base}/liquidations`, labelKey: 'equipo-liquidations' },
+		]
+	}
+	const liquidationRequestId = params.id
+	if (
+		liquidationRequestId &&
+		pathname === `${base}/liquidations/${liquidationRequestId}`
+	) {
+		return [
+			{ href: base, labelKey: 'equipo-home' },
+			{ href: `${base}/liquidations`, labelKey: 'equipo-liquidations' },
+			{
+				href: `${base}/liquidations/${liquidationRequestId}`,
+				labelKey: 'equipo-liquidations-detail',
 			},
 		]
 	}

@@ -56,6 +56,7 @@ export const PROFILE_ROLE_KEYS: Record<
 	hr: 'role-hr',
 	dispersions: 'role-dispersions',
 	installments: 'role-installments',
+	liquidations: 'role-liquidations',
 	admin: 'role-admin',
 }
 

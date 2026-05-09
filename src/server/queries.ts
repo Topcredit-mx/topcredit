@@ -21,6 +21,7 @@ import {
 	todayYmdMexicoCity,
 	ymdForDeductionSchedule,
 } from '~/lib/calendar-date-tz'
+import { liquidationOutstandingFromPaymentRows } from '~/lib/credit-liquidation-preview'
 import { employeeSalaryFrequencyFromDb } from '~/lib/employee-salary-frequency'
 import { isEquipoScheduleConfirmationOnTime } from '~/lib/equipo-workflow-status'
 import {
@@ -35,12 +36,14 @@ import type {
 	CreditStatus,
 	DocumentStatus,
 	DocumentType,
+	LiquidationRequestStatus,
 } from '~/server/db/schema'
 import {
 	applicationDocuments,
 	applicationStatusHistory,
 	applications,
 	companies,
+	creditLiquidationRequests,
 	creditPayments,
 	credits,
 	termOfferings,
@@ -1236,10 +1239,10 @@ export async function getCreditsByApplicantId(
 				creditId: creditPayments.creditId,
 				total: sql<number>`cast(count(*) as int)`.mapWith(Number),
 				confirmed:
-					sql<number>`cast(count(*) filter (where ${creditPayments.installmentConfirmedAt} is not null) as int)`.mapWith(
+					sql<number>`cast(count(*) filter (where ${creditPayments.installmentConfirmedAt} is not null or ${creditPayments.closedByLiquidationAt} is not null) as int)`.mapWith(
 						Number,
 					),
-				outstanding: sql<string>`coalesce(sum(${creditPayments.amount}) filter (where ${creditPayments.installmentConfirmedAt} is null), 0)::text`,
+				outstanding: sql<string>`coalesce(sum(${creditPayments.amount}) filter (where ${creditPayments.installmentConfirmedAt} is null and ${creditPayments.closedByLiquidationAt} is null), 0)::text`,
 			})
 			.from(creditPayments)
 			.where(inArray(creditPayments.creditId, creditIds))
@@ -1255,6 +1258,7 @@ export async function getCreditsByApplicantId(
 				and(
 					inArray(creditPayments.creditId, creditIds),
 					isNull(creditPayments.installmentConfirmedAt),
+					isNull(creditPayments.closedByLiquidationAt),
 				),
 			)
 			.orderBy(asc(creditPayments.creditId), asc(creditPayments.dueDate)),
@@ -1359,8 +1363,11 @@ type CreditPaymentRow = {
 	id: number
 	dueDate: Date
 	amount: string
+	principalAmount: string
+	financingAmount: string
 	hrConfirmedAt: Date | null
 	installmentConfirmedAt: Date | null
+	closedByLiquidationAt: Date | null
 }
 
 export async function getCreditPaymentsByCreditId(
@@ -1379,8 +1386,11 @@ export async function getCreditPaymentsByCreditId(
 			id: creditPayments.id,
 			dueDate: creditPayments.dueDate,
 			amount: creditPayments.amount,
+			principalAmount: creditPayments.principalAmount,
+			financingAmount: creditPayments.financingAmount,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
 			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
+			closedByLiquidationAt: creditPayments.closedByLiquidationAt,
 		})
 		.from(creditPayments)
 		.innerJoin(credits, eq(creditPayments.creditId, credits.id))
@@ -1392,6 +1402,85 @@ export async function getCreditPaymentsByCreditId(
 			),
 		)
 		.orderBy(asc(creditPayments.dueDate))
+}
+
+export async function getPendingLiquidationRequestIdForApplicantCredit(params: {
+	creditId: number
+	applicantId: number
+}): Promise<number | null> {
+	const { creditId, applicantId } = params
+	const { ability } = await getAbility()
+	requireAbility(
+		ability,
+		'read',
+		subject('Credit', { id: creditId, applicantId }),
+	)
+
+	const [row] = await db
+		.select({ id: creditLiquidationRequests.id })
+		.from(creditLiquidationRequests)
+		.where(
+			and(
+				eq(creditLiquidationRequests.creditId, creditId),
+				eq(creditLiquidationRequests.applicantId, applicantId),
+				eq(creditLiquidationRequests.status, 'pending'),
+			),
+		)
+		.limit(1)
+
+	return row?.id ?? null
+}
+
+export type AcceptedLiquidationSnapshot = {
+	liquidatedPrincipal: string
+	liquidatedFinancing: string
+	liquidatedScheduledTotal: string
+	decidedAt: Date
+}
+
+export async function getAcceptedLiquidationSnapshotForApplicantCredit(params: {
+	creditId: number
+	applicantId: number
+}): Promise<AcceptedLiquidationSnapshot | null> {
+	const { creditId, applicantId } = params
+	const { ability } = await getAbility()
+	requireAbility(
+		ability,
+		'read',
+		subject('Credit', { id: creditId, applicantId }),
+	)
+
+	const [row] = await db
+		.select({
+			liquidatedPrincipal: creditLiquidationRequests.liquidatedPrincipal,
+			liquidatedFinancing: creditLiquidationRequests.liquidatedFinancing,
+			liquidatedScheduledTotal:
+				creditLiquidationRequests.liquidatedScheduledTotal,
+			decidedAt: creditLiquidationRequests.decidedAt,
+		})
+		.from(creditLiquidationRequests)
+		.where(
+			and(
+				eq(creditLiquidationRequests.creditId, creditId),
+				eq(creditLiquidationRequests.applicantId, applicantId),
+				eq(creditLiquidationRequests.status, 'accepted'),
+				isNotNull(creditLiquidationRequests.liquidatedScheduledTotal),
+			),
+		)
+		.orderBy(desc(creditLiquidationRequests.decidedAt))
+		.limit(1)
+
+	if (!row || row.decidedAt === null || row.liquidatedScheduledTotal === null) {
+		return null
+	}
+	const p = row.liquidatedPrincipal
+	const f = row.liquidatedFinancing
+	return {
+		liquidatedPrincipal: p != null ? String(p) : '0.00',
+		liquidatedFinancing: f != null ? String(f) : '0.00',
+		liquidatedScheduledTotal: String(row.liquidatedScheduledTotal),
+		decidedAt: row.decidedAt,
+	}
 }
 
 // ---- Equipo credit detail ----
@@ -1529,8 +1618,11 @@ export type CreditPaymentRowForEquipo = {
 	id: number
 	dueDate: Date
 	amount: string
+	principalAmount: string
+	financingAmount: string
 	hrConfirmedAt: Date | null
 	installmentConfirmedAt: Date | null
+	closedByLiquidationAt: Date | null
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 }
 
@@ -1543,8 +1635,11 @@ export async function getCreditPaymentsForEquipo(
 			id: creditPayments.id,
 			dueDate: creditPayments.dueDate,
 			amount: creditPayments.amount,
+			principalAmount: creditPayments.principalAmount,
+			financingAmount: creditPayments.financingAmount,
 			hrConfirmedAt: creditPayments.hrConfirmedAt,
 			installmentConfirmedAt: creditPayments.installmentConfirmedAt,
+			closedByLiquidationAt: creditPayments.closedByLiquidationAt,
 			companySalaryFrequency: companies.employeeSalaryFrequency,
 		})
 		.from(creditPayments)
@@ -1562,12 +1657,178 @@ export async function getCreditPaymentsForEquipo(
 		id: r.id,
 		dueDate: r.dueDate,
 		amount: r.amount,
+		principalAmount: r.principalAmount,
+		financingAmount: r.financingAmount,
 		hrConfirmedAt: r.hrConfirmedAt,
 		installmentConfirmedAt: r.installmentConfirmedAt,
+		closedByLiquidationAt: r.closedByLiquidationAt,
 		employeeSalaryFrequency: employeeSalaryFrequencyFromDb(
 			r.companySalaryFrequency,
 		),
 	}))
+}
+
+function liquidationPendingCompanyCondition(scope: CompanyScope): SQL {
+	if (scope.type === 'single') {
+		return eq(applications.companyId, scope.companyId)
+	}
+	if (scope.type === 'multi') {
+		const ids = scope.companyIds
+		if (ids.length === 0) {
+			return sql`false`
+		}
+		return inArray(applications.companyId, ids)
+	}
+	return sql`true`
+}
+
+export type EquipoLiquidationRequestListItem = {
+	id: number
+	creditId: number
+	createdAt: Date
+	applicantName: string
+	companyName: string
+	transferAmount: string
+}
+
+export async function getPendingLiquidationRequestsForEquipo(
+	scope: CompanyScope,
+): Promise<EquipoLiquidationRequestListItem[]> {
+	const { ability, isAdmin } = await getAbility()
+	if (scope.type === 'single') {
+		requireAbility(ability, 'read', subject('Company', { id: scope.companyId }))
+	} else if (scope.type === 'multi') {
+		const ids = scope.companyIds
+		if (ids.length === 0) {
+			return []
+		}
+		const firstId = ids[0]
+		if (firstId === undefined) {
+			return []
+		}
+		requireAbility(ability, 'read', subject('Company', { id: firstId }))
+	} else {
+		requireAbility(ability, 'read', 'Admin')
+	}
+
+	const conds: SQL[] = [
+		eq(creditLiquidationRequests.status, 'pending'),
+		liquidationPendingCompanyCondition(scope),
+	]
+	if (!isAdmin) {
+		conds.push(eq(companies.active, true))
+	}
+
+	return db
+		.select({
+			id: creditLiquidationRequests.id,
+			creditId: creditLiquidationRequests.creditId,
+			createdAt: creditLiquidationRequests.createdAt,
+			applicantName: users.name,
+			companyName: companies.name,
+			transferAmount: credits.transferAmount,
+		})
+		.from(creditLiquidationRequests)
+		.innerJoin(credits, eq(creditLiquidationRequests.creditId, credits.id))
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.innerJoin(users, eq(creditLiquidationRequests.applicantId, users.id))
+		.innerJoin(companies, eq(creditLiquidationRequests.companyId, companies.id))
+		.where(and(...conds))
+		.orderBy(desc(creditLiquidationRequests.createdAt))
+}
+
+export type EquipoLiquidationRequestDetail = {
+	id: number
+	creditId: number
+	applicantId: number
+	applicantName: string
+	companyId: number
+	companyName: string
+	status: LiquidationRequestStatus
+	denialReason: string | null
+	createdAt: Date
+	transferAmount: string
+	outstandingPrincipal: string
+	outstandingFinancing: string
+	outstandingScheduledTotal: string
+	pendingInstallmentCount: number
+	confirmedInstallmentCount: number
+	liquidatedPrincipal: string | null
+	liquidatedFinancing: string | null
+	liquidatedScheduledTotal: string | null
+}
+
+export async function getEquipoLiquidationRequestDetail(
+	requestId: number,
+): Promise<EquipoLiquidationRequestDetail | null> {
+	const { ability } = await getAbility()
+
+	const [row] = await db
+		.select({
+			id: creditLiquidationRequests.id,
+			creditId: creditLiquidationRequests.creditId,
+			applicantId: creditLiquidationRequests.applicantId,
+			applicantName: users.name,
+			companyId: creditLiquidationRequests.companyId,
+			companyName: companies.name,
+			status: creditLiquidationRequests.status,
+			denialReason: creditLiquidationRequests.denialReason,
+			createdAt: creditLiquidationRequests.createdAt,
+			transferAmount: credits.transferAmount,
+			liquidatedPrincipal: creditLiquidationRequests.liquidatedPrincipal,
+			liquidatedFinancing: creditLiquidationRequests.liquidatedFinancing,
+			liquidatedScheduledTotal:
+				creditLiquidationRequests.liquidatedScheduledTotal,
+		})
+		.from(creditLiquidationRequests)
+		.innerJoin(credits, eq(creditLiquidationRequests.creditId, credits.id))
+		.innerJoin(applications, eq(credits.applicationId, applications.id))
+		.innerJoin(users, eq(creditLiquidationRequests.applicantId, users.id))
+		.innerJoin(companies, eq(creditLiquidationRequests.companyId, companies.id))
+		.where(eq(creditLiquidationRequests.id, requestId))
+
+	if (!row) {
+		return null
+	}
+
+	const subj = subject('CreditLiquidationRequest', {
+		id: row.id,
+		creditId: row.creditId,
+		applicantId: row.applicantId,
+		companyId: row.companyId,
+		status: row.status,
+	})
+	if (!ability.can('read', subj)) {
+		return null
+	}
+
+	const payments = await getCreditPaymentsForEquipo(row.creditId, row.companyId)
+	const preview = liquidationOutstandingFromPaymentRows(payments)
+
+	const liqPr = row.liquidatedPrincipal
+	const liqFn = row.liquidatedFinancing
+	const liqTot = row.liquidatedScheduledTotal
+
+	return {
+		id: row.id,
+		creditId: row.creditId,
+		applicantId: row.applicantId,
+		applicantName: row.applicantName,
+		companyId: row.companyId,
+		companyName: row.companyName,
+		status: row.status,
+		denialReason: row.denialReason,
+		createdAt: row.createdAt,
+		transferAmount: row.transferAmount,
+		outstandingPrincipal: preview.outstandingPrincipal,
+		outstandingFinancing: preview.outstandingFinancing,
+		outstandingScheduledTotal: preview.outstandingScheduledTotal,
+		pendingInstallmentCount: preview.pendingInstallmentCount,
+		confirmedInstallmentCount: preview.confirmedInstallmentCount,
+		liquidatedPrincipal: liqPr != null ? String(liqPr) : null,
+		liquidatedFinancing: liqFn != null ? String(liqFn) : null,
+		liquidatedScheduledTotal: liqTot != null ? String(liqTot) : null,
+	}
 }
 
 const creditNotDefaultedSql: SQL = sql`cr.status <> 'defaulted'::credit_status`
@@ -1642,7 +1903,7 @@ export async function getInstallmentsForQueue(params: {
 	const statusCondition: SQL =
 		queue === 'deductions'
 			? sql`cp.hr_confirmed_at IS NULL`
-			: sql`cp.installment_confirmed_at IS NULL`
+			: sql`cp.installment_confirmed_at IS NULL AND cp.closed_by_liquidation_at IS NULL`
 
 	// When an upcoming deduction date is provided, filter to payments due in the
 	// current pay period (same window as the header’s “próxima deducción”) and
@@ -1662,7 +1923,10 @@ export async function getInstallmentsForQueue(params: {
 				cp.due_date < ${startOfTodayMx}
 				AND (
 					cp.hr_confirmed_at IS NULL
-					OR cp.installment_confirmed_at IS NULL
+					OR (
+						cp.installment_confirmed_at IS NULL
+						AND cp.closed_by_liquidation_at IS NULL
+					)
 				)
 			)`
 			: sql``
@@ -1687,6 +1951,7 @@ export async function getInstallmentsForQueue(params: {
 				FROM credit_payments cp3
 				WHERE cp3.credit_id = cp.credit_id
 					AND cp3.installment_confirmed_at IS NULL
+					AND cp3.closed_by_liquidation_at IS NULL
 			) AS is_final_installment_confirm,
 			(
 				SELECT COUNT(*)::int
@@ -1872,6 +2137,7 @@ export async function getOverdueInstallments(params: {
 					WHERE
 						cp.hr_confirmed_at IS NOT NULL
 						AND cp.installment_confirmed_at IS NULL
+						AND cp.closed_by_liquidation_at IS NULL
 				),
 				'[]'::json
 			) AS confirmable_payments
@@ -1882,6 +2148,7 @@ export async function getOverdueInstallments(params: {
 		INNER JOIN companies co ON a.company_id = co.id
 		WHERE ${companyCondition}
 		  AND ${creditNotDefaultedSql}
+		  AND cp.closed_by_liquidation_at IS NULL
 		  AND cp.due_date < ${startOfTodayMx}
 		  AND (
 				cp.hr_confirmed_at IS NULL
@@ -2164,11 +2431,15 @@ export async function getOldestPendingPaymentAgeDays(
 
 		pendingCondition = sql`
 			cp.installment_confirmed_at IS NULL
+			AND cp.closed_by_liquidation_at IS NULL
 			AND NOT (
 				cp.due_date < ${startOfTodayMx}
 				AND (
 					cp.hr_confirmed_at IS NULL
-					OR cp.installment_confirmed_at IS NULL
+					OR (
+						cp.installment_confirmed_at IS NULL
+						AND cp.closed_by_liquidation_at IS NULL
+					)
 				)
 			)
 			${dateCondition}
@@ -2178,7 +2449,10 @@ export async function getOldestPendingPaymentAgeDays(
 			cp.due_date < ${startOfTodayMx}
 			AND (
 				cp.hr_confirmed_at IS NULL
-				OR cp.installment_confirmed_at IS NULL
+				OR (
+					cp.installment_confirmed_at IS NULL
+					AND cp.closed_by_liquidation_at IS NULL
+				)
 			)
 		`
 	}
@@ -2410,6 +2684,7 @@ export async function getOverdueInstallmentsCount(
 		INNER JOIN applications a ON cr.application_id = a.id
 		WHERE a.company_id = ${companyId}
 		  AND ${creditNotDefaultedSql}
+		  AND cp.closed_by_liquidation_at IS NULL
 		  AND cp.due_date < ${startOfTodayMx}
 		  AND (
 				cp.hr_confirmed_at IS NULL

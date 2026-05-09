@@ -6,8 +6,10 @@ import {
 	CalendarDays,
 	CircleDollarSign,
 	ClipboardList,
+	Coins,
 	Hash,
 	ListChecks,
+	Percent,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
@@ -98,16 +100,48 @@ export function useCreditPaymentScheduleColumns(
 				enableSorting: false,
 			},
 			{
+				accessorKey: 'principalAmount',
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('credit-detail-col-principal')}
+						icon={<Coins aria-hidden />}
+					/>
+				),
+				cell: ({ row }) => (
+					<div className="text-slate-800 text-sm tabular-nums">
+						{formatCurrencyMxn(row.original.principalAmount)}
+					</div>
+				),
+				enableSorting: false,
+			},
+			{
+				accessorKey: 'financingAmount',
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title={t('credit-detail-col-financing')}
+						icon={<Percent aria-hidden />}
+					/>
+				),
+				cell: ({ row }) => (
+					<div className="text-slate-800 text-sm tabular-nums">
+						{formatCurrencyMxn(row.original.financingAmount)}
+					</div>
+				),
+				enableSorting: false,
+			},
+			{
 				accessorKey: 'amount',
 				header: ({ column }) => (
 					<DataTableColumnHeader
 						column={column}
-						title={t('credit-detail-col-amount')}
+						title={t('credit-detail-col-total')}
 						icon={<CircleDollarSign aria-hidden />}
 					/>
 				),
 				cell: ({ row }) => (
-					<div className="text-slate-800 text-sm">
+					<div className="font-medium text-slate-800 text-sm tabular-nums">
 						{formatCurrencyMxn(row.original.amount)}
 					</div>
 				),
@@ -159,6 +193,7 @@ export function useCreditPaymentScheduleColumns(
 					} = resolveCreditDetailCollectionStatus({
 						hrConfirmedAt: row.original.hrConfirmedAt,
 						installmentConfirmedAt: row.original.installmentConfirmedAt,
+						closedByLiquidationAt: row.original.closedByLiquidationAt,
 						dueDate: row.original.dueDate,
 						todayYmd,
 					})

@@ -22,6 +22,13 @@ describe('canHrConfirm', () => {
 	test('returns false when hrConfirmedAt is set', () => {
 		assert.equal(canHrConfirm({ hrConfirmedAt: NOW }), false)
 	})
+
+	test('returns false when closed by liquidation', () => {
+		assert.equal(
+			canHrConfirm({ hrConfirmedAt: null, closedByLiquidationAt: NOW }),
+			false,
+		)
+	})
 })
 
 describe('canConfirmInstallmentForCreditDetailRow', () => {
@@ -114,6 +121,17 @@ describe('canConfirmInstallment', () => {
 			canConfirmInstallment({
 				hrConfirmedAt: NOW,
 				installmentConfirmedAt: NOW,
+			}),
+			false,
+		)
+	})
+
+	test('returns false when closed by liquidation', () => {
+		assert.equal(
+			canConfirmInstallment({
+				hrConfirmedAt: NOW,
+				installmentConfirmedAt: null,
+				closedByLiquidationAt: NOW,
 			}),
 			false,
 		)
@@ -300,6 +318,17 @@ describe('isFullyConfirmed', () => {
 			true,
 		)
 	})
+
+	test('returns true when closed by liquidation', () => {
+		assert.equal(
+			isFullyConfirmed({
+				hrConfirmedAt: null,
+				installmentConfirmedAt: null,
+				closedByLiquidationAt: NOW,
+			}),
+			true,
+		)
+	})
 })
 
 describe('allInstallmentsFullyConfirmed', () => {
@@ -344,6 +373,20 @@ describe('allInstallmentsFullyConfirmed', () => {
 				{ hrConfirmedAt: null, installmentConfirmedAt: null },
 			]),
 			false,
+		)
+	})
+
+	test('returns true when a row is closed by liquidation and the other is fully confirmed', () => {
+		assert.equal(
+			allInstallmentsFullyConfirmed([
+				{ hrConfirmedAt: NOW, installmentConfirmedAt: NOW },
+				{
+					hrConfirmedAt: NOW,
+					installmentConfirmedAt: null,
+					closedByLiquidationAt: NOW,
+				},
+			]),
+			true,
 		)
 	})
 })

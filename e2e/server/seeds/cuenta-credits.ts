@@ -1,10 +1,13 @@
 import { eq } from 'drizzle-orm'
 import {
-	allCreditsUsers,
+	allCreditsSeedUsers,
 	creditsApplicant,
 	creditsCompany,
+	creditsEquipoAdmin,
+	creditsLiquidationsAgent,
 	creditsOtherApplicant,
 } from '~/e2e/cuenta/credits.fixtures'
+import { liquidationOutstandingFromPaymentRows } from '~/lib/credit-liquidation-preview'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
 	applicationStatusHistory,
@@ -14,6 +17,7 @@ import {
 	credits,
 	termOfferings,
 	terms,
+	userCompanies,
 	userRoles,
 	users,
 } from '~/server/db/schema'
@@ -38,6 +42,9 @@ export type SeedCuentaCreditsResult = {
 	processingPaymentRowIndex: number
 	pendingPaymentRowIndex: number
 	nextDisbursedPaymentDueIso: string | null
+	liquidationOutstandingPrincipal: string | null
+	liquidationOutstandingFinancing: string | null
+	liquidationOutstandingTotal: string | null
 }
 
 async function seedCuentaCreditsBase(
@@ -47,7 +54,7 @@ async function seedCuentaCreditsBase(
 	const now = new Date()
 
 	await Promise.all(
-		allCreditsUsers.map((u) =>
+		allCreditsSeedUsers.map((u) =>
 			db.delete(users).where(eq(users.email, u.email)),
 		),
 	)
@@ -67,7 +74,7 @@ async function seedCuentaCreditsBase(
 		db
 			.insert(users)
 			.values(
-				allCreditsUsers.map((u) => ({
+				allCreditsSeedUsers.map((u) => ({
 					email: u.email,
 					name: u.name,
 					emailVerified: now,
@@ -89,6 +96,18 @@ async function seedCuentaCreditsBase(
 	if (!otherApplicantUser)
 		throw new Error('Seed Credits: other applicant user not found')
 
+	const liquidationsAgentUser = createdUsers.find(
+		(u) => u.email === creditsLiquidationsAgent.email,
+	)
+	if (!liquidationsAgentUser)
+		throw new Error('Seed Credits: liquidations agent user not found')
+
+	const equipoAdminUser = createdUsers.find(
+		(u) => u.email === creditsEquipoAdmin.email,
+	)
+	if (!equipoAdminUser)
+		throw new Error('Seed Credits: equipo admin user not found')
+
 	await db.insert(userRoles).values([
 		...creditsApplicant.roles.map((role) => ({
 			userId: applicantUser.id,
@@ -98,7 +117,20 @@ async function seedCuentaCreditsBase(
 			userId: otherApplicantUser.id,
 			role,
 		})),
+		...creditsLiquidationsAgent.roles.map((role) => ({
+			userId: liquidationsAgentUser.id,
+			role,
+		})),
+		...creditsEquipoAdmin.roles.map((role) => ({
+			userId: equipoAdminUser.id,
+			role,
+		})),
 	])
+
+	await db.insert(userCompanies).values({
+		userId: liquidationsAgentUser.id,
+		companyId: company.id,
+	})
 
 	const [term] = await db
 		.insert(terms)
@@ -149,6 +181,9 @@ async function seedCuentaCreditsBase(
 	let creditId: number | null = null
 	let settledCreditId: number | null = null
 	let nextDisbursedPaymentDueIso: string | null = null
+	let liquidationOutstandingPrincipal: string | null = null
+	let liquidationOutstandingFinancing: string | null = null
+	let liquidationOutstandingTotal: string | null = null
 	const settledCreditAmount = '30000.00'
 	if (withCredit) {
 		const [credit] = await db
@@ -181,6 +216,20 @@ async function seedCuentaCreditsBase(
 		}
 		nextDisbursedPaymentDueIso = firstPendingDue.dueDate.toISOString()
 
+		const liquidationPreviewRows = schedule.slice(2).map((entry) => ({
+			amount: entry.amount,
+			principalAmount: entry.principalAmount,
+			financingAmount: entry.financingAmount,
+			installmentConfirmedAt: null as Date | null,
+			closedByLiquidationAt: null as Date | null,
+		}))
+		const liquidationPreview = liquidationOutstandingFromPaymentRows(
+			liquidationPreviewRows,
+		)
+		liquidationOutstandingPrincipal = liquidationPreview.outstandingPrincipal
+		liquidationOutstandingFinancing = liquidationPreview.outstandingFinancing
+		liquidationOutstandingTotal = liquidationPreview.outstandingScheduledTotal
+
 		// Rows 0–1: Fully confirmed ("Confirmado")
 		// Row 2: HR confirmed only ("En proceso" to applicant)
 		// Rows 3–11: Pending
@@ -189,6 +238,8 @@ async function seedCuentaCreditsBase(
 				creditId: credit.id,
 				dueDate: entry.dueDate,
 				amount: entry.amount,
+				principalAmount: entry.principalAmount,
+				financingAmount: entry.financingAmount,
 				hrConfirmedAt:
 					index <= 2 ? new Date(now.getTime() - 10 * 24 * 60 * 60_000) : null,
 				installmentConfirmedAt:
@@ -262,6 +313,8 @@ async function seedCuentaCreditsBase(
 				creditId: creditSettled.id,
 				dueDate: entry.dueDate,
 				amount: entry.amount,
+				principalAmount: entry.principalAmount,
+				financingAmount: entry.financingAmount,
 				hrConfirmedAt: confirmTs,
 				installmentConfirmedAt: confirmTs,
 			})),
@@ -279,6 +332,9 @@ async function seedCuentaCreditsBase(
 		processingPaymentRowIndex: 2,
 		pendingPaymentRowIndex: 3,
 		nextDisbursedPaymentDueIso,
+		liquidationOutstandingPrincipal,
+		liquidationOutstandingFinancing,
+		liquidationOutstandingTotal,
 	}
 }
 
@@ -294,7 +350,7 @@ export const seedCuentaCreditsEmpty =
 export const cleanupCuentaCredits = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
 	await Promise.all(
-		allCreditsUsers.map((u) =>
+		allCreditsSeedUsers.map((u) =>
 			db.delete(users).where(eq(users.email, u.email)),
 		),
 	)

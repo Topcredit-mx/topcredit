@@ -10,7 +10,26 @@ export const creditsOtherApplicant = {
 	roles: ['applicant'] as const,
 }
 
+export const creditsLiquidationsAgent = {
+	name: 'Credits Liquidations Agent',
+	email: 'credits.liquidations@creditscompany.com',
+	roles: ['agent', 'liquidations'] as const,
+}
+
+export const creditsEquipoAdmin = {
+	name: 'Credits Equipo Admin',
+	email: 'credits.equipo.admin@creditscompany.com',
+	roles: ['agent', 'admin'] as const,
+}
+
 export const allCreditsUsers = [creditsApplicant, creditsOtherApplicant]
+
+export const allCreditsSeedUsers = [
+	creditsApplicant,
+	creditsOtherApplicant,
+	creditsLiquidationsAgent,
+	creditsEquipoAdmin,
+]
 
 export const creditsCompany = {
 	name: 'Credits E2E Company',

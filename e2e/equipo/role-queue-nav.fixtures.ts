@@ -34,6 +34,12 @@ export const installmentAgent = {
 	roles: ['agent', 'installments'] as const,
 }
 
+export const liquidationsAgent = {
+	name: 'Nav Liquidations Agent',
+	email: 'nav.liquidations@rolequeue.com',
+	roles: ['agent', 'liquidations'] as const,
+}
+
 export const allNavAgents = [
 	requestsAgent,
 	preAuthAgent,
@@ -41,6 +47,7 @@ export const allNavAgents = [
 	dualQueueAgent,
 	hrAgent,
 	installmentAgent,
+	liquidationsAgent,
 ]
 
 export const navCompany = {

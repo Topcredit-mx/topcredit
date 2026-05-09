@@ -3,6 +3,7 @@ import {
 	allCreditDefaultAdminUsers,
 	creditDefaultAdminCompany,
 } from '~/e2e/equipo/credit-default-admin.fixtures'
+import { approximatePrincipalFinancingForPaymentAmount } from '~/lib/credit-payment-amount-split'
 import {
 	applicationStatusHistory,
 	applications,
@@ -160,11 +161,18 @@ export const seedCreditDefaultAdmin =
 		if (!creditTarget)
 			throw new Error('Seed CreditDefaultAdmin: target credit not created')
 
+		const splitT = approximatePrincipalFinancingForPaymentAmount({
+			paymentAmount: '12000.00',
+			loanPrincipal: 24000,
+			annualRate: Number(creditDefaultAdminCompany.rate),
+		})
 		await db.insert(creditPayments).values([
 			{
 				creditId: creditTarget.id,
 				dueDate: longOverdueDue,
 				amount: '12000.00',
+				principalAmount: splitT.principalAmount,
+				financingAmount: splitT.financingAmount,
 				hrConfirmedAt: hrAt(longOverdueDue),
 				hrConfirmedByUserId: adminUser.id,
 			},
@@ -212,11 +220,18 @@ export const seedCreditDefaultAdmin =
 		if (!creditOther)
 			throw new Error('Seed CreditDefaultAdmin: other credit not created')
 
+		const splitO = approximatePrincipalFinancingForPaymentAmount({
+			paymentAmount: '12000.00',
+			loanPrincipal: 12000,
+			annualRate: Number(creditDefaultAdminCompany.rate),
+		})
 		await db.insert(creditPayments).values([
 			{
 				creditId: creditOther.id,
 				dueDate: longOverdueDue,
 				amount: '12000.00',
+				principalAmount: splitO.principalAmount,
+				financingAmount: splitO.financingAmount,
 			},
 		])
 

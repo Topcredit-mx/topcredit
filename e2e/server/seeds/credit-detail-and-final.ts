@@ -21,6 +21,7 @@ import {
 	creditFinalInstallmentSettleInstallmentsAgent,
 	creditPartialScheduleApplicant,
 } from '~/e2e/equipo/credit-final-installment-settles.fixtures'
+import { approximatePrincipalFinancingForPaymentAmount } from '~/lib/credit-payment-amount-split'
 import {
 	applicationStatusHistory,
 	applications,
@@ -236,11 +237,18 @@ export const seedCreditDetailPaymentStates =
 		// Payment 3: upcoming period (dueDate = nextDeductionDate, unconfirmed) → button
 		// Payment 4: future beyond period → no button
 		// Payment 5: further future → no button
+		const s10250 = approximatePrincipalFinancingForPaymentAmount({
+			paymentAmount: '10250.00',
+			loanPrincipal: 50000,
+			annualRate: Number(creditDetailStatesCompany.rate),
+		})
 		await db.insert(creditPayments).values([
 			{
 				creditId: credit.id,
 				dueDate: confirmedPastDate,
 				amount: '10250.00',
+				principalAmount: s10250.principalAmount,
+				financingAmount: s10250.financingAmount,
 				hrConfirmedAt: new Date(confirmedPastDate.getTime() + 24 * 60 * 60_000),
 				hrConfirmedByUserId: hrAgent.id,
 			},
@@ -248,21 +256,29 @@ export const seedCreditDetailPaymentStates =
 				creditId: credit.id,
 				dueDate: overdueDate,
 				amount: '10250.00',
+				principalAmount: s10250.principalAmount,
+				financingAmount: s10250.financingAmount,
 			},
 			{
 				creditId: credit.id,
 				dueDate: upcomingDate,
 				amount: '10250.00',
+				principalAmount: s10250.principalAmount,
+				financingAmount: s10250.financingAmount,
 			},
 			{
 				creditId: credit.id,
 				dueDate: future1Date,
 				amount: '10250.00',
+				principalAmount: s10250.principalAmount,
+				financingAmount: s10250.financingAmount,
 			},
 			{
 				creditId: credit.id,
 				dueDate: future2Date,
 				amount: '10250.00',
+				principalAmount: s10250.principalAmount,
+				financingAmount: s10250.financingAmount,
 			},
 		])
 
@@ -446,11 +462,18 @@ export const seedCreditDetailInstallmentSchedule =
 
 		const hrAt = (d: Date) => new Date(d.getTime() + 24 * 60 * 60_000)
 
+		const s10250sched = approximatePrincipalFinancingForPaymentAmount({
+			paymentAmount: '10250.00',
+			loanPrincipal: 50000,
+			annualRate: Number(creditDetailInstallmentScheduleCompany.rate),
+		})
 		await db.insert(creditPayments).values([
 			{
 				creditId: credit.id,
 				dueDate: confirmedPastDate,
 				amount: '10250.00',
+				principalAmount: s10250sched.principalAmount,
+				financingAmount: s10250sched.financingAmount,
 				hrConfirmedAt: hrAt(confirmedPastDate),
 				hrConfirmedByUserId: hrAgent.id,
 				installmentConfirmedAt: hrAt(confirmedPastDate),
@@ -460,6 +483,8 @@ export const seedCreditDetailInstallmentSchedule =
 				creditId: credit.id,
 				dueDate: overdueDate,
 				amount: '10250.00',
+				principalAmount: s10250sched.principalAmount,
+				financingAmount: s10250sched.financingAmount,
 				hrConfirmedAt: hrAt(overdueDate),
 				hrConfirmedByUserId: hrAgent.id,
 			},
@@ -467,6 +492,8 @@ export const seedCreditDetailInstallmentSchedule =
 				creditId: credit.id,
 				dueDate: upcomingDate,
 				amount: '10250.00',
+				principalAmount: s10250sched.principalAmount,
+				financingAmount: s10250sched.financingAmount,
 				hrConfirmedAt: hrAt(upcomingDate),
 				hrConfirmedByUserId: hrAgent.id,
 			},
@@ -474,6 +501,8 @@ export const seedCreditDetailInstallmentSchedule =
 				creditId: credit.id,
 				dueDate: future1Date,
 				amount: '10250.00',
+				principalAmount: s10250sched.principalAmount,
+				financingAmount: s10250sched.financingAmount,
 				hrConfirmedAt: hrAt(future1Date),
 				hrConfirmedByUserId: hrAgent.id,
 			},
@@ -481,8 +510,11 @@ export const seedCreditDetailInstallmentSchedule =
 				creditId: credit.id,
 				dueDate: future2Date,
 				amount: '10250.00',
+				principalAmount: s10250sched.principalAmount,
+				financingAmount: s10250sched.financingAmount,
 				hrConfirmedAt: hrAt(future2Date),
 				hrConfirmedByUserId: hrAgent.id,
+				closedByLiquidationAt: new Date(now.getTime() - 24 * 60 * 60_000),
 			},
 		])
 
@@ -667,11 +699,24 @@ export const seedCreditFinalInstallmentSettles =
 
 		const hrAt = (d: Date) => new Date(d.getTime() + 24 * 60 * 60_000)
 
+		const rateFinal = Number(creditFinalInstallmentSettleCompany.rate)
+		const sp16667 = approximatePrincipalFinancingForPaymentAmount({
+			paymentAmount: '16666.67',
+			loanPrincipal: 50000,
+			annualRate: rateFinal,
+		})
+		const sp16666 = approximatePrincipalFinancingForPaymentAmount({
+			paymentAmount: '16666.66',
+			loanPrincipal: 50000,
+			annualRate: rateFinal,
+		})
 		await db.insert(creditPayments).values([
 			{
 				creditId: credit.id,
 				dueDate: row0Date,
 				amount: '16666.67',
+				principalAmount: sp16667.principalAmount,
+				financingAmount: sp16667.financingAmount,
 				hrConfirmedAt: hrAt(row0Date),
 				hrConfirmedByUserId: hrAgent.id,
 				installmentConfirmedAt: hrAt(row0Date),
@@ -681,6 +726,8 @@ export const seedCreditFinalInstallmentSettles =
 				creditId: credit.id,
 				dueDate: row1Date,
 				amount: '16666.67',
+				principalAmount: sp16667.principalAmount,
+				financingAmount: sp16667.financingAmount,
 				hrConfirmedAt: hrAt(row1Date),
 				hrConfirmedByUserId: hrAgent.id,
 				installmentConfirmedAt: hrAt(row1Date),
@@ -690,6 +737,8 @@ export const seedCreditFinalInstallmentSettles =
 				creditId: credit.id,
 				dueDate: row2Date,
 				amount: '16666.66',
+				principalAmount: sp16666.principalAmount,
+				financingAmount: sp16666.financingAmount,
 				hrConfirmedAt: hrAt(row2Date),
 				hrConfirmedByUserId: hrAgent.id,
 			},
@@ -814,6 +863,18 @@ export const seedInstallmentsQueueMixedSettlementAndPartial =
 
 		const hrAt = (d: Date) => new Date(d.getTime() + 24 * 60 * 60_000)
 
+		const rateMix = Number(creditFinalInstallmentSettleCompany.rate)
+		const mx16667 = approximatePrincipalFinancingForPaymentAmount({
+			paymentAmount: '16666.67',
+			loanPrincipal: 50000,
+			annualRate: rateMix,
+		})
+		const mx16666 = approximatePrincipalFinancingForPaymentAmount({
+			paymentAmount: '16666.66',
+			loanPrincipal: 50000,
+			annualRate: rateMix,
+		})
+
 		const [appFinal] = await db
 			.insert(applications)
 			.values({
@@ -865,6 +926,8 @@ export const seedInstallmentsQueueMixedSettlementAndPartial =
 				creditId: creditFinal.id,
 				dueDate: row0Date,
 				amount: '16666.67',
+				principalAmount: mx16667.principalAmount,
+				financingAmount: mx16667.financingAmount,
 				hrConfirmedAt: hrAt(row0Date),
 				hrConfirmedByUserId: hrAgent.id,
 				installmentConfirmedAt: hrAt(row0Date),
@@ -874,6 +937,8 @@ export const seedInstallmentsQueueMixedSettlementAndPartial =
 				creditId: creditFinal.id,
 				dueDate: row1Date,
 				amount: '16666.67',
+				principalAmount: mx16667.principalAmount,
+				financingAmount: mx16667.financingAmount,
 				hrConfirmedAt: hrAt(row1Date),
 				hrConfirmedByUserId: hrAgent.id,
 				installmentConfirmedAt: hrAt(row1Date),
@@ -883,6 +948,8 @@ export const seedInstallmentsQueueMixedSettlementAndPartial =
 				creditId: creditFinal.id,
 				dueDate: dueThisMonthEnd,
 				amount: '16666.66',
+				principalAmount: mx16666.principalAmount,
+				financingAmount: mx16666.financingAmount,
 				hrConfirmedAt: hrAt(dueThisMonthEnd),
 				hrConfirmedByUserId: hrAgent.id,
 			},
@@ -939,6 +1006,8 @@ export const seedInstallmentsQueueMixedSettlementAndPartial =
 				creditId: creditPartial.id,
 				dueDate: row0Date,
 				amount: '16666.67',
+				principalAmount: mx16667.principalAmount,
+				financingAmount: mx16667.financingAmount,
 				hrConfirmedAt: hrAt(row0Date),
 				hrConfirmedByUserId: hrAgent.id,
 				installmentConfirmedAt: hrAt(row0Date),
@@ -948,6 +1017,8 @@ export const seedInstallmentsQueueMixedSettlementAndPartial =
 				creditId: creditPartial.id,
 				dueDate: dueThisMonthEnd,
 				amount: '16666.67',
+				principalAmount: mx16667.principalAmount,
+				financingAmount: mx16667.financingAmount,
 				hrConfirmedAt: hrAt(dueThisMonthEnd),
 				hrConfirmedByUserId: hrAgent.id,
 			},
@@ -955,6 +1026,8 @@ export const seedInstallmentsQueueMixedSettlementAndPartial =
 				creditId: creditPartial.id,
 				dueDate: dueNextMonthEnd,
 				amount: '16666.66',
+				principalAmount: mx16666.principalAmount,
+				financingAmount: mx16666.financingAmount,
 			},
 		])
 

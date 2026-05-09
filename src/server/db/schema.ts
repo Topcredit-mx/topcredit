@@ -24,6 +24,7 @@ export const rolesEnum = pgEnum('roles', [
 	'hr',
 	'dispersions',
 	'installments',
+	'liquidations',
 	'admin',
 ])
 
@@ -330,6 +331,18 @@ export const CREDIT_STATUS_VALUES = [
 export type CreditStatus = (typeof CREDIT_STATUS_VALUES)[number]
 export const creditStatusEnum = pgEnum('credit_status', CREDIT_STATUS_VALUES)
 
+export const LIQUIDATION_REQUEST_STATUS_VALUES = [
+	'pending',
+	'accepted',
+	'denied',
+] as const
+export type LiquidationRequestStatus =
+	(typeof LIQUIDATION_REQUEST_STATUS_VALUES)[number]
+export const liquidationRequestStatusEnum = pgEnum(
+	'liquidation_request_status',
+	LIQUIDATION_REQUEST_STATUS_VALUES,
+)
+
 export const credits = pgTable('credits', {
 	id: serial('id').primaryKey(),
 	applicationId: integer('application_id')
@@ -363,6 +376,18 @@ export const creditPayments = pgTable('credit_payments', {
 		.references(() => credits.id, { onDelete: 'cascade' }),
 	dueDate: timestamp('due_date', { withTimezone: true }).notNull(),
 	amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+	principalAmount: numeric('principal_amount', {
+		precision: 12,
+		scale: 2,
+	})
+		.notNull()
+		.default('0'),
+	financingAmount: numeric('financing_amount', {
+		precision: 12,
+		scale: 2,
+	})
+		.notNull()
+		.default('0'),
 	hrConfirmedAt: timestamp('hr_confirmed_at', { withTimezone: true }),
 	hrConfirmedByUserId: integer('confirmed_by_user_id').references(
 		() => users.id,
@@ -374,10 +399,53 @@ export const creditPayments = pgTable('credit_payments', {
 	installmentConfirmedByUserId: integer(
 		'installment_confirmed_by_user_id',
 	).references(() => users.id, { onDelete: 'set null' }),
+	closedByLiquidationAt: timestamp('closed_by_liquidation_at', {
+		withTimezone: true,
+	}),
 	createdAt: timestamp('created_at', { withTimezone: true })
 		.defaultNow()
 		.notNull(),
 })
+
+export const creditLiquidationRequests = pgTable(
+	'credit_liquidation_requests',
+	{
+		id: serial('id').primaryKey(),
+		creditId: integer('credit_id')
+			.notNull()
+			.references(() => credits.id, { onDelete: 'cascade' }),
+		applicantId: integer('applicant_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		companyId: integer('company_id')
+			.notNull()
+			.references(() => companies.id, { onDelete: 'cascade' }),
+		status: liquidationRequestStatusEnum('status').notNull(),
+		denialReason: text('denial_reason'),
+		decidedAt: timestamp('decided_at', { withTimezone: true }),
+		decidedByUserId: integer('decided_by_user_id').references(() => users.id, {
+			onDelete: 'set null',
+		}),
+		liquidatedPrincipal: numeric('liquidated_principal', {
+			precision: 12,
+			scale: 2,
+		}),
+		liquidatedFinancing: numeric('liquidated_financing', {
+			precision: 12,
+			scale: 2,
+		}),
+		liquidatedScheduledTotal: numeric('liquidated_scheduled_total', {
+			precision: 12,
+			scale: 2,
+		}),
+		createdAt: timestamp('created_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+)
 
 export const usersRelations = relations(users, ({ many }) => ({
 	roles: many(userRoles),
@@ -391,11 +459,15 @@ export const usersRelations = relations(users, ({ many }) => ({
 	installmentConfirmedCreditPayments: many(creditPayments, {
 		relationName: 'installmentConfirmedCreditPayments',
 	}),
+	liquidationRequestsDecided: many(creditLiquidationRequests, {
+		relationName: 'liquidationRequestsDecidedByUser',
+	}),
 }))
 
 export const companiesRelations = relations(companies, ({ many }) => ({
 	users: many(userCompanies),
 	termOfferings: many(termOfferings),
+	liquidationRequests: many(creditLiquidationRequests),
 }))
 
 export const termsRelations = relations(terms, ({ many }) => ({
@@ -462,6 +534,7 @@ export const creditsRelations = relations(credits, ({ one, many }) => ({
 		references: [users.id],
 	}),
 	creditPayments: many(creditPayments),
+	liquidationRequests: many(creditLiquidationRequests),
 }))
 
 export const creditPaymentsRelations = relations(creditPayments, ({ one }) => ({
@@ -480,6 +553,29 @@ export const creditPaymentsRelations = relations(creditPayments, ({ one }) => ({
 		references: [users.id],
 	}),
 }))
+
+export const creditLiquidationRequestsRelations = relations(
+	creditLiquidationRequests,
+	({ one }) => ({
+		credit: one(credits, {
+			fields: [creditLiquidationRequests.creditId],
+			references: [credits.id],
+		}),
+		applicant: one(users, {
+			fields: [creditLiquidationRequests.applicantId],
+			references: [users.id],
+		}),
+		company: one(companies, {
+			fields: [creditLiquidationRequests.companyId],
+			references: [companies.id],
+		}),
+		decidedByUser: one(users, {
+			relationName: 'liquidationRequestsDecidedByUser',
+			fields: [creditLiquidationRequests.decidedByUserId],
+			references: [users.id],
+		}),
+	}),
+)
 
 export const applicationDocumentsRelations = relations(
 	applicationDocuments,
