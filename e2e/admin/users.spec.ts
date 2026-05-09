@@ -266,6 +266,22 @@ test.describe('Admin Users', () => {
 			)
 		})
 
+		test('allows admins to assign Liquidaciones role', async ({ page }) => {
+			const row = findTableRow(page, users.jane.name)
+			await row.scrollIntoViewIfNeeded()
+			await clickRoleCheckbox(row, 'Liquidaciones')
+			await expect(findRoleCheckbox(row, 'Liquidaciones')).toHaveAttribute(
+				'aria-checked',
+				'true',
+			)
+
+			await clickRoleCheckbox(row, 'Liquidaciones')
+			await expect(findRoleCheckbox(row, 'Liquidaciones')).toHaveAttribute(
+				'aria-checked',
+				'false',
+			)
+		})
+
 		test('shows checked state for users existing roles', async ({ page }) => {
 			const row = findTableRow(page, users.jane.name)
 			await expect(

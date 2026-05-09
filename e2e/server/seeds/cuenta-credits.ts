@@ -3,9 +3,11 @@ import {
 	allCreditsSeedUsers,
 	creditsApplicant,
 	creditsCompany,
+	creditsEquipoAdmin,
 	creditsLiquidationsAgent,
 	creditsOtherApplicant,
 } from '~/e2e/cuenta/credits.fixtures'
+import { liquidationOutstandingFromPaymentRows } from '~/lib/credit-liquidation-preview'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
 import {
 	applicationStatusHistory,
@@ -40,6 +42,9 @@ export type SeedCuentaCreditsResult = {
 	processingPaymentRowIndex: number
 	pendingPaymentRowIndex: number
 	nextDisbursedPaymentDueIso: string | null
+	liquidationOutstandingPrincipal: string | null
+	liquidationOutstandingFinancing: string | null
+	liquidationOutstandingTotal: string | null
 }
 
 async function seedCuentaCreditsBase(
@@ -97,6 +102,12 @@ async function seedCuentaCreditsBase(
 	if (!liquidationsAgentUser)
 		throw new Error('Seed Credits: liquidations agent user not found')
 
+	const equipoAdminUser = createdUsers.find(
+		(u) => u.email === creditsEquipoAdmin.email,
+	)
+	if (!equipoAdminUser)
+		throw new Error('Seed Credits: equipo admin user not found')
+
 	await db.insert(userRoles).values([
 		...creditsApplicant.roles.map((role) => ({
 			userId: applicantUser.id,
@@ -108,6 +119,10 @@ async function seedCuentaCreditsBase(
 		})),
 		...creditsLiquidationsAgent.roles.map((role) => ({
 			userId: liquidationsAgentUser.id,
+			role,
+		})),
+		...creditsEquipoAdmin.roles.map((role) => ({
+			userId: equipoAdminUser.id,
 			role,
 		})),
 	])
@@ -166,6 +181,9 @@ async function seedCuentaCreditsBase(
 	let creditId: number | null = null
 	let settledCreditId: number | null = null
 	let nextDisbursedPaymentDueIso: string | null = null
+	let liquidationOutstandingPrincipal: string | null = null
+	let liquidationOutstandingFinancing: string | null = null
+	let liquidationOutstandingTotal: string | null = null
 	const settledCreditAmount = '30000.00'
 	if (withCredit) {
 		const [credit] = await db
@@ -197,6 +215,20 @@ async function seedCuentaCreditsBase(
 			)
 		}
 		nextDisbursedPaymentDueIso = firstPendingDue.dueDate.toISOString()
+
+		const liquidationPreviewRows = schedule.slice(2).map((entry) => ({
+			amount: entry.amount,
+			principalAmount: entry.principalAmount,
+			financingAmount: entry.financingAmount,
+			installmentConfirmedAt: null as Date | null,
+			closedByLiquidationAt: null as Date | null,
+		}))
+		const liquidationPreview = liquidationOutstandingFromPaymentRows(
+			liquidationPreviewRows,
+		)
+		liquidationOutstandingPrincipal = liquidationPreview.outstandingPrincipal
+		liquidationOutstandingFinancing = liquidationPreview.outstandingFinancing
+		liquidationOutstandingTotal = liquidationPreview.outstandingScheduledTotal
 
 		// Rows 0–1: Fully confirmed ("Confirmado")
 		// Row 2: HR confirmed only ("En proceso" to applicant)
@@ -300,6 +332,9 @@ async function seedCuentaCreditsBase(
 		processingPaymentRowIndex: 2,
 		pendingPaymentRowIndex: 3,
 		nextDisbursedPaymentDueIso,
+		liquidationOutstandingPrincipal,
+		liquidationOutstandingFinancing,
+		liquidationOutstandingTotal,
 	}
 }
 

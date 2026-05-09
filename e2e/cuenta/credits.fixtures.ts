@@ -16,12 +16,19 @@ export const creditsLiquidationsAgent = {
 	roles: ['agent', 'liquidations'] as const,
 }
 
+export const creditsEquipoAdmin = {
+	name: 'Credits Equipo Admin',
+	email: 'credits.equipo.admin@creditscompany.com',
+	roles: ['agent', 'admin'] as const,
+}
+
 export const allCreditsUsers = [creditsApplicant, creditsOtherApplicant]
 
 export const allCreditsSeedUsers = [
 	creditsApplicant,
 	creditsOtherApplicant,
 	creditsLiquidationsAgent,
+	creditsEquipoAdmin,
 ]
 
 export const creditsCompany = {

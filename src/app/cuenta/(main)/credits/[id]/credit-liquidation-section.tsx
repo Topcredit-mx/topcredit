@@ -3,9 +3,18 @@
 import { HandCoins } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useActionState, useEffect, useRef } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { FormattedDate } from '~/components/formatted-date'
+import {
+	AlertDialog,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
 import { SectionCard } from '~/components/ui/section-card'
 import { Decimal } from '~/lib/decimal'
@@ -36,9 +45,11 @@ export function CreditLiquidationSection({
 	const router = useRouter()
 	const [state, action, pending] = useActionState(requestCreditLiquidation, {})
 	const wasPendingRef = useRef(false)
+	const [confirmOpen, setConfirmOpen] = useState(false)
 
 	useEffect(() => {
 		if (wasPendingRef.current && !pending && state.message === undefined) {
+			setConfirmOpen(false)
 			router.refresh()
 		}
 		wasPendingRef.current = pending
@@ -149,26 +160,88 @@ export function CreditLiquidationSection({
 						{t('liquidation-no-outstanding')}
 					</p>
 				) : (
-					<form action={action} className="mt-5 space-y-3">
-						<input type="hidden" name="creditId" value={String(creditId)} />
-						<AuthInlineError
-							message={
-								state.message != null && state.message !== ''
-									? resolveError(state.message)
-									: null
-							}
-							align="start"
-							className="px-0"
-							minHeightClass="min-h-5"
-						/>
+					<div className="mt-5">
 						<Button
-							type="submit"
+							type="button"
 							disabled={pending}
-							data-testid="credit-liquidation-request-submit"
+							onClick={() => setConfirmOpen(true)}
 						>
-							{pending ? t('liquidation-submitting') : t('liquidation-submit')}
+							{t('liquidation-submit')}
 						</Button>
-					</form>
+
+						<AlertDialog
+							open={confirmOpen}
+							onOpenChange={(open) => {
+								if (!pending) {
+									setConfirmOpen(open)
+								}
+							}}
+						>
+							<AlertDialogContent className="sm:max-w-md">
+								<form action={action} className="space-y-4">
+									<input
+										type="hidden"
+										name="creditId"
+										value={String(creditId)}
+									/>
+									<AlertDialogHeader>
+										<AlertDialogTitle>
+											{t('liquidation-confirm-dialog-title')}
+										</AlertDialogTitle>
+										<AlertDialogDescription className="text-left text-muted-foreground">
+											{t('liquidation-confirm-dialog-lead')}
+										</AlertDialogDescription>
+									</AlertDialogHeader>
+									<div className="grid gap-3 rounded-lg border bg-muted/20 p-4 sm:grid-cols-1">
+										<div>
+											<p className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wide">
+												{t('liquidation-outstanding-principal')}
+											</p>
+											<p className="mt-1 font-semibold text-base text-foreground tabular-nums">
+												{formatCurrencyMxn(outstandingPrincipal)}
+											</p>
+										</div>
+										<div>
+											<p className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wide">
+												{t('liquidation-outstanding-financing')}
+											</p>
+											<p className="mt-1 font-semibold text-base text-foreground tabular-nums">
+												{formatCurrencyMxn(outstandingFinancing)}
+											</p>
+										</div>
+										<div>
+											<p className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wide">
+												{t('liquidation-outstanding-total')}
+											</p>
+											<p className="mt-1 font-semibold text-base text-foreground tabular-nums">
+												{formatCurrencyMxn(outstandingScheduledTotal)}
+											</p>
+										</div>
+									</div>
+									<AuthInlineError
+										message={
+											state.message != null && state.message !== ''
+												? resolveError(state.message)
+												: null
+										}
+										align="start"
+										className="px-0"
+										minHeightClass="min-h-5"
+									/>
+									<AlertDialogFooter>
+										<AlertDialogCancel disabled={pending} type="button">
+											{t('liquidation-confirm-dialog-cancel')}
+										</AlertDialogCancel>
+										<Button type="submit" disabled={pending}>
+											{pending
+												? t('liquidation-submitting')
+												: t('liquidation-confirm-dialog-confirm')}
+										</Button>
+									</AlertDialogFooter>
+								</form>
+							</AlertDialogContent>
+						</AlertDialog>
+					</div>
 				)
 			) : null}
 		</SectionCard>

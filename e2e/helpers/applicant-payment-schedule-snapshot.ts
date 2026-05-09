@@ -18,11 +18,12 @@ function normalizeCellText(raw: string): string {
 
 export function applicantCreditPaymentScheduleTable(page: Page) {
 	return page
-		.locator('[data-slot="card"]')
-		.filter({
-			has: page.getByRole('heading', { name: /calendario de pagos/i }),
+		.getByRole('heading', {
+			level: 2,
+			name: /calendario de pagos/i,
 		})
-		.locator('table')
+		.locator('xpath=ancestor::div[@data-slot="card"][1]')
+		.getByRole('table')
 }
 
 export async function readApplicantPaymentScheduleSnapshot(

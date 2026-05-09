@@ -1,10 +1,6 @@
 import { Building2 } from 'lucide-react'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
-import { FormattedDate } from '~/components/formatted-date'
-import { Card } from '~/components/ui/card'
-import { formatCurrencyMxn } from '~/lib/utils'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import { getPendingLiquidationRequestsForEquipo } from '~/server/queries'
@@ -12,6 +8,7 @@ import {
 	getEffectiveCompanyScope,
 	getEffectiveSelectedCompanyId,
 } from '~/server/scopes'
+import { LiquidationsTable } from './liquidations-table'
 
 export default async function EquipoLiquidationsPage() {
 	getRequiredAgentUser()
@@ -67,66 +64,17 @@ export default async function EquipoLiquidationsPage() {
 
 	const scope = await getEffectiveCompanyScope()
 	const rows = await getPendingLiquidationRequestsForEquipo(scope)
+	const requests = rows.map((row) => ({
+		...row,
+		createdAt: row.createdAt.toISOString(),
+	}))
 
 	return (
 		<div className="container mx-auto min-w-0 py-6">
 			<h1 className="mb-6 font-semibold text-2xl text-foreground tracking-tight">
 				{t('liquidations-title')}
 			</h1>
-			{rows.length === 0 ? (
-				<Card className="p-8 text-center">
-					<p className="text-muted-foreground">{t('liquidations-empty')}</p>
-				</Card>
-			) : (
-				<div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:overflow-visible sm:px-0">
-					<table className="w-full min-w-[40rem]">
-						<thead>
-							<tr className="border-b text-left text-[11px] text-muted-foreground uppercase tracking-wide">
-								<th className="px-4 py-3 font-medium" scope="col">
-									{t('liquidations-col-applicant')}
-								</th>
-								<th className="px-4 py-3 font-medium" scope="col">
-									{t('liquidations-col-company')}
-								</th>
-								<th className="px-4 py-3 font-medium" scope="col">
-									{t('liquidations-col-amount')}
-								</th>
-								<th className="px-4 py-3 font-medium" scope="col">
-									{t('liquidations-col-requested')}
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{rows.map((row) => (
-								<tr
-									key={row.id}
-									className="border-border/80 border-b last:border-0"
-								>
-									<td className="px-4 py-3 text-sm">
-										<Link
-											href={`/equipo/liquidations/${row.id}`}
-											className="font-medium text-primary underline-offset-4 hover:underline"
-										>
-											{row.applicantName}
-										</Link>
-									</td>
-									<td className="px-4 py-3 text-sm">{row.companyName}</td>
-									<td className="px-4 py-3 text-sm">
-										{formatCurrencyMxn(row.transferAmount)}
-									</td>
-									<td className="px-4 py-3 text-muted-foreground text-sm">
-										<FormattedDate
-											value={row.createdAt.toISOString()}
-											format="date"
-											showTimeZoneLabel
-										/>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
-			)}
+			<LiquidationsTable requests={requests} />
 		</div>
 	)
 }
