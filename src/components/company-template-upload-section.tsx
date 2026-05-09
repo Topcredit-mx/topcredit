@@ -1,19 +1,18 @@
 'use client'
 
+import { FileText, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useActionState, useEffect, useId, useRef } from 'react'
 import { uploadCompanyTemplateAction } from '~/app/equipo/(main)/companies/company-template-actions'
 import { AuthInlineError } from '~/components/auth/auth-inline-message'
+import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
-import {
-	Field,
-	FieldDescription,
-	FieldError,
-	FieldLabel,
-} from '~/components/ui/field'
+import { Field, FieldError } from '~/components/ui/field'
 import { APPLICATION_DOCUMENT_ACCEPT } from '~/lib/application-document-intake'
 import type { CompanyTemplateKind } from '~/lib/company-templates'
+import { shell } from '~/lib/shell'
+import { cn } from '~/lib/utils'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { Company } from '~/server/queries'
 
@@ -42,7 +41,7 @@ function TemplateRow({
 	const t = useTranslations('admin')
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
-	const labelId = useId()
+	const titleId = useId()
 	const fileId = useId()
 	const fileRef = useRef<HTMLInputElement>(null)
 	const [state, action, pending] = useActionState(
@@ -76,47 +75,85 @@ function TemplateRow({
 
 	return (
 		<Field>
-			<FieldLabel id={labelId} htmlFor={fileId}>
-				{t(titleKey)}
-			</FieldLabel>
-			{hasFile && fileName ? (
-				<FieldDescription>
-					{t('company-template-current-file', { fileName })}
-				</FieldDescription>
-			) : (
-				<FieldDescription>{t('company-template-missing')}</FieldDescription>
-			)}
-			<form action={action} className="mt-2 flex flex-wrap items-end gap-3">
+			<form
+				action={action}
+				className={cn(shell.applicantDocumentUploadTile, 'items-stretch py-5')}
+				aria-labelledby={titleId}
+			>
 				<input type="hidden" name="companyId" value={company.id} />
 				<input type="hidden" name="kind" value={templateKind} />
+				<div className={shell.applicantDocumentTileIconWell} aria-hidden>
+					<FileText className="size-6" />
+				</div>
+				<div className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
+					<label
+						id={titleId}
+						htmlFor={fileId}
+						className="cursor-pointer font-semibold text-slate-900 text-sm leading-snug"
+					>
+						{t(titleKey)}
+					</label>
+					<Badge
+						variant={hasFile ? 'secondary' : 'outline'}
+						className={cn(
+							'shrink-0',
+							hasFile
+								? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+								: 'border-amber-200 bg-amber-50 text-amber-900',
+						)}
+					>
+						{hasFile
+							? t('company-template-uploaded')
+							: t('company-template-missing')}
+					</Badge>
+				</div>
+				{hasFile && fileName ? (
+					<p className="mt-1 max-w-full truncate text-muted-foreground text-xs leading-relaxed">
+						{t('company-template-current-file', { fileName })}
+					</p>
+				) : (
+					<p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+						{t('company-template-missing')}
+					</p>
+				)}
 				<input
 					ref={fileRef}
 					id={fileId}
 					type="file"
 					name="file"
 					accept={APPLICATION_DOCUMENT_ACCEPT}
-					className="max-w-full text-sm"
+					className="sr-only"
 					disabled={pending}
-					aria-labelledby={labelId}
+					aria-labelledby={titleId}
 				/>
-				<Button type="submit" disabled={pending}>
+				<Button
+					type="button"
+					variant="secondary"
+					className={cn(shell.applicantDocumentTileActionButton, 'mt-4')}
+					disabled={pending}
+					onClick={() => fileRef.current?.click()}
+				>
+					<Upload className="size-4" aria-hidden />
+					{t('company-template-browse')}
+				</Button>
+				<Button type="submit" disabled={pending} className="mt-2">
 					{pending
 						? t('company-template-upload-pending')
 						: t('company-template-upload-submit')}
 				</Button>
-			</form>
-			<AuthInlineError
-				message={state.message ? resolveError(state.message) : null}
-				align="start"
-				className="mt-2 px-0"
-				minHeightClass="min-h-5"
-			/>
-			{state.errors?.file ? (
-				<FieldError
-					className="mt-2"
-					message={resolveError(state.errors.file)}
+				<AuthInlineError
+					message={state.message ? resolveError(state.message) : null}
+					align="start"
+					className="mt-2 px-0"
+					minHeightClass="min-h-5"
 				/>
-			) : null}
+				{state.errors?.file ? (
+					<FieldError
+						className="mt-2"
+						message={resolveError(state.errors.file)}
+					/>
+				) : null}
+			</form>
 		</Field>
 	)
 }
@@ -139,8 +176,10 @@ export function CompanyTemplateUploadSection({
 			>
 				{t('company-templates-section-title')}
 			</h2>
-			<TemplateRow company={company} templateKind="authorization" />
-			<TemplateRow company={company} templateKind="contract" />
+			<div className="grid gap-5 md:grid-cols-2">
+				<TemplateRow company={company} templateKind="authorization" />
+				<TemplateRow company={company} templateKind="contract" />
+			</div>
 		</section>
 	)
 }

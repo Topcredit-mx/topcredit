@@ -198,6 +198,8 @@
 		"company-template-authorization-label": "Carta de autorización (plantilla)",
 		"company-template-contract-label": "Contrato (plantilla)",
 		"company-template-current-file": "Archivo actual: {fileName}",
+		"company-template-uploaded": "Cargado",
+		"company-template-browse": "Examinar archivos",
 		"company-template-upload-submit": "Subir archivo",
 		"company-template-upload-pending": "Subiendo…",
 		"company-template-download": "Descargar",
