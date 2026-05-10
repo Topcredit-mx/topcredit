@@ -15,6 +15,7 @@ import {
 	removeRole,
 	seedAdminUsers,
 } from '~/e2e/server/tasks'
+import { ASSIGNABLE_ROLES } from '~/lib/user-rules'
 import { loginPage } from '../helpers/auth'
 import { findTableRow, mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
@@ -164,7 +165,9 @@ test.describe('Admin Users', () => {
 			page,
 		}) => {
 			const row = findTableRow(page, users.jane.name)
-			await expect(row.locator('button[role="checkbox"]')).toHaveCount(7)
+			await expect(row.locator('button[role="checkbox"]')).toHaveCount(
+				ASSIGNABLE_ROLES.length,
+			)
 		})
 	})
 

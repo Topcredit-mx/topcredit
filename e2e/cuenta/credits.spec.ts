@@ -183,7 +183,11 @@ test.describe('Applicant views active credits', () => {
 		await expect(table.locator('tbody tr')).toHaveCount(12)
 		const firstRow = table.locator('tbody tr').first()
 		await firstRow.scrollIntoViewIfNeeded()
-		await expect(firstRow.getByText('$4,287.50')).toBeVisible()
+		const amountLabel = seedResult.firstDisbursedPaymentAmountLabel
+		if (amountLabel === null) {
+			throw new Error('seed must expose first disbursed payment amount label')
+		}
+		await expect(firstRow.getByText(amountLabel)).toBeVisible()
 	})
 
 	test('shows due date and status columns in payment schedule', async ({

@@ -9,6 +9,7 @@ import {
 } from '~/e2e/cuenta/credits.fixtures'
 import { liquidationOutstandingFromPaymentRows } from '~/lib/credit-liquidation-preview'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
+import { formatCurrencyMxn } from '~/lib/utils'
 import {
 	applicationStatusHistory,
 	applications,
@@ -42,6 +43,7 @@ export type SeedCuentaCreditsResult = {
 	processingPaymentRowIndex: number
 	pendingPaymentRowIndex: number
 	nextDisbursedPaymentDueIso: string | null
+	firstDisbursedPaymentAmountLabel: string | null
 	liquidationOutstandingPrincipal: string | null
 	liquidationOutstandingFinancing: string | null
 	liquidationOutstandingTotal: string | null
@@ -181,6 +183,7 @@ async function seedCuentaCreditsBase(
 	let creditId: number | null = null
 	let settledCreditId: number | null = null
 	let nextDisbursedPaymentDueIso: string | null = null
+	let firstDisbursedPaymentAmountLabel: string | null = null
 	let liquidationOutstandingPrincipal: string | null = null
 	let liquidationOutstandingFinancing: string | null = null
 	let liquidationOutstandingTotal: string | null = null
@@ -207,6 +210,11 @@ async function seedCuentaCreditsBase(
 			frequency: 'monthly',
 			firstDiscountDate,
 		})
+		const firstScheduleEntry = schedule[0]
+		if (firstScheduleEntry === undefined) {
+			throw new Error('Seed Credits: expected at least one schedule installment')
+		}
+		firstDisbursedPaymentAmountLabel = formatCurrencyMxn(firstScheduleEntry.amount)
 		// nextDueDate in list query = earliest payment with installmentConfirmedAt null (rows 0–1 confirmed).
 		const firstPendingDue = schedule[2]
 		if (firstPendingDue === undefined) {
@@ -332,6 +340,7 @@ async function seedCuentaCreditsBase(
 		processingPaymentRowIndex: 2,
 		pendingPaymentRowIndex: 3,
 		nextDisbursedPaymentDueIso,
+		firstDisbursedPaymentAmountLabel,
 		liquidationOutstandingPrincipal,
 		liquidationOutstandingFinancing,
 		liquidationOutstandingTotal,
