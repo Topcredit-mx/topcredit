@@ -1,20 +1,9 @@
 # TopCredit
 
-[![Cypress Tests](https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/detailed/zco6oy/main&style=flat&logo=cypress)](https://cloud.cypress.io/projects/zco6oy/runs)
-
-**Latest E2E (Playwright) HTML report (GitHub Pages):** [topcredit-mx.github.io/topcredit](https://topcredit-mx.github.io/topcredit/)  
-Updates after each push when CI publishes a merged report (combined 2-shard run).
-
-> Plataforma de créditos empresariales para empleados de empresas afiliadas
-
-## Overview
-
 TopCredit is a **company-sponsored lending platform** for employees. It includes:
 
 - **Applicant portal** (`/cuenta`): apply for credit, upload documents, track application, and later view credits and payment history.
 - **Back office** (`/equipo`): role-based queues for reviewing applications and processing disbursements.
-
-The intended end-to-end flow is documented in `docs/app-flow-proposal.md`.
 
 ## Tech stack
 
@@ -26,6 +15,9 @@ The intended end-to-end flow is documented in `docs/app-flow-proposal.md`.
 - Resend (email), Vercel (deploy)
 - Biome (lint/format)
 - Playwright E2E
+
+**Latest E2E (Playwright) HTML report (GitHub Pages):** [topcredit-mx.github.io/topcredit](https://topcredit-mx.github.io/topcredit/)  
+Updates after each push when CI publishes a merged report (combined 2-shard run).
 
 ## Getting started
 
