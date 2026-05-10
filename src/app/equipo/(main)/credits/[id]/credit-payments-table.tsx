@@ -44,11 +44,13 @@ export function CreditPaymentsTable({
 	canConfirmHrDeduction,
 	canConfirmInstallment,
 	employeeSalaryFrequency,
+	scheduleStatusNowIso,
 }: {
 	creditPayments: CreditPaymentRowForEquipo[]
 	canConfirmHrDeduction: boolean
 	canConfirmInstallment: boolean
 	employeeSalaryFrequency?: 'bi-monthly' | 'monthly'
+	scheduleStatusNowIso: string
 }) {
 	const t = useTranslations('equipo')
 	const router = useRouter()
@@ -61,6 +63,15 @@ export function CreditPaymentsTable({
 		string | undefined
 	>(undefined)
 
+	const serverScheduleStatusAsOf = useMemo(
+		() => new Date(scheduleStatusNowIso),
+		[scheduleStatusNowIso],
+	)
+	const [clientScheduleStatusAsOf, setClientScheduleStatusAsOf] =
+		useState<Date | null>(null)
+	const scheduleStatusAsOf =
+		clientScheduleStatusAsOf ?? serverScheduleStatusAsOf
+
 	const [finalInstallRows, setFinalInstallRows] = useState<
 		CreditPaymentRowForEquipo[] | null
 	>(null)
@@ -68,6 +79,7 @@ export function CreditPaymentsTable({
 	useEffect(() => {
 		const now = new Date()
 		setToday(calendarYmdInMexicoCity(now))
+		setClientScheduleStatusAsOf(now)
 		if (employeeSalaryFrequency !== undefined) {
 			setUpcomingDeductionDate(
 				getUpcomingDeductionDateYmd(employeeSalaryFrequency, now),
@@ -200,6 +212,7 @@ export function CreditPaymentsTable({
 
 	const columns = useCreditPaymentScheduleColumns(creditPayments, {
 		todayYmd: today,
+		scheduleStatusAsOf,
 		upcomingDeductionDate,
 		todayDate,
 		canConfirmHrDeduction,

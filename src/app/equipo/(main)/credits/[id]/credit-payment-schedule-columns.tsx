@@ -30,6 +30,7 @@ export function useCreditPaymentScheduleColumns(
 	creditPayments: CreditPaymentRowForEquipo[],
 	params: {
 		todayYmd: string | undefined
+		scheduleStatusAsOf: Date
 		upcomingDeductionDate: string | undefined
 		todayDate: Date | undefined
 		canConfirmHrDeduction: boolean
@@ -48,6 +49,7 @@ export function useCreditPaymentScheduleColumns(
 	const t = useTranslations('equipo')
 	const {
 		todayYmd,
+		scheduleStatusAsOf,
 		upcomingDeductionDate,
 		todayDate,
 		canConfirmHrDeduction,
@@ -165,6 +167,7 @@ export function useCreditPaymentScheduleColumns(
 						hrConfirmedAt: row.original.hrConfirmedAt,
 						dueDate: row.original.dueDate,
 						todayYmd,
+						now: scheduleStatusAsOf,
 					})
 					return (
 						<CreditPaymentScheduleStatusCell
@@ -196,6 +199,7 @@ export function useCreditPaymentScheduleColumns(
 						closedByLiquidationAt: row.original.closedByLiquidationAt,
 						dueDate: row.original.dueDate,
 						todayYmd,
+						now: scheduleStatusAsOf,
 					})
 					return (
 						<CreditPaymentScheduleStatusCell
@@ -264,6 +268,7 @@ export function useCreditPaymentScheduleColumns(
 			isPending,
 			onHrConfirm,
 			onInstallmentConfirm,
+			scheduleStatusAsOf,
 			t,
 			todayDate,
 			todayYmd,

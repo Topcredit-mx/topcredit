@@ -109,6 +109,8 @@ export default async function EquipoCreditDetailPage({
 		duration: credit.duration,
 	}
 
+	const scheduleStatusNowIso = new Date().toISOString()
+
 	return (
 		<section
 			className="mx-auto grid max-w-4xl gap-3 px-1 py-1 sm:px-1.5 sm:py-1.5"
@@ -250,6 +252,7 @@ export default async function EquipoCreditDetailPage({
 						canConfirmHrDeduction={canConfirmHrDeduction}
 						canConfirmInstallment={canConfirmInstallment}
 						employeeSalaryFrequency={company?.employeeSalaryFrequency}
+						scheduleStatusNowIso={scheduleStatusNowIso}
 					/>
 				) : (
 					<p className="text-muted-foreground text-sm">
