@@ -212,9 +212,13 @@ async function seedCuentaCreditsBase(
 		})
 		const firstScheduleEntry = schedule[0]
 		if (firstScheduleEntry === undefined) {
-			throw new Error('Seed Credits: expected at least one schedule installment')
+			throw new Error(
+				'Seed Credits: expected at least one schedule installment',
+			)
 		}
-		firstDisbursedPaymentAmountLabel = formatCurrencyMxn(firstScheduleEntry.amount)
+		firstDisbursedPaymentAmountLabel = formatCurrencyMxn(
+			firstScheduleEntry.amount,
+		)
 		// nextDueDate in list query = earliest payment with installmentConfirmedAt null (rows 0–1 confirmed).
 		const firstPendingDue = schedule[2]
 		if (firstPendingDue === undefined) {
