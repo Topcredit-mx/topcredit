@@ -21,7 +21,7 @@
 		"dev": "next dev",
 		"preview": "next build && next start",
 		"start": "next start",
-		"test:unit": "node --import tsx --test \"src/lib/**/*.test.ts\"",
+		"test:unit": "node --import tsx --test --test-timeout=120000 \"src/lib/**/*.test.ts\"",
 		"typecheck": "tsc --noEmit",
 		"validate": "pnpm check && pnpm typecheck",
 		"prepare": "husky"
