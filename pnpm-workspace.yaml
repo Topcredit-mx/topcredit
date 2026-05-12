@@ -1,4 +1,6 @@
 onlyBuiltDependencies:
-  - cypress
+  - '@parcel/watcher'
+  - '@swc/core'
   - esbuild
+  - protobufjs
   - sharp
