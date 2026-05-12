@@ -49,7 +49,7 @@ Prefer: **visible text** (`getByText`), **roles** (`getByRole`), **accessible na
 
 ## Database (local / `DATABASE_URL`)
 
-- When `DATABASE_URL` is set, **`e2e/global-setup.ts` runs `pnpm db:nuke:migrate` before the suite** (then `assertE2eDatabaseEmpty`), so the DB is always migrated and empty at the start of a Playwright run. Do not rely on `pnpm db:seed` for E2E; spec data comes from `~/e2e/server/tasks`, like Cypress. For a manual database reset without Playwright, use **`pnpm db:nuke:migrate`**.
+- When `DATABASE_URL` is set, **`e2e/global-setup.ts` runs `bun run db:nuke:migrate` before the suite** (then `assertE2eDatabaseEmpty`), so the DB is always migrated and empty at the start of a Playwright run. Do not rely on `bun run db:seed` for E2E; spec data comes from `~/e2e/server/tasks`, like Cypress. For a manual database reset without Playwright, use **`bun run db:nuke:migrate`**.
 - CI: each job uses a fresh Neon database; the same global setup runs there too.
 
 ---

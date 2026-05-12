@@ -6,7 +6,7 @@ import {
 
 /**
  * Local demo data: realistic MX-style names, corporate email domains, and
- * one agent per cola. Run `pnpm db:seed` then see the end-of-seed log for
+ * one agent per cola. Run `bun run db:seed` then see the end-of-seed log for
  * which accounts and empresas to use in /cuenta and /equipo.
  */
 

@@ -44,6 +44,6 @@ Defaults for how to write and test code in this repository.
 
 ## Commits (Husky vs. cloud agents)
 
-Husky `pre-commit` runs `pnpm check && pnpm typecheck` when Git uses hooks from `pnpm install` / `prepare`.
+Husky `pre-commit` runs `bun run check && bun run typecheck` when Git uses hooks from `bun install` / `prepare`.
 
-If `core.hooksPath` points elsewhere (e.g. Cursor agent hooks), Husky will not run. Run `pnpm validate` before `git commit` so the same checks still run.
+If `core.hooksPath` points elsewhere (e.g. Cursor agent hooks), Husky will not run. Run `bun run validate` before `git commit` so the same checks still run.

@@ -1,7 +1,7 @@
 {
 	"$schema": "https://www.cursor.com/schemas/environment.schema.json",
 	"name": "topcredit",
-	"install": "pnpm install && pnpm exec playwright install chromium --with-deps",
+	"install": "bun install && bunx playwright install chromium --with-deps",
 	"ports": [
 		{
 			"name": "Next.js",
@@ -11,8 +11,8 @@
 	"terminals": [
 		{
 			"name": "Dev",
-			"command": "pnpm dev",
-			"description": "Next.js dev server (pnpm)."
+			"command": "bun run dev",
+			"description": "Next.js dev server."
 		}
 	]
 }

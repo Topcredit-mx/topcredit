@@ -13,6 +13,7 @@ TopCredit is a **company-sponsored lending platform** for employees. It includes
 - Tailwind v4, shadcn/ui
 - Inngest (queued jobs)
 - Resend (email), Vercel (deploy)
+- Bun (package manager & script runner)
 - Biome (lint/format)
 - Playwright E2E
 
@@ -24,10 +25,10 @@ Updates after each push when CI publishes a merged report (combined 2-shard run)
 ```bash
 git clone <repo-url>
 cd topcredit
-pnpm install
+bun install
 cp .env.example .env   # then fill in values
-pnpm db:push           # sync schema to local DB
-pnpm dev
+bun run db:push        # sync schema to local DB
+bun run dev
 ```
 
 ## Environment
@@ -49,19 +50,19 @@ Copy `.env.example` to `.env` and set:
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm dev` | Start dev server |
-| `pnpm build` | Production build |
-| `pnpm start` | Run production server |
-| `pnpm db:generate` | Generate migration files from schema |
-| `pnpm db:migrate` | Apply migrations (use in prod) |
-| `pnpm db:push` | Push schema to DB without migration files (dev only) |
-| `pnpm db:nuke` | Drop public + drizzle schemas (dev only); run `db:push` after to recreate |
-| `pnpm db:nuke:push` | Nuke then push — full hard reset (dev only) |
-| `pnpm db:studio` | Open Drizzle Studio |
-| `pnpm typecheck` | Run TypeScript check |
-| `pnpm check` | Run Biome lint |
-| `pnpm test:e2e` | Run Playwright E2E |
-| `pnpm test:e2e:ui` | Playwright UI mode |
+| `bun run dev` | Start dev server |
+| `bun run build` | Production build |
+| `bun run start` | Run production server |
+| `bun run db:generate` | Generate migration files from schema |
+| `bun run db:migrate` | Apply migrations (use in prod) |
+| `bun run db:push` | Push schema to DB without migration files (dev only) |
+| `bun run db:nuke` | Drop public + drizzle schemas (dev only); run `db:push` after to recreate |
+| `bun run db:nuke:push` | Nuke then push — full hard reset (dev only) |
+| `bun run db:studio` | Open Drizzle Studio |
+| `bun run typecheck` | Run TypeScript check |
+| `bun run check` | Run Biome lint |
+| `bun run test:e2e` | Run Playwright E2E |
+| `bun run test:e2e:ui` | Playwright UI mode |
 
 ## CI E2E (Neon)
 

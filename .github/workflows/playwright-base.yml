@@ -91,44 +91,43 @@ jobs:
           printf 'DATABASE_URL=' >> "$GITHUB_ENV"
           cat neon-db/database_url.txt >> "$GITHUB_ENV"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version-file: ".node-version"
-          cache: pnpm
 
       - name: Cache Playwright browsers
         uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
             playwright-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
+        run: bunx playwright install --with-deps chromium
 
       - name: Generate E2E OTP code
         id: e2e-otp
         run: echo "code=$(shuf -i 100000-999999 -n 1)" >> "$GITHUB_OUTPUT"
 
       - name: Start app (next dev)
-        run: pnpm dev &
+        run: bun run dev &
         env:
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
 
       - name: Wait for app
-        run: pnpm dlx wait-on http://127.0.0.1:3000 --timeout 120000 --strict
+        run: bunx wait-on http://127.0.0.1:3000 --timeout 120000 --strict
 
       - name: Run Playwright tests
         id: playwright
-        run: pnpm exec playwright test --shard=${{ matrix.shard }}/${{ env.PLAYWRIGHT_SHARD_COUNT }}
+        run: bunx playwright test --shard=${{ matrix.shard }}/${{ env.PLAYWRIGHT_SHARD_COUNT }}
         env:
           E2E_OTP_CODE: ${{ steps.e2e-otp.outputs.code }}
           NODE_NO_WARNINGS: "1"
@@ -219,17 +218,16 @@ jobs:
           fetch-depth: 1
           ref: ${{ github.sha }}
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version-file: ".node-version"
-          cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Download all shard blob reports
         if: always()
@@ -252,7 +250,7 @@ jobs:
             exit 0
           fi
           find downloaded-blob-reports -name '*.zip' -type f -exec cp -t blob-report/ {} +
-          pnpm exec playwright merge-reports blob-report --reporter=html
+          bunx playwright merge-reports blob-report --reporter=html
           echo "no_blobs=0" >> "$GITHUB_OUTPUT"
 
       - name: Upload Pages artifact

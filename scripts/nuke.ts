@@ -22,7 +22,7 @@ async function nuke() {
 	await sql`DROP SCHEMA IF EXISTS drizzle CASCADE`
 
 	console.log(
-		'\n✅ Database nuked! Run `pnpm db:migrate` or `pnpm db:push` to recreate.',
+		'\n✅ Database nuked! Run `bun run db:migrate` or `bun run db:push` to recreate.',
 	)
 }
 

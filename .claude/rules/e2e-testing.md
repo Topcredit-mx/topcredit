@@ -82,7 +82,7 @@ cy.contains(/rechazado/i).should('be.visible')
 - **Cleanup must remove all shared data** that other specs or previous runs might leave. If a spec only cleans "its own" seed (e.g. 3 companies), the DB can still contain data from other specs (e.g. company-switcher, applications-review). Lists/tables then get polluted and tests that assert "new row appears" or "find row X" can fail because the target row is off-screen, paginated, or lost among many rows. In `before()` cleanup, delete every E2E entity domain/ID used by any spec (e.g. all E2E company domains), then seed only what this spec needs.
 - Prefer **programmatic setup** (`cy.request()`, `cy.task('db:seed')`) over doing everything through the UI.
 - Use **`baseUrl`** in config; use **`cy.env()`** for secrets (never hardcode; never `Cypress.expose()` for sensitive values).
-- **DB leak checks around each spec:** On any `cypress run` **without** `--parallel`, Cypress runs [`assertE2eDatabaseEmpty`](scripts/e2e-db-snapshot.ts) **before and after** each spec. Skipped when `DATABASE_URL` is unset. Parallel runs (`--parallel`) skip these hooks—use an isolated database per machine if you need per-spec checks there too. For ad-hoc inspection, run `pnpm exec tsx scripts/e2e-db-snapshot.ts` (prints counts only when `total_rows > 0`).
+- **DB leak checks around each spec:** On any `cypress run` **without** `--parallel`, Cypress runs [`assertE2eDatabaseEmpty`](scripts/e2e-db-snapshot.ts) **before and after** each spec. Skipped when `DATABASE_URL` is unset. Parallel runs (`--parallel`) skip these hooks—use an isolated database per machine if you need per-spec checks there too. For ad-hoc inspection, run `bun scripts/e2e-db-snapshot.ts` (prints counts only when `total_rows > 0`).
 
 ---
 

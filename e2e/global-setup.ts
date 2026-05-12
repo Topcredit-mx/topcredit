@@ -4,7 +4,7 @@ import { assertDbEmptyIfConfigured } from './helpers/db-guard'
 
 export default async function globalSetup(): Promise<void> {
 	if (process.env.DATABASE_URL) {
-		execSync('pnpm db:nuke:migrate', {
+		execSync('bun run db:nuke:migrate', {
 			cwd: process.cwd(),
 			env: { ...process.env },
 			stdio: 'inherit',

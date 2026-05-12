@@ -12,23 +12,22 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version-file: ".node-version"
-          cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install --prefer-frozen-lockfile --ignore-scripts
+        run: bun install --frozen-lockfile
 
       - name: Type check
-        run: pnpm exec tsc --noEmit
+        run: bun run typecheck
 
       - name: Lint
-        run: pnpm check
+        run: bun run check
 
       - name: Unit tests
-        run: pnpm test:unit
+        run: bun run test:unit

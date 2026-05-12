@@ -61,7 +61,7 @@ async function main() {
 	console.log(
 		`Pending migrations: ${expectedCount - appliedCount} (applied: ${appliedCount}, journal: ${expectedCount}). Running db:migrate...`,
 	)
-	execSync('pnpm db:migrate', {
+	execSync('bun run db:migrate', {
 		stdio: 'inherit',
 		env: { ...process.env, DATABASE_URL: databaseUrl },
 	})

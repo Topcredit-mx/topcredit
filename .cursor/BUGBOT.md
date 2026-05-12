@@ -38,7 +38,7 @@ When reviewing or requesting E2E tests, enforce:
   - Prefer **server components** where possible.
   - Avoid **useEffect** unless necessary.
   - Data fetching: use `src/server/queries`; mutations/actions: use `src/server/mutations`. Never use Drizzle DB directly in pages.
-  - UI: **shadcn/ui** and **Tailwind**; use Biome for formatting and linting; **pnpm** for package management.
+  - UI: **shadcn/ui** and **Tailwind**; use Biome for formatting and linting; **bun** for package management.
   - User-facing text must be in **Spanish**.
 
 ---

@@ -16,32 +16,31 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version-file: ".node-version"
-          cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        run: bun install --frozen-lockfile
 
       - name: Generate migrations
-        run: pnpm db:generate
+        run: bun run db:generate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Fail if uncommitted migration drift
         run: |
           if [ -n "$(git status --porcelain)" ]; then
-            echo "::error::Uncommitted migration drift. Run pnpm db:generate and commit."
+            echo "::error::Uncommitted migration drift. Run bun run db:generate and commit."
             git status -s
             exit 1
           fi
 
       - name: Run migrations (push to prod)
-        run: pnpm db:migrate:if-pending
+        run: bun run db:migrate:if-pending
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
