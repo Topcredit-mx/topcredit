@@ -54,8 +54,7 @@ That matches what `.husky/pre-commit` runs and catches the same Biome/typecheck 
 
 ### Environment
 
-- **Node.js 24.15.0** is required (pinned in `.node-version`) for unit tests (`node:test`).
-- **Bun** is the package manager and script runner. Install via `curl -fsSL https://bun.sh/install | bash` or use `oven-sh/setup-bun` in CI.
+- **Bun** is the package manager, script runner, and test runner. Install via `curl -fsSL https://bun.sh/install | bash` or use `oven-sh/setup-bun` in CI.
 - `.env` must exist with `DATABASE_URL`, `AUTH_SECRET`, `EMAIL_FROM`, `RESEND_API_KEY`. Set `E2E_OTP_CODE=123456` to bypass real emails (E2E mode uses a fixed OTP). Secrets are injected as environment variables by the Cloud Agent; write them to `.env` before starting the dev server.
 
 ### Running services
