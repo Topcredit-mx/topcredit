@@ -55,7 +55,7 @@ That matches what `.husky/pre-commit` runs and catches the same Biome/typecheck 
 ### Environment
 
 - **Node.js 24.15.0** is required (pinned in `.node-version`). Installed via nvm; the update script handles this.
-- **pnpm 10.33.2** is managed via corepack (pinned in `package.json` `packageManager` field). The update script enables corepack and prepares the correct version.
+- **pnpm 11.1.0** is managed via corepack (pinned in `package.json` `packageManager` field). The update script enables corepack and prepares the correct version.
 - `.env` must exist with `DATABASE_URL`, `AUTH_SECRET`, `EMAIL_FROM`, `RESEND_API_KEY`. Set `E2E_OTP_CODE=123456` to bypass real emails (E2E mode uses a fixed OTP). Secrets are injected as environment variables by the Cloud Agent; write them to `.env` before starting the dev server.
 
 ### Running services
