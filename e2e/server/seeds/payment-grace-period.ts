@@ -26,7 +26,7 @@ import {
 import { getDb } from '../e2e-db'
 import { assertSeedPayrollDueDates } from '../shared/assert-seed-payroll-dates'
 import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
-import { eodYmd } from '../shared/mexico-seed-dates'
+import { eodCalendarDaysAgoMx, eodYmd } from '../shared/mexico-seed-dates'
 import { getOrInsertTermByShape } from '../shared/terms'
 
 export type SeedPaymentGracePeriodResult = {
@@ -140,9 +140,10 @@ export const seedPaymentGracePeriod =
 			}),
 		)
 
-		// Fixed Mexico month-ends; grace E2E uses Playwright clock 2023-01-05.
-		const graceDue = eodYmd('2022-12-31')
-		const overdueDue = eodYmd('2022-11-30')
+		// Relative to seed time so server-side grace queries match (Playwright clock
+		// does not affect Next.js `new Date()` on the server).
+		const graceDue = eodCalendarDaysAgoMx(now, 10)
+		const overdueDue = eodCalendarDaysAgoMx(now, 20)
 		const creditAmount = '12000.00'
 		const rate = Number(paymentGraceCompany.rate)
 

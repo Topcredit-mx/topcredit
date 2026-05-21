@@ -110,20 +110,18 @@ export const resetApplicantApplication = async (
 	})
 	if (!offering) throw new Error('Failed to find term offering')
 	// Delete blobs for applications we're about to remove (so they don't persist in storage)
-	if (process.env.BLOB_READ_WRITE_TOKEN) {
-		const appsToRemove = await db
-			.select({ id: applications.id })
-			.from(applications)
-			.where(eq(applications.applicantId, params.applicantId))
-		const ids = appsToRemove.map((r) => r.id)
-		if (ids.length > 0) {
-			const docs = await db
-				.select({ storageKey: applicationDocuments.storageKey })
-				.from(applicationDocuments)
-				.where(inArray(applicationDocuments.applicationId, ids))
-			const toDelete = docs.filter((d) => isBlobStorageKey(d.storageKey))
-			await Promise.allSettled(toDelete.map((d) => deleteBlob(d.storageKey)))
-		}
+	const appsToRemove = await db
+		.select({ id: applications.id })
+		.from(applications)
+		.where(eq(applications.applicantId, params.applicantId))
+	const ids = appsToRemove.map((r) => r.id)
+	if (ids.length > 0) {
+		const docs = await db
+			.select({ storageKey: applicationDocuments.storageKey })
+			.from(applicationDocuments)
+			.where(inArray(applicationDocuments.applicationId, ids))
+		const toDelete = docs.filter((d) => isBlobStorageKey(d.storageKey))
+		await Promise.allSettled(toDelete.map((d) => deleteBlob(d.storageKey)))
 	}
 	await db
 		.delete(applications)

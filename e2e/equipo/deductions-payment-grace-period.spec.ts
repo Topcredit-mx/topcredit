@@ -24,7 +24,6 @@ test.describe('Payment 15-day grace period (deductions)', () => {
 	})
 
 	test.beforeEach(async ({ page }) => {
-		await page.clock.setFixedTime(new Date('2023-01-05T00:00:00'))
 		await loginPage(page, hrAgentPaymentGrace.email)
 		await setSelectedCompanyId(page, seed.companyId)
 	})
