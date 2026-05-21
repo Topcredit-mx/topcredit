@@ -19,7 +19,7 @@ import {
 } from '~/server/db/schema'
 import { getDb } from '../e2e-db'
 import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
-import { eodNCalendarDaysFromMexicoToday } from '../shared/mexico-seed-dates'
+import { endOfNextMonthEodMx } from '../shared/mexico-seed-dates'
 import { createOrderedSeedStatusHistory } from '../shared/status-history'
 
 export type SeedRoleQueueNavResult = {
@@ -384,7 +384,7 @@ export const seedDisbursementReview =
 			'hr.pending.applicant@disbcompany.com',
 		)
 
-		const futureDate = eodNCalendarDaysFromMexicoToday(now, 30)
+		const futureDate = endOfNextMonthEodMx(now)
 
 		const createdApps = await db
 			.insert(applications)

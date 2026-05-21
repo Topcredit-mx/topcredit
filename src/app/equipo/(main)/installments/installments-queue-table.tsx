@@ -2,6 +2,8 @@
 
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { PayrollQueueStats } from '~/components/equipo/payroll-queue-stats'
+import { QueueSelectedInstallmentAmountTotal } from '~/components/equipo/queue-selected-amount-total'
 import {
 	DataTable,
 	DataTableContent,
@@ -11,7 +13,6 @@ import { canConfirmInstallmentInQueue } from '~/lib/installment-confirmation'
 import type { InstallmentForQueue } from '~/server/queries'
 import { useInstallmentsQueueColumns } from './columns'
 import { ImportInstallmentsCsvDialog } from './import-installments-csv-dialog'
-import { InstallmentsQueueStats } from './installments-queue-stats'
 import { InstallmentsQueueToolbar } from './installments-queue-toolbar'
 
 export function InstallmentsQueueTable({
@@ -40,9 +41,12 @@ export function InstallmentsQueueTable({
 				createLink={null}
 				enableRowSelection={(row) => canConfirmInstallmentInQueue(row.original)}
 			>
-				<InstallmentsQueueStats
+				<PayrollQueueStats
 					nextDeductionDate={nextDeductionDate}
 					employeeSalaryFrequency={employeeSalaryFrequency}
+					selectionTotal={
+						<QueueSelectedInstallmentAmountTotal className="shrink-0 text-right" />
+					}
 				/>
 				<InstallmentsQueueToolbar
 					companyName={companyName}

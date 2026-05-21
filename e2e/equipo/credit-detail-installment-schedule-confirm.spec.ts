@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { FROZEN_CREDIT_DETAIL_E2E_CLOCK_ISO } from '~/e2e/server/shared/frozen-credit-detail-schedule'
 import type { SeedCreditDetailInstallmentScheduleResult } from '~/e2e/server/tasks'
 import {
 	cleanupCreditDetailInstallmentSchedule,
@@ -28,7 +29,9 @@ test.describe('Credit detail — confirm installment from schedule', () => {
 
 	test.describe('Installments agent with company selected', () => {
 		test.beforeEach(async ({ page }) => {
-			await page.clock.setFixedTime(new Date('2023-01-05T00:00:00'))
+			await page.clock.setFixedTime(
+				new Date(FROZEN_CREDIT_DETAIL_E2E_CLOCK_ISO),
+			)
 			await loginPage(page, creditDetailInstallmentsAgent.email)
 			await setSelectedCompanyId(page, seed.companyId)
 		})
@@ -133,7 +136,9 @@ test.describe('Credit detail — confirm installment from schedule', () => {
 
 	test.describe('HR-only agent cannot confirm installment from credit detail', () => {
 		test.beforeEach(async ({ page }) => {
-			await page.clock.setFixedTime(new Date('2023-01-05T00:00:00'))
+			await page.clock.setFixedTime(
+				new Date(FROZEN_CREDIT_DETAIL_E2E_CLOCK_ISO),
+			)
 			await loginPage(page, creditDetailHrOnlyAgent.email)
 			await setSelectedCompanyId(page, seed.companyId)
 		})

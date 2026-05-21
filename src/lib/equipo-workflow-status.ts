@@ -4,6 +4,12 @@ import {
 	startOfDayInstantMexicoCity,
 	ymdForDeductionSchedule,
 } from '~/lib/calendar-date-tz'
+import {
+	OVERDUE_GRACE_PERIOD_DAYS,
+	overdueGraceCutoff,
+} from '~/lib/overdue-grace'
+
+export { OVERDUE_GRACE_PERIOD_DAYS, overdueGraceCutoff }
 
 export type WorkflowTone =
 	| 'green'
@@ -24,10 +30,12 @@ export type EquipoWorkflowMessageKey =
 	| 'equipo-workflow-history-on-time'
 	| 'equipo-workflow-history-late'
 	| 'equipo-credit-detail-deduction-confirmed'
+	| 'equipo-credit-detail-deduction-grace-pending'
 	| 'equipo-credit-detail-deduction-overdue'
 	| 'equipo-credit-detail-deduction-pending'
 	| 'equipo-credit-detail-collection-awaiting-deduction'
 	| 'equipo-credit-detail-collection-confirmed'
+	| 'equipo-credit-detail-collection-grace-pending'
 	| 'equipo-credit-detail-collection-liquidation-settled'
 	| 'equipo-credit-detail-collection-delayed'
 	| 'equipo-credit-detail-collection-pending'
@@ -71,29 +79,6 @@ export type CreditDetailPaymentStatus = WorkflowStatusResolution & {
 	context: CreditDetailStatusContext
 }
 
-/** Próximas colas deducciones / instalaciones (sin dimensión “hoy” en el badge). */
-export function resolveQueueWorkflowStatus(params: {
-	hrConfirmedAt: string | null
-	installmentConfirmedAt: string | null
-}): WorkflowStatusResolution {
-	if (params.installmentConfirmedAt !== null) {
-		return {
-			tone: 'green',
-			messageKey: 'equipo-workflow-status-confirmed',
-		}
-	}
-	if (params.hrConfirmedAt !== null) {
-		return {
-			tone: 'blue',
-			messageKey: 'equipo-workflow-status-installment-pending',
-		}
-	}
-	return {
-		tone: 'gray',
-		messageKey: 'equipo-workflow-status-rh-pending',
-	}
-}
-
 const YMD_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
 
 /**
@@ -130,15 +115,26 @@ export function resolveCreditDetailDeductionStatus(params: {
 	hrConfirmedAt: Date | null
 	dueDate: Date
 	todayYmd: string | undefined
-	/** For tests; default `new Date()`. "Overdue" = after Mexico EOD of due day. */
+	/** For tests; default `new Date()`. */
 	now?: Date
 }): CreditDetailPaymentStatus {
 	const asOf = params.now ?? new Date()
 	const dueYmdMx = ymdForDeductionSchedule(params.dueDate)
 	const dueEod = endOfDayInstantMexicoCity(dueYmdMx)
+	const todayYmdMx =
+		params.todayYmd !== undefined && YMD_ONLY_RE.test(params.todayYmd.trim())
+			? params.todayYmd.trim()
+			: calendarYmdInMexicoCity(asOf)
+	const graceCutoff = overdueGraceCutoff(todayYmdMx)
 	if (params.hrConfirmedAt === null) {
-		const overdue = asOf.getTime() > dueEod.getTime()
-		if (overdue) {
+		if (asOf.getTime() <= dueEod.getTime()) {
+			return {
+				tone: 'amber',
+				messageKey: 'equipo-credit-detail-deduction-pending',
+				context: { kind: 'due', dateIso: dueYmdMx },
+			}
+		}
+		if (params.dueDate.getTime() < graceCutoff.getTime()) {
 			return {
 				tone: 'red',
 				messageKey: 'equipo-credit-detail-deduction-overdue',
@@ -147,7 +143,7 @@ export function resolveCreditDetailDeductionStatus(params: {
 		}
 		return {
 			tone: 'amber',
-			messageKey: 'equipo-credit-detail-deduction-pending',
+			messageKey: 'equipo-credit-detail-deduction-grace-pending',
 			context: { kind: 'due', dateIso: dueYmdMx },
 		}
 	}
@@ -215,12 +211,30 @@ export function resolveCreditDetailCollectionStatus(params: {
 	const asOf = params.now ?? new Date()
 	const dueYmdMx = ymdForDeductionSchedule(params.dueDate)
 	const dueEod = endOfDayInstantMexicoCity(dueYmdMx)
-	const startToday = startOfDayInstantMexicoCity(
-		params.todayYmd ?? calendarYmdInMexicoCity(asOf),
-	)
+	const todayYmdMx =
+		params.todayYmd !== undefined && YMD_ONLY_RE.test(params.todayYmd.trim())
+			? params.todayYmd.trim()
+			: calendarYmdInMexicoCity(asOf)
+	const graceCutoff = overdueGraceCutoff(todayYmdMx)
+	const startToday = startOfDayInstantMexicoCity(todayYmdMx)
 	const afterDueDay = asOf.getTime() > dueEod.getTime()
+	const rhConfirmedBeforeToday =
+		params.hrConfirmedAt.getTime() < startToday.getTime()
+	if (
+		afterDueDay &&
+		params.dueDate.getTime() >= graceCutoff.getTime() &&
+		rhConfirmedBeforeToday
+	) {
+		return {
+			tone: 'amber',
+			messageKey: 'equipo-credit-detail-collection-grace-pending',
+			context: { kind: 'due', dateIso: dueYmdMx },
+		}
+	}
 	const delayed =
-		afterDueDay && params.hrConfirmedAt.getTime() < startToday.getTime()
+		afterDueDay &&
+		rhConfirmedBeforeToday &&
+		params.dueDate.getTime() < graceCutoff.getTime()
 	if (delayed) {
 		return {
 			tone: 'amber_dark',
@@ -232,6 +246,100 @@ export function resolveCreditDetailCollectionStatus(params: {
 		tone: 'blue',
 		messageKey: 'equipo-credit-detail-collection-pending',
 		context: { kind: 'due', dateIso: dueYmdMx },
+	}
+}
+
+function dueInstantForQueueRow(dueDate: Date | string): Date {
+	if (typeof dueDate === 'string') {
+		const t = dueDate.trim()
+		if (YMD_ONLY_RE.test(t)) {
+			return endOfDayInstantMexicoCity(t)
+		}
+		const d = new Date(t)
+		if (Number.isNaN(d.getTime())) {
+			throw new RangeError(
+				`resolveQueueWorkflowStatus: unparseable dueDate "${dueDate}"`,
+			)
+		}
+		return d
+	}
+	if (Number.isNaN(dueDate.getTime())) {
+		throw new RangeError('resolveQueueWorkflowStatus: invalid dueDate Date')
+	}
+	return dueDate
+}
+
+export function scheduleDueYmdFromQueueDueField(
+	dueDate: Date | string,
+): string {
+	return ymdForDeductionSchedule(dueInstantForQueueRow(dueDate))
+}
+
+export function isGraceWorkflowMessageKey(
+	messageKey: EquipoWorkflowMessageKey,
+): boolean {
+	return (
+		messageKey === 'equipo-credit-detail-deduction-grace-pending' ||
+		messageKey === 'equipo-credit-detail-collection-grace-pending'
+	)
+}
+
+/** Próximas colas deducciones / instalaciones (sin dimensión “hoy” en el badge). */
+export function resolveQueueWorkflowStatus(params: {
+	hrConfirmedAt: string | null
+	installmentConfirmedAt: string | null
+	dueDate: Date | string
+	now?: Date
+}): WorkflowStatusResolution {
+	const asOf = params.now ?? new Date()
+	const dueDate = dueInstantForQueueRow(params.dueDate)
+
+	if (params.installmentConfirmedAt !== null) {
+		return {
+			tone: 'green',
+			messageKey: 'equipo-workflow-status-confirmed',
+		}
+	}
+
+	const todayYmdMx = calendarYmdInMexicoCity(asOf)
+	const graceCutoff = overdueGraceCutoff(todayYmdMx)
+	const dueYmdMx = ymdForDeductionSchedule(dueDate)
+	const dueEod = endOfDayInstantMexicoCity(dueYmdMx)
+
+	if (params.hrConfirmedAt === null) {
+		if (
+			asOf.getTime() > dueEod.getTime() &&
+			dueDate.getTime() >= graceCutoff.getTime()
+		) {
+			return {
+				tone: 'amber',
+				messageKey: 'equipo-credit-detail-deduction-grace-pending',
+			}
+		}
+		return {
+			tone: 'gray',
+			messageKey: 'equipo-workflow-status-rh-pending',
+		}
+	}
+
+	const hrAt = new Date(params.hrConfirmedAt)
+	if (Number.isNaN(hrAt.getTime())) {
+		throw new RangeError(
+			`resolveQueueWorkflowStatus: invalid hrConfirmedAt "${params.hrConfirmedAt}"`,
+		)
+	}
+
+	const collection = resolveCreditDetailCollectionStatus({
+		hrConfirmedAt: hrAt,
+		installmentConfirmedAt: null,
+		closedByLiquidationAt: null,
+		dueDate,
+		todayYmd: undefined,
+		now: asOf,
+	})
+	return {
+		tone: collection.tone,
+		messageKey: collection.messageKey,
 	}
 }
 

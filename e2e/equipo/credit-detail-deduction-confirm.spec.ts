@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { FROZEN_CREDIT_DETAIL_E2E_CLOCK_ISO } from '~/e2e/server/shared/frozen-credit-detail-schedule'
 import type {
 	SeedCreditDetailPaymentStatesResult,
 	SeedDeductionsQueueResult,
@@ -274,7 +275,7 @@ test.describe('Credit detail — confirm button visibility by payment state', ()
 	})
 
 	test.beforeEach(async ({ page }) => {
-		await page.clock.setFixedTime(new Date('2023-01-05T00:00:00'))
+		await page.clock.setFixedTime(new Date(FROZEN_CREDIT_DETAIL_E2E_CLOCK_ISO))
 		await loginPage(page, creditDetailStatesHrAgent.email)
 		await setSelectedCompanyId(page, seed.companyId)
 	})

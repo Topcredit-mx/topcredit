@@ -7,12 +7,14 @@ import {
 	Clock,
 	Hourglass,
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { WorkflowStatusBadge } from '~/components/equipo/workflow-status-badge'
 import { FormattedDate } from '~/components/formatted-date'
-import type {
-	CreditDetailStatusContext,
-	EquipoWorkflowMessageKey,
-	WorkflowTone,
+import {
+	type CreditDetailStatusContext,
+	type EquipoWorkflowMessageKey,
+	isGraceWorkflowMessageKey,
+	type WorkflowTone,
 } from '~/lib/equipo-workflow-status'
 import { cn } from '~/lib/utils'
 
@@ -45,6 +47,7 @@ export function EquipoWorkflowStatusPresentation({
 	detailContext?: CreditDetailStatusContext
 	className?: string
 }) {
+	const t = useTranslations('equipo')
 	const showIcons = variant !== 'queue'
 	const isHistoryOnTime =
 		variant === 'history' && messageKey === 'equipo-workflow-history-on-time'
@@ -135,6 +138,15 @@ export function EquipoWorkflowStatusPresentation({
 						value={detailContext.clearedAtIso}
 						format="datetime-short"
 					/>
+				</p>
+			) : null}
+			{(variant === 'credit_detail' || variant === 'queue') &&
+			isGraceWorkflowMessageKey(messageKey) ? (
+				<p className="flex min-w-0 items-start gap-1 text-muted-foreground text-xs">
+					<Clock className="mt-0.5 size-3 shrink-0" aria-hidden />
+					<span className="min-w-0 leading-snug">
+						{t('equipo-credit-detail-grace-expected-by')}
+					</span>
 				</p>
 			) : null}
 		</div>

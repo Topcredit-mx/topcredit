@@ -69,7 +69,6 @@ jobs:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
       PW_WORKERS: 2
       PW_BLOB_REPORT: "true"
     steps:

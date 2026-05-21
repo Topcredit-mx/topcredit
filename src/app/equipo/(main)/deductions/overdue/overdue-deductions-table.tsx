@@ -1,7 +1,8 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { OverdueQueuePayrollHeader } from '~/components/equipo/overdue-queue-payroll-header'
+import { PayrollQueueStats } from '~/components/equipo/payroll-queue-stats'
+import { OverdueSelectedAmountTotal } from '~/components/equipo/queue-selected-amount-total'
 import {
 	DataTable,
 	DataTableContent,
@@ -34,8 +35,14 @@ export function OverdueDeductionsTable({
 					row.original.confirmableOverduePaymentIds.length > 0
 				}
 			>
-				<OverdueQueuePayrollHeader
+				<PayrollQueueStats
 					employeeSalaryFrequency={employeeSalaryFrequency}
+					selectionTotal={
+						<OverdueSelectedAmountTotal
+							variant="confirmable-payments-total"
+							className="shrink-0 text-right"
+						/>
+					}
 				/>
 				<OverdueDeductionsToolbar />
 				<DataTableContent />

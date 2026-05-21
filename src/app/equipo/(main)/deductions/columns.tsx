@@ -13,7 +13,11 @@ import { useTranslations } from 'next-intl'
 import { EquipoWorkflowStatusPresentation } from '~/components/equipo/equipo-workflow-status-presentation'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
-import { resolveQueueWorkflowStatus } from '~/lib/equipo-workflow-status'
+import {
+	isGraceWorkflowMessageKey,
+	resolveQueueWorkflowStatus,
+	scheduleDueYmdFromQueueDueField,
+} from '~/lib/equipo-workflow-status'
 import { formatCurrencyMxn } from '~/lib/utils'
 import type { InstallmentForQueue } from '~/server/queries'
 
@@ -138,12 +142,20 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 				const { tone, messageKey } = resolveQueueWorkflowStatus({
 					hrConfirmedAt: row.original.hrConfirmedAt,
 					installmentConfirmedAt: row.original.installmentConfirmedAt,
+					dueDate: row.original.dueDate,
 				})
+				const detailContext = isGraceWorkflowMessageKey(messageKey)
+					? {
+							kind: 'due' as const,
+							dateIso: scheduleDueYmdFromQueueDueField(row.original.dueDate),
+						}
+					: undefined
 				return (
 					<EquipoWorkflowStatusPresentation
 						tone={tone}
 						messageKey={messageKey}
 						variant="queue"
+						detailContext={detailContext}
 					/>
 				)
 			},

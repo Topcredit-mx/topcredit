@@ -41,7 +41,7 @@ Copy `.env.example` to `.env` and set:
 | `AUTH_URL` | App URL (`http://localhost:3000` in dev) |
 | `EMAIL_FROM` | Sender address for Resend |
 | `RESEND_API_KEY` | Resend API key |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token for application document storage. **Required for Playwright E2E** (document upload tests). |
+| `BLOB_READ_WRITE_TOKEN` | (Optional in dev) Vercel Blob token for document storage. When unset in non-production, uploads use local `.e2e-blobs/`. Required in production. |
 | `E2E_OTP_CODE` | **Required for Playwright E2E** locally. Fixed 6-digit OTP; when set the app runs in E2E mode (fixed OTP, emails skipped). |
 | `INNGEST_EVENT_KEY` | (Optional) [Inngest](https://www.inngest.com) event key for queuing operations (e.g. email sends in production). |
 

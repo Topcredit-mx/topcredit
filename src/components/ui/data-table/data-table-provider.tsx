@@ -19,6 +19,7 @@ import {
 	createContext,
 	type Dispatch,
 	type SetStateAction,
+	useEffect,
 	useState,
 } from 'react'
 
@@ -126,8 +127,29 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 			}
 			return
 		}
-		setClientPagination(updater)
+		queueMicrotask(() => {
+			setClientPagination(updater)
+		})
 	}
+
+	useEffect(() => {
+		if (serverPagination) return
+		const pageCount = Math.max(
+			1,
+			Math.ceil(data.length / clientPagination.pageSize),
+		)
+		if (clientPagination.pageIndex >= pageCount) {
+			setClientPagination((prev) => ({
+				...prev,
+				pageIndex: Math.max(0, pageCount - 1),
+			}))
+		}
+	}, [
+		data.length,
+		clientPagination.pageIndex,
+		clientPagination.pageSize,
+		serverPagination,
+	])
 
 	const createButtonHref =
 		createLink === null
@@ -141,6 +163,7 @@ export function DataTableProvider<TData extends BaseData, TValue>({
 	const table = useReactTable({
 		data,
 		columns,
+		autoResetPageIndex: false,
 		getRowId: (row) => row.id.toString(),
 		enableRowSelection:
 			enableRowSelection !== undefined ? enableRowSelection : true,

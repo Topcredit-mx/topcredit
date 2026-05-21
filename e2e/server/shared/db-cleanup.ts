@@ -14,8 +14,6 @@ export async function deleteBlobsForTerm(
 	db: E2eDb,
 	termId: number,
 ): Promise<void> {
-	if (!process.env.BLOB_READ_WRITE_TOKEN) return
-
 	const appIds = await db
 		.select({ id: applications.id })
 		.from(applications)
