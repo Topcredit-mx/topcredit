@@ -1,8 +1,9 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useActionState, useEffect, useRef } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { uploadApplicationDocumentAction } from '~/app/cuenta/(main)/applications/actions'
+import { ApplicantDocumentFileDisplay } from '~/components/applicant-document-file-display'
 import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Button } from '~/components/ui/button'
 import { FieldError } from '~/components/ui/field'
@@ -57,10 +58,14 @@ export function ApplicationDocumentUploadForm({
 	const formRef = useRef<HTMLFormElement>(null)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const lastNotifiedUploadIdRef = useRef<number | null>(null)
+	const [pendingFileName, setPendingFileName] = useState<string | null>(null)
 
 	useEffect(() => {
-		if (state.errors?.file && fileInputRef.current) {
-			fileInputRef.current.value = ''
+		if (state.errors?.file) {
+			setPendingFileName(null)
+			if (fileInputRef.current) {
+				fileInputRef.current.value = ''
+			}
 		}
 	}, [state.errors?.file])
 
@@ -68,6 +73,7 @@ export function ApplicationDocumentUploadForm({
 		if (!state.success || fileInputRef.current == null) {
 			return
 		}
+		setPendingFileName(null)
 		fileInputRef.current.value = ''
 
 		if (!state.uploadedDocument || !onUploadSuccess) {
@@ -82,6 +88,8 @@ export function ApplicationDocumentUploadForm({
 
 	function onFileSelected() {
 		const input = fileInputRef.current
+		const file = input?.files?.[0]
+		setPendingFileName(file?.name ?? null)
 		if (input?.files && input.files.length > 0) {
 			formRef.current?.requestSubmit()
 		}
@@ -108,6 +116,9 @@ export function ApplicationDocumentUploadForm({
 					disabled={pending}
 					aria-hidden
 				/>
+				{pendingFileName ? (
+					<ApplicantDocumentFileDisplay fileName={pendingFileName} />
+				) : null}
 				<Button
 					type="button"
 					variant="secondary"
@@ -116,27 +127,26 @@ export function ApplicationDocumentUploadForm({
 						embedInTileChrome && 'mt-2',
 					)}
 					disabled={pending}
-					aria-label={pickFileButtonLabel}
+					aria-label={pending ? tCommon('loading') : pickFileButtonLabel}
 					onClick={() => fileInputRef.current?.click()}
 				>
 					{pending ? tCommon('loading') : pickFileButtonLabel}
 				</Button>
 
-				<div className="mt-1.5 flex min-h-7 w-full flex-col justify-start gap-1">
+				{state.message && !state.errors ? (
 					<AuthInlineError
-						message={
-							state.message && !state.errors
-								? resolveError(state.message)
-								: null
-						}
+						message={resolveError(state.message)}
 						align="start"
-						className="px-0"
+						className="mt-1.5 px-0"
 						reserveHeight={false}
 					/>
-					{state.errors?.file ? (
-						<FieldError message={resolveError(state.errors.file)} />
-					) : null}
-				</div>
+				) : null}
+				{state.errors?.file ? (
+					<FieldError
+						message={resolveError(state.errors.file)}
+						className="mt-1.5"
+					/>
+				) : null}
 			</form>
 		</div>
 	)

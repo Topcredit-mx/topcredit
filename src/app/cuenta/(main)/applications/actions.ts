@@ -1,21 +1,20 @@
 'use server'
 
-import { and, eq, gte, notInArray } from 'drizzle-orm'
+import { and, eq, gte, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
 	APPLICATION_DOCUMENT_ALLOWED_MIME_VALUES,
 	APPLICATION_DOCUMENT_MAX_BYTES,
 } from '~/lib/application-document-intake'
-import { INACTIVE_APPLICATION_STATUSES } from '~/lib/application-rules'
 import { Decimal } from '~/lib/decimal'
 import { ValidationCode } from '~/lib/validation-codes'
-import { createApplicationWithStatusHistory } from '~/server/application-status-history'
+import { uploadAndInsertApplicationDocumentRow } from '~/server/applications/initial-intake-helpers'
 import {
-	cleanupApplicationWithUploadedBlobs,
-	uploadAndInsertApplicationDocumentRow,
-	validateRequiredInitialDocuments,
-} from '~/server/applications/initial-intake-helpers'
+	allRequiredInitialDocumentsPresent,
+	getIntakeApplicationDraftForApplicant,
+	getMissingRequiredInitialDocumentFieldErrors,
+} from '~/server/applications/intake-draft'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import { db } from '~/server/db'
@@ -24,10 +23,7 @@ import { sendApplicationSubmittedEvent } from '~/server/email'
 import { fromErrorToFormState } from '~/server/errors/errors'
 import { detectAllowedMime } from '~/server/file-validation'
 import { submitApplicationForAuthorizationReview } from '~/server/mutations'
-import {
-	type ApplicationDocumentForList,
-	getCompanyByEmailDomain,
-} from '~/server/queries'
+import type { ApplicationDocumentForList } from '~/server/queries'
 import {
 	createApplicationSchema,
 	uploadApplicationDocumentSchema,
@@ -81,10 +77,21 @@ export async function createApplicationWithInitialDocumentsAction(
 	const { ability } = await getAbility()
 	requireAbility(ability, 'create', 'Application')
 
-	const email = user.email ?? ''
-	const company = await getCompanyByEmailDomain(email)
-	if (!company) {
-		return { message: ValidationCode.CUENTA_APPLICATION_EMAIL_DOMAIN }
+	const rawApplicationId = formData.get('applicationId')
+	const applicationId =
+		typeof rawApplicationId === 'string'
+			? Number.parseInt(rawApplicationId, 10)
+			: Number.NaN
+	if (!Number.isInteger(applicationId) || applicationId < 1) {
+		return { message: ValidationCode.APPLICATION_INVALID }
+	}
+
+	const draft = await getIntakeApplicationDraftForApplicant(
+		applicationId,
+		user.id,
+	)
+	if (draft == null) {
+		return { message: ValidationCode.CUENTA_APPLICATION_NOT_FOUND }
 	}
 
 	try {
@@ -111,12 +118,13 @@ export async function createApplicationWithInitialDocumentsAction(
 		const duplicate = await db.query.applications.findFirst({
 			where: and(
 				eq(applications.applicantId, user.id),
-				eq(applications.companyId, company.id),
+				eq(applications.companyId, draft.companyId),
 				eq(applications.salaryAtApplication, new Decimal(salary).toFixed(2)),
 				eq(applications.salaryFrequency, applicationData.salaryFrequency),
 				eq(applications.rfc, applicationData.rfc),
 				eq(applications.payrollNumber, applicationData.payrollNumber),
 				gte(applications.createdAt, sixtySecondsAgo),
+				ne(applications.id, applicationId),
 			),
 			columns: { id: true },
 		})
@@ -124,30 +132,15 @@ export async function createApplicationWithInitialDocumentsAction(
 			return { message: ValidationCode.CUENTA_APPLICATION_DUPLICATE_WAIT }
 		}
 
-		const existingActive = await db.query.applications.findFirst({
-			where: and(
-				eq(applications.applicantId, user.id),
-				notInArray(applications.status, [...INACTIVE_APPLICATION_STATUSES]),
-			),
-			columns: { id: true },
-		})
-		if (existingActive) {
-			return {
-				message: ValidationCode.CUENTA_APPLICATION_EXISTING_ACTIVE,
-			}
+		const documentErrors =
+			await getMissingRequiredInitialDocumentFieldErrors(applicationId)
+		if (!allRequiredInitialDocumentsPresent(documentErrors)) {
+			return { errors: documentErrors }
 		}
 
-		const validated = await validateRequiredInitialDocuments(formData)
-		if ('errors' in validated) {
-			return { errors: validated.errors }
-		}
-
-		const createdApplication = await createApplicationWithStatusHistory({
-			values: {
-				applicantId: user.id,
-				companyId: company.id,
-				termOfferingId: null,
-				creditAmount: null,
+		await db
+			.update(applications)
+			.set({
 				salaryAtApplication: new Decimal(salary).toFixed(2),
 				salaryFrequency: applicationData.salaryFrequency,
 				payrollNumber: applicationData.payrollNumber,
@@ -160,42 +153,11 @@ export async function createApplicationWithInitialDocumentsAction(
 				country: applicationData.country,
 				postalCode: applicationData.postalCode,
 				phoneNumber: applicationData.phoneNumber,
-				status: 'pending',
-				denialReason: null,
-			},
-			setByUserId: user.id,
-		})
-
-		const uploadedBlobKeys: string[] = []
-
-		try {
-			requireAbility(
-				ability,
-				'uploadDocument',
-				subject('Application', {
-					id: createdApplication.id,
-					applicantId: createdApplication.applicantId,
-					companyId: createdApplication.companyId,
-				}),
-			)
-
-			for (const doc of validated.documents) {
-				const { storedPathname } = await uploadAndInsertApplicationDocumentRow({
-					applicationId: createdApplication.id,
-					documentType: doc.documentType,
-					file: doc.file,
-					mime: doc.mime,
-				})
-				uploadedBlobKeys.push(storedPathname)
-			}
-		} catch (uploadError) {
-			await cleanupApplicationWithUploadedBlobs({
-				applicationId: createdApplication.id,
-				uploadedBlobKeys,
+				updatedAt: new Date(),
 			})
-			return fromErrorToFormState(uploadError)
-		}
+			.where(eq(applications.id, applicationId))
 
+		const email = user.email ?? ''
 		await sendApplicationSubmittedEvent(email, {
 			creditAmountFormatted: PENDING_APPLICATION_SUMMARY,
 			termLabel: PENDING_APPLICATION_SUMMARY,
@@ -203,6 +165,7 @@ export async function createApplicationWithInitialDocumentsAction(
 
 		revalidatePath('/cuenta/applications')
 		revalidatePath('/cuenta/applications/new')
+		revalidatePath(`/cuenta/applications/${applicationId}`)
 	} catch (error) {
 		return fromErrorToFormState(error)
 	}
@@ -292,6 +255,7 @@ export async function uploadApplicationDocumentAction(
 
 		revalidatePath('/cuenta/applications')
 		revalidatePath(`/cuenta/applications/${data.applicationId}`)
+		revalidatePath('/cuenta/applications/new')
 		revalidatePath(
 			`/cuenta/applications/${data.applicationId}/pre-authorized`,
 			'page',

@@ -1,4 +1,3 @@
-import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
 import type { SeedDisbursementReviewResult } from '~/e2e/server/tasks'
 import {
@@ -6,14 +5,18 @@ import {
 	seedDisbursementReview,
 } from '~/e2e/server/tasks'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
+import {
+	expectDisbursementReceiptSuccess,
+	expectLocalFileSelectionVisible,
+	pickLocalDocumentFile,
+	waitForSuccessfulPost,
+} from '../helpers/document-upload'
 import { mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import {
 	dispersionsAgent,
 	nonDispersionsAgent,
 } from './disbursement-agents.fixtures'
-
-const SAMPLE_WEBP = join(process.cwd(), 'e2e/fixtures/sample-document.webp')
 
 registerDbSpecGuards()
 
@@ -101,22 +104,37 @@ test.describe('Disbursement agent flow', () => {
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()
 			await expect(page.getByText(/autorizado/i).first()).toBeVisible()
-			await page
-				.getByRole('main')
+
+			const main = page.getByRole('main')
+			const disburseForm = main
+				.locator('form:has(input[name="receipt"])')
+				.first()
+			const receiptInput = disburseForm.locator('input[name="receipt"]')
+
+			await main
 				.locator('input[name="transferReference"]')
 				.first()
 				.fill('REF-DISB-001')
-			await page
-				.getByRole('main')
-				.locator('input[name="receipt"]')
-				.first()
-				.setInputFiles(SAMPLE_WEBP)
-			await page.getByRole('button', { name: /dispersar/i }).click()
+			await pickLocalDocumentFile({
+				container: disburseForm,
+				fileInput: receiptInput,
+			})
+			await expectLocalFileSelectionVisible(disburseForm)
+
+			const disbursePromise = waitForSuccessfulPost(
+				page,
+				new RegExp(`/equipo/applications/${seed.applicationId}`),
+			)
+			await disburseForm.getByRole('button', { name: /dispersar/i }).click()
+			await disbursePromise
+
 			await expect(
 				page.getByRole('heading', { name: /detalle de solicitud/i }),
 			).toBeVisible()
-			await expect(page.getByText(/dispersado/i).first()).toBeVisible()
-			await expect(page.getByText('REF-DISB-001').first()).toBeVisible()
+			await expectDisbursementReceiptSuccess(page, {
+				transferReference: 'REF-DISB-001',
+			})
+
 			await page.goto(
 				'/equipo/applications?status=authorized&disbursementPending=true',
 			)

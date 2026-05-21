@@ -17,6 +17,11 @@ const canonicalSeedUsers = [
 		roles: ['agent', 'admin'] satisfies readonly Role[],
 	},
 	{
+		name: 'David Cantu',
+		email: 'davidcantu966@gmail.com',
+		roles: ['agent', 'admin'] satisfies readonly Role[],
+	},
+	{
 		name: 'Laura Campos',
 		email: 'solicitudes@topcredit.mx',
 		roles: ['agent', 'requests'] satisfies readonly Role[],

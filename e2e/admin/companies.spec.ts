@@ -1,5 +1,4 @@
-import { join } from 'node:path'
-import { expect, type Page, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { adminUser, companies } from '~/e2e/admin/companies.fixtures'
 import { applicantOnlyUser } from '~/e2e/admin/users.fixtures'
 import {
@@ -13,30 +12,14 @@ import {
 	seedCompanyDocumentTemplates,
 } from '~/e2e/server/tasks'
 import { loginPage } from '../helpers/auth'
+import {
+	DOCUMENT_UPLOAD_STATUS,
+	uploadDocumentViaFileInput,
+} from '../helpers/document-upload'
 import { findTableRow, selectRadix } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 
 registerDbSpecGuards()
-
-async function waitForPostMatchingPath(
-	page: Page,
-	pattern: RegExp,
-): Promise<void> {
-	await page.waitForResponse((res) => {
-		if (res.request().method() !== 'POST') {
-			return false
-		}
-		let pathname: string
-		try {
-			pathname = new URL(res.url()).pathname
-		} catch {
-			return false
-		}
-		return pattern.test(pathname)
-	})
-}
-
-const SAMPLE_WEBP = join(process.cwd(), 'e2e/fixtures/sample-document.webp')
 
 test.describe('Admin Companies List', () => {
 	test.beforeAll(async () => {
@@ -714,7 +697,6 @@ test.describe('Admin Companies List', () => {
 		test.beforeAll(async () => {
 			await deleteCompaniesByDomain([templateCompany.domain])
 			await resetCompany(templateCompany)
-			await seedCompanyDocumentTemplates({ domain: templateCompany.domain })
 		})
 
 		test.afterAll(async () => {
@@ -738,36 +720,29 @@ test.describe('Admin Companies List', () => {
 			)
 			const postPattern = /\/equipo\/companies\/.+\/edit/
 
-			const firstPost = waitForPostMatchingPath(page, postPattern)
-			await tmpl
-				.locator('input[type="file"]')
-				.first()
-				.setInputFiles(SAMPLE_WEBP)
-			await tmpl
-				.getByRole('button', { name: /^subir archivo$/i })
-				.first()
-				.click()
-			await firstPost
+			const authRow = tmpl.locator('div.grid > section').first()
+			await uploadDocumentViaFileInput({
+				page,
+				container: authRow,
+				fileInput: authRow.locator('input[type="file"]'),
+				postPattern,
+				statusPattern: DOCUMENT_UPLOAD_STATUS.uploaded,
+			})
 
-			const secondPost = waitForPostMatchingPath(page, postPattern)
-			await tmpl.locator('input[type="file"]').nth(1).setInputFiles(SAMPLE_WEBP)
-			await tmpl
-				.getByRole('button', { name: /^subir archivo$/i })
-				.nth(1)
-				.click()
-			await secondPost
-
-			await expect(
-				tmpl.getByText(/sample-document\.webp/i).first(),
-			).toBeVisible()
-			await expect(
-				tmpl.getByText(/sample-document\.webp/i).nth(1),
-			).toBeVisible()
+			const contractRow = tmpl.locator('div.grid > section').nth(1)
+			await uploadDocumentViaFileInput({
+				page,
+				container: contractRow,
+				fileInput: contractRow.locator('input[type="file"]'),
+				postPattern,
+				statusPattern: DOCUMENT_UPLOAD_STATUS.uploaded,
+			})
 		})
 
 		test('assigned agent downloads templates from company detail and cannot open edit', async ({
 			page,
 		}) => {
+			await seedCompanyDocumentTemplates({ domain: templateCompany.domain })
 			await resetUser({
 				name: agentTemplatesUser.name,
 				email: agentTemplatesUser.email,

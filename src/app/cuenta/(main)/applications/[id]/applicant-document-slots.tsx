@@ -3,7 +3,9 @@
 import { FileText } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
+import { ApplicantDocumentFileDisplay } from '~/components/applicant-document-file-display'
 import { Badge } from '~/components/ui/badge'
+import { FieldError } from '~/components/ui/field'
 import {
 	filterDocumentsWithUploadedFile,
 	getLatestDocumentByType,
@@ -17,6 +19,7 @@ import {
 } from '~/lib/i18n-keys'
 import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
+import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { DocumentStatus, DocumentType } from '~/server/db/schema'
 import type { ApplicationDocumentForList } from '~/server/queries'
 import { ApplicationDocumentUploadForm } from './application-document-upload-form'
@@ -60,14 +63,17 @@ export function ApplicantDocumentSlots({
 	documents: initialDocuments,
 	reuploadWhenLatestNotRejected,
 	authorizationPackageSubmitEnabled = false,
+	intakeFieldErrors,
 }: {
 	applicationId: number
 	documentTypes: readonly DocumentType[]
 	documents: ApplicationDocumentForList[]
 	reuploadWhenLatestNotRejected: boolean
 	authorizationPackageSubmitEnabled?: boolean
+	intakeFieldErrors?: Partial<Record<DocumentType, string>>
 }) {
 	const t = useTranslations('cuenta.applications')
+	const resolveError = useResolveValidationError()
 
 	const [documents, setDocuments] =
 		useState<ApplicationDocumentForList[]>(initialDocuments)
@@ -96,13 +102,14 @@ export function ApplicantDocumentSlots({
 					)
 					const documentTypeKey = CUENTA_DOCUMENT_TYPE_KEYS[documentType]
 					const slotHeadingId = `cuenta-application-doc-${documentType}`
+					const intakeError = intakeFieldErrors?.[documentType]
 
 					if (doc == null) {
 						return (
 							<section
 								key={documentType}
 								aria-labelledby={slotHeadingId}
-								className={cn(shell.applicantDocumentUploadTile, 'py-3')}
+								className={shell.applicantDocumentUploadTile}
 							>
 								<div
 									className={shell.applicantDocumentTileIconWell}
@@ -128,6 +135,12 @@ export function ApplicantDocumentSlots({
 									embedInTileChrome
 									onUploadSuccess={handleUploadSuccess}
 								/>
+								{intakeError ? (
+									<FieldError
+										message={resolveError(intakeError)}
+										className="mt-3 text-center"
+									/>
+								) : null}
 							</section>
 						)
 					}
@@ -171,24 +184,17 @@ export function ApplicantDocumentSlots({
 									{t(documentStatusKey)}
 								</Badge>
 							</div>
-							{doc.hasBlobContent ? (
-								<a
-									href={doc.url}
-									target="_blank"
-									rel="noopener noreferrer"
-									className={cn(
-										'mt-1 block max-w-full truncate text-xs leading-relaxed',
-										shell.textLinkStrong,
-									)}
-									aria-label={`${t('document-link')}: ${doc.fileName}`}
-								>
-									{doc.fileName}
-								</a>
-							) : (
-								<p className="mt-1 max-w-full truncate text-muted-foreground text-xs leading-relaxed">
-									{doc.fileName}
-								</p>
-							)}
+							{doc.fileName ? (
+								<ApplicantDocumentFileDisplay
+									fileName={doc.fileName}
+									href={doc.hasBlobContent ? doc.url : undefined}
+									ariaLabel={
+										doc.hasBlobContent
+											? `${t('document-link')}: ${doc.fileName}`
+											: undefined
+									}
+								/>
+							) : null}
 
 							{doc.status === 'rejected' ? (
 								<div className="mt-3 w-full space-y-3">

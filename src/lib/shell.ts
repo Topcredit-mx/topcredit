@@ -25,11 +25,16 @@ export const shell = {
 	alertErrorSurface:
 		'rounded-xl border border-red-200 bg-red-50/70 text-red-900',
 	applicantDocumentUploadTile:
-		'flex flex-col items-center rounded-xl border border-slate-300 border-dashed bg-white px-4 py-6 text-center shadow-sm transition-colors',
+		'flex flex-col items-center rounded-xl border border-slate-300 border-dashed bg-white px-4 py-4 text-center shadow-sm transition-colors',
 	applicantDocumentTileIconWell:
 		'mb-3 flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand',
 	applicantDocumentStatusTileBase:
 		'flex min-w-0 flex-col items-center rounded-xl border bg-white px-4 py-4 text-center shadow-sm',
 	applicantDocumentTileActionButton:
 		'h-9 w-full rounded-lg border-0 bg-slate-200/80 font-medium text-brand text-xs shadow-none hover:bg-slate-200',
+	applicantDocumentFileRow:
+		'mt-2 flex w-full min-w-0 max-w-full items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/90 px-3 py-2',
+	applicantDocumentFileRowIcon: 'size-4 shrink-0 text-brand',
+	applicantDocumentFileRowName:
+		'min-w-0 flex-1 truncate text-left text-slate-700 text-xs leading-snug',
 } as const

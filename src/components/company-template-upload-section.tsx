@@ -1,14 +1,16 @@
 'use client'
 
-import { FileText, Upload } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useActionState, useEffect, useId, useRef } from 'react'
+import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import { uploadCompanyTemplateAction } from '~/app/equipo/(main)/companies/company-template-actions'
+import { ApplicantDocumentFileDisplay } from '~/components/applicant-document-file-display'
 import { AuthInlineError } from '~/components/auth/auth-inline-message'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
-import { Field, FieldError } from '~/components/ui/field'
+import { FieldError } from '~/components/ui/field'
+import { SectionTitleRow } from '~/components/ui/section-card'
 import { APPLICATION_DOCUMENT_ACCEPT } from '~/lib/application-document-intake'
 import type { CompanyTemplateKind } from '~/lib/company-templates'
 import { shell } from '~/lib/shell'
@@ -31,6 +33,14 @@ type CompanyTemplatePick = Pick<
 	| 'contractTemplateFileName'
 >
 
+function getTemplateNotUploadedBadgeClass(): string {
+	return 'border-transparent bg-slate-100 text-slate-800'
+}
+
+function getTemplateUploadedBadgeClass(): string {
+	return 'border-transparent bg-amber-500 text-black'
+}
+
 function TemplateRow({
 	company,
 	templateKind,
@@ -39,11 +49,13 @@ function TemplateRow({
 	templateKind: CompanyTemplateKind
 }) {
 	const t = useTranslations('admin')
+	const tCommon = useTranslations('common')
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
 	const titleId = useId()
-	const fileId = useId()
+	const formRef = useRef<HTMLFormElement>(null)
 	const fileRef = useRef<HTMLInputElement>(null)
+	const [pendingFileName, setPendingFileName] = useState<string | null>(null)
 	const [state, action, pending] = useActionState(
 		uploadCompanyTemplateAction,
 		initialState,
@@ -53,13 +65,6 @@ function TemplateRow({
 		templateKind === 'authorization'
 			? ('company-template-authorization-label' as const)
 			: ('company-template-contract-label' as const)
-
-	useEffect(() => {
-		if (state.success) {
-			router.refresh()
-			if (fileRef.current) fileRef.current.value = ''
-		}
-	}, [state.success, router])
 
 	const hasFile =
 		templateKind === 'authorization'
@@ -73,88 +78,123 @@ function TemplateRow({
 			? company.authorizationTemplateFileName
 			: company.contractTemplateFileName
 
+	const displayFileName =
+		hasFile && fileName != null && fileName !== '' ? fileName : pendingFileName
+
+	useEffect(() => {
+		if (state.errors?.file) {
+			setPendingFileName(null)
+			if (fileRef.current) fileRef.current.value = ''
+		}
+	}, [state.errors?.file])
+
+	useEffect(() => {
+		if (hasFile) {
+			setPendingFileName(null)
+		}
+	}, [hasFile])
+
+	useEffect(() => {
+		if (state.success) {
+			router.refresh()
+			if (fileRef.current) fileRef.current.value = ''
+		}
+	}, [state.success, router])
+
+	function onFileSelected() {
+		const input = fileRef.current
+		const file = input?.files?.[0]
+		setPendingFileName(file?.name ?? null)
+		if (input?.files && input.files.length > 0) {
+			formRef.current?.requestSubmit()
+		}
+	}
+
 	return (
-		<Field>
+		<section
+			aria-labelledby={titleId}
+			className={cn(
+				hasFile
+					? cn(
+							shell.applicantDocumentStatusTileBase,
+							'border-slate-200 bg-white',
+						)
+					: shell.applicantDocumentUploadTile,
+			)}
+		>
+			<div className={shell.applicantDocumentTileIconWell} aria-hidden>
+				<FileText className="size-6" />
+			</div>
+			<div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
+				<p
+					id={titleId}
+					className="max-w-full text-center font-semibold text-slate-900 text-sm leading-snug"
+				>
+					{t(titleKey)}
+				</p>
+				<Badge
+					className={cn(
+						'shrink-0',
+						hasFile
+							? getTemplateUploadedBadgeClass()
+							: getTemplateNotUploadedBadgeClass(),
+					)}
+				>
+					{hasFile
+						? t('company-template-uploaded')
+						: t('company-template-not-uploaded')}
+				</Badge>
+			</div>
+			{displayFileName ? (
+				<ApplicantDocumentFileDisplay fileName={displayFileName} />
+			) : null}
 			<form
+				ref={formRef}
 				action={action}
-				className={cn(shell.applicantDocumentUploadTile, 'items-stretch py-5')}
-				aria-labelledby={titleId}
+				className="flex w-full min-w-0 flex-col gap-0"
+				noValidate
 			>
 				<input type="hidden" name="companyId" value={company.id} />
 				<input type="hidden" name="kind" value={templateKind} />
-				<div className={shell.applicantDocumentTileIconWell} aria-hidden>
-					<FileText className="size-6" />
-				</div>
-				<div className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1">
-					<label
-						id={titleId}
-						htmlFor={fileId}
-						className="cursor-pointer font-semibold text-slate-900 text-sm leading-snug"
-					>
-						{t(titleKey)}
-					</label>
-					<Badge
-						variant={hasFile ? 'secondary' : 'outline'}
-						className={cn(
-							'shrink-0',
-							hasFile
-								? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-								: 'border-amber-200 bg-amber-50 text-amber-900',
-						)}
-					>
-						{hasFile
-							? t('company-template-uploaded')
-							: t('company-template-missing')}
-					</Badge>
-				</div>
-				{hasFile && fileName ? (
-					<p className="mt-1 max-w-full truncate text-muted-foreground text-xs leading-relaxed">
-						{t('company-template-current-file', { fileName })}
-					</p>
-				) : (
-					<p className="mt-1 text-muted-foreground text-xs leading-relaxed">
-						{t('company-template-missing')}
-					</p>
-				)}
 				<input
 					ref={fileRef}
-					id={fileId}
 					type="file"
 					name="file"
 					accept={APPLICATION_DOCUMENT_ACCEPT}
 					className="sr-only"
+					tabIndex={-1}
+					onChange={onFileSelected}
 					disabled={pending}
 					aria-labelledby={titleId}
 				/>
 				<Button
 					type="button"
 					variant="secondary"
-					className={cn(shell.applicantDocumentTileActionButton, 'mt-4')}
+					className={cn(shell.applicantDocumentTileActionButton, 'mt-2')}
 					disabled={pending}
+					aria-label={
+						pending ? tCommon('loading') : t('company-template-browse')
+					}
 					onClick={() => fileRef.current?.click()}
 				>
-					<Upload className="size-4" aria-hidden />
-					{t('company-template-browse')}
+					{pending ? tCommon('loading') : t('company-template-browse')}
 				</Button>
-				<Button type="submit" disabled={pending} className="mt-2">
-					{pending
-						? t('company-template-upload-pending')
-						: t('company-template-upload-submit')}
-				</Button>
-				<AuthInlineError
-					message={state.message ? resolveError(state.message) : null}
-					align="start"
-					className="mt-2 px-0"
-					minHeightClass="min-h-5"
-				/>
+				{state.message ? (
+					<AuthInlineError
+						message={resolveError(state.message)}
+						align="start"
+						className="mt-1.5 px-0"
+						reserveHeight={false}
+					/>
+				) : null}
 				{state.errors?.file ? (
 					<FieldError
-						className="mt-2"
 						message={resolveError(state.errors.file)}
+						className="mt-1.5"
 					/>
 				) : null}
 			</form>
-		</Field>
+		</section>
 	)
 }
 
@@ -167,16 +207,15 @@ export function CompanyTemplateUploadSection({
 
 	return (
 		<section
-			className="mt-10 space-y-6 border-border border-t pt-8"
+			className="mt-10 space-y-5 border-border border-t pt-8"
 			aria-labelledby="company-templates-heading"
 		>
-			<h2
-				id="company-templates-heading"
-				className="font-semibold text-lg text-slate-900"
-			>
-				{t('company-templates-section-title')}
-			</h2>
-			<div className="grid gap-5 md:grid-cols-2">
+			<SectionTitleRow
+				headingId="company-templates-heading"
+				icon={FileText}
+				title={t('company-templates-section-title')}
+			/>
+			<div className="grid items-start gap-5 sm:*:min-w-0 md:grid-cols-2">
 				<TemplateRow company={company} templateKind="authorization" />
 				<TemplateRow company={company} templateKind="contract" />
 			</div>

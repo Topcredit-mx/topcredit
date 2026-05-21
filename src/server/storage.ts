@@ -11,11 +11,22 @@ export const COMPANY_DOCUMENT_TEMPLATES_PREFIX = 'company-document-templates/'
 
 const VERCEL_BLOB_URL_HOST = 'blob.vercel-storage.com'
 
+const LOCAL_UPLOAD_DELAY_MS = 1000
+
 function localBlobStorageEnabled(): boolean {
 	if (env.NODE_ENV === 'production') {
 		return false
 	}
 	return env.BLOB_READ_WRITE_TOKEN === undefined
+}
+
+async function maybeSimulateUploadDelay(): Promise<void> {
+	if (!localBlobStorageEnabled()) {
+		return
+	}
+	await new Promise<void>((resolve) => {
+		setTimeout(resolve, LOCAL_UPLOAD_DELAY_MS)
+	})
 }
 
 export function isBlobStorageKey(key: string): boolean {
@@ -31,6 +42,7 @@ export async function uploadBlob(
 	body: Blob | Buffer | ReadableStream,
 	options?: { contentType?: string },
 ): Promise<{ pathname: string }> {
+	await maybeSimulateUploadDelay()
 	if (localBlobStorageEnabled()) {
 		return e2eLocalUploadBlob(pathname, body, options)
 	}

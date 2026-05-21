@@ -1,4 +1,3 @@
-import { join } from 'node:path'
 import { expect, type Page, test } from '@playwright/test'
 import { adminUser } from '~/e2e/admin/companies.fixtures'
 import type { SeedCuentaApplicationsResult } from '~/e2e/server/tasks'
@@ -16,6 +15,16 @@ import {
 	updateLatestApplicationDocumentByType,
 } from '~/e2e/server/tasks'
 import { loginPage } from '../helpers/auth'
+import {
+	applicationDocumentSlot,
+	DOCUMENT_UPLOAD_STATUS,
+	expectInitialIntakeDocumentsPendingOnDetail,
+	postToCuentaApplicationUrl,
+	SAMPLE_DOCUMENT_WEBP,
+	uploadDocumentViaFileInput,
+	waitForPostToCuentaApplications,
+	waitForSuccessfulPost,
+} from '../helpers/document-upload'
 import { selectRadix } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import {
@@ -30,40 +39,13 @@ import {
 
 registerDbSpecGuards()
 
-const SAMPLE_WEBP = join(process.cwd(), 'e2e/fixtures/sample-document.webp')
-
 const cuentaMain = (page: Page) => page.getByRole('main')
 
-function postToApplicationUrl(id: number): RegExp {
-	return new RegExp(`/cuenta/applications/${id}(?:/|$)`)
-}
-
-async function waitForPostToCuentaApplications(page: Page): Promise<void> {
-	await page.waitForResponse((res) => {
-		if (res.request().method() !== 'POST') {
-			return false
-		}
-		return res.url().includes('/cuenta/applications')
-	})
-}
-
-async function waitForPostMatchingPath(
-	page: Page,
-	pattern: RegExp,
-): Promise<void> {
-	await page.waitForResponse((res) => {
-		if (res.request().method() !== 'POST') {
-			return false
-		}
-		let pathname: string
-		try {
-			pathname = new URL(res.url()).pathname
-		} catch {
-			return false
-		}
-		return pattern.test(pathname)
-	})
-}
+const initialApplicationDocumentTypes = [
+	'official-id',
+	'proof-of-address',
+	'bank-statement',
+] as const
 
 test.describe('Cuenta applications', () => {
 	let seed: SeedCuentaApplicationsResult
@@ -391,20 +373,13 @@ test.describe('Cuenta applications', () => {
 				page.getByRole('heading', { name: /documentos requeridos/i, level: 2 }),
 			).toBeVisible()
 			await expect(
-				cuentaMain(page)
-					.getByText(/Identificación oficial.*INE o pasaporte/i)
-					.first(),
-			).toBeVisible()
-			await expect(
-				cuentaMain(page)
-					.getByText(/Comprobante de domicilio.*no mayor a 3 meses/i)
-					.first(),
-			).toBeVisible()
-			await expect(
-				cuentaMain(page)
-					.getByText(/Estado de cuenta bancario.*no mayor a 3 meses/i)
-					.first(),
-			).toBeVisible()
+				page.locator('input[name="applicationId"]').first(),
+			).toHaveValue(/^\d+$/)
+			for (const documentType of initialApplicationDocumentTypes) {
+				const slot = applicationDocumentSlot(page, documentType)
+				await expect(slot).toBeVisible()
+				await expect(slot.getByText(/sin cargar/i)).toBeVisible()
+			}
 
 			await page.locator('input[name="salaryAtApplication"]').fill('100000')
 			await page
@@ -422,15 +397,16 @@ test.describe('Cuenta applications', () => {
 			await page.locator('input[name="postalCode"]').fill('64000')
 			await page.locator('input[name="phoneNumber"]').fill('8112345678')
 
-			await page
-				.locator('input[name="officialIdFile"]')
-				.setInputFiles(SAMPLE_WEBP)
-			await page
-				.locator('input[name="proofOfAddressFile"]')
-				.setInputFiles(SAMPLE_WEBP)
-			await page
-				.locator('input[name="bankStatementFile"]')
-				.setInputFiles(SAMPLE_WEBP)
+			for (const documentType of initialApplicationDocumentTypes) {
+				const slot = applicationDocumentSlot(page, documentType)
+				await uploadDocumentViaFileInput({
+					page,
+					container: slot,
+					fileInput: slot.locator('input[name="file"]'),
+					postPattern: /\/cuenta\/applications/,
+					statusPattern: DOCUMENT_UPLOAD_STATUS.pendingReview,
+				})
+			}
 
 			const submitPromise = waitForPostToCuentaApplications(page)
 			const submit = page.getByRole('button', { name: /solicitar ahora/i })
@@ -453,6 +429,17 @@ test.describe('Cuenta applications', () => {
 					.getByText(/por definir/i)
 					.first(),
 			).toBeVisible()
+
+			const detailLink = cuentaMain(page)
+				.getByRole('link', { name: /ver detalle de solicitud/i })
+				.first()
+			await detailLink.scrollIntoViewIfNeeded()
+			await detailLink.click()
+			await expect(page).toHaveURL(/\/cuenta\/applications\/\d+/)
+			await expect(
+				page.getByRole('heading', { name: /resumen de tu solicitud/i }),
+			).toBeVisible()
+			await expectInitialIntakeDocumentsPendingOnDetail(page)
 		})
 
 		test('shows validation errors when required documents are missing', async ({
@@ -493,29 +480,12 @@ test.describe('Cuenta applications', () => {
 				page.getByRole('heading', { name: /nueva solicitud de crédito/i }),
 			).toBeVisible()
 
-			const officialGroup = page
-				.getByRole('group')
-				.filter({ has: page.locator('input[name="officialIdFile"]') })
-				.first()
-			await expect(
-				officialGroup.getByText(/Selecciona un archivo válido\./i),
-			).toBeVisible()
-
-			const addressGroup = page
-				.getByRole('group')
-				.filter({ has: page.locator('input[name="proofOfAddressFile"]') })
-				.first()
-			await expect(
-				addressGroup.getByText(/Selecciona un archivo válido\./i),
-			).toBeVisible()
-
-			const bankGroup = page
-				.getByRole('group')
-				.filter({ has: page.locator('input[name="bankStatementFile"]') })
-				.first()
-			await expect(
-				bankGroup.getByText(/Selecciona un archivo válido\./i),
-			).toBeVisible()
+			for (const documentType of initialApplicationDocumentTypes) {
+				const slot = applicationDocumentSlot(page, documentType)
+				await expect(
+					slot.getByText(/Selecciona un archivo válido\./i),
+				).toBeVisible()
+			}
 		})
 	})
 
@@ -695,21 +665,15 @@ test.describe('Cuenta applications', () => {
 				page.getByRole('heading', { name: /resumen de tu solicitud/i }),
 			).toBeVisible()
 
-			const official = page.locator(
-				'section[aria-labelledby="cuenta-application-doc-official-id"]',
-			)
+			const official = applicationDocumentSlot(page, 'official-id')
 			await official.first().scrollIntoViewIfNeeded()
-			const uploadPromise = waitForPostToCuentaApplications(page)
-			await official
-				.first()
-				.locator('input[name="file"]')
-				.setInputFiles(SAMPLE_WEBP)
-			await uploadPromise
-
-			await expect(official.first().getByText(/pendiente/i)).toBeVisible()
-			await expect(
-				official.first().getByText(/sample-document\.webp/i),
-			).toBeVisible()
+			await uploadDocumentViaFileInput({
+				page,
+				container: official.first(),
+				fileInput: official.first().locator('input[name="file"]'),
+				postPattern: /\/cuenta\/applications/,
+				statusPattern: DOCUMENT_UPLOAD_STATUS.pendingReview,
+			})
 		})
 
 		test('shows document in list when one is seeded via DB (no real upload)', async ({
@@ -820,7 +784,7 @@ test.describe('Cuenta applications', () => {
 				.locator(
 					'section[aria-labelledby="cuenta-application-doc-official-id"] input[name="file"]',
 				)
-				.setInputFiles(SAMPLE_WEBP)
+				.setInputFiles(SAMPLE_DOCUMENT_WEBP)
 			await upload1
 
 			await page.goto(`/cuenta/applications/${app.id}`)
@@ -843,7 +807,7 @@ test.describe('Cuenta applications', () => {
 				.locator(
 					'section[aria-labelledby="cuenta-application-doc-proof-of-address"] input[name="file"]',
 				)
-				.setInputFiles(SAMPLE_WEBP)
+				.setInputFiles(SAMPLE_DOCUMENT_WEBP)
 			await upload2
 
 			await page.goto(`/cuenta/applications/${app.id}`)
@@ -893,7 +857,7 @@ test.describe('Cuenta applications', () => {
 				.locator(
 					'section[aria-labelledby="cuenta-application-doc-bank-statement"] input[name="file"]',
 				)
-				.setInputFiles(SAMPLE_WEBP)
+				.setInputFiles(SAMPLE_DOCUMENT_WEBP)
 			await uploadPromise
 
 			await page.goto(`/cuenta/applications/${app.id}`)
@@ -963,7 +927,7 @@ test.describe('Cuenta applications', () => {
 				.locator(
 					'section[aria-labelledby="cuenta-application-doc-bank-statement"] input[name="file"]',
 				)
-				.setInputFiles(SAMPLE_WEBP)
+				.setInputFiles(SAMPLE_DOCUMENT_WEBP)
 			await uploadPromise
 
 			await page.goto(`/cuenta/applications/${app.id}`)
@@ -1008,6 +972,8 @@ test.describe('Cuenta applications', () => {
 				roles: [...adminUser.roles],
 			})
 
+			await resetCompany(companyWithTerms)
+
 			const editPattern = /\/equipo\/companies\/.+\/edit/
 			await loginPage(page, adminUser.email)
 			await page.goto(
@@ -1016,23 +982,22 @@ test.describe('Cuenta applications', () => {
 			const tmpl = page.locator(
 				'section[aria-labelledby="company-templates-heading"]',
 			)
-			const up1 = waitForPostMatchingPath(page, editPattern)
-			await tmpl
-				.locator('input[type="file"]')
-				.first()
-				.setInputFiles(SAMPLE_WEBP)
-			await tmpl
-				.getByRole('button', { name: /^subir archivo$/i })
-				.first()
-				.click()
-			await up1
-			const up2 = waitForPostMatchingPath(page, editPattern)
-			await tmpl.locator('input[type="file"]').nth(1).setInputFiles(SAMPLE_WEBP)
-			await tmpl
-				.getByRole('button', { name: /^subir archivo$/i })
-				.nth(1)
-				.click()
-			await up2
+			const authRow = tmpl.locator('div.grid > section').first()
+			await uploadDocumentViaFileInput({
+				page,
+				container: authRow,
+				fileInput: authRow.locator('input[type="file"]'),
+				postPattern: editPattern,
+				statusPattern: DOCUMENT_UPLOAD_STATUS.uploaded,
+			})
+			const contractRow = tmpl.locator('div.grid > section').nth(1)
+			await uploadDocumentViaFileInput({
+				page,
+				container: contractRow,
+				fileInput: contractRow.locator('input[type="file"]'),
+				postPattern: editPattern,
+				statusPattern: DOCUMENT_UPLOAD_STATUS.uploaded,
+			})
 
 			await loginPage(page, applicantWithCompany.email)
 			await page.goto(`/cuenta/applications/${app.id}/pre-authorized`)
@@ -1113,19 +1078,15 @@ test.describe('Cuenta applications', () => {
 				page.getByRole('heading', { name: /oferta preautorizada/i }),
 			).toBeVisible()
 
-			const payroll = page.locator(
-				'section[aria-labelledby="cuenta-application-doc-payroll-receipt"]',
-			)
+			const payroll = applicationDocumentSlot(page, 'payroll-receipt')
 			await payroll.scrollIntoViewIfNeeded()
-			const uploadPromise = waitForPostMatchingPath(
+			await uploadDocumentViaFileInput({
 				page,
-				postToApplicationUrl(app.id),
-			)
-			await payroll.locator('input[name="file"]').setInputFiles(SAMPLE_WEBP)
-			await uploadPromise
-
-			await expect(payroll.getByText(/pendiente/i)).toBeVisible()
-			await expect(payroll.getByText(/sample-document\.webp/i)).toBeVisible()
+				container: payroll,
+				fileInput: payroll.locator('input[name="file"]'),
+				postPattern: postToCuentaApplicationUrl(app.id),
+				statusPattern: DOCUMENT_UPLOAD_STATUS.pendingReview,
+			})
 		})
 
 		test('submits a complete pending package for review and shows awaiting-authorization after reload', async ({
@@ -1155,9 +1116,9 @@ test.describe('Cuenta applications', () => {
 			await expect(enviar).toBeVisible()
 			await expect(enviar).toBeEnabled()
 
-			const submitPromise = waitForPostMatchingPath(
+			const submitPromise = waitForSuccessfulPost(
 				page,
-				postToApplicationUrl(app.id),
+				postToCuentaApplicationUrl(app.id),
 			)
 			await enviar.click()
 			await submitPromise
@@ -1203,33 +1164,36 @@ test.describe('Cuenta applications', () => {
 				)
 				.scrollIntoViewIfNeeded()
 
-			const p = postToApplicationUrl(app.id)
-			const u1 = waitForPostMatchingPath(page, p)
-			await page
-				.locator(
-					'section[aria-labelledby="cuenta-application-doc-payroll-receipt"] input[name="file"]',
-				)
-				.setInputFiles(SAMPLE_WEBP)
-			await u1
-			const u2 = waitForPostMatchingPath(page, p)
-			await page
-				.locator(
-					'section[aria-labelledby="cuenta-application-doc-contract"] input[name="file"]',
-				)
-				.setInputFiles(SAMPLE_WEBP)
-			await u2
-			const u3 = waitForPostMatchingPath(page, p)
-			await page
-				.locator(
-					'section[aria-labelledby="cuenta-application-doc-authorization"] input[name="file"]',
-				)
-				.setInputFiles(SAMPLE_WEBP)
-			await u3
+			const p = postToCuentaApplicationUrl(app.id)
+			const payroll = applicationDocumentSlot(page, 'payroll-receipt')
+			await uploadDocumentViaFileInput({
+				page,
+				container: payroll,
+				fileInput: payroll.locator('input[name="file"]'),
+				postPattern: p,
+				statusPattern: DOCUMENT_UPLOAD_STATUS.pendingReview,
+			})
+			const contract = applicationDocumentSlot(page, 'contract')
+			await uploadDocumentViaFileInput({
+				page,
+				container: contract,
+				fileInput: contract.locator('input[name="file"]'),
+				postPattern: p,
+				statusPattern: DOCUMENT_UPLOAD_STATUS.pendingReview,
+			})
+			const authorization = applicationDocumentSlot(page, 'authorization')
+			await uploadDocumentViaFileInput({
+				page,
+				container: authorization,
+				fileInput: authorization.locator('input[name="file"]'),
+				postPattern: p,
+				statusPattern: DOCUMENT_UPLOAD_STATUS.pendingReview,
+			})
 
 			const enviar = page.getByRole('button', { name: /^Enviar$/i })
 			await expect(enviar).toBeVisible()
 			await expect(enviar).toBeEnabled()
-			const submitPromise = waitForPostMatchingPath(page, p)
+			const submitPromise = waitForSuccessfulPost(page, p)
 			await enviar.click()
 			await submitPromise
 
@@ -1359,15 +1323,15 @@ test.describe('Cuenta applications', () => {
 			).toBeVisible()
 			await page.goto(`/cuenta/applications/${app.id}/pre-authorized`)
 
-			const reupload = waitForPostMatchingPath(
+			const reupload = waitForSuccessfulPost(
 				page,
-				postToApplicationUrl(app.id),
+				postToCuentaApplicationUrl(app.id),
 			)
 			await page
 				.locator(
 					'section[aria-labelledby="cuenta-application-doc-contract"] input[name="file"]',
 				)
-				.setInputFiles(SAMPLE_WEBP)
+				.setInputFiles(SAMPLE_DOCUMENT_WEBP)
 			await reupload
 
 			await page.goto(`/cuenta/applications/${app.id}/pre-authorized`)
