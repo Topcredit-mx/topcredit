@@ -1,3 +1,4 @@
+import { EmailLogo } from '~/components/email/email-logo'
 import type { NotifyStatus } from '~/lib/application-rules'
 import type { EmailT } from '~/lib/email-i18n'
 import type { ApplicationStatus } from '~/server/db/schema'
@@ -44,7 +45,7 @@ export function ApplicationStatusTemplate({
 			}}
 		>
 			<div style={{ textAlign: 'center', marginBottom: '24px' }}>
-				<div style={{ fontSize: '48px', marginBottom: '8px' }}>▲</div>
+				<EmailLogo />
 				<h2 style={{ fontWeight: 600, color: highlightColor }}>
 					{statusTitle}
 				</h2>

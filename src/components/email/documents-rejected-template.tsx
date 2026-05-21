@@ -1,3 +1,4 @@
+import { EmailLogo } from '~/components/email/email-logo'
 import type { EmailT } from '~/lib/email-i18n'
 
 export type DocumentsRejectedTemplateItem = {
@@ -31,7 +32,7 @@ export function DocumentsRejectedTemplate({
 			}}
 		>
 			<div style={{ textAlign: 'center', marginBottom: '24px' }}>
-				<div style={{ fontSize: '48px', marginBottom: '8px' }}>▲</div>
+				<EmailLogo />
 				<h2 style={{ fontWeight: 600 }}>
 					{headingPrefix} <span style={{ color: '#0070f3' }}>Topcredit</span>
 				</h2>
