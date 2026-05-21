@@ -267,7 +267,7 @@ export default async function CuentaCreditDetailPage({
 			>
 				{payments.length > 0 ? (
 					<div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:overflow-visible sm:px-0">
-						<table className="w-full min-w-[36rem]">
+						<table className="w-full min-w-[52rem]">
 							<thead>
 								<tr className="border-slate-100 border-b bg-slate-50/80 text-left text-[11px] text-muted-foreground uppercase tracking-wide">
 									<th className="px-5 py-3 font-medium" scope="col">
@@ -277,7 +277,13 @@ export default async function CuentaCreditDetailPage({
 										{t('schedule-th-due-date')}
 									</th>
 									<th className="px-5 py-3 font-medium" scope="col">
-										{t('schedule-th-amount')}
+										{t('schedule-th-principal')}
+									</th>
+									<th className="px-5 py-3 font-medium" scope="col">
+										{t('schedule-th-financing')}
+									</th>
+									<th className="px-5 py-3 font-medium" scope="col">
+										{t('schedule-th-total')}
 									</th>
 									<th className="px-5 py-3 font-medium" scope="col">
 										{t('schedule-th-status')}
@@ -300,7 +306,13 @@ export default async function CuentaCreditDetailPage({
 												showTimeZoneLabel
 											/>
 										</td>
-										<td className="px-5 py-3.5 text-slate-800 text-sm">
+										<td className="px-5 py-3.5 text-slate-800 text-sm tabular-nums">
+											{formatCurrencyMxn(payment.principalAmount)}
+										</td>
+										<td className="px-5 py-3.5 text-slate-800 text-sm tabular-nums">
+											{formatCurrencyMxn(payment.financingAmount)}
+										</td>
+										<td className="px-5 py-3.5 font-medium text-slate-800 text-sm tabular-nums">
 											{formatCurrencyMxn(payment.amount)}
 										</td>
 										<td className="px-5 py-3.5 text-sm">

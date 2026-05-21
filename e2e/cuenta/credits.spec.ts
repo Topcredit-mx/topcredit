@@ -190,7 +190,7 @@ test.describe('Applicant views active credits', () => {
 		await expect(firstRow.getByText(amountLabel)).toBeVisible()
 	})
 
-	test('shows due date and status columns in payment schedule', async ({
+	test('shows due date, breakdown, and status columns in payment schedule', async ({
 		page,
 	}) => {
 		await page.goto(`/cuenta/credits/${seedResult.creditId}`)
@@ -204,6 +204,11 @@ test.describe('Applicant views active credits', () => {
 		await expect(
 			table.locator('th', { hasText: /fecha de pago/i }),
 		).toBeVisible()
+		await expect(table.locator('th', { hasText: /^capital$/i })).toBeVisible()
+		await expect(
+			table.locator('th', { hasText: /^financiamiento$/i }),
+		).toBeVisible()
+		await expect(table.locator('th', { hasText: /^total$/i })).toBeVisible()
 		await expect(table.locator('th', { hasText: /estado/i })).toBeVisible()
 	})
 
