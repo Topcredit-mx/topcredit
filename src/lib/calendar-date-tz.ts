@@ -42,6 +42,30 @@ export function utcMidnightForYmd(ymd: string): Date {
 	return new Date(Date.UTC(year, month0, day, 0, 0, 0, 0))
 }
 
+const YMD_INPUT_RE = /^\d{4}-\d{2}-\d{2}$/
+
+/** Pure calendar arithmetic on `YYYY-MM-DD` (no timezone shift). */
+export function subtractCalendarDays(ymd: string, days: number): string {
+	if (!Number.isFinite(days) || days < 0) {
+		throw new RangeError(
+			`subtractCalendarDays: days must be a non-negative finite number, got ${String(days)}`,
+		)
+	}
+	const t = ymd.trim()
+	if (!YMD_INPUT_RE.test(t)) {
+		throw new RangeError(
+			`subtractCalendarDays: expected YYYY-MM-DD, got "${ymd}"`,
+		)
+	}
+	const { year, month0, day } = parseYmd(t)
+	const d = new Date(Date.UTC(year, month0, day))
+	d.setUTCDate(d.getUTCDate() - days)
+	const y = d.getUTCFullYear()
+	const m0 = d.getUTCMonth() + 1
+	const dd = d.getUTCDate()
+	return `${String(y).padStart(4, '0')}-${String(m0).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
+}
+
 /** Start of calendar day (00:00:00) in `America/Mexico_City` as a UTC `Date` instant. */
 export function startOfDayInstantMexicoCity(ymd: string): Date {
 	if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd.trim())) {

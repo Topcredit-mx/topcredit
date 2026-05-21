@@ -129,7 +129,8 @@ test.describe('Installments overdue page', () => {
 		}) => {
 			await page.goto('/equipo/installments/overdue')
 			const main = page.getByRole('main')
-			await expect(main.getByText(/^nómina:/i).first()).toBeVisible()
+			await expect(main.getByText(/^nómina$/i).first()).toBeVisible()
+			await expect(main.getByText(/mensual/i).first()).toBeVisible()
 			const status = page.getByRole('status', { name: /selección:/i })
 			await expect(status).toContainText(/sin selección/i)
 			const [p0, p1, p2] = seed.overdueInstallmentsBlockedConfirmableAmounts

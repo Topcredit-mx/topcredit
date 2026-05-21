@@ -429,6 +429,7 @@ export type SeedInstallmentsOverdueResult = {
 
 export const seedInstallmentsOverdue =
 	async (): Promise<SeedInstallmentsOverdueResult> => {
+		// Schedule anchors are fixed in 2019; all seeded dues are well past the 15 MX-day grace window vs E2E “today”.
 		const db = getDb(process.env.DATABASE_URL || '')
 		const now = new Date()
 

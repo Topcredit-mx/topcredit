@@ -27,11 +27,10 @@ import {
 	users,
 } from '~/server/db/schema'
 import { getDb } from '../e2e-db'
+import { assertSeedPayrollDueDates } from '../shared/assert-seed-payroll-dates'
 import { deleteOrphanTermsWithoutOfferings } from '../shared/db-cleanup'
 import {
 	endOfMonthMonthsAgoEodMx,
-	eodCalendarDaysAgoMx,
-	eodDayOfOffsetMexicoMonth,
 	eodNCalendarDaysFromMexicoToday,
 	eodYmd,
 	mxScheduleDueYmdIso,
@@ -340,7 +339,7 @@ export const seedDeductionsQueue = async (
 		// Credit 7: recently overdue credit — due 3 days ago (< 7 days).
 		// Appears in the current overdue snapshot but NOT in the 7-day-ago snapshot,
 		// so the overview cards show a measurable week-over-week change.
-		const recentPastDate = eodCalendarDaysAgoMx(now, 3)
+		const recentPastDate = endOfMonthMonthsAgoEodMx(now, 1)
 		const creditAmountOverdueRecent = '8500.00'
 		const [app7] = await db
 			.insert(applications)
@@ -384,10 +383,9 @@ export const seedDeductionsQueue = async (
 		])
 	}
 
-	// Credit 6: credit with 2 overdue installments — used to test bulk-confirm of multiple payments.
+	// Credit 6: three overdue month-end installments for bulk-confirm tests.
 	if (withMultipleOverdue) {
-		const pastDate2 = endOfMonthMonthsAgoEodMx(now, 2)
-		const pastDateMiddle = eodDayOfOffsetMexicoMonth(now, -1, 15)
+		const multiOverdueFirstDiscount = endOfMonthMonthsAgoEodMx(now, 4)
 		const creditAmountMultiOverdue = '18000.00'
 		const [app6] = await db
 			.insert(applications)
@@ -399,7 +397,7 @@ export const seedDeductionsQueue = async (
 				salaryAtApplication: '18000',
 				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
 				status: 'disbursed' as const,
-				firstDiscountDate: pastDate2,
+				firstDiscountDate: multiOverdueFirstDiscount,
 				payrollNumber: 'DEDUCT006',
 			})
 			.returning()
@@ -419,33 +417,26 @@ export const seedDeductionsQueue = async (
 
 		if (!credit6) throw new Error('Seed Deductions: credit 6 not created')
 
-		// 3 overdue installments for credit6 (past due, unconfirmed) — ordered by due date
-		const p6a = paymentPrincipalFinancing('6200.00', creditAmountMultiOverdue)
-		const p6b = paymentPrincipalFinancing('6200.00', creditAmountMultiOverdue)
-		const p6c = paymentPrincipalFinancing('6200.00', creditAmountMultiOverdue)
-		await db.insert(creditPayments).values([
-			{
+		const schedule6 = generatePaymentSchedule({
+			loanPrincipal: Number(creditAmountMultiOverdue),
+			rate: Number(deductionsCompany.rate),
+			totalPayments: 3,
+			frequency: deductionsCompany.employeeSalaryFrequency,
+			firstDiscountDate: multiOverdueFirstDiscount,
+		})
+		assertSeedPayrollDueDates(
+			deductionsCompany.employeeSalaryFrequency,
+			schedule6.map((entry) => entry.dueDate),
+		)
+		await db.insert(creditPayments).values(
+			schedule6.map((entry) => ({
 				creditId: credit6.id,
-				dueDate: pastDate2,
-				amount: '6200.00',
-				principalAmount: p6a.principalAmount,
-				financingAmount: p6a.financingAmount,
-			},
-			{
-				creditId: credit6.id,
-				dueDate: pastDateMiddle,
-				amount: '6200.00',
-				principalAmount: p6b.principalAmount,
-				financingAmount: p6b.financingAmount,
-			},
-			{
-				creditId: credit6.id,
-				dueDate: pastDate,
-				amount: '6200.00',
-				principalAmount: p6c.principalAmount,
-				financingAmount: p6c.financingAmount,
-			},
-		])
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+				principalAmount: entry.principalAmount,
+				financingAmount: entry.financingAmount,
+			})),
+		)
 	}
 
 	// Credit 4: upcoming installment already HR-confirmed — should NOT appear in

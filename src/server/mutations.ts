@@ -41,6 +41,7 @@ import {
 } from '~/lib/installment-import-csv'
 import { paymentIdsFormContiguousSelectionByCredit } from '~/lib/overdue-payment-pick-validation'
 import { generatePaymentSchedule } from '~/lib/payment-schedule'
+import { assertValidPayrollDueDates } from '~/lib/payroll-due-date-validation'
 import {
 	isPreAuthOverCapacity,
 	maxDebtCapacityForLoanPeriod,
@@ -1354,6 +1355,10 @@ export async function disburseApplication(payload: {
 					frequency: termInfo.durationType,
 					firstDiscountDate: app.firstDiscountDate,
 				})
+				assertValidPayrollDueDates(
+					termInfo.durationType,
+					schedule.map((entry) => entry.dueDate),
+				)
 				await db.insert(creditPayments).values(
 					schedule.map((entry) => ({
 						creditId: credit.id,

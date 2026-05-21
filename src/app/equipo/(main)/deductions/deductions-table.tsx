@@ -2,6 +2,8 @@
 
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { PayrollQueueStats } from '~/components/equipo/payroll-queue-stats'
+import { QueueSelectedInstallmentAmountTotal } from '~/components/equipo/queue-selected-amount-total'
 import {
 	DataTable,
 	DataTableContent,
@@ -9,7 +11,6 @@ import {
 } from '~/components/ui/data-table'
 import type { InstallmentForQueue } from '~/server/queries'
 import { useDeductionsColumns } from './columns'
-import { DeductionsQueueStats } from './deductions-queue-stats'
 import { DeductionsQueueToolbar } from './deductions-queue-toolbar'
 import { ExportDeductionsDialog } from './export-deductions-dialog'
 import { ImportDeductionsDialog } from './import-deductions-dialog'
@@ -40,9 +41,12 @@ export function DeductionsTable({
 				filterPlaceholder={t('table-filter-deductions')}
 				createLink={null}
 			>
-				<DeductionsQueueStats
+				<PayrollQueueStats
 					nextDeductionDate={nextDeductionDate}
 					employeeSalaryFrequency={employeeSalaryFrequency}
+					selectionTotal={
+						<QueueSelectedInstallmentAmountTotal className="shrink-0 text-right" />
+					}
 				/>
 				<DeductionsQueueToolbar
 					onExportClick={() => setExportOpen(true)}

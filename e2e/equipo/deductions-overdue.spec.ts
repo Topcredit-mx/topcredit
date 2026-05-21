@@ -152,7 +152,8 @@ test.describe('HR overdue deductions list', () => {
 		}) => {
 			await page.goto('/equipo/deductions/overdue')
 			const main = page.getByRole('main')
-			await expect(main.getByText(/^nómina:/i).first()).toBeVisible()
+			await expect(main.getByText(/^nómina$/i).first()).toBeVisible()
+			await expect(main.getByText(/mensual/i).first()).toBeVisible()
 			const status = page.getByRole('status', { name: /selección:/i })
 			await expect(status).toContainText(/sin selección/i)
 			const totals = seed.overdueDeductionsRowTotals

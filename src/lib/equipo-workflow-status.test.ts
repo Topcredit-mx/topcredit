@@ -5,12 +5,14 @@ import {
 	isEquipoScheduleConfirmationOnTime,
 	resolveCreditDetailCollectionStatus,
 	resolveCreditDetailDeductionStatus,
+	resolveQueueWorkflowStatus,
+	scheduleDueYmdFromQueueDueField,
 } from './equipo-workflow-status'
 
 const todayYmd = '2023-01-05'
 
 describe('resolveCreditDetailDeductionStatus', () => {
-	test('RH overdue when not confirmed and after due EOD (Mexico)', () => {
+	test('RH grace-pending when past due EOD but within 15 Mexico calendar days of listing overdue cutoff', () => {
 		const dueDate = endOfDayInstantMexicoCity('2022-12-30')
 		const now = new Date('2023-01-01T00:00:00.000Z')
 		const got = resolveCreditDetailDeductionStatus({
@@ -19,11 +21,37 @@ describe('resolveCreditDetailDeductionStatus', () => {
 			todayYmd,
 			now,
 		})
-		assert.equal(got.messageKey, 'equipo-credit-detail-deduction-overdue')
+		assert.equal(got.messageKey, 'equipo-credit-detail-deduction-grace-pending')
 		assert.deepEqual(got.context, {
 			kind: 'due',
 			dateIso: '2022-12-30',
 		})
+	})
+
+	test('RH overdue when not confirmed and due_date before grace cutoff (Mexico calendar)', () => {
+		const dueDate = endOfDayInstantMexicoCity('2022-12-10')
+		const got = resolveCreditDetailDeductionStatus({
+			hrConfirmedAt: null,
+			dueDate,
+			todayYmd: '2023-01-20',
+			now: new Date('2023-01-20T12:00:00.000Z'),
+		})
+		assert.equal(got.messageKey, 'equipo-credit-detail-deduction-overdue')
+		assert.deepEqual(got.context, {
+			kind: 'due',
+			dateIso: '2022-12-10',
+		})
+	})
+
+	test('RH grace-pending on 15th Mexico calendar day after due (due EOD not before grace cutoff start)', () => {
+		const dueDate = endOfDayInstantMexicoCity('2023-01-05')
+		const got = resolveCreditDetailDeductionStatus({
+			hrConfirmedAt: null,
+			dueDate,
+			todayYmd: '2023-01-20',
+			now: new Date('2023-01-20T12:00:00.000Z'),
+		})
+		assert.equal(got.messageKey, 'equipo-credit-detail-deduction-grace-pending')
 	})
 
 	test('RH pending when not confirmed and now is before or at due EOD', () => {
@@ -204,7 +232,7 @@ describe('resolveCreditDetailCollectionStatus', () => {
 		assert.deepEqual(got.context, { kind: 'none' })
 	})
 
-	test('installment delayed when past due EOD, RH confirmed, installment pending', () => {
+	test('installment grace-pending when past due EOD, RH confirmed before today, within grace window', () => {
 		const now = new Date('2022-12-10T15:00:00.000Z')
 		const got = resolveCreditDetailCollectionStatus({
 			hrConfirmedAt: new Date('2022-12-01T10:00:00.000Z'),
@@ -213,7 +241,42 @@ describe('resolveCreditDetailCollectionStatus', () => {
 			todayYmd: '2022-12-10',
 			now,
 		})
+		assert.equal(
+			got.messageKey,
+			'equipo-credit-detail-collection-grace-pending',
+		)
+		assert.deepEqual(got.context, {
+			kind: 'due',
+			dateIso: '2022-11-30',
+		})
+	})
+
+	test('installment delayed when past grace cutoff, RH confirmed before today', () => {
+		const now = new Date('2022-12-20T15:00:00.000Z')
+		const got = resolveCreditDetailCollectionStatus({
+			hrConfirmedAt: new Date('2022-12-01T10:00:00.000Z'),
+			installmentConfirmedAt: null,
+			dueDate: endOfDayInstantMexicoCity('2022-10-15'),
+			todayYmd: '2022-12-20',
+			now,
+		})
 		assert.equal(got.messageKey, 'equipo-credit-detail-collection-delayed')
+		assert.deepEqual(got.context, {
+			kind: 'due',
+			dateIso: '2022-10-15',
+		})
+	})
+
+	test('installment pending when RH confirmed today after due EOD but still in grace window', () => {
+		const now = new Date('2022-12-10T15:00:00.000Z')
+		const got = resolveCreditDetailCollectionStatus({
+			hrConfirmedAt: new Date('2022-12-10T14:00:00.000Z'),
+			installmentConfirmedAt: null,
+			dueDate: endOfDayInstantMexicoCity('2022-11-30'),
+			todayYmd: '2022-12-10',
+			now,
+		})
+		assert.equal(got.messageKey, 'equipo-credit-detail-collection-pending')
 		assert.deepEqual(got.context, {
 			kind: 'due',
 			dateIso: '2022-11-30',
@@ -273,5 +336,73 @@ describe('resolveCreditDetailCollectionStatus', () => {
 		if (got.context.kind === 'liquidationSettled') {
 			assert.equal(got.context.clearedAtIso, clearedAt.toISOString())
 		}
+	})
+})
+
+describe('scheduleDueYmdFromQueueDueField', () => {
+	test('treats YYYY-MM-DD as schedule YMD (EOD Mexico)', () => {
+		assert.equal(scheduleDueYmdFromQueueDueField('2023-03-15'), '2023-03-15')
+	})
+})
+
+describe('resolveQueueWorkflowStatus', () => {
+	test('grace when RH unconfirmed, past due EOD, within overdue grace window', () => {
+		const dueDate = endOfDayInstantMexicoCity('2022-12-30')
+		const now = new Date('2023-01-01T00:00:00.000Z')
+		const got = resolveQueueWorkflowStatus({
+			hrConfirmedAt: null,
+			installmentConfirmedAt: null,
+			dueDate,
+			now,
+		})
+		assert.equal(got.tone, 'amber')
+		assert.equal(got.messageKey, 'equipo-credit-detail-deduction-grace-pending')
+	})
+
+	test('RH pending (not grace) when still on or before due EOD', () => {
+		const dueDate = endOfDayInstantMexicoCity('2023-01-10')
+		const now = new Date('2023-01-01T00:00:00.000Z')
+		const got = resolveQueueWorkflowStatus({
+			hrConfirmedAt: null,
+			installmentConfirmedAt: null,
+			dueDate,
+			now,
+		})
+		assert.equal(got.tone, 'gray')
+		assert.equal(got.messageKey, 'equipo-workflow-status-rh-pending')
+	})
+
+	test('delegates to collection resolution when RH confirmed and installment pending', () => {
+		const dueDate = endOfDayInstantMexicoCity('2022-11-30')
+		const now = new Date('2022-12-15T00:00:00.000Z')
+		const got = resolveQueueWorkflowStatus({
+			hrConfirmedAt: new Date('2022-11-15T12:00:00.000Z').toISOString(),
+			installmentConfirmedAt: null,
+			dueDate,
+			now,
+		})
+		const expected = resolveCreditDetailCollectionStatus({
+			hrConfirmedAt: new Date('2022-11-15T12:00:00.000Z'),
+			installmentConfirmedAt: null,
+			closedByLiquidationAt: null,
+			dueDate,
+			todayYmd: undefined,
+			now,
+		})
+		assert.equal(got.tone, expected.tone)
+		assert.equal(got.messageKey, expected.messageKey)
+	})
+
+	test('throws when hrConfirmedAt is unparseable', () => {
+		assert.throws(
+			() =>
+				resolveQueueWorkflowStatus({
+					hrConfirmedAt: 'not-a-date',
+					installmentConfirmedAt: null,
+					dueDate: endOfDayInstantMexicoCity('2022-12-30'),
+					now: new Date('2023-01-01T00:00:00.000Z'),
+				}),
+			RangeError,
+		)
 	})
 })

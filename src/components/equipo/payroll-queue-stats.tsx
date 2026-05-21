@@ -2,21 +2,35 @@
 
 import { Banknote, CalendarDays } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { QueueSelectedInstallmentAmountTotal } from '~/components/equipo/queue-selected-amount-total'
+import type { ReactNode } from 'react'
+import { useMemo } from 'react'
 import { FormattedDate } from '~/components/formatted-date'
+import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 
-export function DeductionsQueueStats({
+export function PayrollQueueStats({
 	nextDeductionDate,
 	employeeSalaryFrequency,
+	selectionTotal,
 }: {
 	nextDeductionDate?: string
-	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
+	employeeSalaryFrequency: 'monthly' | 'bi-monthly' | null
+	selectionTotal: ReactNode
 }) {
 	const t = useTranslations('equipo')
+	const resolvedNextDeductionDate = useMemo(
+		() =>
+			nextDeductionDate ??
+			(employeeSalaryFrequency === null
+				? undefined
+				: getUpcomingDeductionDateYmd(employeeSalaryFrequency, new Date())),
+		[nextDeductionDate, employeeSalaryFrequency],
+	)
 	const frequencyValue =
-		employeeSalaryFrequency === 'monthly'
-			? t('queue-header-salary-frequency-monthly')
-			: t('queue-header-salary-frequency-bi-monthly')
+		employeeSalaryFrequency === null
+			? null
+			: employeeSalaryFrequency === 'monthly'
+				? t('queue-header-salary-frequency-monthly')
+				: t('queue-header-salary-frequency-bi-monthly')
 
 	return (
 		<div className="mb-4 grid gap-3 sm:grid-cols-2">
@@ -32,8 +46,11 @@ export function DeductionsQueueStats({
 						{t('queue-header-next-deduction-label')}
 					</p>
 					<p className="font-semibold text-foreground text-lg leading-snug tracking-tight">
-						{nextDeductionDate ? (
-							<FormattedDate value={nextDeductionDate} showTimeZoneLabel />
+						{resolvedNextDeductionDate ? (
+							<FormattedDate
+								value={resolvedNextDeductionDate}
+								showTimeZoneLabel
+							/>
 						) : (
 							<span className="text-muted-foreground">—</span>
 						)}
@@ -53,10 +70,14 @@ export function DeductionsQueueStats({
 							{t('queue-header-salary-frequency-label')}
 						</p>
 						<p className="font-semibold text-foreground text-lg leading-snug tracking-tight">
-							{frequencyValue}
+							{frequencyValue !== null ? (
+								frequencyValue
+							) : (
+								<span className="text-muted-foreground">—</span>
+							)}
 						</p>
 					</div>
-					<QueueSelectedInstallmentAmountTotal className="shrink-0 text-right" />
+					{selectionTotal}
 				</div>
 			</div>
 		</div>
