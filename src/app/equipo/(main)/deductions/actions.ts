@@ -1,5 +1,6 @@
 'use server'
 
+import { endOfDayInstantMexicoCity } from '~/lib/calendar-date-tz'
 import { isValidFirstDiscountDate } from '~/lib/first-discount-date'
 import { formatDeductionsCsv } from '~/lib/format-deductions-csv'
 import { getAbility, subject } from '~/server/auth/ability'
@@ -105,7 +106,7 @@ export async function exportDeductionsCsvAction(
 	}
 
 	const today = new Date()
-	const chosenDate = new Date(upcomingDeductionDate)
+	const chosenDate = endOfDayInstantMexicoCity(upcomingDeductionDate)
 	if (
 		!isValidFirstDiscountDate(
 			company.employeeSalaryFrequency,

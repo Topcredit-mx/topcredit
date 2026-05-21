@@ -32,6 +32,7 @@ export function DeductionsQueueToolbar({
 	const { table, filterPlaceholder } = useDataTable<InstallmentForQueue>()
 	const selectedRows = table.getFilteredSelectedRowModel().rows
 	const count = selectedRows.length
+	const hasQueueRows = table.getCoreRowModel().rows.length > 0
 
 	const filterLabel = filterPlaceholder ?? ''
 
@@ -92,6 +93,7 @@ export function DeductionsQueueToolbar({
 					type="button"
 					variant="outline"
 					size="sm"
+					disabled={!hasQueueRows}
 					onClick={onExportClick}
 				>
 					<Download className="mr-2 size-4" />

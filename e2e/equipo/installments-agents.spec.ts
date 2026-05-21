@@ -257,6 +257,11 @@ test.describe('Installments queue', () => {
 			await page.goto('/equipo/installments')
 			await expect(mainDataTable(page)).toBeVisible()
 			await page.getByRole('button', { name: /exportar csv/i }).click()
+			const dialog = page.getByRole('dialog')
+			await expect(dialog).toBeVisible()
+			await expect(dialog.locator('select')).toBeVisible()
+			await dialog.getByRole('button', { name: /^exportar$/i }).click()
+			await expect(page.getByRole('dialog')).toHaveCount(0)
 			await expect(
 				page.getByText(/archivo csv descargado/i).first(),
 			).toBeVisible()

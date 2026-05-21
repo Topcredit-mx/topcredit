@@ -14,21 +14,34 @@ import {
 import { ymdForDeductionSchedule } from '~/lib/calendar-date-tz'
 import { getValidFirstDiscountDates } from '~/lib/first-discount-date'
 import { formatMxDate } from '~/lib/format-mx-date'
-import { exportDeductionsCsvAction } from './actions'
 
-interface ExportDeductionsDialogProps {
+type ExportPayrollQueueCsvDialogProps = {
 	open: boolean
 	onClose: () => void
 	employeeSalaryFrequency: 'monthly' | 'bi-monthly'
 	companyName: string
+	fileNamePrefix: string
+	titleKey:
+		| 'deductions-export-dialog-title'
+		| 'installments-export-dialog-title'
+	successKey: 'deductions-export-success' | 'installments-export-success'
+	errorKey: 'deductions-export-error' | 'installments-export-error'
+	onExport: (
+		selectedDate: string,
+	) => Promise<{ csv: string } | { error: string }>
 }
 
-export function ExportDeductionsDialog({
+export function ExportPayrollQueueCsvDialog({
 	open,
 	onClose,
 	employeeSalaryFrequency,
 	companyName,
-}: ExportDeductionsDialogProps) {
+	fileNamePrefix,
+	titleKey,
+	successKey,
+	errorKey,
+	onExport,
+}: ExportPayrollQueueCsvDialogProps) {
 	const t = useTranslations('equipo')
 	const [isPending, startTransition] = useTransition()
 
@@ -48,20 +61,22 @@ export function ExportDeductionsDialog({
 	function handleExport() {
 		if (!selectedDate) return
 		startTransition(async () => {
-			const result = await exportDeductionsCsvAction(selectedDate)
+			const result = await onExport(selectedDate)
 			if ('error' in result) {
-				toast.error(t('deductions-export-error'))
+				toast.error(t(errorKey))
 				return
 			}
 			const blob = new Blob([result.csv], { type: 'text/csv' })
 			const url = URL.createObjectURL(blob)
 			const a = document.createElement('a')
 			a.href = url
-			a.download = `deducciones-${companyName.replace(/\s+/g, '-').toLowerCase()}-${selectedDate}.csv`
+			const slug = companyName.replace(/\s+/g, '-').toLowerCase() || 'empresa'
+			a.download = `${fileNamePrefix}-${slug}-${selectedDate}.csv`
 			document.body.appendChild(a)
 			a.click()
 			document.body.removeChild(a)
 			URL.revokeObjectURL(url)
+			toast.success(t(successKey))
 			handleClose()
 		})
 	}
@@ -70,18 +85,18 @@ export function ExportDeductionsDialog({
 		<Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
 			<DialogContent aria-describedby={undefined}>
 				<DialogHeader>
-					<DialogTitle>{t('deductions-export-dialog-title')}</DialogTitle>
+					<DialogTitle>{t(titleKey)}</DialogTitle>
 				</DialogHeader>
 				<div className="space-y-4 py-2">
 					<div className="space-y-2">
 						<label
-							htmlFor="export-deduction-date"
+							htmlFor="export-payroll-queue-date"
 							className="font-medium text-sm"
 						>
-							{t('deductions-export-date-label')}
+							{t('queue-export-date-label')}
 						</label>
 						<select
-							id="export-deduction-date"
+							id="export-payroll-queue-date"
 							value={selectedDate}
 							onChange={(e) => setSelectedDate(e.target.value)}
 							className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -101,16 +116,14 @@ export function ExportDeductionsDialog({
 						onClick={handleClose}
 						disabled={isPending}
 					>
-						{t('deductions-export-cancel')}
+						{t('queue-export-cancel')}
 					</Button>
 					<Button
 						type="button"
 						onClick={handleExport}
 						disabled={isPending || !selectedDate}
 					>
-						{isPending
-							? t('deductions-export-loading')
-							: t('deductions-export-confirm')}
+						{isPending ? t('queue-export-loading') : t('queue-export-confirm')}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

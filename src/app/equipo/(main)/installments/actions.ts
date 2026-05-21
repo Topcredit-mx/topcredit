@@ -1,11 +1,8 @@
 'use server'
 
-import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
+import { endOfDayInstantMexicoCity } from '~/lib/calendar-date-tz'
+import { isValidFirstDiscountDate } from '~/lib/first-discount-date'
 import { formatPendingInstallmentsCsv } from '~/lib/format-pending-installments-csv'
-import {
-	canConfirmInstallmentInQueue,
-	isInstallmentOverdueInQueue,
-} from '~/lib/installment-confirmation'
 import { getAbility, subject } from '~/server/auth/ability'
 import {
 	confirmInstallment,
@@ -91,9 +88,9 @@ export async function confirmInstallmentsFromCsvAction(
 	return { ok: true }
 }
 
-export async function exportPendingInstallmentsCsvAction(): Promise<
-	{ csv: string } | { error: string }
-> {
+export async function exportPendingInstallmentsCsvAction(
+	upcomingDeductionDate: string,
+): Promise<{ csv: string } | { error: string }> {
 	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
 
 	const firstCompanyId = assignedCompanyIds[0]
@@ -119,10 +116,17 @@ export async function exportPendingInstallmentsCsvAction(): Promise<
 		return { error: 'company-not-found' }
 	}
 
-	const upcomingDeductionDate = getUpcomingDeductionDateYmd(
-		company.employeeSalaryFrequency,
-		new Date(),
-	)
+	const today = new Date()
+	const chosenDate = endOfDayInstantMexicoCity(upcomingDeductionDate)
+	if (
+		!isValidFirstDiscountDate(
+			company.employeeSalaryFrequency,
+			chosenDate,
+			today,
+		)
+	) {
+		return { error: 'invalid-date' }
+	}
 
 	const scope = await getEffectiveCompanyScope()
 	const installments = await getInstallmentsForQueue({
@@ -130,19 +134,6 @@ export async function exportPendingInstallmentsCsvAction(): Promise<
 		queue: 'installments',
 		upcomingDeductionDate,
 	})
-	const today = new Date()
-	const pendingRows = installments.filter(
-		(row) =>
-			canConfirmInstallmentInQueue(row) &&
-			!isInstallmentOverdueInQueue(
-				{
-					dueDate: row.dueDate,
-					hrConfirmedAt: row.hrConfirmedAt,
-					installmentConfirmedAt: row.installmentConfirmedAt,
-				},
-				today,
-			),
-	)
 
-	return { csv: formatPendingInstallmentsCsv(pendingRows) }
+	return { csv: formatPendingInstallmentsCsv(installments) }
 }

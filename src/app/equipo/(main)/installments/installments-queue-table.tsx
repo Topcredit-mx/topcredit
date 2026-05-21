@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { ExportPayrollQueueCsvDialog } from '~/components/equipo/export-payroll-queue-csv-dialog'
 import { PayrollQueueStats } from '~/components/equipo/payroll-queue-stats'
 import { QueueSelectedInstallmentAmountTotal } from '~/components/equipo/queue-selected-amount-total'
 import {
@@ -11,6 +12,7 @@ import {
 } from '~/components/ui/data-table'
 import { canConfirmInstallmentInQueue } from '~/lib/installment-confirmation'
 import type { InstallmentForQueue } from '~/server/queries'
+import { exportPendingInstallmentsCsvAction } from './actions'
 import { useInstallmentsQueueColumns } from './columns'
 import { ImportInstallmentsCsvDialog } from './import-installments-csv-dialog'
 import { InstallmentsQueueToolbar } from './installments-queue-toolbar'
@@ -28,6 +30,7 @@ export function InstallmentsQueueTable({
 }) {
 	const t = useTranslations('equipo')
 	const columns = useInstallmentsQueueColumns()
+	const [exportOpen, setExportOpen] = useState(false)
 	const [importOpen, setImportOpen] = useState(false)
 
 	return (
@@ -49,12 +52,23 @@ export function InstallmentsQueueTable({
 					}
 				/>
 				<InstallmentsQueueToolbar
-					companyName={companyName}
+					onExportClick={() => setExportOpen(true)}
 					onImportClick={() => setImportOpen(true)}
 				/>
 				<DataTableContent />
 				<DataTablePagination />
 			</DataTable>
+			<ExportPayrollQueueCsvDialog
+				open={exportOpen}
+				onClose={() => setExportOpen(false)}
+				employeeSalaryFrequency={employeeSalaryFrequency}
+				companyName={companyName}
+				fileNamePrefix="instalaciones-pendientes"
+				titleKey="installments-export-dialog-title"
+				successKey="installments-export-success"
+				errorKey="installments-export-error"
+				onExport={exportPendingInstallmentsCsvAction}
+			/>
 			<ImportInstallmentsCsvDialog
 				open={importOpen}
 				onClose={() => setImportOpen(false)}

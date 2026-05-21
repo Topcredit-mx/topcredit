@@ -159,6 +159,21 @@ test.describe('HR deductions queue', () => {
 			await dialog.getByRole('button', { name: /cancelar/i }).click()
 			await expect(page.getByRole('dialog')).toHaveCount(0)
 		})
+
+		test('downloads deductions CSV for the selected pay period', async ({
+			page,
+		}) => {
+			await page.goto('/equipo/deductions')
+			await expect(mainDataTable(page)).toBeVisible()
+			await page.getByRole('button', { name: /exportar csv/i }).click()
+			const dialog = page.getByRole('dialog')
+			await expect(dialog).toBeVisible()
+			await dialog.getByRole('button', { name: /^exportar$/i }).click()
+			await expect(page.getByRole('dialog')).toHaveCount(0)
+			await expect(
+				page.getByText(/archivo csv descargado/i).first(),
+			).toBeVisible()
+		})
 	})
 
 	test.describe('HR agent views queue with an overdue credit', () => {

@@ -17,16 +17,13 @@ import {
 import { Input } from '~/components/ui/input'
 import { useResolveValidationError } from '~/lib/validation-code-to-i18n'
 import type { InstallmentForQueue } from '~/server/queries'
-import {
-	confirmInstallmentsAction,
-	exportPendingInstallmentsCsvAction,
-} from './actions'
+import { confirmInstallmentsAction } from './actions'
 
 export function InstallmentsQueueToolbar({
-	companyName,
+	onExportClick,
 	onImportClick,
 }: {
-	companyName: string
+	onExportClick: () => void
 	onImportClick: () => void
 }) {
 	const t = useTranslations('equipo')
@@ -34,12 +31,12 @@ export function InstallmentsQueueToolbar({
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
 	const [isConfirmPending, startConfirmTransition] = useTransition()
-	const [isExportPending, startExportTransition] = useTransition()
 
 	const { table, filterPlaceholder } = useDataTable<InstallmentForQueue>()
 	const filterLabel = filterPlaceholder ?? ''
 	const selectedRows = table.getFilteredSelectedRowModel().rows
 	const count = selectedRows.length
+	const hasQueueRows = table.getCoreRowModel().rows.length > 0
 
 	const [finalDialogOpen, setFinalDialogOpen] = useState(false)
 	const [pendingBulkAllSelected, setPendingBulkAllSelected] = useState<
@@ -79,28 +76,6 @@ export function InstallmentsQueueToolbar({
 			return
 		}
 		runBulkConfirm(paymentIds)
-	}
-
-	function handleExportCsv() {
-		startExportTransition(async () => {
-			const result = await exportPendingInstallmentsCsvAction()
-			if ('error' in result) {
-				toast.error(t('installments-export-error'))
-				return
-			}
-			const blob = new Blob([result.csv], { type: 'text/csv' })
-			const url = URL.createObjectURL(blob)
-			const a = document.createElement('a')
-			a.href = url
-			const slug = companyName.replace(/\s+/g, '-').toLowerCase() || 'empresa'
-			const day = new Date().toISOString().slice(0, 10)
-			a.download = `instalaciones-pendientes-${slug}-${day}.csv`
-			document.body.appendChild(a)
-			a.click()
-			document.body.removeChild(a)
-			URL.revokeObjectURL(url)
-			toast.success(t('installments-export-success'))
-		})
 	}
 
 	const confirmLabel =
@@ -150,7 +125,7 @@ export function InstallmentsQueueToolbar({
 						<Button
 							type="button"
 							size="sm"
-							disabled={isConfirmPending || isExportPending}
+							disabled={isConfirmPending}
 							onClick={handleConfirm}
 						>
 							{confirmLabel}
@@ -160,7 +135,7 @@ export function InstallmentsQueueToolbar({
 						type="button"
 						variant="outline"
 						size="sm"
-						disabled={isConfirmPending || isExportPending}
+						disabled={isConfirmPending}
 						onClick={onImportClick}
 					>
 						<Upload className="mr-2 size-4" />
@@ -170,8 +145,8 @@ export function InstallmentsQueueToolbar({
 						type="button"
 						variant="outline"
 						size="sm"
-						disabled={isConfirmPending || isExportPending}
-						onClick={handleExportCsv}
+						disabled={isConfirmPending || !hasQueueRows}
+						onClick={onExportClick}
 					>
 						<Download className="mr-2 size-4" />
 						{t('installments-export-csv')}

@@ -361,4 +361,21 @@ describe('isValidFirstDiscountDate', () => {
 		const today = mxYmdInstant(2026, 2, 15) // March 15 is the 15th
 		assert.equal(isValidFirstDiscountDate('bi-monthly', today, today), true)
 	})
+
+	test('accepts payroll anchor YMD when parsed as EOD Mexico City', () => {
+		const today = mxYmdInstant(2026, 4, 1)
+		const anchorYmd = '2026-05-31'
+		assert.equal(
+			isValidFirstDiscountDate(
+				'monthly',
+				endOfDayInstantMexicoCity(anchorYmd),
+				today,
+			),
+			true,
+		)
+		assert.equal(
+			isValidFirstDiscountDate('monthly', new Date(anchorYmd), today),
+			false,
+		)
+	})
 })
