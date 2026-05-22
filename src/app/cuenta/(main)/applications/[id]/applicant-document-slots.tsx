@@ -63,6 +63,8 @@ export function ApplicantDocumentSlots({
 	documents: initialDocuments,
 	reuploadWhenLatestNotRejected,
 	authorizationPackageSubmitEnabled = false,
+	requestedCreditAmount,
+	canSubmitAuthorizationPackage = true,
 	intakeFieldErrors,
 }: {
 	applicationId: number
@@ -70,6 +72,8 @@ export function ApplicantDocumentSlots({
 	documents: ApplicationDocumentForList[]
 	reuploadWhenLatestNotRejected: boolean
 	authorizationPackageSubmitEnabled?: boolean
+	requestedCreditAmount?: string
+	canSubmitAuthorizationPackage?: boolean
 	intakeFieldErrors?: Partial<Record<DocumentType, string>>
 }) {
 	const t = useTranslations('cuenta.applications')
@@ -235,7 +239,8 @@ export function ApplicantDocumentSlots({
 			{authorizationPackageSubmitEnabled ? (
 				<SubmitAuthorizationPackageForm
 					applicationId={applicationId}
-					canSubmit={packageReadyForSubmit}
+					canSubmit={packageReadyForSubmit && canSubmitAuthorizationPackage}
+					requestedCreditAmount={requestedCreditAmount}
 				/>
 			) : null}
 		</>

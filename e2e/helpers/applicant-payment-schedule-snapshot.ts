@@ -43,17 +43,17 @@ export async function readApplicantPaymentScheduleSnapshot(
 			.nth(i)
 			.locator('td')
 			.allInnerTexts()
-		if (cellTexts.length < 4) {
+		if (cellTexts.length < 6) {
 			throw new Error(
-				`Expected 4 columns in payment schedule row ${i}, got ${cellTexts.length}`,
+				`Expected 6 columns in payment schedule row ${i}, got ${cellTexts.length}`,
 			)
 		}
 		const n = (idx: number) => normalizeCellText(cellTexts[idx] ?? '')
 		rows.push({
 			number: n(0),
 			dueDate: n(1),
-			amount: n(2),
-			status: n(3),
+			amount: n(4),
+			status: n(5),
 		})
 	}
 

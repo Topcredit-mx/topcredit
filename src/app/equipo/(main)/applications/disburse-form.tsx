@@ -20,11 +20,15 @@ import {
 interface DisburseFormProps {
 	applicationId: number
 	creditAmount: string
+	showApplicantRequestedAmountNote?: boolean
+	preAuthorizedAmount?: string
 }
 
 export function DisburseForm({
 	applicationId,
 	creditAmount,
+	showApplicantRequestedAmountNote = false,
+	preAuthorizedAmount,
 }: DisburseFormProps) {
 	const t = useTranslations('equipo')
 	const tCommon = useTranslations('common')
@@ -64,6 +68,13 @@ export function DisburseForm({
 					readOnly
 					className="flex h-9 w-full rounded-md border border-input bg-muted/50 px-3 py-1 text-sm shadow-sm"
 				/>
+				{showApplicantRequestedAmountNote && preAuthorizedAmount ? (
+					<p className="text-muted-foreground text-xs">
+						{t('disburse-applicant-requested-note', {
+							preAuthorizedAmount,
+						})}
+					</p>
+				) : null}
 			</div>
 			<div className="flex flex-col gap-1.5">
 				<label

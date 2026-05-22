@@ -24,6 +24,18 @@ export const authorizationsAgentForReview = {
 	roles: ['agent', 'authorizations'] as const,
 }
 
+export const hrAgentForReviewCompany = {
+	name: 'HR Review Company',
+	email: 'hr.review@reviewcompany.com',
+	roles: ['agent', 'hr'] as const,
+}
+
+export const dispersionsAgentForReviewCompany = {
+	name: 'Dispersions Review Company',
+	email: 'dispersions.review@reviewcompany.com',
+	roles: ['agent', 'dispersions'] as const,
+}
+
 /** Same company assignments as other review agents; both queues for E2E cross-queue permissions. */
 export const dualQueueAgentForReview = {
 	name: 'Dual Queue Review',

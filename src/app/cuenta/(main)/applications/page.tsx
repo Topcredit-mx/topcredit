@@ -5,6 +5,7 @@ import { FormattedDate } from '~/components/formatted-date'
 import { ListDetailLink } from '~/components/list-detail-link'
 import { Button } from '~/components/ui/button'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
+import { resolveApplicationCreditAmounts } from '~/lib/application-credit-amounts'
 import { CUENTA_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import { getPrefetchStrategy } from '~/lib/prefetch-strategy'
 import { shell } from '~/lib/shell'
@@ -93,9 +94,15 @@ export default async function ApplicationsListPage() {
 											)}
 										</td>
 										<td className="px-5 py-3.5 text-slate-800 text-sm">
-											{app.creditAmount
-												? formatCurrencyMxn(app.creditAmount)
-												: t('detail-value-pending')}
+											{(() => {
+												const amounts = resolveApplicationCreditAmounts(
+													app.creditAmount,
+													app.applicantRequestedCreditAmount,
+												)
+												return amounts.operativeAmount
+													? formatCurrencyMxn(amounts.operativeAmount)
+													: t('detail-value-pending')
+											})()}
 										</td>
 										<td className="px-5 py-3.5 text-muted-foreground text-sm">
 											<FormattedDate value={app.createdAt.toISOString()} />

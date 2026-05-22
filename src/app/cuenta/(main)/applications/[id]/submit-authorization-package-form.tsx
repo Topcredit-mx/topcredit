@@ -13,9 +13,11 @@ const initialSubmitState: { error?: string; success?: boolean } = {}
 export function SubmitAuthorizationPackageForm({
 	applicationId,
 	canSubmit,
+	requestedCreditAmount,
 }: {
 	applicationId: number
 	canSubmit: boolean
+	requestedCreditAmount?: string
 }) {
 	const t = useTranslations('cuenta.applications')
 	const resolveError = useResolveValidationError()
@@ -27,6 +29,13 @@ export function SubmitAuthorizationPackageForm({
 	return (
 		<form action={action} className="mt-6">
 			<input type="hidden" name="applicationId" value={String(applicationId)} />
+			{requestedCreditAmount != null && requestedCreditAmount !== '' ? (
+				<input
+					type="hidden"
+					name="requestedCreditAmount"
+					value={requestedCreditAmount}
+				/>
+			) : null}
 			<AuthInlineError
 				message={state.error ? resolveError(state.error) : null}
 				className="px-0"

@@ -18,7 +18,9 @@ import {
 	authorizationsAgentForReview,
 	companyForReview,
 	companyForReviewD,
+	dispersionsAgentForReviewCompany,
 	dualQueueAgentForReview,
+	hrAgentForReviewCompany,
 	preAuthAgentForReview,
 	reviewApplicationConfigs,
 } from '~/e2e/equipo/applications-review.fixtures'
@@ -88,6 +90,8 @@ export const seedApplicationsReview =
 			agentForReview,
 			preAuthAgentForReview,
 			authorizationsAgentForReview,
+			hrAgentForReviewCompany,
+			dispersionsAgentForReviewCompany,
 			dualQueueAgentForReview,
 			adminForReview,
 			...allReviewApplicants,
@@ -154,6 +158,14 @@ export const seedApplicationsReview =
 			createdUsers,
 			authorizationsAgentForReview.email,
 		)
+		const hrAgent = findCreatedUserByEmail(
+			createdUsers,
+			hrAgentForReviewCompany.email,
+		)
+		const dispersionsAgent = findCreatedUserByEmail(
+			createdUsers,
+			dispersionsAgentForReviewCompany.email,
+		)
 		const dualQueueAgent = findCreatedUserByEmail(
 			createdUsers,
 			dualQueueAgentForReview.email,
@@ -187,6 +199,8 @@ export const seedApplicationsReview =
 					requestsAgent,
 					preAuthAgent,
 					authorizationsAgent,
+					hrAgent,
+					dispersionsAgent,
 					dualQueueAgent,
 				].flatMap((user) =>
 					agentCompanyDomains.map((domain) => ({
@@ -437,6 +451,8 @@ export const cleanupApplicationsReview = async (
 		agentForReview,
 		preAuthAgentForReview,
 		authorizationsAgentForReview,
+		hrAgentForReviewCompany,
+		dispersionsAgentForReviewCompany,
 		dualQueueAgentForReview,
 		adminForReview,
 		...allReviewApplicants,

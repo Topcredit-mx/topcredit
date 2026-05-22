@@ -231,6 +231,13 @@ export const applications = pgTable(
 			() => termOfferings.id,
 		),
 		creditAmount: numeric('credit_amount', { precision: 12, scale: 2 }),
+		applicantRequestedCreditAmount: numeric(
+			'applicant_requested_credit_amount',
+			{
+				precision: 12,
+				scale: 2,
+			},
+		),
 		salaryAtApplication: numeric('salary_at_application', {
 			precision: 12,
 			scale: 2,

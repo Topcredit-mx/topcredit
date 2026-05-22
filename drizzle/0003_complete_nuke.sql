@@ -1,0 +1,1 @@
+ALTER TABLE "applications" ADD COLUMN "applicant_requested_credit_amount" numeric(12, 2);

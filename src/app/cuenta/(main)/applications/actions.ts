@@ -62,7 +62,15 @@ export async function submitAuthorizationPackageAction(
 	if (!Number.isInteger(applicationId) || applicationId < 1) {
 		return { error: ValidationCode.APPLICATION_INVALID }
 	}
-	const result = await submitApplicationForAuthorizationReview(applicationId)
+	const requestedCreditAmount = formData.get('requestedCreditAmount')
+	const requestedCreditAmountRaw =
+		typeof requestedCreditAmount === 'string'
+			? requestedCreditAmount
+			: undefined
+	const result = await submitApplicationForAuthorizationReview(
+		applicationId,
+		requestedCreditAmountRaw,
+	)
 	if (result.error) {
 		return { error: result.error }
 	}

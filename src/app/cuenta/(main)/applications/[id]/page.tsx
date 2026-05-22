@@ -21,6 +21,7 @@ import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { SectionCard, SectionTitleRow } from '~/components/ui/section-card'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
+import { resolveApplicationCreditAmounts } from '~/lib/application-credit-amounts'
 import {
 	applicationDocumentsListFingerprint,
 	filterDocumentsWithUploadedFile,
@@ -117,6 +118,16 @@ export default async function CuentaApplicationDetailPage({
 	)
 	const documentsSectionTitleId = `cuenta-application-${applicationId}-documents-section`
 	const preAuthorizedOfferHref = `/cuenta/applications/${applicationId}/pre-authorized`
+	const creditAmounts = resolveApplicationCreditAmounts(
+		application.creditAmount,
+		application.applicantRequestedCreditAmount,
+	)
+	const detailAmountLabel =
+		creditAmounts.hasReducedApplicantRequest &&
+		application.status !== 'pre-authorized'
+			? t('detail-applicant-requested-amount')
+			: t('detail-amount')
+	const detailAmountValue = creditAmounts.operativeAmount
 
 	return (
 		<main className={cn(shell.applicantMainMax, 'pb-8')}>
@@ -243,13 +254,24 @@ export default async function CuentaApplicationDetailPage({
 							<div className="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-4">
 								<p className="flex items-center gap-1.5 font-semibold text-[11px] text-slate-500 uppercase tracking-wide">
 									<Banknote className="size-3.5" aria-hidden />
-									{t('detail-amount')}
+									{detailAmountLabel}
 								</p>
 								<p className="mt-2 font-semibold text-lg text-slate-900">
-									{application.creditAmount
-										? formatCurrencyMxn(application.creditAmount)
+									{detailAmountValue
+										? formatCurrencyMxn(detailAmountValue)
 										: t('detail-value-pending')}
 								</p>
+								{creditAmounts.hasReducedApplicantRequest &&
+								application.status !== 'pre-authorized' &&
+								creditAmounts.preAuthorizedAmount ? (
+									<p className="mt-1 text-slate-500 text-xs">
+										{t('detail-pre-authorized-amount-note', {
+											amount: formatCurrencyMxn(
+												creditAmounts.preAuthorizedAmount,
+											),
+										})}
+									</p>
+								) : null}
 							</div>
 
 							<div className="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-4">

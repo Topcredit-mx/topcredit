@@ -45,6 +45,7 @@ export async function updateApplicationWithStatusHistory(params: {
 	denialReason: string | null
 	termOfferingId?: number | null
 	creditAmount?: string | null
+	applicantRequestedCreditAmount?: string | null
 	transferReference?: string | null
 	receiptStorageKey?: string | null
 	receiptFileName?: string | null
@@ -57,6 +58,7 @@ export async function updateApplicationWithStatusHistory(params: {
 		updatedAt: Date
 		termOfferingId?: number | null
 		creditAmount?: string | null
+		applicantRequestedCreditAmount?: string | null
 		transferReference?: string | null
 		receiptStorageKey?: string | null
 		receiptFileName?: string | null
@@ -72,6 +74,11 @@ export async function updateApplicationWithStatusHistory(params: {
 
 	if (params.creditAmount !== undefined) {
 		updateValues.creditAmount = params.creditAmount
+	}
+
+	if (params.applicantRequestedCreditAmount !== undefined) {
+		updateValues.applicantRequestedCreditAmount =
+			params.applicantRequestedCreditAmount
 	}
 
 	if (params.transferReference !== undefined) {

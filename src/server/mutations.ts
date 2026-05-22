@@ -3,6 +3,7 @@
 import { and, eq, inArray, isNull, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { resolveApplicationCreditAmounts } from '~/lib/application-credit-amounts'
 import {
 	filterToLatestDocumentsPerType,
 	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
@@ -50,6 +51,7 @@ import {
 	parseBorrowingCapacityRate,
 	parsePositiveRate,
 } from '~/lib/pre-authorization-capacity'
+import { validateRequestedPreAuthorizedCreditAmount } from '~/lib/pre-authorized-requested-credit-amount'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { ValidationCode } from '~/lib/validation-codes'
 import { updateApplicationWithStatusHistory } from '~/server/application-status-history'
@@ -853,7 +855,11 @@ async function sendApplicationStatusEmail(
 ): Promise<void> {
 	const updated = await db.query.applications.findFirst({
 		where: (a, { eq }) => eq(a.id, applicationId),
-		columns: { creditAmount: true, denialReason: true },
+		columns: {
+			creditAmount: true,
+			applicantRequestedCreditAmount: true,
+			denialReason: true,
+		},
 		with: {
 			applicant: { columns: { email: true } },
 			termOffering: {
@@ -872,7 +878,13 @@ async function sendApplicationStatusEmail(
 			term.durationType === 'monthly'
 				? `${term.duration} meses`
 				: `${term.duration} quincenas`
-		const creditAmountFormatted = formatCurrencyMxn(updated.creditAmount)
+		const amounts = resolveApplicationCreditAmounts(
+			updated.creditAmount,
+			updated.applicantRequestedCreditAmount,
+		)
+		const creditAmountFormatted = formatCurrencyMxn(
+			amounts.operativeAmount ?? updated.creditAmount,
+		)
 		await sendApplicationStatusEvent(applicantEmail, {
 			status,
 			creditAmountFormatted,
@@ -1008,6 +1020,7 @@ export async function preAuthorizeApplication(payload: unknown): Promise<{
 		setByUserId: user.id,
 		termOfferingId: data.termOfferingId,
 		creditAmount: new Decimal(creditAmount).toFixed(2),
+		applicantRequestedCreditAmount: null,
 		denialReason: null,
 	})
 
@@ -1022,6 +1035,7 @@ export async function preAuthorizeApplication(payload: unknown): Promise<{
 
 export async function submitApplicationForAuthorizationReview(
 	applicationId: number,
+	requestedCreditAmountRaw?: string,
 ): Promise<{ error?: string }> {
 	const user = await getRequiredApplicantUser()
 	const { ability } = await getAbility()
@@ -1078,11 +1092,28 @@ export async function submitApplicationForAuthorizationReview(
 		}
 	}
 
+	if (app.creditAmount == null) {
+		return { error: ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED }
+	}
+
+	const requestedRaw =
+		requestedCreditAmountRaw?.trim() === ''
+			? app.creditAmount
+			: (requestedCreditAmountRaw ?? app.creditAmount)
+	const amountValidation = validateRequestedPreAuthorizedCreditAmount(
+		requestedRaw,
+		app.creditAmount,
+	)
+	if (!amountValidation.ok) {
+		return { error: amountValidation.error }
+	}
+
 	await updateApplicationWithStatusHistory({
 		applicationId,
 		status: 'awaiting-authorization',
 		setByUserId: user.id,
 		denialReason: null,
+		applicantRequestedCreditAmount: amountValidation.amount,
 	})
 
 	await sendApplicationStatusEmail(applicationId, 'awaiting-authorization')
@@ -1282,6 +1313,8 @@ export async function disburseApplication(payload: {
 			status: applications.status,
 			termOfferingId: applications.termOfferingId,
 			creditAmount: applications.creditAmount,
+			applicantRequestedCreditAmount:
+				applications.applicantRequestedCreditAmount,
 			firstDiscountDate: applications.firstDiscountDate,
 		})
 		.from(applications)
@@ -1304,6 +1337,16 @@ export async function disburseApplication(payload: {
 		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
 	}
 
+	const disbursementAmounts = resolveApplicationCreditAmounts(
+		app.creditAmount,
+		app.applicantRequestedCreditAmount,
+	)
+	const disbursementAmount = disbursementAmounts.operativeAmount
+
+	if (disbursementAmount == null || app.termOfferingId == null) {
+		return { error: ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED }
+	}
+
 	const { uploadBlob } = await import('~/server/storage')
 	const receiptPathname = `disbursement-receipts/${applicationId}/${receiptFile.name}`
 	const { pathname: receiptStorageKey } = await uploadBlob(
@@ -1323,14 +1366,14 @@ export async function disburseApplication(payload: {
 		receiptFileName: receiptFile.name,
 	})
 
-	if (app.creditAmount != null && app.termOfferingId != null) {
+	if (app.termOfferingId != null) {
 		const [credit] = await db
 			.insert(credits)
 			.values({
 				applicationId,
 				status: 'dispersed',
 				disbursementDate: new Date(),
-				transferAmount: app.creditAmount,
+				transferAmount: disbursementAmount,
 				disbursedByUserId: user.id,
 			})
 			.returning({ id: credits.id })
@@ -1349,7 +1392,7 @@ export async function disburseApplication(payload: {
 
 			if (termInfo && app.firstDiscountDate) {
 				const schedule = generatePaymentSchedule({
-					loanPrincipal: Number(app.creditAmount),
+					loanPrincipal: Number(disbursementAmount),
 					rate: Number(termInfo.rate),
 					totalPayments: termInfo.duration,
 					frequency: termInfo.durationType,
