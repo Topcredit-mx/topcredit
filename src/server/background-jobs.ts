@@ -10,5 +10,6 @@ export async function getActiveBackgroundJobsForUser(
 	return queueBulkConfirmJobs.map((job) => ({
 		type: 'queue-bulk-confirm',
 		id: job.id,
+		queueBulkKind: job.kind,
 	}))
 }

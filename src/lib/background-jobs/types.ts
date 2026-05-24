@@ -1,4 +1,5 @@
 import type { useTranslations } from 'next-intl'
+import type { QueueBulkConfirmJobKind } from '~/server/db/schema'
 
 export const BACKGROUND_JOB_TYPES = ['queue-bulk-confirm'] as const
 
@@ -7,6 +8,7 @@ export type BackgroundJobType = (typeof BACKGROUND_JOB_TYPES)[number]
 export type TrackedBackgroundJob = {
 	type: BackgroundJobType
 	id: number
+	queueBulkKind?: QueueBulkConfirmJobKind
 }
 
 export type BackgroundJobPhase = 'pending' | 'running' | 'terminal'
@@ -21,24 +23,40 @@ export type ParsedBackgroundJobStatus = {
 	succeededCount: number
 	failedCount: number
 	errorMessage: string | null
+	queueBulkKind?: QueueBulkConfirmJobKind
 }
 
 export type BackgroundJobTranslator = ReturnType<
 	typeof useTranslations<'equipo'>
 >
 
-export type BackgroundJobDefinition = {
+export type BackgroundJobRegistryEntry = {
 	namespace: 'equipo'
 	pollUrl: (jobId: number) => string
 	parseStatus: (value: unknown) => ParsedBackgroundJobStatus | null
-	getStartingMessage: (t: BackgroundJobTranslator) => string
-	getProgressMessage: (
-		t: BackgroundJobTranslator,
-		status: ParsedBackgroundJobStatus,
-	) => string
-	showTerminalToast: (
-		t: BackgroundJobTranslator,
-		toastId: string,
-		status: ParsedBackgroundJobStatus,
-	) => void
+}
+
+export type BackgroundJobToastVariant =
+	| 'loading'
+	| 'success'
+	| 'warning'
+	| 'error'
+
+export function resolveQueueBulkKind(
+	trackedKind: QueueBulkConfirmJobKind | undefined,
+	statusKind: QueueBulkConfirmJobKind | undefined,
+): QueueBulkConfirmJobKind {
+	if (statusKind === 'installments' || statusKind === 'hr_deductions') {
+		return statusKind
+	}
+	if (trackedKind === 'installments' || trackedKind === 'hr_deductions') {
+		return trackedKind
+	}
+	return 'hr_deductions'
+}
+
+export function queueBulkKindLabelSuffix(
+	kind: QueueBulkConfirmJobKind,
+): 'deductions' | 'installments' {
+	return kind === 'installments' ? 'installments' : 'deductions'
 }

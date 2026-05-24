@@ -81,7 +81,11 @@ export function DeductionsQueueToolbar({
 				return
 			}
 			if (res?.jobId != null) {
-				trackJob({ type: 'queue-bulk-confirm', id: res.jobId })
+				trackJob({
+					type: 'queue-bulk-confirm',
+					id: res.jobId,
+					queueBulkKind: 'hr_deductions',
+				})
 				resetSelection()
 			}
 		})

@@ -61,7 +61,7 @@ test.describe('HR deductions queue select all filtered', () => {
 		await expect(
 			page
 				.getByText(
-					/preparando confirmación en segundo plano|confirmando \d+ de \d+/i,
+					/preparando la confirmación de deducciones|confirmando \d+ de \d+ deducciones/i,
 				)
 				.first(),
 		).toBeVisible()
@@ -104,11 +104,15 @@ test.describe('HR deductions queue select all filtered', () => {
 		const table = mainDataTable(page)
 		await expect(table).toBeVisible()
 
-		await expect(page.getByText(/confirmando 2 de 10/i).first()).toBeVisible()
+		await expect(
+			page.getByText(/confirmando 2 de 10 deducciones/i).first(),
+		).toBeVisible()
 
 		await page.reload()
 
 		await expect(table).toBeVisible()
-		await expect(page.getByText(/confirmando 2 de 10/i).first()).toBeVisible()
+		await expect(
+			page.getByText(/confirmando 2 de 10 deducciones/i).first(),
+		).toBeVisible()
 	})
 })

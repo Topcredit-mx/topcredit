@@ -11,10 +11,13 @@ import {
 	useMemo,
 	useState,
 } from 'react'
-import { toast } from 'sonner'
 import { backgroundJobKey } from '~/lib/background-jobs/job-key'
 import { getBackgroundJobDefinition } from '~/lib/background-jobs/registry'
 import type { TrackedBackgroundJob } from '~/lib/background-jobs/types'
+import {
+	showBackgroundJobInProgressToast,
+	showBackgroundJobTerminalToast,
+} from './show-background-job-toast'
 
 type BackgroundJobTrackerContextValue = {
 	trackJob: (job: TrackedBackgroundJob) => void
@@ -46,11 +49,14 @@ function TrackedBackgroundJobPoller({
 		let cancelled = false
 		let intervalId: ReturnType<typeof setInterval> | undefined
 
-		function showInProgress(message: string) {
-			toast.loading(message, {
-				id: toastId,
-				duration: Number.POSITIVE_INFINITY,
-				dismissible: false,
+		function showInProgress(
+			status: Parameters<typeof showBackgroundJobInProgressToast>[0]['status'],
+		) {
+			showBackgroundJobInProgressToast({
+				toastId,
+				t,
+				trackedKind: job.queueBulkKind,
+				status,
 			})
 		}
 
@@ -69,16 +75,29 @@ function TrackedBackgroundJobPoller({
 				if (intervalId) {
 					clearInterval(intervalId)
 				}
-				definition.showTerminalToast(t, toastId, status)
+				showBackgroundJobTerminalToast({
+					toastId,
+					t,
+					trackedKind: job.queueBulkKind,
+					status,
+				})
 				onComplete(job)
 				router.refresh()
 				return
 			}
 
-			showInProgress(definition.getProgressMessage(t, status))
+			showInProgress(status)
 		}
 
-		showInProgress(definition.getStartingMessage(t))
+		showInProgress({
+			phase: 'pending',
+			processedCount: 0,
+			totalCount: 0,
+			succeededCount: 0,
+			failedCount: 0,
+			errorMessage: null,
+			queueBulkKind: job.queueBulkKind,
+		})
 		void poll()
 		intervalId = setInterval(() => {
 			void poll()

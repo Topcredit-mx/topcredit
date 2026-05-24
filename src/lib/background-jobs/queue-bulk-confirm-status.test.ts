@@ -3,8 +3,9 @@ import { describe, test } from 'node:test'
 import { parseQueueBulkConfirmJobStatus } from './queue-bulk-confirm-status'
 
 describe('parseQueueBulkConfirmJobStatus', () => {
-	test('parses running jobs', () => {
+	test('parses running jobs with kind', () => {
 		const result = parseQueueBulkConfirmJobStatus({
+			kind: 'hr_deductions',
 			status: 'running',
 			totalCount: 10,
 			processedCount: 2,
@@ -20,11 +21,13 @@ describe('parseQueueBulkConfirmJobStatus', () => {
 			succeededCount: 2,
 			failedCount: 0,
 			errorMessage: null,
+			queueBulkKind: 'hr_deductions',
 		})
 	})
 
 	test('parses terminal jobs', () => {
 		const result = parseQueueBulkConfirmJobStatus({
+			kind: 'installments',
 			status: 'partial',
 			totalCount: 5,
 			processedCount: 5,
@@ -41,6 +44,7 @@ describe('parseQueueBulkConfirmJobStatus', () => {
 			succeededCount: 3,
 			failedCount: 2,
 			errorMessage: null,
+			queueBulkKind: 'installments',
 		})
 	})
 

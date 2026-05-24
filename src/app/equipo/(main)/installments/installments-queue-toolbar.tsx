@@ -94,7 +94,11 @@ export function InstallmentsQueueToolbar({
 				return
 			}
 			if (res?.jobId != null) {
-				trackJob({ type: 'queue-bulk-confirm', id: res.jobId })
+				trackJob({
+					type: 'queue-bulk-confirm',
+					id: res.jobId,
+					queueBulkKind: 'installments',
+				})
 				resetSelection()
 				setFinalDialogOpen(false)
 				setPendingBulkAllSelected(null)
