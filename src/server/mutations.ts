@@ -56,8 +56,10 @@ import { formatCurrencyMxn } from '~/lib/utils'
 import { ValidationCode } from '~/lib/validation-codes'
 import { updateApplicationWithStatusHistory } from '~/server/application-status-history'
 import {
+	type AppAbility,
 	type CreditPaymentSubject,
 	getAbility,
+	getAbilityForUserId,
 	getActionForApplicationStatus,
 	requireAbility,
 	subject,
@@ -84,6 +86,7 @@ import {
 	terms,
 	userCompanies,
 	userRoles,
+	users,
 } from '~/server/db/schema'
 import { deleteOrphanTermsWithoutOfferings } from '~/server/delete-orphan-terms'
 import {
@@ -1636,6 +1639,27 @@ function toCreditPaymentSubject(
 	})
 }
 
+async function resolveBulkConfirmActor(options?: {
+	actorUserId?: number
+}): Promise<{ ability: AppAbility; userId: number }> {
+	if (options?.actorUserId == null) {
+		const { ability } = await getAbility()
+		const user = await getRequiredUser()
+		return { ability, userId: user.id }
+	}
+
+	const user = await db.query.users.findFirst({
+		where: eq(users.id, options.actorUserId),
+		columns: { id: true, email: true },
+	})
+	if (!user) {
+		throw new Error('Bulk confirm actor user not found')
+	}
+
+	const { ability } = await getAbilityForUserId(user.id, user.email ?? '')
+	return { ability, userId: user.id }
+}
+
 export async function confirmHrDeduction(
 	paymentId: number,
 ): Promise<{ error?: string }> {
@@ -1681,6 +1705,7 @@ export async function confirmHrDeduction(
 
 export async function confirmHrDeductions(
 	paymentIds: number[],
+	options?: { actorUserId?: number; skipRevalidation?: boolean },
 ): Promise<{ error?: string }> {
 	const parsed = confirmHrDeductionsBulkSchema.safeParse({ paymentIds })
 	if (!parsed.success) {
@@ -1688,8 +1713,7 @@ export async function confirmHrDeductions(
 		return { error: first?.message ?? ValidationCode.CREDIT_PAYMENT_BULK_EMPTY }
 	}
 
-	const { ability } = await getAbility()
-	const user = await getRequiredUser()
+	const { ability, userId } = await resolveBulkConfirmActor(options)
 
 	const rows = await fetchPaymentsWithContext(parsed.data.paymentIds)
 
@@ -1726,7 +1750,7 @@ export async function confirmHrDeductions(
 		.update(creditPayments)
 		.set({
 			hrConfirmedAt: now,
-			hrConfirmedByUserId: user.id,
+			hrConfirmedByUserId: userId,
 		})
 		.where(
 			inArray(
@@ -1735,12 +1759,14 @@ export async function confirmHrDeductions(
 			),
 		)
 
-	revalidatePath('/equipo')
-	revalidatePath('/equipo/deductions')
-	revalidatePath('/equipo/deductions/overdue')
-	revalidatePath('/equipo/installments')
-	revalidatePath('/equipo/credits')
-	revalidatePath('/cuenta/credits')
+	if (!options?.skipRevalidation) {
+		revalidatePath('/equipo')
+		revalidatePath('/equipo/deductions')
+		revalidatePath('/equipo/deductions/overdue')
+		revalidatePath('/equipo/installments')
+		revalidatePath('/equipo/credits')
+		revalidatePath('/cuenta/credits')
+	}
 	return {}
 }
 
@@ -2275,6 +2301,7 @@ export async function confirmInstallment(
 
 export async function confirmInstallments(
 	paymentIds: number[],
+	options?: { actorUserId?: number; skipRevalidation?: boolean },
 ): Promise<{ error?: string }> {
 	const parsed = confirmInstallmentsBulkSchema.safeParse({ paymentIds })
 	if (!parsed.success) {
@@ -2282,8 +2309,7 @@ export async function confirmInstallments(
 		return { error: first?.message ?? ValidationCode.CREDIT_PAYMENT_BULK_EMPTY }
 	}
 
-	const { ability } = await getAbility()
-	const user = await getRequiredUser()
+	const { ability, userId } = await resolveBulkConfirmActor(options)
 
 	const uniquePaymentIds = [...new Set(parsed.data.paymentIds)]
 	const rows = await fetchPaymentsWithContext(uniquePaymentIds)
@@ -2348,7 +2374,7 @@ export async function confirmInstallments(
 		.update(creditPayments)
 		.set({
 			installmentConfirmedAt: now,
-			installmentConfirmedByUserId: user.id,
+			installmentConfirmedByUserId: userId,
 		})
 		.where(
 			inArray(
@@ -2360,13 +2386,15 @@ export async function confirmInstallments(
 	const uniqueCreditIds = [...new Set(rows.map((r) => r.creditId))]
 	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
 
-	revalidatePath('/equipo/installments')
-	revalidatePath('/equipo/installments/overdue')
-	revalidatePath('/equipo/credits')
-	for (const creditId of uniqueCreditIds) {
-		revalidatePath(`/equipo/credits/${creditId}`)
+	if (!options?.skipRevalidation) {
+		revalidatePath('/equipo/installments')
+		revalidatePath('/equipo/installments/overdue')
+		revalidatePath('/equipo/credits')
+		for (const creditId of uniqueCreditIds) {
+			revalidatePath(`/equipo/credits/${creditId}`)
+		}
+		revalidatePath('/cuenta/credits')
 	}
-	revalidatePath('/cuenta/credits')
 	return {}
 }
 

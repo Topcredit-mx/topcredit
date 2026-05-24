@@ -6,6 +6,7 @@ import {
 	sendApplicationSubmittedEmail,
 	sendOtpEmail,
 } from '~/inngest/functions/email'
+import { processQueueBulkConfirmJobFunction } from '~/inngest/functions/queue-bulk-confirm'
 
 export const maxDuration = 60
 
@@ -16,5 +17,6 @@ export const { GET, POST, PUT } = serve({
 		sendApplicationStatusEmail,
 		sendApplicationDocumentsRejectedEmail,
 		sendOtpEmail,
+		processQueueBulkConfirmJobFunction,
 	],
 })

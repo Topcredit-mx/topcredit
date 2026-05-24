@@ -1,6 +1,7 @@
 'use client'
 
 import { flexRender } from '@tanstack/react-table'
+import type { ReactNode } from 'react'
 import { cn } from '~/lib/utils'
 import {
 	Table,
@@ -19,6 +20,7 @@ export function DataTableContent<TData>({
 	headCellClassName,
 	bodyRowClassName,
 	bodyCellClassName,
+	prependBodyRows,
 }: {
 	/** Matches equipo credits list table chrome when set. */
 	variant?: 'default' | 'equipoCredits'
@@ -27,6 +29,7 @@ export function DataTableContent<TData>({
 	headCellClassName?: string
 	bodyRowClassName?: string
 	bodyCellClassName?: string
+	prependBodyRows?: ReactNode
 } = {}) {
 	const { table, columnsLength, emptyMessage } = useDataTable<TData>()
 	const isCredits = variant === 'equipoCredits'
@@ -79,6 +82,7 @@ export function DataTableContent<TData>({
 					))}
 				</TableHeader>
 				<TableBody>
+					{prependBodyRows}
 					{table.getRowModel().rows?.length ? (
 						table.getRowModel().rows.map((row) => (
 							<TableRow

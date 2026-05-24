@@ -4,6 +4,7 @@ import {
 	check,
 	index,
 	integer,
+	jsonb,
 	numeric,
 	pgEnum,
 	pgTable,
@@ -453,6 +454,48 @@ export const creditLiquidationRequests = pgTable(
 			.notNull(),
 	},
 )
+
+export const queueBulkConfirmJobKindEnum = pgEnum(
+	'queue_bulk_confirm_job_kind',
+	['hr_deductions', 'installments'],
+)
+
+export const queueBulkConfirmJobStatusEnum = pgEnum(
+	'queue_bulk_confirm_job_status',
+	['pending', 'running', 'completed', 'partial', 'failed'],
+)
+
+export type QueueBulkConfirmJobKind =
+	(typeof queueBulkConfirmJobKindEnum.enumValues)[number]
+
+export type QueueBulkConfirmJobStatus =
+	(typeof queueBulkConfirmJobStatusEnum.enumValues)[number]
+
+export type QueueBulkConfirmJobFailure = {
+	paymentId: number
+	error: string
+}
+
+export const queueBulkConfirmJobs = pgTable('queue_bulk_confirm_jobs', {
+	id: serial('id').primaryKey(),
+	kind: queueBulkConfirmJobKindEnum('kind').notNull(),
+	status: queueBulkConfirmJobStatusEnum('status').notNull().default('pending'),
+	createdByUserId: integer('created_by_user_id')
+		.notNull()
+		.references(() => users.id, { onDelete: 'cascade' }),
+	paymentIds: jsonb('payment_ids').$type<number[]>().notNull(),
+	totalCount: integer('total_count').notNull(),
+	processedCount: integer('processed_count').notNull().default(0),
+	succeededCount: integer('succeeded_count').notNull().default(0),
+	failedCount: integer('failed_count').notNull().default(0),
+	failures: jsonb('failures').$type<QueueBulkConfirmJobFailure[]>().notNull(),
+	errorMessage: text('error_message'),
+	startedAt: timestamp('started_at', { withTimezone: true }),
+	completedAt: timestamp('completed_at', { withTimezone: true }),
+	createdAt: timestamp('created_at', { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+})
 
 export const usersRelations = relations(users, ({ many }) => ({
 	roles: many(userRoles),

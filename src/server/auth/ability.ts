@@ -34,9 +34,21 @@ export type AbilityResult = {
 
 export const getAbility = cache(async (): Promise<AbilityResult> => {
 	const session = await requireAuth()
-	const userId = session.user.id
+	try {
+		return await getAbilityForUserId(session.user.id, session.user.email ?? '')
+	} catch {
+		redirect('/unauthorized')
+	}
+})
+
+export async function getAbilityForUserId(
+	userId: number,
+	email = '',
+): Promise<AbilityResult> {
 	const roles = await getRolesByUserId(userId)
-	if (roles.length === 0) redirect('/unauthorized')
+	if (roles.length === 0) {
+		throw new Error('User has no roles')
+	}
 
 	const isAdmin = roles.includes('admin')
 	const assignedCompanyIds: number[] = isAdmin
@@ -54,14 +66,13 @@ export const getAbility = cache(async (): Promise<AbilityResult> => {
 
 	let applicantEligibilityData: ApplicantEligibilityData | null = null
 	if (roles.includes('applicant')) {
-		const email = session.user.email ?? ''
 		applicantEligibilityData = await getApplicantEligibilityData(email)
 	}
 
 	const ctx: AbilityContext = {
 		roles,
 		assignedCompanyIds,
-		userId: session.user.id,
+		userId,
 		applicantEligibilityData,
 	}
 	return {
@@ -69,7 +80,7 @@ export const getAbility = cache(async (): Promise<AbilityResult> => {
 		assignedCompanyIds,
 		isAdmin,
 	}
-})
+}
 
 export function requireAbility(
 	ability: AppAbility,
