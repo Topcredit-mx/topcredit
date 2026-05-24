@@ -10,7 +10,7 @@ export const env = createEnv({
 		EMAIL_FROM: z.email(),
 		RESEND_API_KEY: z.string(),
 		AUTH_SECRET: z.string(),
-		INNGEST_EVENT_KEY: z.string().optional(),
+		INNGEST_EVENT_KEY: z.string().min(1),
 		E2E_OTP_CODE: z.string().length(6).regex(/^\d+$/).optional(),
 		BLOB_READ_WRITE_TOKEN: z.string().optional(),
 	},

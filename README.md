@@ -43,13 +43,14 @@ Copy `.env.example` to `.env` and set:
 | `RESEND_API_KEY` | Resend API key |
 | `BLOB_READ_WRITE_TOKEN` | (Optional in dev) Vercel Blob token for document storage. When unset in non-production, uploads use local `.e2e-blobs/`. Required in production. |
 | `E2E_OTP_CODE` | **Required for Playwright E2E** locally. Fixed 6-digit OTP; when set the app runs in E2E mode (fixed OTP, emails skipped). |
-| `INNGEST_EVENT_KEY` | (Optional) [Inngest](https://www.inngest.com) event key for queuing operations (e.g. email sends in production). |
+| `INNGEST_EVENT_KEY` | [Inngest](https://www.inngest.com) event key for async jobs (emails, bulk confirm). |
 
 ## Scripts
 
 | Command | Purpose |
 |---------|---------|
 | `pnpm dev` | Start dev server |
+| `pnpm dev:inngest` | Inngest dev server (run alongside `pnpm dev` for local async jobs) |
 | `pnpm build` | Production build |
 | `pnpm start` | Run production server |
 | `pnpm db:generate` | Generate migration files from schema |
@@ -65,7 +66,7 @@ Copy `.env.example` to `.env` and set:
 
 ## CI E2E (Neon)
 
-Playwright is split into **[`.github/workflows/playwright-main.yml`](.github/workflows/playwright-main.yml)** (push to `main`) and **[`.github/workflows/playwright-dev.yml`](.github/workflows/playwright-dev.yml)** (other branches). Both use the workflow display name **`E2E`**. Shared jobs live in **[`playwright-base.yml`](.github/workflows/playwright-base.yml)** (`workflow_call`). **GitHub Environments:** **Chromium** (app secrets: `AUTH_SECRET`, email, blob, etc.) always uses **`testing`**. **Neon create** and **Neon purge** use **`staging`** on **`main`** and **`testing`** on branches—put **Neon API** secrets in **`staging`** for main E2E branches; keep app secrets in **`testing`**. On **`main`**, **`wait-production-migrate`** runs first (same SHA as **Production** in [`migrate.yml`](.github/workflows/migrate.yml)), then the base workflow. **Concurrency:** dev **`cancel-in-progress: true`**; **`main`** **`false`**. The Neon [create-branch-action](https://github.com/neondatabase/create-branch-action) is on the latest 6.3.x release. If branch creation returns **HTTP 422**, the project is often over a **Free-plan limit** (for example **storage**), not the branch *count*—check Neon's **Project settings → Usage** and clear old `test-*` branches or reduce `main` size, or upgrade. The UI can still show e.g. **3 / 10** branches while storage is over quota.
+Playwright is split into **[`.github/workflows/playwright-main.yml`](.github/workflows/playwright-main.yml)** (push to `main`) and **[`.github/workflows/playwright-dev.yml`](.github/workflows/playwright-dev.yml)** (other branches). Both use the workflow display name **`E2E`**. Shared jobs live in **[`playwright-base.yml`](.github/workflows/playwright-base.yml)** (`workflow_call`). **GitHub Environments:** **Chromium** (app secrets: `AUTH_SECRET`, `EMAIL_FROM`, `RESEND_API_KEY`, `INNGEST_EVENT_KEY`, etc.) always uses **`testing`**. **Neon create** and **Neon purge** use **`staging`** on **`main`** and **`testing`** on branches—put **Neon API** secrets in **`staging`** for main E2E branches; keep app secrets in **`testing`**. CI starts **`pnpm dev:inngest`** alongside the app so async jobs run locally during E2E. On **`main`**, **`wait-production-migrate`** runs first (same SHA as **Production** in [`migrate.yml`](.github/workflows/migrate.yml)), then the base workflow. **Concurrency:** dev **`cancel-in-progress: true`**; **`main`** **`false`**. The Neon [create-branch-action](https://github.com/neondatabase/create-branch-action) is on the latest 6.3.x release. If branch creation returns **HTTP 422**, the project is often over a **Free-plan limit** (for example **storage**), not the branch *count*—check Neon's **Project settings → Usage** and clear old `test-*` branches or reduce `main` size, or upgrade. The UI can still show e.g. **3 / 10** branches while storage is over quota.
 
 If branch protection uses required status checks, register the check name **`E2E`**. (Both workflow files set `name: E2E`; only one of them runs per push, depending on the branch. If the GitHub UI shows two similar entries, match by workflow file: `playwright-dev.yml` vs `playwright-main.yml`.)
 

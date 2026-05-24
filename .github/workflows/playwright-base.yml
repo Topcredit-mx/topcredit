@@ -69,6 +69,7 @@ jobs:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      INNGEST_EVENT_KEY: ${{ secrets.INNGEST_EVENT_KEY }}
       PW_WORKERS: 2
       PW_BLOB_REPORT: "true"
     steps:
@@ -124,6 +125,12 @@ jobs:
 
       - name: Wait for app
         run: pnpm dlx wait-on http://127.0.0.1:3000 --timeout 120000 --strict
+
+      - name: Start Inngest dev server
+        run: pnpm dev:inngest &
+
+      - name: Wait for Inngest dev server
+        run: pnpm dlx wait-on http://127.0.0.1:8288 --timeout 120000 --strict
 
       - name: Run Playwright tests
         id: playwright

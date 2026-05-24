@@ -1,7 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { env } from '~/env'
-import { queueBulkConfirmProcessEvent } from '~/inngest/client'
+import { inngest, queueBulkConfirmProcessEvent } from '~/inngest/client'
 import { ValidationCode } from '~/lib/validation-codes'
 import { getAbility, subject } from '~/server/auth/ability'
 import { getRequiredUser } from '~/server/auth/session'
@@ -154,14 +153,7 @@ export async function enqueueQueueBulkConfirmJob(params: {
 		return { error: ValidationCode.APPLICATIONS_ERROR_GENERIC }
 	}
 
-	if (env.INNGEST_EVENT_KEY) {
-		const { inngest } = await import('~/inngest/client')
-		await inngest.send(
-			queueBulkConfirmProcessEvent.create({ jobId: created.id }),
-		)
-	} else {
-		await processQueueBulkConfirmJob(created.id)
-	}
+	await inngest.send(queueBulkConfirmProcessEvent.create({ jobId: created.id }))
 
 	return { jobId: created.id }
 }
