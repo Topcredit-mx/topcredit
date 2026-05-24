@@ -4,6 +4,7 @@ import {
 	cleanupInstallmentsQueue,
 	seedInstallmentsQueue,
 } from '~/e2e/server/tasks'
+import { expectAccessDenied } from '../helpers/access-denied'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import {
@@ -221,7 +222,7 @@ test.describe('Installments confirmation history', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/installments/history')
-			await expect(page).toHaveURL(/\/unauthorized/)
+			await expectAccessDenied(page)
 		})
 	})
 })

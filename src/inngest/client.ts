@@ -48,6 +48,7 @@ export const queueBulkConfirmProcessEvent = eventType(
 
 export const inngest = new Inngest({
 	id: 'topcredit',
+	isDev: process.env.NODE_ENV === 'development',
 	checkpointing: {
 		maxRuntime: '50s',
 	},

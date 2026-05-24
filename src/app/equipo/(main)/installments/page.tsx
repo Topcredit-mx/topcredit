@@ -1,9 +1,9 @@
 import { Building2 } from 'lucide-react'
-import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import { getAbility, subject } from '~/server/auth/ability'
+import { accessDenied } from '~/server/auth/access-denied'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
 	getCompanyById,
@@ -22,7 +22,7 @@ import { InstallmentsOverview } from './installments-overview'
 import { InstallmentsQueueTable } from './installments-queue-table'
 
 export default async function InstallmentsPage() {
-	getRequiredAgentUser()
+	await getRequiredAgentUser()
 
 	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
 
@@ -35,7 +35,7 @@ export default async function InstallmentsPage() {
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
 
-	if (!canConfirm) redirect('/unauthorized')
+	if (!canConfirm) accessDenied()
 
 	const [selectedCompanyId, t] = await Promise.all([
 		getEffectiveSelectedCompanyId(),

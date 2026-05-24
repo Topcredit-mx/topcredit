@@ -1,8 +1,8 @@
 import { Building2 } from 'lucide-react'
-import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { getAbility } from '~/server/auth/ability'
+import { accessDenied } from '~/server/auth/access-denied'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import { getDefaultedCreditsForEquipo } from '~/server/queries'
 import { getEffectiveSelectedCompanyId } from '~/server/scopes'
@@ -12,7 +12,7 @@ export default async function EquipoDefaultedCreditsPage() {
 	getRequiredAgentUser()
 	const { isAdmin } = await getAbility()
 	if (!isAdmin) {
-		redirect('/unauthorized')
+		accessDenied()
 	}
 
 	const t = await getTranslations('equipo')

@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 import type { SeedDeductionsQueueResult } from '~/e2e/server/tasks'
 import { cleanupDeductionsQueue, seedDeductionsQueue } from '~/e2e/server/tasks'
+import { expectAccessDenied } from '../helpers/access-denied'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
 import { sumAmountStringsMxnE2e } from '../helpers/currency'
 import { findTableRow, mainDataTable } from '../helpers/interactions'
@@ -248,7 +249,7 @@ test.describe('HR overdue deductions list', () => {
 
 		test('redirects to unauthorized', async ({ page }) => {
 			await page.goto('/equipo/deductions/overdue')
-			await expect(page).toHaveURL(/\/unauthorized/)
+			await expectAccessDenied(page)
 		})
 	})
 })

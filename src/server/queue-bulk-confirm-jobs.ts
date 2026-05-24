@@ -78,6 +78,40 @@ export async function getQueueBulkConfirmJobForUser(
 	return mapJobRow(row)
 }
 
+export function serializeQueueBulkConfirmJobForApi(
+	job: QueueBulkConfirmJobView,
+) {
+	return {
+		id: job.id,
+		kind: job.kind,
+		status: job.status,
+		totalCount: job.totalCount,
+		processedCount: job.processedCount,
+		succeededCount: job.succeededCount,
+		failedCount: job.failedCount,
+		failures: job.failures,
+		errorMessage: job.errorMessage,
+		startedAt: job.startedAt?.toISOString() ?? null,
+		completedAt: job.completedAt?.toISOString() ?? null,
+		createdAt: job.createdAt.toISOString(),
+	}
+}
+
+export async function getActiveQueueBulkConfirmJobsForUser(
+	userId: number,
+): Promise<QueueBulkConfirmJobView[]> {
+	const rows = await db.query.queueBulkConfirmJobs.findMany({
+		where: (job, { and, eq: eqJob, inArray: inArrayJob }) =>
+			and(
+				eqJob(job.createdByUserId, userId),
+				inArrayJob(job.status, ['pending', 'running']),
+			),
+		orderBy: (job, { desc: descJob }) => [descJob(job.createdAt)],
+	})
+
+	return rows.map(mapJobRow)
+}
+
 export async function enqueueQueueBulkConfirmJob(params: {
 	kind: QueueBulkConfirmJobKind
 	paymentIds: number[]

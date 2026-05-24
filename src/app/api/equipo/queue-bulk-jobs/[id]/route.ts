@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getRequiredUser } from '~/server/auth/session'
-import { getQueueBulkConfirmJobForUser } from '~/server/queue-bulk-confirm-jobs'
+import {
+	getQueueBulkConfirmJobForUser,
+	serializeQueueBulkConfirmJobForApi,
+} from '~/server/queue-bulk-confirm-jobs'
 
 export async function GET(
 	_request: Request,
@@ -18,18 +21,5 @@ export async function GET(
 		return NextResponse.json({ error: 'not-found' }, { status: 404 })
 	}
 
-	return NextResponse.json({
-		id: job.id,
-		kind: job.kind,
-		status: job.status,
-		totalCount: job.totalCount,
-		processedCount: job.processedCount,
-		succeededCount: job.succeededCount,
-		failedCount: job.failedCount,
-		failures: job.failures,
-		errorMessage: job.errorMessage,
-		startedAt: job.startedAt?.toISOString() ?? null,
-		completedAt: job.completedAt?.toISOString() ?? null,
-		createdAt: job.createdAt.toISOString(),
-	})
+	return NextResponse.json(serializeQueueBulkConfirmJobForApi(job))
 }

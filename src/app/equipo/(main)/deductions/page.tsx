@@ -1,9 +1,9 @@
 import { Building2 } from 'lucide-react'
-import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { getUpcomingDeductionDateYmd } from '~/lib/first-discount-date'
 import { getAbility, subject } from '~/server/auth/ability'
+import { accessDenied } from '~/server/auth/access-denied'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
 	getCompanyById,
@@ -18,7 +18,7 @@ import { DeductionHistoryLog } from './deduction-history-log'
 import { DeductionsTable } from './deductions-table'
 
 export default async function DeductionsPage() {
-	getRequiredAgentUser()
+	await getRequiredAgentUser()
 
 	const { ability, isAdmin, assignedCompanyIds } = await getAbility()
 
@@ -31,7 +31,7 @@ export default async function DeductionsPage() {
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
 
-	if (!canConfirm) redirect('/unauthorized')
+	if (!canConfirm) accessDenied()
 
 	const t = await getTranslations('equipo')
 

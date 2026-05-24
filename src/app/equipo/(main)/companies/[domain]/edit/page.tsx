@@ -1,8 +1,9 @@
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { CompanyForm } from '~/components/company-form'
 import { CompanyTemplateUploadSection } from '~/components/company-template-upload-section'
 import { CompanyTermsSection } from '~/components/company-terms-section'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
+import { accessDenied } from '~/server/auth/access-denied'
 import {
 	getAdminTermOfferingsForCompany,
 	getCompanyByDomain,
@@ -28,7 +29,7 @@ export default async function EditCompanyPage({
 
 	const { ability, isAdmin } = await getAbility()
 	if (!isAdmin) {
-		redirect('/unauthorized')
+		accessDenied()
 	}
 	requireAbility(ability, 'update', subject('Company', company))
 

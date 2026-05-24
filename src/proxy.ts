@@ -2,6 +2,12 @@ import type { NextFetchEvent, NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { withAuth } from 'next-auth/middleware'
+import {
+	getDbSessionUser,
+	parseSessionUserId,
+	parseTokenIssuedAt,
+	signOutToLoginPath,
+} from '~/server/auth/db-session-user'
 import type { Role } from '~/server/auth/session'
 
 const authPaths = [
@@ -13,15 +19,36 @@ const authPaths = [
 	'/verify-backup-code',
 ]
 
+function signOutRedirect(req: NextRequest) {
+	return NextResponse.redirect(new URL(signOutToLoginPath, req.url))
+}
+
+async function resolveDbRolesFromToken(
+	req: NextRequest,
+): Promise<Role[] | 'sign-out' | null> {
+	const token = await getToken({ req })
+	if (!token) return null
+
+	const userId = parseSessionUserId(token.sub)
+	if (userId === null) return 'sign-out'
+
+	const tokenIssuedAt = parseTokenIssuedAt(token.iat)
+	const dbUser = await getDbSessionUser(userId, tokenIssuedAt)
+	if (!dbUser) return 'sign-out'
+
+	return dbUser.roles
+}
+
 async function redirectLoggedInFromAuthRoutes(
 	req: NextRequest,
 ): Promise<NextResponse | null> {
 	const path = req.nextUrl.pathname
 	if (!authPaths.includes(path)) return null
 
-	const token = await getToken({ req })
-	if (!token) return null
-	const roles: Role[] = token.roles ?? []
+	const roles = await resolveDbRolesFromToken(req)
+	if (roles === 'sign-out') return signOutRedirect(req)
+	if (!roles) return null
+
 	if (roles.includes('agent'))
 		return NextResponse.redirect(new URL('/equipo', req.url))
 	if (roles.includes('applicant'))
@@ -32,13 +59,27 @@ async function redirectLoggedInFromAuthRoutes(
 }
 
 const withAuthMiddleware = withAuth(
-	function middleware(req) {
+	async function middleware(req) {
 		const token = req.nextauth.token
 		const path = req.nextUrl.pathname
-		const roles: Role[] = token?.roles ?? []
-		const isAgent = roles.includes('agent')
 
-		// Applicants: settings live under /cuenta/settings (same shell as rest of portal).
+		if (!token) {
+			return NextResponse.next()
+		}
+
+		const userId = parseSessionUserId(token.sub)
+		if (userId === null) {
+			return signOutRedirect(req)
+		}
+
+		const tokenIssuedAt = parseTokenIssuedAt(token.iat)
+		const dbUser = await getDbSessionUser(userId, tokenIssuedAt)
+		if (!dbUser) {
+			return signOutRedirect(req)
+		}
+
+		const roles = dbUser.roles
+
 		if (roles.includes('applicant') && path.startsWith('/settings')) {
 			const suffix =
 				path === '/settings' ? '/profile' : path.slice('/settings'.length)
@@ -47,37 +88,21 @@ const withAuthMiddleware = withAuth(
 			)
 		}
 
-		// No roles: allow /settings so user can see their state; block /equipo and /cuenta
-		if (roles.length === 0) {
-			if (path.startsWith('/equipo') || path.startsWith('/cuenta')) {
-				return NextResponse.redirect(new URL('/unauthorized', req.url))
-			}
-			// /settings allowed - user can see they have no roles
-		}
-		if (path.startsWith('/equipo/users') && !roles.includes('admin')) {
-			return NextResponse.redirect(new URL('/unauthorized', req.url))
-		}
-		if (!roles.includes('admin')) {
-			if (
-				path === '/equipo/companies/new' ||
-				(path.startsWith('/equipo/companies/') && path.endsWith('/edit'))
-			) {
-				return NextResponse.redirect(new URL('/unauthorized', req.url))
-			}
-		}
-		if (path.startsWith('/equipo') && !isAgent) {
-			return NextResponse.redirect(new URL('/unauthorized', req.url))
-		}
-		if (path.startsWith('/cuenta') && !roles.includes('applicant')) {
-			return NextResponse.redirect(new URL('/unauthorized', req.url))
-		}
-
 		return NextResponse.next()
 	},
 	{
 		pages: { signIn: '/login' },
 		callbacks: {
-			authorized: ({ token }) => !!token,
+			authorized: async ({ token }) => {
+				if (!token) return false
+
+				const userId = parseSessionUserId(token.sub)
+				if (userId === null) return false
+
+				const tokenIssuedAt = parseTokenIssuedAt(token.iat)
+				const dbUser = await getDbSessionUser(userId, tokenIssuedAt)
+				return dbUser !== null
+			},
 		},
 	},
 )
@@ -86,7 +111,6 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
 	const path = req.nextUrl.pathname
 	const redirect = await redirectLoggedInFromAuthRoutes(req)
 	if (redirect) return redirect
-	// Auth paths: allow through (unauth users see login/landing). Protected paths: require auth.
 	if (authPaths.includes(path)) return NextResponse.next()
 	return withAuthMiddleware(
 		req as Parameters<typeof withAuthMiddleware>[0],

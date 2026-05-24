@@ -39,7 +39,6 @@ export function VerifyTotpForm({
 		const result = await signIn('totp', {
 			email,
 			totp: code,
-			callbackUrl: '/',
 			redirect: false,
 		})
 
@@ -47,7 +46,7 @@ export function VerifyTotpForm({
 			setError(t('invalid-code'))
 			setValue('')
 		} else if (result?.ok) {
-			window.location.href = result.url || '/'
+			window.location.href = '/'
 		}
 
 		setLoading(false)

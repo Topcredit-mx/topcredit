@@ -9,6 +9,7 @@ import {
 	seedInstallmentsQueue,
 	seedInstallmentsQueueTwentyPending,
 } from '~/e2e/server/tasks'
+import { expectAccessDenied } from '../helpers/access-denied'
 import {
 	clearSelectedCompanyIdCookie,
 	loginPage,
@@ -421,7 +422,7 @@ test.describe('Installments queue', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/installments')
-			await expect(page).toHaveURL(/\/unauthorized/)
+			await expectAccessDenied(page)
 		})
 	})
 })

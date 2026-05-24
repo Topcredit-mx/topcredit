@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import type { ApplicantEligibilityData } from '~/lib/application-rules'
 import {
@@ -7,6 +6,7 @@ import {
 	type AppAction,
 	defineAbilityFor,
 } from '~/lib/define-ability-for'
+import { accessDenied } from '~/server/auth/access-denied'
 import { getRolesByUserId } from '~/server/db/role-queries'
 import type { ApplicationStatus } from '~/server/db/schema'
 import { getUserCompanyAssignments } from '~/server/scopes'
@@ -37,7 +37,7 @@ export const getAbility = cache(async (): Promise<AbilityResult> => {
 	try {
 		return await getAbilityForUserId(session.user.id, session.user.email ?? '')
 	} catch {
-		redirect('/unauthorized')
+		accessDenied()
 	}
 })
 
@@ -88,7 +88,7 @@ export function requireAbility(
 	subj: Parameters<AppAbility['can']>[1],
 ): void {
 	if (!ability.can(action, subj)) {
-		redirect('/unauthorized')
+		accessDenied()
 	}
 }
 

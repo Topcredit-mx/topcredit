@@ -1,7 +1,7 @@
-import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Card } from '~/components/ui/card'
 import { getAbility, subject } from '~/server/auth/ability'
+import { accessDenied } from '~/server/auth/access-denied'
 import { getRequiredAgentUser } from '~/server/auth/session'
 import {
 	getCompanyById,
@@ -30,7 +30,7 @@ export default async function InstallmentsHistoryPage() {
 				subject('CreditPayment', { id: 0, companyId: firstCompanyId }),
 			))
 
-	if (!canConfirm) redirect('/unauthorized')
+	if (!canConfirm) accessDenied()
 
 	const t = await getTranslations('equipo')
 

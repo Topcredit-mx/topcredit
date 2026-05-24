@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { useBackgroundJobTracker } from '~/components/background-jobs/background-job-tracker-provider'
 import { FinalInstallmentConfirmDialog } from '~/components/equipo/final-installment-confirm-dialog'
-import { QueueBulkJobProgressBanner } from '~/components/equipo/queue-bulk-job-progress'
 import {
 	getSelectableFilteredRows,
 	useQueueBulkSelection,
@@ -37,8 +37,8 @@ export function InstallmentsQueueToolbar({
 	const resolveError = useResolveValidationError()
 	const router = useRouter()
 	const [isConfirmPending, startConfirmTransition] = useTransition()
-	const { scope, setScope, setActiveJobId, setPageSelectedViaHeader } =
-		useQueueBulkSelection()
+	const { trackJob } = useBackgroundJobTracker()
+	const { scope, setScope, setPageSelectedViaHeader } = useQueueBulkSelection()
 
 	const { table, filterPlaceholder } = useDataTable<InstallmentForQueue>()
 	const filterLabel = filterPlaceholder ?? ''
@@ -94,11 +94,10 @@ export function InstallmentsQueueToolbar({
 				return
 			}
 			if (res?.jobId != null) {
-				setActiveJobId(res.jobId)
+				trackJob({ type: 'queue-bulk-confirm', id: res.jobId })
 				resetSelection()
 				setFinalDialogOpen(false)
 				setPendingBulkAllSelected(null)
-				toast.message(t('queue-bulk-job-enqueued'))
 			}
 		})
 	}
@@ -176,7 +175,6 @@ export function InstallmentsQueueToolbar({
 				isPending={isConfirmPending}
 			/>
 			<div className="space-y-2">
-				<QueueBulkJobProgressBanner />
 				<div className="flex min-w-0 flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
 					<Input
 						type="search"

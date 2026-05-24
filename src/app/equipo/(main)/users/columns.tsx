@@ -96,8 +96,7 @@ function RoleCheckbox({
 		setShowConfirmDialog(false)
 		startTransition(async () => {
 			await toggleUserRole(userId, role)
-			// Redirect to unauthorized page since user just removed their own admin access
-			router.push('/unauthorized')
+			router.refresh()
 		})
 	}
 

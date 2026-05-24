@@ -25,8 +25,6 @@ type QueueBulkSelectionContextValue = {
 	setScope: (scope: QueueBulkSelectionScope) => void
 	pageSelectedViaHeader: boolean
 	setPageSelectedViaHeader: (value: boolean) => void
-	activeJobId: number | null
-	setActiveJobId: (jobId: number | null) => void
 }
 
 const QueueBulkSelectionContext =
@@ -39,7 +37,6 @@ export function QueueBulkSelectionProvider({
 }) {
 	const [scope, setScope] = useState<QueueBulkSelectionScope>('page')
 	const [pageSelectedViaHeader, setPageSelectedViaHeader] = useState(false)
-	const [activeJobId, setActiveJobId] = useState<number | null>(null)
 
 	const value = useMemo(
 		() => ({
@@ -47,10 +44,8 @@ export function QueueBulkSelectionProvider({
 			setScope,
 			pageSelectedViaHeader,
 			setPageSelectedViaHeader,
-			activeJobId,
-			setActiveJobId,
 		}),
-		[scope, pageSelectedViaHeader, activeJobId],
+		[scope, pageSelectedViaHeader],
 	)
 
 	return (

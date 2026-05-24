@@ -4,7 +4,7 @@ import { Download, Settings2, Upload } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useTransition } from 'react'
 import { toast } from 'sonner'
-import { QueueBulkJobProgressBanner } from '~/components/equipo/queue-bulk-job-progress'
+import { useBackgroundJobTracker } from '~/components/background-jobs/background-job-tracker-provider'
 import {
 	getSelectableFilteredRows,
 	useQueueBulkSelection,
@@ -34,8 +34,8 @@ export function DeductionsQueueToolbar({
 	const tAdmin = useTranslations('admin')
 	const resolveError = useResolveValidationError()
 	const [isPending, startTransition] = useTransition()
-	const { scope, setScope, setActiveJobId, setPageSelectedViaHeader } =
-		useQueueBulkSelection()
+	const { trackJob } = useBackgroundJobTracker()
+	const { scope, setScope, setPageSelectedViaHeader } = useQueueBulkSelection()
 
 	const { table, filterPlaceholder } = useDataTable<InstallmentForQueue>()
 	const selectedRows = table.getFilteredSelectedRowModel().rows
@@ -81,9 +81,8 @@ export function DeductionsQueueToolbar({
 				return
 			}
 			if (res?.jobId != null) {
-				setActiveJobId(res.jobId)
+				trackJob({ type: 'queue-bulk-confirm', id: res.jobId })
 				resetSelection()
-				toast.message(t('queue-bulk-job-enqueued'))
 			}
 		})
 	}
@@ -108,7 +107,6 @@ export function DeductionsQueueToolbar({
 
 	return (
 		<div className="space-y-2">
-			<QueueBulkJobProgressBanner />
 			<div className="flex min-w-0 flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
 				<Input
 					type="search"

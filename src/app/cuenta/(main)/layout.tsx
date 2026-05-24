@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { ApplicantSidebar } from '~/components/app/applicant-sidebar'
+import { AccessDeniedScreen } from '~/components/auth/access-denied-screen'
 import {
 	SidebarInset,
 	SidebarProvider,
@@ -7,7 +8,7 @@ import {
 } from '~/components/ui/sidebar'
 import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
-import { getRequiredApplicantUser } from '~/server/auth/session'
+import { requireAuth } from '~/server/auth/session'
 import { db } from '~/server/db'
 import { users } from '~/server/db/schema'
 
@@ -16,7 +17,12 @@ export default async function CuentaMainLayout({
 }: {
 	children: React.ReactNode
 }) {
-	const user = await getRequiredApplicantUser()
+	const session = await requireAuth()
+	const user = session.user
+	if (!user.roles.includes('applicant')) {
+		return <AccessDeniedScreen />
+	}
+
 	const dbUser = await db.query.users.findFirst({
 		where: eq(users.id, user.id),
 		columns: { emailVerified: true },

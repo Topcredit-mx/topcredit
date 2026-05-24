@@ -2,7 +2,6 @@
 
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { sanitizeApplicationDocumentFileName } from '~/lib/application-document-intake'
 import {
 	COMPANY_TEMPLATE_ALLOWED_MIME_SET,
@@ -10,6 +9,7 @@ import {
 } from '~/lib/company-templates'
 import { ValidationCode } from '~/lib/validation-codes'
 import { getAbility, requireAbility, subject } from '~/server/auth/ability'
+import { accessDenied } from '~/server/auth/access-denied'
 import { db } from '~/server/db'
 import { companies } from '~/server/db/schema'
 import { fromErrorToFormState } from '~/server/errors/errors'
@@ -43,7 +43,7 @@ export async function uploadCompanyTemplateAction(
 ): Promise<CompanyTemplateUploadFormState> {
 	const { ability, isAdmin } = await getAbility()
 	if (!isAdmin) {
-		redirect('/unauthorized')
+		accessDenied()
 	}
 
 	const file = formData.get('file')

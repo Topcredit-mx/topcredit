@@ -42,14 +42,13 @@ export function VerifyBackupCodeForm({ email }: VerifyBackupCodeFormProps) {
 			const signInResult = await signIn('backup-code', {
 				email,
 				backupCode: backupCode.trim().toUpperCase(),
-				callbackUrl: '/',
 				redirect: false,
 			})
 
 			if (signInResult?.error) {
 				setError(t('error-login'))
 			} else if (signInResult?.ok) {
-				window.location.href = signInResult.url || '/'
+				window.location.href = '/'
 			}
 		} catch (err) {
 			setError(err instanceof Error ? err.message : t('error-invalid'))

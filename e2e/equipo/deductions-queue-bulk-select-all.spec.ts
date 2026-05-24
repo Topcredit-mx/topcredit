@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test'
 import type { SeedDeductionsQueueResult } from '~/e2e/server/tasks'
-import { cleanupDeductionsQueue, seedDeductionsQueue } from '~/e2e/server/tasks'
+import {
+	cleanupDeductionsQueue,
+	seedActiveQueueBulkConfirmJob,
+	seedDeductionsQueue,
+} from '~/e2e/server/tasks'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
 import { mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
@@ -55,7 +59,11 @@ test.describe('HR deductions queue select all filtered', () => {
 			.click()
 
 		await expect(
-			page.getByText(/confirmación en segundo plano iniciada/i).first(),
+			page
+				.getByText(
+					/preparando confirmación en segundo plano|confirmando \d+ de \d+/i,
+				)
+				.first(),
 		).toBeVisible()
 
 		await expect(
@@ -81,5 +89,26 @@ test.describe('HR deductions queue select all filtered', () => {
 				name: new RegExp(`seleccionar las ${seed.expectedRowCount} filas`, 'i'),
 			}),
 		).toHaveCount(0)
+	})
+
+	test('restores bulk confirm progress after page reload', async ({ page }) => {
+		await seedActiveQueueBulkConfirmJob({
+			userEmail: hrAgentDeductions.email,
+			kind: 'hr_deductions',
+			totalCount: 10,
+			processedCount: 2,
+			status: 'running',
+		})
+
+		await page.goto('/equipo/deductions')
+		const table = mainDataTable(page)
+		await expect(table).toBeVisible()
+
+		await expect(page.getByText(/confirmando 2 de 10/i).first()).toBeVisible()
+
+		await page.reload()
+
+		await expect(table).toBeVisible()
+		await expect(page.getByText(/confirmando 2 de 10/i).first()).toBeVisible()
 	})
 })
