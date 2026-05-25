@@ -12,6 +12,55 @@ export type PaymentScheduleEntry = {
 	financingAmount: string
 }
 
+function allocateFinancingFrontLoaded(
+	amounts: ReadonlyArray<Decimal>,
+	financingTotal: Decimal,
+): Array<Decimal> {
+	const n = amounts.length
+	const out: Array<Decimal> = []
+	let remaining = financingTotal
+	const weightSum = new Decimal(n).mul(n + 1).div(2)
+
+	for (let i = 0; i < n; i++) {
+		const amountI = amounts[i]
+		if (amountI === undefined) throw new Error('missing payment amount')
+
+		if (i === n - 1) {
+			out.push(remaining)
+			break
+		}
+
+		let futureCap = new Decimal(0)
+		for (let j = i + 1; j < n; j++) {
+			const a = amounts[j]
+			if (a === undefined) throw new Error('missing payment amount')
+			futureCap = futureCap.plus(a)
+		}
+
+		const rawMin = remaining.minus(futureCap)
+		const fiMin = rawMin.lt(0) ? new Decimal(0) : rawMin
+		const fiMax = amountI.lt(remaining) ? amountI : remaining
+		const wi = n - i
+		const target = financingTotal
+			.mul(wi)
+			.div(weightSum)
+			.todp(2, Decimal.ROUND_DOWN)
+
+		let fi = target
+		if (fi.lt(fiMin)) {
+			fi = fiMin
+		}
+		if (fi.gt(fiMax)) {
+			fi = fiMax
+		}
+
+		out.push(fi)
+		remaining = remaining.minus(fi)
+	}
+
+	return out
+}
+
 function lastDayOfMonthYmd(year: number, month0: number): string {
 	const last = new Date(Date.UTC(year, month0 + 1, 0))
 	const d = last.getUTCDate()
@@ -75,6 +124,21 @@ export function generatePaymentSchedule(params: {
 		.todp(2, Decimal.ROUND_DOWN)
 	const perPaymentCombined = perPrincipal.plus(perFinancing)
 
+	const principalPaidBeforeLast = perPrincipal.mul(totalPayments - 1)
+	const financingPaidBeforeLast = perFinancing.mul(totalPayments - 1)
+	const lastPrincipal = principalDec.minus(principalPaidBeforeLast)
+	const lastFinancing = financingTotal.minus(financingPaidBeforeLast)
+	const lastAmount = lastPrincipal.plus(lastFinancing)
+
+	const rowAmounts: Array<Decimal> = []
+	for (let i = 0; i < totalPayments; i++) {
+		rowAmounts.push(i < totalPayments - 1 ? perPaymentCombined : lastAmount)
+	}
+	const financingAllocated = allocateFinancingFrontLoaded(
+		rowAmounts,
+		financingTotal,
+	)
+
 	const startYmd = calendarYmdInMexicoCity(firstDiscountDate)
 	const dates: string[] = [startYmd]
 	for (let i = 1; i < totalPayments; i++) {
@@ -93,26 +157,18 @@ export function generatePaymentSchedule(params: {
 		if (ymd === undefined) break
 		const dueDate = endOfDayInstantMexicoCity(ymd)
 
-		if (i < totalPayments - 1) {
-			schedule.push({
-				dueDate,
-				amount: perPaymentCombined.toFixed(2),
-				principalAmount: perPrincipal.toFixed(2),
-				financingAmount: perFinancing.toFixed(2),
-			})
-		} else {
-			const principalPaid = perPrincipal.mul(totalPayments - 1)
-			const financingPaid = perFinancing.mul(totalPayments - 1)
-			const lastPrincipal = principalDec.minus(principalPaid)
-			const lastFinancing = financingTotal.minus(financingPaid)
-			const lastAmount = lastPrincipal.plus(lastFinancing)
-			schedule.push({
-				dueDate,
-				amount: lastAmount.toFixed(2),
-				principalAmount: lastPrincipal.toFixed(2),
-				financingAmount: lastFinancing.toFixed(2),
-			})
+		const amt = rowAmounts[i]
+		const fin = financingAllocated[i]
+		if (amt === undefined || fin === undefined) {
+			throw new Error('missing computed payment row')
 		}
+		const pr = amt.minus(fin)
+		schedule.push({
+			dueDate,
+			amount: amt.toFixed(2),
+			principalAmount: pr.toFixed(2),
+			financingAmount: fin.toFixed(2),
+		})
 	}
 
 	return schedule

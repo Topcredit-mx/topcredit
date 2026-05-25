@@ -225,7 +225,7 @@ export function CreditPaymentsTable({
 	const pageSize = Math.max(creditPayments.length, 1)
 
 	return (
-		<div className="space-y-4">
+		<div className="min-w-0 space-y-4">
 			<FinalInstallmentConfirmDialog
 				open={finalInstallRows != null && finalInstallRows.length > 0}
 				onOpenChange={(open) => {

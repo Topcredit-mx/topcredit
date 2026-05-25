@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 
 import { cn } from '~/lib/utils'
 
@@ -45,7 +45,10 @@ export function AuthInlineMessage({
 			aria-busy={showLoading}
 		>
 			{showLoading ? (
-				<p className="text-center text-slate-500 text-xs">{loadingText}</p>
+				<span className="inline-flex items-center gap-2 text-slate-500 text-xs">
+					<Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+					<span>{loadingText}</span>
+				</span>
 			) : null}
 			{hasMessage ? (
 				<span

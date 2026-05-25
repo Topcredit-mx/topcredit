@@ -42,7 +42,7 @@ export function VerifyOTPForm({
 	const [resendSuccess, setResendSuccess] = useState<boolean | null>(null)
 
 	const handleOTPComplete = async (code: string) => {
-		if (code.length !== 6) return
+		if (code.length !== 6 || loading) return
 
 		setLoading(true)
 		setError(null)
@@ -56,8 +56,13 @@ export function VerifyOTPForm({
 		if (result?.error) {
 			setError(t('invalid-code'))
 			setValue('')
-		} else if (result?.ok) {
+			setLoading(false)
+			return
+		}
+
+		if (result?.ok) {
 			window.location.href = '/'
+			return
 		}
 
 		setLoading(false)
@@ -97,19 +102,32 @@ export function VerifyOTPForm({
 				<p className={authPageSubtitleClass}>{t('sent-to', { email })}</p>
 			</div>
 
-			<form onSubmit={handleSubmit} className="flex flex-col gap-8">
+			<form
+				onSubmit={handleSubmit}
+				className="flex flex-col gap-8"
+				aria-busy={loading}
+			>
 				<div className="flex flex-col items-center gap-3">
 					<InputOTP
 						maxLength={6}
 						value={value}
-						onChange={(next) => setValue(next)}
+						onChange={(next) => {
+							if (!loading) {
+								setValue(next)
+							}
+						}}
 						onComplete={handleOTPComplete}
 						disabled={loading}
 						containerClassName="gap-3"
 					>
 						<InputOTPGroup className="gap-2">
 							{[0, 1, 2, 3, 4, 5].map((i) => (
-								<InputOTPSlot key={i} index={i} className={authOtpSlotClass} />
+								<InputOTPSlot
+									key={i}
+									index={i}
+									disabled={loading}
+									className={authOtpSlotClass}
+								/>
 							))}
 						</InputOTPGroup>
 					</InputOTP>
@@ -124,13 +142,21 @@ export function VerifyOTPForm({
 				</div>
 
 				<div className="flex flex-col items-center gap-3">
-					<Link href="/login" className={authInlineLinkClass}>
+					<Link
+						href="/login"
+						className={cn(
+							authInlineLinkClass,
+							loading && 'pointer-events-none opacity-50',
+						)}
+						aria-disabled={loading}
+						tabIndex={loading ? -1 : undefined}
+					>
 						{t('back')}
 					</Link>
 					<button
 						type="button"
 						onClick={handleResend}
-						disabled={resendLoading}
+						disabled={resendLoading || loading}
 						className={cn(
 							authInlineLinkClass,
 							'cursor-pointer border-none bg-transparent p-0 disabled:cursor-not-allowed disabled:opacity-50',

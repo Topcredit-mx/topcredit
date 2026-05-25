@@ -50,6 +50,7 @@ type SectionCardProps = {
 	description?: React.ReactNode
 	children: React.ReactNode
 	className?: string
+	contentClassName?: string
 }
 
 export function SectionCard({
@@ -58,6 +59,7 @@ export function SectionCard({
 	description,
 	children,
 	className,
+	contentClassName,
 }: SectionCardProps) {
 	return (
 		<Card
@@ -71,7 +73,9 @@ export function SectionCard({
 			<CardHeader className="border-slate-100 border-b px-6 py-4">
 				<SectionTitleRow icon={icon} title={title} description={description} />
 			</CardHeader>
-			<CardContent className="px-6 pt-6 pb-6">{children}</CardContent>
+			<CardContent className={cn('min-w-0 px-6 pt-6 pb-6', contentClassName)}>
+				{children}
+			</CardContent>
 		</Card>
 	)
 }

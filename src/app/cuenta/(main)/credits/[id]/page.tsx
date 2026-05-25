@@ -264,9 +264,10 @@ export default async function CuentaCreditDetailPage({
 				className="mt-6"
 				icon={Building2}
 				title={t('detail-payment-schedule-title')}
+				contentClassName={payments.length > 0 ? 'p-0' : undefined}
 			>
 				{payments.length > 0 ? (
-					<div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:overflow-visible sm:px-0">
+					<div className="min-w-0 overflow-x-auto pb-px [scrollbar-gutter:stable]">
 						<table className="w-full min-w-[52rem]">
 							<thead>
 								<tr className="border-slate-100 border-b bg-slate-50/80 text-left text-[11px] text-muted-foreground uppercase tracking-wide">

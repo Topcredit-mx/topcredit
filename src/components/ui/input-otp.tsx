@@ -17,7 +17,7 @@ function InputOTP({
 		<OTPInput
 			data-slot="input-otp"
 			containerClassName={cn(
-				'flex items-center gap-2 has-disabled:opacity-50',
+				'flex items-center gap-2 has-[:disabled]:pointer-events-none has-[:disabled]:opacity-60',
 				containerClassName,
 			)}
 			className={cn('disabled:cursor-not-allowed', className)}
@@ -39,9 +39,11 @@ function InputOTPGroup({ className, ...props }: React.ComponentProps<'div'>) {
 function InputOTPSlot({
 	index,
 	className,
+	disabled = false,
 	...props
 }: React.ComponentProps<'div'> & {
 	index: number
+	disabled?: boolean
 }) {
 	const inputOTPContext = React.useContext(OTPInputContext)
 	const { char, hasFakeCaret, isActive } = inputOTPContext?.slots[index] ?? {}
@@ -49,9 +51,12 @@ function InputOTPSlot({
 	return (
 		<div
 			data-slot="input-otp-slot"
-			data-active={isActive}
+			data-active={isActive && !disabled}
+			data-disabled={disabled ? true : undefined}
 			className={cn(
 				'relative flex h-9 w-9 items-center justify-center border-input border-y border-r text-sm shadow-xs outline-none transition-all first:rounded-l-md first:border-l last:rounded-r-md aria-invalid:border-destructive data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:ring-[3px] data-[active=true]:ring-ring/50 data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:ring-destructive/20 dark:bg-input/30 dark:data-[active=true]:aria-invalid:ring-destructive/40',
+				disabled &&
+					'pointer-events-none border-slate-200 bg-slate-50 text-slate-500 opacity-70 data-[active=true]:border-slate-200 data-[active=true]:ring-0',
 				className,
 			)}
 			{...props}

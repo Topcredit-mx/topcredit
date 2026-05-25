@@ -192,31 +192,13 @@ export function CreditLiquidationSection({
 											{t('liquidation-confirm-dialog-lead')}
 										</AlertDialogDescription>
 									</AlertDialogHeader>
-									<div className="grid gap-3 rounded-lg border bg-muted/20 p-4 sm:grid-cols-1">
-										<div>
-											<p className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wide">
-												{t('liquidation-outstanding-principal')}
-											</p>
-											<p className="mt-1 font-semibold text-base text-foreground tabular-nums">
-												{formatCurrencyMxn(outstandingPrincipal)}
-											</p>
-										</div>
-										<div>
-											<p className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wide">
-												{t('liquidation-outstanding-financing')}
-											</p>
-											<p className="mt-1 font-semibold text-base text-foreground tabular-nums">
-												{formatCurrencyMxn(outstandingFinancing)}
-											</p>
-										</div>
-										<div>
-											<p className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wide">
-												{t('liquidation-outstanding-total')}
-											</p>
-											<p className="mt-1 font-semibold text-base text-foreground tabular-nums">
-												{formatCurrencyMxn(outstandingScheduledTotal)}
-											</p>
-										</div>
+									<div className="rounded-xl border border-muted bg-muted/30 px-5 py-6 text-center">
+										<p className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wide">
+											{t('liquidation-confirm-dialog-amount-label')}
+										</p>
+										<p className="mt-2 font-semibold text-3xl text-foreground tabular-nums tracking-tight sm:text-4xl">
+											{formatCurrencyMxn(outstandingScheduledTotal)}
+										</p>
 									</div>
 									<AuthInlineError
 										message={

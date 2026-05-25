@@ -113,7 +113,7 @@ export default async function EquipoCreditDetailPage({
 
 	return (
 		<section
-			className="mx-auto grid max-w-4xl gap-3 px-1 py-1 sm:px-1.5 sm:py-1.5"
+			className="mx-auto grid min-w-0 max-w-4xl gap-3 px-1 py-1 sm:px-1.5 sm:py-1.5"
 			aria-labelledby="equipo-credit-detail-title"
 		>
 			<div>
@@ -235,7 +235,7 @@ export default async function EquipoCreditDetailPage({
 			</div>
 
 			<section
-				className="space-y-4"
+				className="min-w-0 space-y-4"
 				id="equipo-credit-payment-schedule"
 				aria-labelledby="equipo-credit-payment-schedule-heading"
 			>

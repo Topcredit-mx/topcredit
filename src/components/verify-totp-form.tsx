@@ -31,7 +31,7 @@ export function VerifyTotpForm({
 	const [value, setValue] = useState('')
 
 	const handleTotpComplete = async (code: string) => {
-		if (code.length !== 6) return
+		if (code.length !== 6 || loading) return
 
 		setLoading(true)
 		setError(null)
@@ -45,8 +45,13 @@ export function VerifyTotpForm({
 		if (result?.error) {
 			setError(t('invalid-code'))
 			setValue('')
-		} else if (result?.ok) {
+			setLoading(false)
+			return
+		}
+
+		if (result?.ok) {
 			window.location.href = '/'
+			return
 		}
 
 		setLoading(false)
@@ -68,18 +73,27 @@ export function VerifyTotpForm({
 				</p>
 			</div>
 
-			<div className="flex flex-col items-center gap-3">
+			<div className="flex flex-col items-center gap-3" aria-busy={loading}>
 				<InputOTP
 					maxLength={6}
 					value={value}
-					onChange={(next) => setValue(next)}
+					onChange={(next) => {
+						if (!loading) {
+							setValue(next)
+						}
+					}}
 					onComplete={handleTotpComplete}
 					disabled={loading}
 					containerClassName="gap-3"
 				>
 					<InputOTPGroup className="gap-2">
 						{[0, 1, 2, 3, 4, 5].map((i) => (
-							<InputOTPSlot key={i} index={i} className={authOtpSlotClass} />
+							<InputOTPSlot
+								key={i}
+								index={i}
+								disabled={loading}
+								className={authOtpSlotClass}
+							/>
 						))}
 					</InputOTPGroup>
 				</InputOTP>
@@ -94,7 +108,15 @@ export function VerifyTotpForm({
 
 			<p className="text-balance text-center text-slate-600 text-sm leading-relaxed">
 				{t('backup-prompt')}{' '}
-				<Link href={backupHref} className={authInlineLinkClass}>
+				<Link
+					href={backupHref}
+					className={cn(
+						authInlineLinkClass,
+						loading && 'pointer-events-none opacity-50',
+					)}
+					aria-disabled={loading}
+					tabIndex={loading ? -1 : undefined}
+				>
 					{t('backup-link')}
 				</Link>
 			</p>

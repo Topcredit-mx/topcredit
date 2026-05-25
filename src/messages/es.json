@@ -1124,7 +1124,8 @@
 			"liquidation-credit-invalid": "Este crédito no admite solicitudes de liquidación en este momento.",
 			"liquidation-request-pending-exists": "Ya tienes una solicitud pendiente para este crédito.",
 			"liquidation-confirm-dialog-title": "Confirmar solicitud de liquidación",
-			"liquidation-confirm-dialog-lead": "Se enviará una solicitud al equipo con los montos pendientes del calendario (capital y financiamiento). Revisa los importes antes de continuar.",
+			"liquidation-confirm-dialog-lead": "Enviaremos tu solicitud para liquidar el saldo pendiente del calendario. El importe total a liquidar es:",
+			"liquidation-confirm-dialog-amount-label": "Importe total a liquidar",
 			"liquidation-confirm-dialog-cancel": "Cancelar",
 			"liquidation-confirm-dialog-confirm": "Confirmar y enviar"
 		},

@@ -54,22 +54,32 @@ describe('generatePaymentSchedule principal/financing split', () => {
 		assertScheduleSplitsValid(schedule, loanPrincipal, rate)
 	})
 
-	test('first n-1 rows use identical principal and financing when divisible', () => {
+	test('financing is front-loaded among equal-amount rows; amounts stay equal', () => {
+		const loanPrincipal = 50000
+		const rate = 0.025
 		const schedule = generatePaymentSchedule({
-			loanPrincipal: 50000,
-			rate: 0.025,
+			loanPrincipal,
+			rate,
 			totalPayments: 12,
 			frequency: 'monthly',
 			firstDiscountDate: mxYmdNoon(2026, 0, 31),
 		})
 		assert.equal(schedule.length, 12)
-		const p0 = schedule[0]?.principalAmount
-		const f0 = schedule[0]?.financingAmount
-		for (let i = 1; i < 11; i++) {
-			assert.equal(schedule[i]?.principalAmount, p0)
-			assert.equal(schedule[i]?.financingAmount, f0)
+		const firstAmt = schedule[0]?.amount
+		const firstFin = new Decimal(schedule[0]?.financingAmount ?? '0')
+		const lastFin = new Decimal(schedule[11]?.financingAmount ?? '0')
+		assert.ok(firstFin.gt(lastFin))
+		for (let i = 0; i < 10; i++) {
+			assert.equal(schedule[i]?.amount, firstAmt)
+			const f = new Decimal(schedule[i]?.financingAmount ?? '0')
+			const n = new Decimal(schedule[i + 1]?.financingAmount ?? '0')
+			assert.ok(
+				f.gte(n),
+				`financing should not increase from row ${String(i)} to ${String(i + 1)}`,
+			)
 		}
-		assertScheduleSplitsValid(schedule, 50000, 0.025)
+		assert.equal(schedule[10]?.amount, firstAmt)
+		assertScheduleSplitsValid(schedule, loanPrincipal, rate)
 	})
 
 	test('bi-monthly schedule satisfies split invariants', () => {
