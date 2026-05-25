@@ -16,6 +16,7 @@ import {
 	seedAdminUsers,
 } from '~/e2e/server/tasks'
 import { ASSIGNABLE_ROLES } from '~/lib/user-rules'
+import { expectAccessDenied } from '../helpers/access-denied'
 import { loginPage } from '../helpers/auth'
 import { findTableRow, mainDataTable } from '../helpers/interactions'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
@@ -409,7 +410,7 @@ test.describe('Admin Users', () => {
 			await row.scrollIntoViewIfNeeded()
 			await clickRoleCheckbox(row, 'Admin')
 
-			await expect(page.getByText(/no autorizado|unauthorized/i)).toBeVisible()
+			await expectAccessDenied(page)
 
 			await assignRole({ email: adminUser.email, role: 'admin' })
 		})
@@ -423,7 +424,7 @@ test.describe('Admin Users', () => {
 			await removeRole({ email: adminUser.email, role: 'admin' })
 
 			await page.reload()
-			await expect(page.getByText(/no autorizado|unauthorized/i)).toBeVisible()
+			await expectAccessDenied(page)
 
 			await assignRole({ email: adminUser.email, role: 'admin' })
 		})

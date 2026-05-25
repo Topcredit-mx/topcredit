@@ -46,22 +46,24 @@ test.describe('Admin company term management', () => {
 				email: 'no-admin-terms@example.com',
 				roles: ['agent', 'requests'] as const,
 			}
-			await resetUser({
-				name: agentOnly.name,
-				email: agentOnly.email,
-				roles: [...agentOnly.roles],
-			})
-			await seedCompanyTermsManagementFixture()
+			try {
+				await resetUser({
+					name: agentOnly.name,
+					email: agentOnly.email,
+					roles: [...agentOnly.roles],
+				})
+				await seedCompanyTermsManagementFixture()
 
-			await loginPage(page, agentOnly.email)
-			await page.goto(
-				`/equipo/companies/${encodeURIComponent(companyTermsE2e.domain)}/edit`,
-			)
-			await expect(
-				page.getByRole('heading', { name: '403 - No Autorizado' }),
-			).toBeVisible()
-
-			await deleteUsersByEmail([agentOnly.email])
+				await loginPage(page, agentOnly.email)
+				await page.goto(
+					`/equipo/companies/${encodeURIComponent(companyTermsE2e.domain)}/edit`,
+				)
+				await expect(
+					page.getByRole('heading', { name: '403 - No Autorizado' }),
+				).toBeVisible()
+			} finally {
+				await deleteUsersByEmail([agentOnly.email])
+			}
 		})
 
 		test('redirects non-admin users away from new company page', async ({
@@ -72,19 +74,21 @@ test.describe('Admin company term management', () => {
 				email: 'no-admin-new-co@example.com',
 				roles: ['agent', 'requests'] as const,
 			}
-			await resetUser({
-				name: agentOnly.name,
-				email: agentOnly.email,
-				roles: [...agentOnly.roles],
-			})
+			try {
+				await resetUser({
+					name: agentOnly.name,
+					email: agentOnly.email,
+					roles: [...agentOnly.roles],
+				})
 
-			await loginPage(page, agentOnly.email)
-			await page.goto('/equipo/companies/new')
-			await expect(
-				page.getByRole('heading', { name: '403 - No Autorizado' }),
-			).toBeVisible()
-
-			await deleteUsersByEmail([agentOnly.email])
+				await loginPage(page, agentOnly.email)
+				await page.goto('/equipo/companies/new')
+				await expect(
+					page.getByRole('heading', { name: '403 - No Autorizado' }),
+				).toBeVisible()
+			} finally {
+				await deleteUsersByEmail([agentOnly.email])
+			}
 		})
 	})
 

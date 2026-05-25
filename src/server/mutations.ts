@@ -3,6 +3,7 @@
 import { and, eq, inArray, isNull, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { resolveApplicationCreditAmounts } from '~/lib/application-credit-amounts'
 import {
 	filterToLatestDocumentsPerType,
 	PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES,
@@ -50,12 +51,15 @@ import {
 	parseBorrowingCapacityRate,
 	parsePositiveRate,
 } from '~/lib/pre-authorization-capacity'
+import { validateRequestedPreAuthorizedCreditAmount } from '~/lib/pre-authorized-requested-credit-amount'
 import { formatCurrencyMxn } from '~/lib/utils'
 import { ValidationCode } from '~/lib/validation-codes'
 import { updateApplicationWithStatusHistory } from '~/server/application-status-history'
 import {
+	type AppAbility,
 	type CreditPaymentSubject,
 	getAbility,
+	getAbilityForUserId,
 	getActionForApplicationStatus,
 	requireAbility,
 	subject,
@@ -82,6 +86,7 @@ import {
 	terms,
 	userCompanies,
 	userRoles,
+	users,
 } from '~/server/db/schema'
 import { deleteOrphanTermsWithoutOfferings } from '~/server/delete-orphan-terms'
 import {
@@ -853,7 +858,11 @@ async function sendApplicationStatusEmail(
 ): Promise<void> {
 	const updated = await db.query.applications.findFirst({
 		where: (a, { eq }) => eq(a.id, applicationId),
-		columns: { creditAmount: true, denialReason: true },
+		columns: {
+			creditAmount: true,
+			applicantRequestedCreditAmount: true,
+			denialReason: true,
+		},
 		with: {
 			applicant: { columns: { email: true } },
 			termOffering: {
@@ -872,7 +881,13 @@ async function sendApplicationStatusEmail(
 			term.durationType === 'monthly'
 				? `${term.duration} meses`
 				: `${term.duration} quincenas`
-		const creditAmountFormatted = formatCurrencyMxn(updated.creditAmount)
+		const amounts = resolveApplicationCreditAmounts(
+			updated.creditAmount,
+			updated.applicantRequestedCreditAmount,
+		)
+		const creditAmountFormatted = formatCurrencyMxn(
+			amounts.operativeAmount ?? updated.creditAmount,
+		)
 		await sendApplicationStatusEvent(applicantEmail, {
 			status,
 			creditAmountFormatted,
@@ -1008,6 +1023,7 @@ export async function preAuthorizeApplication(payload: unknown): Promise<{
 		setByUserId: user.id,
 		termOfferingId: data.termOfferingId,
 		creditAmount: new Decimal(creditAmount).toFixed(2),
+		applicantRequestedCreditAmount: null,
 		denialReason: null,
 	})
 
@@ -1022,6 +1038,7 @@ export async function preAuthorizeApplication(payload: unknown): Promise<{
 
 export async function submitApplicationForAuthorizationReview(
 	applicationId: number,
+	requestedCreditAmountRaw?: string,
 ): Promise<{ error?: string }> {
 	const user = await getRequiredApplicantUser()
 	const { ability } = await getAbility()
@@ -1078,11 +1095,28 @@ export async function submitApplicationForAuthorizationReview(
 		}
 	}
 
+	if (app.creditAmount == null) {
+		return { error: ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED }
+	}
+
+	const requestedRaw =
+		requestedCreditAmountRaw?.trim() === ''
+			? app.creditAmount
+			: (requestedCreditAmountRaw ?? app.creditAmount)
+	const amountValidation = validateRequestedPreAuthorizedCreditAmount(
+		requestedRaw,
+		app.creditAmount,
+	)
+	if (!amountValidation.ok) {
+		return { error: amountValidation.error }
+	}
+
 	await updateApplicationWithStatusHistory({
 		applicationId,
 		status: 'awaiting-authorization',
 		setByUserId: user.id,
 		denialReason: null,
+		applicantRequestedCreditAmount: amountValidation.amount,
 	})
 
 	await sendApplicationStatusEmail(applicationId, 'awaiting-authorization')
@@ -1282,6 +1316,8 @@ export async function disburseApplication(payload: {
 			status: applications.status,
 			termOfferingId: applications.termOfferingId,
 			creditAmount: applications.creditAmount,
+			applicantRequestedCreditAmount:
+				applications.applicantRequestedCreditAmount,
 			firstDiscountDate: applications.firstDiscountDate,
 		})
 		.from(applications)
@@ -1304,6 +1340,16 @@ export async function disburseApplication(payload: {
 		return { error: ValidationCode.APPLICATIONS_ERROR_TRANSITION }
 	}
 
+	const disbursementAmounts = resolveApplicationCreditAmounts(
+		app.creditAmount,
+		app.applicantRequestedCreditAmount,
+	)
+	const disbursementAmount = disbursementAmounts.operativeAmount
+
+	if (disbursementAmount == null || app.termOfferingId == null) {
+		return { error: ValidationCode.APPLICATIONS_FINANCIAL_TERMS_REQUIRED }
+	}
+
 	const { uploadBlob } = await import('~/server/storage')
 	const receiptPathname = `disbursement-receipts/${applicationId}/${receiptFile.name}`
 	const { pathname: receiptStorageKey } = await uploadBlob(
@@ -1323,14 +1369,14 @@ export async function disburseApplication(payload: {
 		receiptFileName: receiptFile.name,
 	})
 
-	if (app.creditAmount != null && app.termOfferingId != null) {
+	if (app.termOfferingId != null) {
 		const [credit] = await db
 			.insert(credits)
 			.values({
 				applicationId,
 				status: 'dispersed',
 				disbursementDate: new Date(),
-				transferAmount: app.creditAmount,
+				transferAmount: disbursementAmount,
 				disbursedByUserId: user.id,
 			})
 			.returning({ id: credits.id })
@@ -1349,7 +1395,7 @@ export async function disburseApplication(payload: {
 
 			if (termInfo && app.firstDiscountDate) {
 				const schedule = generatePaymentSchedule({
-					loanPrincipal: Number(app.creditAmount),
+					loanPrincipal: Number(disbursementAmount),
 					rate: Number(termInfo.rate),
 					totalPayments: termInfo.duration,
 					frequency: termInfo.durationType,
@@ -1593,6 +1639,27 @@ function toCreditPaymentSubject(
 	})
 }
 
+async function resolveBulkConfirmActor(options?: {
+	actorUserId?: number
+}): Promise<{ ability: AppAbility; userId: number }> {
+	if (options?.actorUserId == null) {
+		const { ability } = await getAbility()
+		const user = await getRequiredUser()
+		return { ability, userId: user.id }
+	}
+
+	const user = await db.query.users.findFirst({
+		where: eq(users.id, options.actorUserId),
+		columns: { id: true, email: true },
+	})
+	if (!user) {
+		throw new Error('Bulk confirm actor user not found')
+	}
+
+	const { ability } = await getAbilityForUserId(user.id, user.email ?? '')
+	return { ability, userId: user.id }
+}
+
 export async function confirmHrDeduction(
 	paymentId: number,
 ): Promise<{ error?: string }> {
@@ -1638,6 +1705,7 @@ export async function confirmHrDeduction(
 
 export async function confirmHrDeductions(
 	paymentIds: number[],
+	options?: { actorUserId?: number; skipRevalidation?: boolean },
 ): Promise<{ error?: string }> {
 	const parsed = confirmHrDeductionsBulkSchema.safeParse({ paymentIds })
 	if (!parsed.success) {
@@ -1645,8 +1713,7 @@ export async function confirmHrDeductions(
 		return { error: first?.message ?? ValidationCode.CREDIT_PAYMENT_BULK_EMPTY }
 	}
 
-	const { ability } = await getAbility()
-	const user = await getRequiredUser()
+	const { ability, userId } = await resolveBulkConfirmActor(options)
 
 	const rows = await fetchPaymentsWithContext(parsed.data.paymentIds)
 
@@ -1683,7 +1750,7 @@ export async function confirmHrDeductions(
 		.update(creditPayments)
 		.set({
 			hrConfirmedAt: now,
-			hrConfirmedByUserId: user.id,
+			hrConfirmedByUserId: userId,
 		})
 		.where(
 			inArray(
@@ -1692,12 +1759,14 @@ export async function confirmHrDeductions(
 			),
 		)
 
-	revalidatePath('/equipo')
-	revalidatePath('/equipo/deductions')
-	revalidatePath('/equipo/deductions/overdue')
-	revalidatePath('/equipo/installments')
-	revalidatePath('/equipo/credits')
-	revalidatePath('/cuenta/credits')
+	if (!options?.skipRevalidation) {
+		revalidatePath('/equipo')
+		revalidatePath('/equipo/deductions')
+		revalidatePath('/equipo/deductions/overdue')
+		revalidatePath('/equipo/installments')
+		revalidatePath('/equipo/credits')
+		revalidatePath('/cuenta/credits')
+	}
 	return {}
 }
 
@@ -2232,6 +2301,7 @@ export async function confirmInstallment(
 
 export async function confirmInstallments(
 	paymentIds: number[],
+	options?: { actorUserId?: number; skipRevalidation?: boolean },
 ): Promise<{ error?: string }> {
 	const parsed = confirmInstallmentsBulkSchema.safeParse({ paymentIds })
 	if (!parsed.success) {
@@ -2239,8 +2309,7 @@ export async function confirmInstallments(
 		return { error: first?.message ?? ValidationCode.CREDIT_PAYMENT_BULK_EMPTY }
 	}
 
-	const { ability } = await getAbility()
-	const user = await getRequiredUser()
+	const { ability, userId } = await resolveBulkConfirmActor(options)
 
 	const uniquePaymentIds = [...new Set(parsed.data.paymentIds)]
 	const rows = await fetchPaymentsWithContext(uniquePaymentIds)
@@ -2305,7 +2374,7 @@ export async function confirmInstallments(
 		.update(creditPayments)
 		.set({
 			installmentConfirmedAt: now,
-			installmentConfirmedByUserId: user.id,
+			installmentConfirmedByUserId: userId,
 		})
 		.where(
 			inArray(
@@ -2317,13 +2386,15 @@ export async function confirmInstallments(
 	const uniqueCreditIds = [...new Set(rows.map((r) => r.creditId))]
 	await settleCreditsIfFullyConfirmed(uniqueCreditIds, now)
 
-	revalidatePath('/equipo/installments')
-	revalidatePath('/equipo/installments/overdue')
-	revalidatePath('/equipo/credits')
-	for (const creditId of uniqueCreditIds) {
-		revalidatePath(`/equipo/credits/${creditId}`)
+	if (!options?.skipRevalidation) {
+		revalidatePath('/equipo/installments')
+		revalidatePath('/equipo/installments/overdue')
+		revalidatePath('/equipo/credits')
+		for (const creditId of uniqueCreditIds) {
+			revalidatePath(`/equipo/credits/${creditId}`)
+		}
+		revalidatePath('/cuenta/credits')
 	}
-	revalidatePath('/cuenta/credits')
 	return {}
 }
 

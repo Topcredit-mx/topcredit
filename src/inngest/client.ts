@@ -41,8 +41,14 @@ export const emailOtpEvent = eventType('email/otp', {
 	schema: staticSchema<EmailOtpData>(),
 })
 
+export const queueBulkConfirmProcessEvent = eventType(
+	'queue/bulkConfirm.process',
+	{ schema: staticSchema<{ jobId: number }>() },
+)
+
 export const inngest = new Inngest({
 	id: 'topcredit',
+	isDev: process.env.NODE_ENV === 'development',
 	checkpointing: {
 		maxRuntime: '50s',
 	},

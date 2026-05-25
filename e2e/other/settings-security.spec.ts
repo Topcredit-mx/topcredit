@@ -7,7 +7,7 @@ import {
 } from '~/e2e/server/tasks'
 import { applicantUser } from '../fixtures/login.fixtures'
 import { loginPage } from '../helpers/auth'
-import { registerDbSpecGuards } from '../helpers/spec-hooks'
+import { registerDbSpecTeardown } from '../helpers/spec-hooks'
 
 const applicantSettingsSecurity = '/cuenta/settings/security'
 
@@ -22,11 +22,9 @@ test.beforeAll(async () => {
 	await seedSecurity()
 })
 
-test.afterAll(async () => {
+registerDbSpecTeardown(async () => {
 	await cleanupSecurity()
 })
-
-registerDbSpecGuards()
 
 test('redirects to login when accessing applicant settings security unauthenticated', async ({
 	page,

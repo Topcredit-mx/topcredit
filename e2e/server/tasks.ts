@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process'
 import { webcrypto } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -88,6 +89,15 @@ export const login = async (email: LoginTaskParams) => {
 		.encrypt(encryptionKey)
 
 	return token
+}
+
+export const nukeMigrateDb = async () => {
+	execSync('pnpm db:nuke:migrate', {
+		cwd: process.cwd(),
+		stdio: 'pipe',
+		env: process.env,
+	})
+	return null
 }
 
 export type ResetUserTaskParams = {

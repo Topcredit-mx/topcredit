@@ -15,6 +15,7 @@ import { FormattedDate } from '~/components/formatted-date'
 import { ListDetailLink } from '~/components/list-detail-link'
 import { Button } from '~/components/ui/button'
 import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
+import { resolveApplicationCreditAmounts } from '~/lib/application-credit-amounts'
 import { EQUIPO_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
 import { getPrefetchStrategy } from '~/lib/prefetch-strategy'
 import { formatCurrencyMxn } from '~/lib/utils'
@@ -75,13 +76,19 @@ export function useApplicationsColumns(
 						icon={<CircleDollarSign aria-hidden />}
 					/>
 				),
-				cell: ({ row }) => (
-					<div className="text-slate-800 text-sm">
-						{row.original.creditAmount
-							? formatCurrencyMxn(row.original.creditAmount)
-							: t('applications-detail-value-pending')}
-					</div>
-				),
+				cell: ({ row }) => {
+					const amounts = resolveApplicationCreditAmounts(
+						row.original.creditAmount,
+						row.original.applicantRequestedCreditAmount,
+					)
+					return (
+						<div className="text-slate-800 text-sm">
+							{amounts.operativeAmount
+								? formatCurrencyMxn(amounts.operativeAmount)
+								: t('applications-detail-value-pending')}
+						</div>
+					)
+				},
 			},
 			{
 				id: 'term',

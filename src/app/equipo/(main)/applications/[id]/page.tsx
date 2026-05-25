@@ -1,6 +1,5 @@
 import {
 	AlertCircle,
-	Banknote,
 	CalendarClock,
 	CalendarDays,
 	Clock,
@@ -18,6 +17,7 @@ import { FormattedDate } from '~/components/formatted-date'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { resolveApplicationCreditAmounts } from '~/lib/application-credit-amounts'
 import { filterToLatestDocumentsPerType } from '~/lib/application-document-intake'
 import { canTransitionApplicationFrom } from '~/lib/application-rules'
 import { EQUIPO_APPLICATION_STATUS_KEYS } from '~/lib/application-status-i18n'
@@ -51,6 +51,7 @@ import { ApplicationActions } from '../application-actions'
 import { ApplicationDocumentsReviewForm } from '../application-documents-review-form'
 import { formatApplicationTerm } from '../constants'
 import { DisburseForm } from '../disburse-form'
+import { EquipoApplicationCreditAmountStats } from '../equipo-application-credit-amount-stats'
 import {
 	EQUIPO_HR_APPROVE_CARD_HEADING_ID,
 	HR_APPROVE_SCHEDULE_SUMMARY_DOM_ID,
@@ -121,6 +122,13 @@ export default async function AppApplicationDetailPage({
 		ability.can('disburse', appSubject) &&
 		application.firstDiscountDate != null &&
 		application.status === 'authorized'
+	const creditAmounts = resolveApplicationCreditAmounts(
+		application.creditAmount,
+		application.applicantRequestedCreditAmount,
+	)
+	const showDualAuthReviewAmounts =
+		application.status === 'awaiting-authorization' &&
+		creditAmounts.hasReducedApplicantRequest
 	const showActionControls = canDeny || canPreAuthorize
 	const termOfferings =
 		canPreAuthorize && application.status === 'approved'
@@ -262,7 +270,9 @@ export default async function AppApplicationDetailPage({
 			</Card>
 
 			{/* Term and amount cards */}
-			<div className="grid gap-3 sm:grid-cols-2">
+			<div
+				className={`grid gap-3 ${showDualAuthReviewAmounts ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
+			>
 				<Card className={EQUIPO_DETAIL_STAT_CARD_CLASS}>
 					<CardContent className={EQUIPO_DETAIL_STAT_CONTENT_CLASS}>
 						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
@@ -276,26 +286,13 @@ export default async function AppApplicationDetailPage({
 						</p>
 					</CardContent>
 				</Card>
-				<Card className={EQUIPO_DETAIL_STAT_CARD_CLASS}>
-					<CardContent className={EQUIPO_DETAIL_STAT_CONTENT_CLASS}>
-						<p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wider">
-							<Banknote className="size-3.5" aria-hidden />
-							{t('applications-detail-amount')}
-						</p>
-						<p className="mt-1.5 font-semibold text-lg">
-							{application.creditAmount ? (
-								<>
-									{formatCurrencyMxn(application.creditAmount)}{' '}
-									<span className="font-normal text-muted-foreground text-sm">
-										MXN
-									</span>
-								</>
-							) : (
-								t('applications-detail-value-pending')
-							)}
-						</p>
-					</CardContent>
-				</Card>
+				<EquipoApplicationCreditAmountStats
+					creditAmount={application.creditAmount}
+					applicantRequestedCreditAmount={
+						application.applicantRequestedCreditAmount
+					}
+					status={application.status}
+				/>
 			</div>
 
 			{/* Documents */}
@@ -468,7 +465,7 @@ export default async function AppApplicationDetailPage({
 						) : null}
 					</CardContent>
 				</Card>
-			) : canDisburse && application.creditAmount != null ? (
+			) : canDisburse && creditAmounts.operativeAmount != null ? (
 				<Card className={EQUIPO_DETAIL_CARD_CLASS}>
 					<CardHeader className={`border-b ${EQUIPO_DETAIL_CARD_HEADER_CLASS}`}>
 						<CardTitle asChild className="flex items-center gap-2 text-base">
@@ -481,7 +478,15 @@ export default async function AppApplicationDetailPage({
 					<CardContent className={`pt-4 ${EQUIPO_DETAIL_CARD_CONTENT_CLASS}`}>
 						<DisburseForm
 							applicationId={application.id}
-							creditAmount={formatCurrencyMxn(application.creditAmount)}
+							creditAmount={formatCurrencyMxn(creditAmounts.operativeAmount)}
+							showApplicantRequestedAmountNote={
+								creditAmounts.hasReducedApplicantRequest
+							}
+							preAuthorizedAmount={
+								creditAmounts.hasReducedApplicantRequest
+									? formatCurrencyMxn(creditAmounts.preAuthorizedAmount)
+									: undefined
+							}
 						/>
 					</CardContent>
 				</Card>

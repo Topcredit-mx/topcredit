@@ -11,7 +11,8 @@ import {
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { EquipoWorkflowStatusPresentation } from '~/components/equipo/equipo-workflow-status-presentation'
-import { Checkbox } from '~/components/ui/checkbox'
+import { QueueTableSelectCell } from '~/components/equipo/queue-table-select-cell'
+import { QueueTableSelectHeader } from '~/components/equipo/queue-table-select-header'
 import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
 import {
 	isGraceWorkflowMessageKey,
@@ -27,34 +28,14 @@ export function useInstallmentsQueueColumns(): ColumnDef<InstallmentForQueue>[] 
 	return [
 		{
 			id: 'select',
-			header: ({ table }) => {
-				const selectableRows = table
-					.getRowModel()
-					.rows.filter((r) => r.getCanSelect())
-				const allSelected =
-					selectableRows.length > 0 &&
-					selectableRows.every((r) => r.getIsSelected())
-				const someSelected = selectableRows.some((r) => r.getIsSelected())
-				return (
-					<Checkbox
-						checked={allSelected || (someSelected && 'indeterminate')}
-						onCheckedChange={(value) => {
-							const select = !!value
-							for (const row of selectableRows) {
-								row.toggleSelected(select)
-							}
-						}}
-						aria-label={t('installments-select-all')}
-					/>
-				)
-			},
-			cell: ({ row }) => (
-				<Checkbox
-					checked={row.getIsSelected()}
-					onCheckedChange={(value) => row.toggleSelected(!!value)}
-					disabled={!row.getCanSelect()}
-					aria-label={t('installments-select-row')}
+			header: ({ table }) => (
+				<QueueTableSelectHeader
+					table={table}
+					selectAllLabelKey="installments-select-all"
 				/>
+			),
+			cell: ({ row }) => (
+				<QueueTableSelectCell row={row} labelKey="installments-select-row" />
 			),
 			enableSorting: false,
 			enableHiding: false,

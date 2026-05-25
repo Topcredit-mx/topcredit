@@ -19,6 +19,7 @@
 		"test:e2e:slomo": "PW_SLOW_MO=1500 playwright test --headed",
 		"test:e2e:ui": "playwright test --ui",
 		"dev": "next dev",
+		"dev:inngest": "npx --ignore-scripts=false inngest-cli@latest dev -u http://localhost:3000/api/inngest",
 		"preview": "next build && next start",
 		"start": "next start",
 		"test:unit": "node --import tsx --test --test-timeout=120000 \"src/lib/**/*.test.ts\"",

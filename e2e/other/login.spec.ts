@@ -11,8 +11,9 @@ import {
 	applicantUser,
 	noRoleUser,
 } from '../fixtures/login.fixtures'
+import { expectAccessDenied } from '../helpers/access-denied'
 import { loginPage } from '../helpers/auth'
-import { registerDbSpecGuards } from '../helpers/spec-hooks'
+import { registerDbSpecTeardown } from '../helpers/spec-hooks'
 
 let seed: SeedLoginFlowResult
 
@@ -20,11 +21,9 @@ test.beforeAll(async () => {
 	seed = await seedLoginFlow()
 })
 
-test.afterAll(async () => {
+registerDbSpecTeardown(async () => {
 	await cleanupLoginFlow({ termId: seed.termId })
 })
-
-registerDbSpecGuards()
 
 test('accesses applicant cuenta after login', async ({ page }) => {
 	await loginPage(page, applicantUser.email)
@@ -50,14 +49,13 @@ test('redirects to cuenta from / when authenticated', async ({ page }) => {
 	).toBeVisible()
 })
 
-test('shows unauthorized page when applicant tries to access app', async ({
+test('shows access denied when applicant tries to access app', async ({
 	page,
 }) => {
 	await loginPage(page, applicantUser.email)
 	await page.goto('/equipo')
-	await expect(
-		page.getByRole('heading', { name: '403 - No Autorizado' }),
-	).toBeVisible()
+	await expect(page).toHaveURL(/\/equipo/)
+	await expectAccessDenied(page)
 })
 
 test('allows agent to access app routes', async ({ page }) => {
@@ -66,14 +64,13 @@ test('allows agent to access app routes', async ({ page }) => {
 	await expect(page.getByText('Sin empresas asignadas')).toBeVisible()
 })
 
-test('shows unauthorized page when agent tries to access cuenta', async ({
+test('shows access denied when agent tries to access cuenta', async ({
 	page,
 }) => {
 	await loginPage(page, agentUser.email)
 	await page.goto('/cuenta')
-	await expect(
-		page.getByRole('heading', { name: '403 - No Autorizado' }),
-	).toBeVisible()
+	await expect(page).toHaveURL(/\/cuenta/)
+	await expectAccessDenied(page)
 })
 
 test('redirects user with no roles to settings from / and /login, blocks /equipo and /cuenta', async ({
@@ -89,19 +86,22 @@ test('redirects user with no roles to settings from / and /login, blocks /equipo
 
 	await loginPage(page, noRoleUser.email)
 	await page.goto('/equipo')
-	await expect(
-		page.getByRole('heading', { name: '403 - No Autorizado' }),
-	).toBeVisible()
+	await expect(page).toHaveURL(/\/equipo/)
+	await expectAccessDenied(page)
 
 	await loginPage(page, noRoleUser.email)
 	await page.goto('/cuenta')
-	await expect(
-		page.getByRole('heading', { name: '403 - No Autorizado' }),
-	).toBeVisible()
+	await expect(page).toHaveURL(/\/cuenta/)
+	await expectAccessDenied(page)
 
 	await loginPage(page, noRoleUser.email)
 	await page.goto('/settings')
 	await expect(page.getByText('Ningún rol asignado')).toBeVisible()
+})
+
+test('redirects direct /unauthorized navigation to home', async ({ page }) => {
+	await page.goto('/unauthorized')
+	await expect(page).not.toHaveURL(/\/unauthorized/)
 })
 
 test('does not allow access to /settings when unauthenticated', async ({

@@ -1,9 +1,10 @@
-import { expect, test } from '@playwright/test'
+import { test } from '@playwright/test'
 import type { SeedCreditDefaultAdminResult } from '~/e2e/server/tasks'
 import {
 	cleanupCreditDefaultAdmin,
 	seedCreditDefaultAdmin,
 } from '~/e2e/server/tasks'
+import { expectAccessDenied } from '../helpers/access-denied'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import { creditDefaultInstallmentsAgent } from './credit-default-admin.fixtures'
@@ -28,6 +29,6 @@ test.describe('Defaulted credits list — admin only', () => {
 		await loginPage(page, creditDefaultInstallmentsAgent.email)
 		await setSelectedCompanyId(page, seed.companyId)
 		await page.goto('/equipo/credits/defaulted')
-		await expect(page).toHaveURL(/\/unauthorized/)
+		await expectAccessDenied(page)
 	})
 })

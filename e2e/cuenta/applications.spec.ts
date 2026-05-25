@@ -106,6 +106,7 @@ test.describe('Cuenta applications', () => {
 		test('allows applicant to open applications list and new application page', async ({
 			page,
 		}) => {
+			await deleteApplicationsByApplicantId(seed.applicantId)
 			await loginPage(page, applicantWithCompany.email)
 			await page.goto('/cuenta/applications')
 			await expect(
@@ -549,6 +550,7 @@ test.describe('Cuenta applications', () => {
 			const link = page.getByRole('link', { name: /solicitar ahora/i })
 			await expect(link).toBeVisible()
 			await expect(link).toHaveAttribute('href', '/cuenta/applications/new')
+			await deleteApplicationsByApplicantId(seed.applicantId)
 			await page.goto('/cuenta/applications/new')
 			await expect(
 				page.getByRole('heading', { name: /nueva solicitud de crédito/i }),
@@ -1138,6 +1140,45 @@ test.describe('Cuenta applications', () => {
 			await expect(page.getByRole('button', { name: /^Enviar$/i })).toHaveCount(
 				0,
 			)
+		})
+
+		test('submits a lower requested amount with the authorization package', async ({
+			page,
+		}) => {
+			const app = await resetApplicantApplication({
+				applicantId: seed.applicantId,
+				termOfferingId: seed.termOfferingId,
+				creditAmount: '30000',
+				salaryAtApplication: '100000',
+				status: 'pre-authorized',
+			})
+			await seedPreAuthorizedPackageDocuments({
+				applicationId: app.id,
+				variant: 'initialIntakeApprovedAndPackagePending',
+			})
+			await page.goto(`/cuenta/applications/${app.id}/pre-authorized`)
+			await expect(
+				page.getByRole('heading', { name: /monto a solicitar/i }),
+			).toBeVisible()
+			await page.getByLabel(/importe deseado/i).fill('20000')
+			await expect(page.getByText(/\$20,000\.00/i).first()).toBeVisible()
+
+			const submitPromise = waitForSuccessfulPost(
+				page,
+				postToCuentaApplicationUrl(app.id),
+			)
+			await page.getByRole('button', { name: /^Enviar$/i }).click()
+			await submitPromise
+
+			await page.goto(`/cuenta/applications/${app.id}`)
+			await expect(
+				cuentaMain(page)
+					.getByText(/\$20,000\.00/i)
+					.first(),
+			).toBeVisible()
+			await expect(
+				cuentaMain(page).getByText(/preautorizado:\s*\$30,000\.00/i),
+			).toBeVisible()
 		})
 
 		test('uploads three package files then submits for review', async ({

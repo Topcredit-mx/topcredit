@@ -189,6 +189,14 @@ const CODE_TO_I18N: Record<ValidationCodeType, CodeMapping> = {
 		namespace: 'cuenta.applications',
 		key: 'file-max-size',
 	},
+	[ValidationCode.CUENTA_APPLICATION_REQUESTED_CREDIT_INVALID]: {
+		namespace: 'cuenta.applications',
+		key: 'requested-credit-invalid',
+	},
+	[ValidationCode.CUENTA_APPLICATION_REQUESTED_CREDIT_EXCEEDS_PREAUTH]: {
+		namespace: 'cuenta.applications',
+		key: 'requested-credit-exceeds-preauth',
+	},
 	[ValidationCode.FILE_TYPE_UNKNOWN]: {
 		namespace: 'cuenta.applications',
 		key: 'file-type-unknown',

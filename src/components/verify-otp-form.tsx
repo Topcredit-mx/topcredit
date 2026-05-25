@@ -50,7 +50,6 @@ export function VerifyOTPForm({
 		const result = await signIn('email-otp', {
 			email,
 			otp: code,
-			callbackUrl: '/',
 			redirect: false,
 		})
 
@@ -58,7 +57,7 @@ export function VerifyOTPForm({
 			setError(t('invalid-code'))
 			setValue('')
 		} else if (result?.ok) {
-			window.location.href = result.url || '/'
+			window.location.href = '/'
 		}
 
 		setLoading(false)

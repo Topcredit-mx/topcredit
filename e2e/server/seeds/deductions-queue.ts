@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, like } from 'drizzle-orm'
 import {
 	allDeductionUsers,
 	applicantDeductions,
@@ -21,6 +21,7 @@ import {
 	companies,
 	creditPayments,
 	credits,
+	queueBulkConfirmJobs,
 	termOfferings,
 	userCompanies,
 	userRoles,
@@ -69,10 +70,15 @@ export type SeedDeductionsQueueResult = {
 }
 
 export const seedDeductionsQueue = async (
-	options: { withOverdue?: boolean; withMultipleOverdue?: boolean } | null,
+	options: {
+		withOverdue?: boolean
+		withMultipleOverdue?: boolean
+		manyUpcomingCount?: number
+	} | null,
 ): Promise<SeedDeductionsQueueResult> => {
 	const withOverdue = options?.withOverdue ?? false
 	const withMultipleOverdue = options?.withMultipleOverdue ?? false
+	const manyUpcomingCount = options?.manyUpcomingCount ?? 0
 	const db = getDb(process.env.DATABASE_URL || '')
 	const now = new Date()
 
@@ -290,6 +296,76 @@ export const seedDeductionsQueue = async (
 			financingAmount: entry.financingAmount,
 		})),
 	)
+
+	for (let i = 0; i < manyUpcomingCount; i += 1) {
+		const bulkEmail = `applicant.bulk.${i}@deductionsqueue.com`
+		const [bulkApplicant] = await db
+			.insert(users)
+			.values({
+				email: bulkEmail,
+				name: `Applicant Bulk ${i + 1}`,
+				emailVerified: now,
+			})
+			.returning()
+		if (!bulkApplicant) {
+			throw new Error(`Seed Deductions: bulk applicant ${i} not created`)
+		}
+
+		await db.insert(userRoles).values({
+			userId: bulkApplicant.id,
+			role: 'applicant',
+		})
+
+		const bulkCreditAmount = '10000.00'
+		const [bulkApp] = await db
+			.insert(applications)
+			.values({
+				applicantId: bulkApplicant.id,
+				companyId: company.id,
+				termOfferingId: offering.id,
+				creditAmount: bulkCreditAmount,
+				salaryAtApplication: '10000',
+				salaryFrequency: deductionsCompany.employeeSalaryFrequency,
+				status: 'disbursed' as const,
+				firstDiscountDate: nextDeductionDate,
+				payrollNumber: `DEDUCTB${String(i + 1).padStart(3, '0')}`,
+			})
+			.returning()
+		if (!bulkApp) {
+			throw new Error(`Seed Deductions: bulk application ${i} not created`)
+		}
+
+		const [bulkCredit] = await db
+			.insert(credits)
+			.values({
+				applicationId: bulkApp.id,
+				status: 'dispersed',
+				disbursementDate: now,
+				transferAmount: bulkCreditAmount,
+				disbursedByUserId: bulkApplicant.id,
+			})
+			.returning()
+		if (!bulkCredit) {
+			throw new Error(`Seed Deductions: bulk credit ${i} not created`)
+		}
+
+		const bulkSchedule = generatePaymentSchedule({
+			loanPrincipal: Number(bulkCreditAmount),
+			rate: Number(deductionsCompany.rate),
+			totalPayments: 2,
+			frequency: deductionsCompany.employeeSalaryFrequency,
+			firstDiscountDate: nextDeductionDate,
+		})
+		await db.insert(creditPayments).values(
+			bulkSchedule.map((entry) => ({
+				creditId: bulkCredit.id,
+				dueDate: entry.dueDate,
+				amount: entry.amount,
+				principalAmount: entry.principalAmount,
+				financingAmount: entry.financingAmount,
+			})),
+		)
+	}
 
 	// Credit 3: overdue credit — first installment is in the past and unconfirmed.
 	// Only seeded when withOverdue is true so the overdue badge doesn't appear in unrelated tests.
@@ -596,7 +672,7 @@ export const seedDeductionsQueue = async (
 		application1Id: app1.id,
 		// Only credit1 and credit2 have upcoming installments → 2 rows
 		// credit4 is excluded because hr_confirmed_at IS NOT NULL
-		expectedRowCount: 2,
+		expectedRowCount: 2 + manyUpcomingCount,
 		applicant1Name: applicant1.name,
 		applicant2Name: applicant2.name,
 		overdueApplicantName: applicantOverdue.name,
@@ -628,11 +704,15 @@ export const seedDeductionsQueue = async (
 
 export const cleanupDeductionsQueue = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	await db.delete(queueBulkConfirmJobs)
 	await Promise.all(
 		allDeductionUsers.map((u) =>
 			db.delete(users).where(eq(users.email, u.email)),
 		),
 	)
+	await db
+		.delete(users)
+		.where(like(users.email, 'applicant.bulk.%@deductionsqueue.com'))
 	await db
 		.delete(companies)
 		.where(eq(companies.domain, deductionsCompany.domain))

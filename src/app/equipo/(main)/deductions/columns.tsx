@@ -11,7 +11,8 @@ import {
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { EquipoWorkflowStatusPresentation } from '~/components/equipo/equipo-workflow-status-presentation'
-import { Checkbox } from '~/components/ui/checkbox'
+import { QueueTableSelectCell } from '~/components/equipo/queue-table-select-cell'
+import { QueueTableSelectHeader } from '~/components/equipo/queue-table-select-header'
 import { DataTableColumnHeader } from '~/components/ui/data-table/data-table-column-header'
 import {
 	isGraceWorkflowMessageKey,
@@ -28,21 +29,13 @@ export function useDeductionsColumns(): ColumnDef<InstallmentForQueue>[] {
 		{
 			id: 'select',
 			header: ({ table }) => (
-				<Checkbox
-					checked={
-						table.getIsAllPageRowsSelected() ||
-						(table.getIsSomePageRowsSelected() && 'indeterminate')
-					}
-					onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-					aria-label={t('deductions-select-all')}
+				<QueueTableSelectHeader
+					table={table}
+					selectAllLabelKey="deductions-select-all"
 				/>
 			),
 			cell: ({ row }) => (
-				<Checkbox
-					checked={row.getIsSelected()}
-					onCheckedChange={(value) => row.toggleSelected(!!value)}
-					aria-label={t('deductions-select-row')}
-				/>
+				<QueueTableSelectCell row={row} labelKey="deductions-select-row" />
 			),
 			enableSorting: false,
 			enableHiding: false,

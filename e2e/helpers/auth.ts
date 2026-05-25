@@ -1,7 +1,7 @@
-import type { BrowserContext, Page } from '@playwright/test'
+import { type BrowserContext, expect, type Page } from '@playwright/test'
 import { login as loginTask } from '~/e2e/server/tasks'
 
-const SESSION_COOKIE = 'next-auth.session-token'
+export const SESSION_COOKIE = 'next-auth.session-token'
 
 export async function setSessionFromEmail(
 	context: BrowserContext,
@@ -52,4 +52,15 @@ export async function clearSelectedCompanyIdCookie(page: Page): Promise<void> {
 	await page
 		.context()
 		.clearCookies({ name: 'selected_company_id', domain: 'localhost' })
+}
+
+export async function expectSignedOutOnLogin(page: Page): Promise<void> {
+	await expect(page).toHaveURL(/\/login/)
+	await expect(
+		page.getByRole('heading', { name: /bienvenido a topcredit/i }),
+	).toBeVisible()
+
+	const cookies = await page.context().cookies()
+	const sessionCookie = cookies.find((cookie) => cookie.name === SESSION_COOKIE)
+	expect(sessionCookie).toBeUndefined()
 }

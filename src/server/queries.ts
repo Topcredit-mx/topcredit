@@ -526,6 +526,7 @@ export type ApplicationListItem = {
 	applicantId: number
 	termOfferingId: number | null
 	creditAmount: string | null
+	applicantRequestedCreditAmount: string | null
 	salaryAtApplication: string
 	status: ApplicationStatus
 	denialReason: string | null
@@ -598,6 +599,7 @@ export async function getApplicationsByApplicantId(
 			applicantId: true,
 			termOfferingId: true,
 			creditAmount: true,
+			applicantRequestedCreditAmount: true,
 			salaryAtApplication: true,
 			status: true,
 			denialReason: true,
@@ -637,6 +639,7 @@ export type ApplicationDetailForApplicant = {
 	creditId: number | null
 	status: ApplicationStatus
 	creditAmount: string | null
+	applicantRequestedCreditAmount: string | null
 	salaryAtApplication: string
 	salaryFrequency: 'monthly' | 'bi-monthly'
 	payrollNumber: string | null
@@ -687,6 +690,8 @@ export async function getApplicationByApplicantId(
 			creditId: credits.id,
 			status: applications.status,
 			creditAmount: applications.creditAmount,
+			applicantRequestedCreditAmount:
+				applications.applicantRequestedCreditAmount,
 			salaryAtApplication: applications.salaryAtApplication,
 			salaryFrequency: applications.salaryFrequency,
 			payrollNumber: applications.payrollNumber,
@@ -734,6 +739,7 @@ export async function getApplicationByApplicantId(
 		creditId: row.creditId,
 		status: row.status,
 		creditAmount: row.creditAmount,
+		applicantRequestedCreditAmount: row.applicantRequestedCreditAmount,
 		salaryAtApplication: row.salaryAtApplication,
 		salaryFrequency: row.salaryFrequency,
 		payrollNumber: row.payrollNumber,
@@ -843,6 +849,7 @@ export type ApplicationForReview = {
 	companyId: number
 	companyDomain: string
 	creditAmount: string | null
+	applicantRequestedCreditAmount: string | null
 	equipoCreditId: number | null
 	salaryAtApplication: string
 	salaryFrequency: 'monthly' | 'bi-monthly'
@@ -897,6 +904,8 @@ export async function getApplicationsForReview(params: {
 			companyId: applications.companyId,
 			companyDomain: companies.domain,
 			creditAmount: applications.creditAmount,
+			applicantRequestedCreditAmount:
+				applications.applicantRequestedCreditAmount,
 			equipoCreditId: credits.id,
 			salaryAtApplication: applications.salaryAtApplication,
 			salaryFrequency: applications.salaryFrequency,
@@ -947,6 +956,7 @@ export async function getApplicationsForReview(params: {
 		companyId: row.companyId,
 		companyDomain: row.companyDomain,
 		creditAmount: row.creditAmount,
+		applicantRequestedCreditAmount: row.applicantRequestedCreditAmount,
 		equipoCreditId: row.equipoCreditId,
 		salaryAtApplication: row.salaryAtApplication,
 		salaryFrequency: row.salaryFrequency,
@@ -1003,6 +1013,8 @@ export async function getApplicationForReview(
 			companyId: applications.companyId,
 			companyDomain: companies.domain,
 			creditAmount: applications.creditAmount,
+			applicantRequestedCreditAmount:
+				applications.applicantRequestedCreditAmount,
 			equipoCreditId: credits.id,
 			salaryAtApplication: applications.salaryAtApplication,
 			salaryFrequency: applications.salaryFrequency,
@@ -1048,6 +1060,7 @@ export async function getApplicationForReview(
 		companyId: row.companyId,
 		companyDomain: row.companyDomain,
 		creditAmount: row.creditAmount,
+		applicantRequestedCreditAmount: row.applicantRequestedCreditAmount,
 		equipoCreditId: row.equipoCreditId,
 		salaryAtApplication: row.salaryAtApplication,
 		salaryFrequency: row.salaryFrequency,

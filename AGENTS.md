@@ -56,11 +56,11 @@ That matches what `.husky/pre-commit` runs and catches the same Biome/typecheck 
 
 - **Node.js 24.15.0** is required (pinned in `.node-version`). Installed via nvm; the update script handles this.
 - **pnpm 11.1.0** is managed via corepack (pinned in `package.json` `packageManager` field). The update script enables corepack and prepares the correct version.
-- `.env` must exist with `DATABASE_URL`, `AUTH_SECRET`, `EMAIL_FROM`, `RESEND_API_KEY`. Set `E2E_OTP_CODE=123456` to bypass real emails (E2E mode uses a fixed OTP). Secrets are injected as environment variables by the Cloud Agent; write them to `.env` before starting the dev server.
+- `.env` must exist with `DATABASE_URL`, `AUTH_SECRET`, `EMAIL_FROM`, `RESEND_API_KEY`, `INNGEST_EVENT_KEY`. Set `E2E_OTP_CODE=123456` to bypass real emails (E2E mode uses a fixed OTP). Secrets are injected as environment variables by the Cloud Agent; write them to `.env` before starting the dev server.
 
 ### Running services
 
-- **Dev server:** `pnpm dev` (port 3000). Reads `.env` automatically.
+- **Dev server:** `pnpm dev` (port 3000). Reads `.env` automatically. For async jobs locally, also run `pnpm dev:inngest`.
 - **DB migrations:** `pnpm db:migrate` applies pending Drizzle migrations against the Neon Postgres instance.
 - **DB seed:** `pnpm db:seed` populates test data (users, companies, applications, credits). Admin login: `admin@topcredit.mx` with OTP `123456`.
 
@@ -80,4 +80,4 @@ That matches what `.husky/pre-commit` runs and catches the same Biome/typecheck 
 - The `pnpm-workspace.yaml` `onlyBuiltDependencies` allowlist controls which native packages build during install. If new native deps are added and pnpm warns about "ignored build scripts", add them to that list rather than running `pnpm approve-builds` (which is interactive).
 - The app validates env vars at startup via `src/env.js` (Zod + `@t3-oss/env-nextjs`). Set `SKIP_ENV_VALIDATION=1` to bypass if needed for tooling that doesn't require a running app.
 - The database is remote (Neon serverless Postgres) — no local Postgres needed.
-- E2E with `DATABASE_URL`: Playwright global setup nukes and migrates the DB before tests. Use a **single** `pnpm dev` on port 3000; if a dev server is stuck or duplicated, stop it and start again before `pnpm test:e2e`.
+- E2E with `DATABASE_URL`: Playwright global setup nukes and migrates the DB before tests. Use a **single** `pnpm dev` on port 3000 plus `pnpm dev:inngest` for async job tests; if a dev server is stuck or duplicated, stop it and start again before `pnpm test:e2e`.

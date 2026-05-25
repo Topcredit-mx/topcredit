@@ -76,7 +76,6 @@ export const authOptions = {
 	callbacks: {
 		async session({ session, token }) {
 			if (session.user) {
-				// Normalize id to number once here so session.user.id is always number app-wide
 				const id = Number(token.sub)
 				if (!Number.isInteger(id)) {
 					throw new Error('Invalid session: missing or invalid user id')

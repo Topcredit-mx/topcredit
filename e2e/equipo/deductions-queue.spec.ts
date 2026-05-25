@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { SeedDeductionsQueueResult } from '~/e2e/server/tasks'
 import { cleanupDeductionsQueue, seedDeductionsQueue } from '~/e2e/server/tasks'
+import { expectAccessDenied } from '../helpers/access-denied'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
 import { sumAmountStringsMxnE2e } from '../helpers/currency'
 import { mainDataTable } from '../helpers/interactions'
@@ -208,7 +209,7 @@ test.describe('HR deductions queue', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/deductions')
-			await expect(page).toHaveURL(/\/unauthorized/)
+			await expectAccessDenied(page)
 		})
 	})
 
@@ -361,6 +362,6 @@ test.describe('HR deductions queue bulk confirm', () => {
 		await loginPage(page, nonHrAgentDeductions.email)
 		await setSelectedCompanyId(page, seed.companyId)
 		await page.goto('/equipo/deductions')
-		await expect(page).toHaveURL(/\/unauthorized/)
+		await expectAccessDenied(page)
 	})
 })

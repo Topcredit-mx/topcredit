@@ -27,6 +27,7 @@ import {
 import { isBlobStorageKey } from '~/server/storage'
 import { formatApplicationTerm } from '../../constants'
 import { ApplicantDocumentSlots } from '../applicant-document-slots'
+import { PreAuthorizedOfferWorkspace } from '../pre-authorized-offer-workspace'
 
 function packageHasRejectedAuthorizationDocs(
 	documentList: Awaited<ReturnType<typeof getApplicationDocuments>>,
@@ -163,7 +164,7 @@ export default async function CuentaPreAuthorizedOfferPage({
 						<div>
 							<p className="flex items-center gap-1.5 font-semibold text-[11px] text-white/75 uppercase tracking-wide">
 								<Banknote className="size-3.5" aria-hidden />
-								{t('detail-amount')}
+								{t('pre-authorized-offer-max-amount-label')}
 							</p>
 							<p className="mt-2 font-semibold text-3xl text-white tracking-tight">
 								{application.creditAmount
@@ -292,16 +293,26 @@ export default async function CuentaPreAuthorizedOfferPage({
 						{t('pre-authorized-offer-awaiting-note')}
 					</p>
 				) : null}
-				<ApplicantDocumentSlots
-					key={`${applicationId}:${applicationDocumentsListFingerprint(documentList)}`}
-					applicationId={applicationId}
-					documentTypes={PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES}
-					documents={documentList}
-					reuploadWhenLatestNotRejected
-					authorizationPackageSubmitEnabled={
-						application.status === 'pre-authorized'
-					}
-				/>
+				{application.status === 'pre-authorized' &&
+				application.creditAmount != null ? (
+					<PreAuthorizedOfferWorkspace
+						key={`${applicationId}:${applicationDocumentsListFingerprint(documentList)}`}
+						applicationId={applicationId}
+						maxCreditAmount={application.creditAmount}
+						initialRequestedAmount={application.creditAmount}
+						documentTypes={PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES}
+						documents={documentList}
+						reuploadWhenLatestNotRejected
+					/>
+				) : (
+					<ApplicantDocumentSlots
+						key={`${applicationId}:${applicationDocumentsListFingerprint(documentList)}`}
+						applicationId={applicationId}
+						documentTypes={PRE_AUTHORIZATION_PACKAGE_DOCUMENT_TYPES}
+						documents={documentList}
+						reuploadWhenLatestNotRejected
+					/>
+				)}
 			</section>
 
 			<ApplicantPageFooter className="mt-16" />

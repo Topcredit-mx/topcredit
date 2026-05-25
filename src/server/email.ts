@@ -18,7 +18,6 @@ import { getLocationFromIP } from '~/lib/ip-location'
 import type { ApplicationStatus, DocumentType } from '~/server/db/schema'
 
 const resend = new Resend(env.RESEND_API_KEY)
-const INNGEST_EVENT_KEY = env.INNGEST_EVENT_KEY
 
 const DEFAULT_LOCALE = 'es'
 
@@ -268,10 +267,6 @@ export async function sendEmailFromEventData(
 
 async function sendEmailEvent(data: EmailEventData): Promise<void> {
 	if (env.E2E_OTP_CODE) return
-	if (!INNGEST_EVENT_KEY) {
-		await sendEmailFromEventData(data)
-		return
-	}
 	const { inngest } = await import('~/inngest/client')
 	switch (data.type) {
 		case 'application-submitted':

@@ -4,6 +4,7 @@ import {
 	cleanupInstallmentsOverdue,
 	seedInstallmentsOverdue,
 } from '~/e2e/server/tasks'
+import { expectAccessDenied } from '../helpers/access-denied'
 import { loginPage, setSelectedCompanyId } from '../helpers/auth'
 import { sumAmountStringsMxnE2e } from '../helpers/currency'
 import { mainDataTable } from '../helpers/interactions'
@@ -277,7 +278,7 @@ test.describe('Installments overdue page', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/installments/overdue')
-			await expect(page).toHaveURL(/\/unauthorized/)
+			await expectAccessDenied(page)
 		})
 	})
 })

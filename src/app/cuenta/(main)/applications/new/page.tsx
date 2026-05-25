@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
-
 import { ApplicantPageFooter } from '~/components/app/applicant-page-footer'
 import { ShellBackLink } from '~/components/ui/shell-back-link'
 import { shell } from '~/lib/shell'
 import { cn } from '~/lib/utils'
 import { getOrCreateIntakeApplicationDraft } from '~/server/applications/intake-draft'
 import { getAbility, requireAbility } from '~/server/auth/ability'
+import { accessDenied } from '~/server/auth/access-denied'
 import { getRequiredApplicantUser } from '~/server/auth/session'
 import {
 	getApplicationDocuments,
@@ -22,7 +22,7 @@ export default async function NewApplicationPage() {
 	const email = user.email ?? ''
 	const company = await getCompanyByEmailDomain(email)
 	if (!company) {
-		redirect('/unauthorized')
+		accessDenied()
 	}
 
 	const draft = await getOrCreateIntakeApplicationDraft({

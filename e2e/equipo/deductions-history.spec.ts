@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { SeedDeductionsQueueResult } from '~/e2e/server/tasks'
 import { cleanupDeductionsQueue, seedDeductionsQueue } from '~/e2e/server/tasks'
+import { expectAccessDenied } from '../helpers/access-denied'
 import { loginPage } from '../helpers/auth'
 import { registerDbSpecGuards } from '../helpers/spec-hooks'
 import {
@@ -184,7 +185,7 @@ test.describe('HR deduction confirmation history', () => {
 			page,
 		}) => {
 			await page.goto('/equipo/deductions/history')
-			await expect(page).toHaveURL(/\/unauthorized/)
+			await expectAccessDenied(page)
 		})
 	})
 })
