@@ -1,15 +1,26 @@
+import { AgentNoAssignmentsEmpty } from '~/components/app/agent-no-assignments-empty'
 import { EquipoAdminDashboard } from '~/components/app/equipo-admin-dashboard'
 import {
 	getAdminCompanyDashboard,
 	getAdminGlobalDashboard,
 } from '~/server/admin-dashboard-queries'
 import { getRequiredAgentUser } from '~/server/auth/session'
-import { getEffectiveSelectedCompanyId } from '~/server/scopes'
+import {
+	getCompaniesForSwitcher,
+	getEffectiveSelectedCompanyId,
+} from '~/server/scopes'
 
 export default async function AppPage() {
 	const user = await getRequiredAgentUser()
 	const selectedCompanyId = await getEffectiveSelectedCompanyId()
 	const isAdmin = user.roles?.includes('admin') ?? false
+
+	if (!isAdmin) {
+		const companies = await getCompaniesForSwitcher(user.id, false)
+		if (companies.length === 0) {
+			return <AgentNoAssignmentsEmpty />
+		}
+	}
 
 	if (isAdmin && selectedCompanyId === null) {
 		const data = await getAdminGlobalDashboard()

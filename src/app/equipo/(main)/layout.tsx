@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm'
-import { AgentNoAssignmentsEmpty } from '~/components/app/agent-no-assignments-empty'
 import { AgentSidebar } from '~/components/app/agent-sidebar'
 import { EquipoGlobalSearchDialog } from '~/components/app/equipo-global-search-dialog'
 import { AccessDeniedScreen } from '~/components/auth/access-denied-screen'
@@ -79,7 +78,7 @@ export default async function AppMainLayout({
 						</div>
 					</header>
 					<div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-gray-50 px-8 pt-0 pb-8">
-						{showNoAssignmentsEmpty ? <AgentNoAssignmentsEmpty /> : children}
+						{children}
 					</div>
 				</main>
 			</SidebarProvider>

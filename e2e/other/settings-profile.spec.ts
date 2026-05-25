@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { cleanupProfile, seedProfile } from '~/e2e/server/tasks'
 import { applicantUser } from '../fixtures/login.fixtures'
 import { loginPage } from '../helpers/auth'
-import { registerDbSpecGuards } from '../helpers/spec-hooks'
+import { registerDbSpecTeardown } from '../helpers/spec-hooks'
 
 const applicantSettingsProfile = '/cuenta/settings/profile'
 
@@ -11,11 +11,9 @@ test.beforeAll(async () => {
 	await seedProfile()
 })
 
-test.afterAll(async () => {
+registerDbSpecTeardown(async () => {
 	await cleanupProfile()
 })
-
-registerDbSpecGuards()
 
 test('redirects to login when accessing applicant settings profile unauthenticated', async ({
 	page,

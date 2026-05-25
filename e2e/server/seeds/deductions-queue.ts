@@ -21,6 +21,7 @@ import {
 	companies,
 	creditPayments,
 	credits,
+	queueBulkConfirmJobs,
 	termOfferings,
 	userCompanies,
 	userRoles,
@@ -703,6 +704,7 @@ export const seedDeductionsQueue = async (
 
 export const cleanupDeductionsQueue = async () => {
 	const db = getDb(process.env.DATABASE_URL || '')
+	await db.delete(queueBulkConfirmJobs)
 	await Promise.all(
 		allDeductionUsers.map((u) =>
 			db.delete(users).where(eq(users.email, u.email)),

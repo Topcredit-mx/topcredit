@@ -3,7 +3,7 @@ import type { SeedLoginFlowResult } from '~/e2e/server/tasks'
 import { cleanupLoginFlow, seedLoginFlow } from '~/e2e/server/tasks'
 import { agentUser, applicantUser } from '../fixtures/login.fixtures'
 import { loginPage } from '../helpers/auth'
-import { registerDbSpecGuards } from '../helpers/spec-hooks'
+import { registerDbSpecTeardown } from '../helpers/spec-hooks'
 
 let seed: SeedLoginFlowResult
 
@@ -11,11 +11,9 @@ test.beforeAll(async () => {
 	seed = await seedLoginFlow()
 })
 
-test.afterAll(async () => {
+registerDbSpecTeardown(async () => {
 	await cleanupLoginFlow({ termId: seed.termId })
 })
-
-registerDbSpecGuards()
 
 test('shows landing page to unauthenticated users', async ({ page }) => {
 	await page.goto('/')

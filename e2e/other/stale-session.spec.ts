@@ -10,7 +10,7 @@ import {
 	seedStaleSession,
 } from '~/e2e/server/tasks'
 import { expectSignedOutOnLogin, loginPage } from '../helpers/auth'
-import { registerDbSpecGuards } from '../helpers/spec-hooks'
+import { registerDbSpecTeardown } from '../helpers/spec-hooks'
 import {
 	staleSessionAdmin,
 	staleSessionAgent,
@@ -47,11 +47,9 @@ test.beforeEach(async () => {
 	})
 })
 
-test.afterAll(async () => {
+registerDbSpecTeardown(async () => {
 	await cleanupStaleSession({ termId: seed.termId })
 })
-
-registerDbSpecGuards()
 
 async function loginAndVisitHome(page: Page, email: string) {
 	await loginPage(page, email)
@@ -151,7 +149,7 @@ test.describe('Stale session after db nuke migrate and re-seed', () => {
 		).toBeVisible()
 
 		await nukeMigrateDb()
-		await seedStaleSession()
+		seed = await seedStaleSession()
 
 		await page.reload()
 		await expectSignedOutOnLogin(page)
@@ -166,7 +164,7 @@ test.describe('Stale session after db nuke migrate and re-seed', () => {
 		).toBeVisible()
 
 		await nukeMigrateDb()
-		await seedStaleSession()
+		seed = await seedStaleSession()
 
 		await page.reload()
 		await expectSignedOutOnLogin(page)

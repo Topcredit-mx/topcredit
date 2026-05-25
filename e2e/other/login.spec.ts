@@ -13,7 +13,7 @@ import {
 } from '../fixtures/login.fixtures'
 import { expectAccessDenied } from '../helpers/access-denied'
 import { loginPage } from '../helpers/auth'
-import { registerDbSpecGuards } from '../helpers/spec-hooks'
+import { registerDbSpecTeardown } from '../helpers/spec-hooks'
 
 let seed: SeedLoginFlowResult
 
@@ -21,11 +21,9 @@ test.beforeAll(async () => {
 	seed = await seedLoginFlow()
 })
 
-test.afterAll(async () => {
+registerDbSpecTeardown(async () => {
 	await cleanupLoginFlow({ termId: seed.termId })
 })
-
-registerDbSpecGuards()
 
 test('accesses applicant cuenta after login', async ({ page }) => {
 	await loginPage(page, applicantUser.email)
